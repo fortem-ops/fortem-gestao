@@ -22,6 +22,8 @@ function statusInfo(status: string) {
       return { icon: AlertCircle, cor: "text-destructive", bg: "bg-destructive/10", label: "Atrasado" };
     case "cancelado":
       return { icon: XCircle, cor: "text-muted-foreground", bg: "bg-muted/30", label: "Cancelado" };
+    case "estornado":
+      return { icon: XCircle, cor: "text-orange-400", bg: "bg-orange-500/10", label: "Estornado" };
     default:
       return { icon: Clock, cor: "text-muted-foreground", bg: "bg-muted/50", label: status };
   }

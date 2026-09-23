@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
-
-const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.useredecloud.com.br/v2",
-  producao: "https://api.userede.com.br/erede/v2",
-};
+import { executarRefundRede, loadRedeSecrets, redeBaseUrl } from "../_shared/rede-refund.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,48 +9,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-async function loadSecrets(supabase: any): Promise<Record<string, string>> {
-  const m: Record<string, string> = {};
-
-  // 1. Variáveis de ambiente primeiro (Edge Function Secrets — mais confiável)
-  const envPv      = Deno.env.get("REDE_PV")       ?? "";
-  const envToken   = Deno.env.get("REDE_TOKEN")    ?? "";
-  const envAmbient = Deno.env.get("REDE_AMBIENTE") ?? "";
-
-  if (envPv)      m["rede_pv"]       = envPv;
-  if (envToken)   m["rede_token"]    = envToken;
-  if (envAmbient) m["rede_ambiente"] = envAmbient;
-
-  if (m["rede_pv"] && m["rede_token"]) {
-    if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
-    return m;
-  }
-
-  // 2. Fallback: Supabase Vault
-  try {
-    const { data, error } = await supabase
-      .schema("vault")
-      .from("decrypted_secrets")
-      .select("name, decrypted_secret")
-      .in("name", ["rede_pv", "rede_token", "rede_ambiente"]);
-
-    if (!error && data?.length > 0) {
-      data.forEach((s: any) => { if (s.decrypted_secret) m[s.name] = s.decrypted_secret; });
-    }
-  } catch { /* ignore */ }
-
-  if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
-
-  return m;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   const authHeader = req.headers.get("Authorization");
@@ -89,10 +50,8 @@ serve(async (req) => {
     }), { status: 400, headers });
   }
 
-  const secrets = await loadSecrets(supabase);
-  const pv = secrets["rede_pv"], token = secrets["rede_token"];
-  const ambiente = secrets["rede_ambiente"] as "sandbox" | "producao" ?? "sandbox";
-  const baseUrl = REDE_URLS[ambiente] ?? REDE_URLS.sandbox;
+  const { pv, token, ambiente } = await loadRedeSecrets(supabase);
+  const baseUrl = redeBaseUrl(ambiente);
 
   let accessToken: string;
   try {
@@ -105,56 +64,40 @@ serve(async (req) => {
     }), { status: 502, headers });
   }
 
-  let redeResponse: any = null;
-  let redeStatus = 0;
-  let redeBodyText = "";
-  try {
-    console.log(`[rede-cancelar] estornando tid=${tid} amount=${amountCents} (centavos) ambiente=${ambiente}`);
-    const resp = await fetch(`${baseUrl}/transactions/${tid}/refunds`, {
-      method: "POST",
-      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: amountCents }),
-    });
-    redeStatus = resp.status;
-    redeBodyText = await resp.text();
-    try { redeResponse = JSON.parse(redeBodyText); } catch { redeResponse = { rawText: redeBodyText }; }
-    console.log(
-      `[rede-cancelar] resposta Rede http=${redeStatus} returnCode=${redeResponse?.returnCode ?? "-"} returnMessage=${redeResponse?.returnMessage ?? redeBodyText.slice(0, 300)}`
-    );
-  } catch (e) {
+  const r = await executarRefundRede({
+    accessToken,
+    baseUrl,
+    tid,
+    amountCents,
+    logPrefix: "[rede-cancelar]",
+  });
+
+  if (r.transportError) {
     return new Response(JSON.stringify({
       success: false,
       error: "Erro de comunicação com a Rede ao estornar",
-      detalhe: String(e),
-      rede_http_status: redeStatus,
-      rede_body: redeBodyText.slice(0, 1000),
+      detalhe: r.transportError,
+      rede_http_status: r.httpStatus,
+      rede_body: r.rawText.slice(0, 1000),
     }), { status: 502, headers });
   }
 
-  // A Rede retorna "00" em algumas APIs e "359"/"360" para estorno bem-sucedido
-  const REFUND_SUCCESS_CODES = ["00", "359", "360"];
-  const returnCode = String(redeResponse?.returnCode ?? "");
-  const estornado = REFUND_SUCCESS_CODES.includes(returnCode);
+  console.log(
+    `[rede-cancelar] resposta Rede http=${r.httpStatus} returnCode=${r.returnCode ?? "-"} returnMessage=${r.returnMessage ?? r.rawText.slice(0, 300)}`,
+  );
 
-  if (!estornado && redeStatus >= 200 && redeStatus < 300) {
-    console.warn(
-      `[rede-cancelar] HTTP 2xx com returnCode não reconhecido: http=${redeStatus} returnCode=${returnCode} returnMessage=${redeResponse?.returnMessage ?? redeBodyText.slice(0, 500)}`
-    );
-  }
-
-  if (estornado) {
+  if (r.ok) {
     await supabase.from("vendas").update({ status_pagamento: "estornado" }).eq("id", venda_id);
     await supabase.from("pagamentos_rede").update({ status: "refunded" }).eq("tid", tid);
   }
 
   return new Response(JSON.stringify({
-    success: estornado,
-    return_code: redeResponse?.returnCode,
-    return_message: redeResponse?.returnMessage
-      ?? (estornado ? undefined : redeBodyText.slice(0, 300)),
-    ...(estornado ? {} : {
-      rede_http_status: redeStatus,
-      rede_body: redeBodyText.slice(0, 1000),
+    success: r.ok,
+    return_code: r.returnCode,
+    return_message: r.returnMessage ?? (r.ok ? undefined : r.rawText.slice(0, 300)),
+    ...(r.ok ? {} : {
+      rede_http_status: r.httpStatus,
+      rede_body: r.rawText.slice(0, 1000),
     }),
   }), { status: 200, headers });
 });

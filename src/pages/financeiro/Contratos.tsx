@@ -43,10 +43,11 @@ const PAG_VARIANT: Record<StatusPagamento, string> = {
   pago:         'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30',
   pendente:     'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
   vencida:      'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30',
+  estornado:    'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30',
   sem_cobranca: 'bg-muted text-muted-foreground border-border',
 };
 const PAG_LABEL: Record<StatusPagamento, string> = {
-  pago: 'Pago', pendente: 'Pendente', vencida: 'Vencida', sem_cobranca: '—',
+  pago: 'Pago', pendente: 'Pendente', vencida: 'Vencida', estornado: 'Estornado', sem_cobranca: '—',
 };
 
 /** Planos sem mensalidade fixa — ocultos nesta listagem (inclui VIP, mapeado como 'outro'). */

@@ -4570,6 +4570,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          idempotency_key: string | null
           installments: number
           kind: string
           nsu: string | null
@@ -4588,6 +4589,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          idempotency_key?: string | null
           installments?: number
           kind?: string
           nsu?: string | null
@@ -4606,6 +4608,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          idempotency_key?: string | null
           installments?: number
           kind?: string
           nsu?: string | null
@@ -8717,6 +8720,16 @@ export type Database = {
         Args: { _beneficio_id: string; _token: string }
         Returns: Json
       }
+      fn_cobranca_saldo_estornavel: {
+        Args: { _cobranca_id: string }
+        Returns: {
+          cobranca_id: string
+          saldo_estornavel: number
+          tid: string
+          total_estornado: number
+          valor_pago: number
+        }[]
+      }
       fn_comissao_af_ativa: { Args: never; Returns: boolean }
       fn_comissao_valor: {
         Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
@@ -8827,6 +8840,32 @@ export type Database = {
           p_variante_id: string
         }
         Returns: number
+      }
+      fn_estorno_cancelar_reserva: {
+        Args: { _pagamento_id: string }
+        Returns: undefined
+      }
+      fn_estorno_confirmar: {
+        Args: {
+          _authorization_code: string
+          _motivo: string
+          _nsu: string
+          _pagamento_id: string
+          _raw: Json
+          _return_code: string
+          _return_message: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      fn_estorno_reservar: {
+        Args: {
+          _cobranca_id: string
+          _idempotency_key: string
+          _user_id: string
+          _valor: number
+        }
+        Returns: Json
       }
       fn_excluir_horario_fixo: {
         Args: { p_horario_fixo_id: string }

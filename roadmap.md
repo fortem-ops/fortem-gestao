@@ -27,4 +27,5 @@
 - [x] Corrigir a exibição de total e parcela dos contratos usando venda e modalidade reais.
 - [x] Fase 0: ambiente configurado da Rede confirmado — produção.
 - [x] Fase 1: trava global da cobrança automática no cartão (sistema_config + aviso e interruptor admin).
-- [ ] Fase 2 (aguardando confirmação): ação "Estornar cobrança" com estorno total/parcial e comprovante.
+- [x] Fase 2: ação "Estornar cobrança" (total/parcial), comprovante e idempotência.
+- [x] Fase 3: status "Estornado" na auditoria fiscal, relatórios e telas financeiras.

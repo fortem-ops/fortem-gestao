@@ -27,6 +27,8 @@ import {
   CheckCircle,
   Calendar,
   Link as LinkIcon,
+  Undo2,
+  ReceiptText,
 } from "lucide-react";
 import {
   Dialog,
@@ -64,6 +66,11 @@ import {
 } from "@/lib/formasRecebimento";
 import { propagarBaixaParaVenda } from "@/lib/baixaVenda";
 import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
+import { EstornarCobrancaDialog } from "@/components/financeiro/EstornarCobrancaDialog";
+import { ComprovanteEstornoDialog } from "@/components/financeiro/ComprovanteEstornoDialog";
+import { useEstornosDoContrato, type EstornoRegistro } from "@/hooks/useEstorno";
+import type { ComprovanteEstornoDados } from "@/lib/estornoPdf";
+
 
 
 
@@ -82,6 +89,13 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: roles } = useUserRoles();
+  const { data: alunoNome = "" } = useQuery({
+    queryKey: ["aluno-nome", alunoId],
+    queryFn: async () => {
+      const { data } = await supabase.from("alunos").select("nome").eq("id", alunoId).maybeSingle();
+      return data?.nome ?? "";
+    },
+  });
   const podeCancelar = !!(roles?.isAdmin || roles?.isCoordAdmin);
 
   const [rescContrato, setRescContrato] = useState<Contrato | null>(null);
@@ -274,6 +288,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           forma_pagamento: forma.value,
           gateway: forma.gateway,
           meio_registro: "manual_admin",
+          // Cobrança estornada: o recebimento manual não pode herdar a
+          // transação de cartão já estornada (o histórico fica em pagamentos_rede).
+          ...(baixaCobranca.status === "estornado" ? { tid: null } : {}),
         })
         .eq("id", baixaCobranca.id);
 
@@ -335,6 +352,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
               venda={c.plano_id ? vendaPorPlano.get(c.plano_id) : undefined}
               rotulo={rotulo}
               podeCancelar={podeCancelar}
+              isAdmin={!!roles?.isAdmin}
+              alunoNome={alunoNome}
               onCancelar={() => setRescContrato(c)}
               onPedirBaixa={pedirBaixa}
             />
@@ -474,14 +493,18 @@ interface ContratoAtivoCardProps {
   venda?: VendaVinculada;
   rotulo: { label: string; variant: "default" | "secondary" | "outline" } | null;
   podeCancelar: boolean;
+  isAdmin: boolean;
+  alunoNome: string;
   onCancelar: () => void;
   onPedirBaixa: (cobranca: any) => void;
 }
 
-function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
+function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alunoNome, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
   const [alterarOpen, setAlterarOpen] = useState(false);
   const { toast } = useToast();
   const [copiandoLink, setCopiandoLink] = useState(false);
+  const [estornoCobranca, setEstornoCobranca] = useState<any | null>(null);
+  const [comprovante, setComprovante] = useState<ComprovanteEstornoDados | null>(null);
 
   const { data: contratoDoc } = useQuery({
     queryKey: ["contrato-documento", contrato.id],
@@ -562,6 +585,29 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, 
   });
 
   const proxCob = cobrancas.find((c) => c.status === "pendente");
+
+  // Estornos já confirmados (selo na linha e reabertura do comprovante)
+  const { data: estornosPorCobranca = {} } = useEstornosDoContrato(
+    cobrancas.map((c: any) => c.id),
+  );
+
+  const abrirComprovante = (c: any, registro: EstornoRegistro) => {
+    setComprovante({
+      aluno_nome: alunoNome,
+      numero_ciclo: c.numero_ciclo,
+      valor_estornado: registro.valor,
+      valor_original: Number(c.valor),
+      integral: c.status === "estornado",
+      tid: registro.tid,
+      nsu: registro.nsu,
+      authorization_code: registro.authorization_code,
+      return_code: registro.return_code,
+      return_message: registro.return_message,
+      motivo: registro.motivo ?? "—",
+      executado_em: registro.created_at,
+      executado_por_nome: registro.executado_por_nome ?? "Administrador",
+    });
+  };
 
   // Cobranças com tentativa automática de cartão recusada e ainda não quitadas
   const cobrancasRecusadas = cobrancas.filter(
@@ -748,7 +794,15 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cobrancas.map((c, idx) => (
+              {cobrancas.map((c, idx) => {
+                const estornos = estornosPorCobranca[c.id] ?? [];
+                const totalEstornado = estornos.reduce((s, e) => s + e.valor, 0);
+                const estornoParcial = totalEstornado > 0 && c.status !== "estornado";
+                const podeEstornar =
+                  isAdmin && c.gateway === "rede" && !!c.tid &&
+                  (c.status === "pago" || estornoParcial) &&
+                  totalEstornado < Number(c.valor) - 0.001;
+                return (
                 <TableRow key={c.id} className={c.status === "pago" ? "opacity-60" : ""}>
                   <TableCell className="text-center text-xs text-muted-foreground font-mono">{idx + 1}</TableCell>
                   <TableCell className="whitespace-nowrap">{fmtDate(c.data_vencimento)}</TableCell>
@@ -763,6 +817,8 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, 
                           ? "bg-red-600 hover:bg-red-600"
                           : c.status === "cancelado"
                           ? "bg-gray-500 hover:bg-gray-500"
+                          : c.status === "estornado"
+                          ? "bg-orange-600 hover:bg-orange-600"
                           : "bg-yellow-500 hover:bg-yellow-500 text-black"
                       }
                     >
@@ -770,8 +826,17 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, 
                        c.status === "pendente" ? "Pendente" :
                        c.status === "atrasado" ? "Atrasado" :
                        c.status === "cancelado" ? "Cancelado" :
+                       c.status === "estornado" ? "Estornado" :
                        c.status}
                     </Badge>
+                    {estornoParcial && (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 block w-fit border-orange-500 text-orange-600"
+                      >
+                        Estorno parcial {fmt(totalEstornado)} de {fmt(Number(c.valor))}
+                      </Badge>
+                    )}
                     {Number((c as any).tentativas ?? 0) > 0 && (c as any).status !== "pago" && (
                       <Badge
                         variant="outline"
@@ -791,22 +856,48 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, 
                   </TableCell>
                   {podeCancelar && (
                     <TableCell className="text-right">
-                      {(c.status === "pendente" || c.status === "atrasado") && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
-                          onClick={() => onPedirBaixa(c)}
-                        >
-                          <CheckCircle className="h-3 w-3" />
-                          Dar baixa
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {(c.status === "pendente" || c.status === "atrasado" || c.status === "estornado") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                            onClick={() => onPedirBaixa(c)}
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            Dar baixa
+                          </Button>
+                        )}
+                        {podeEstornar && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 border-orange-500 text-orange-600 hover:bg-orange-50"
+                            onClick={() => setEstornoCobranca(c)}
+                          >
+                            <Undo2 className="h-3 w-3" />
+                            Estornar
+                          </Button>
+                        )}
+                        {estornos.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => abrirComprovante(c, estornos[estornos.length - 1])}
+                          >
+                            <ReceiptText className="h-3 w-3" />
+                            Comprovante
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
+
           </Table>
         )}
       </Card>
@@ -816,6 +907,40 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, 
         onOpenChange={setAlterarOpen}
         contratoId={contrato.id}
         cobrancas={cobrancas}
+      />
+
+      {estornoCobranca && (
+        <EstornarCobrancaDialog
+          open={!!estornoCobranca}
+          onOpenChange={(o) => !o && setEstornoCobranca(null)}
+          cobranca={estornoCobranca}
+          alunoNome={alunoNome}
+          onEstornado={(comp) => {
+            setEstornoCobranca(null);
+            setComprovante({
+              aluno_nome: alunoNome,
+              numero_ciclo: comp.numero_ciclo,
+              valor_estornado: Number(comp.valor_estornado),
+              valor_original: Number(comp.valor_original),
+              total_estornado: Number(comp.total_estornado),
+              integral: comp.integral,
+              tid: comp.tid,
+              nsu: comp.nsu,
+              authorization_code: comp.authorization_code,
+              return_code: comp.return_code,
+              return_message: comp.return_message,
+              motivo: comp.motivo,
+              executado_em: comp.executado_em,
+              executado_por_nome: "Administrador",
+            });
+          }}
+        />
+      )}
+
+      <ComprovanteEstornoDialog
+        dados={comprovante}
+        open={!!comprovante}
+        onOpenChange={(o) => !o && setComprovante(null)}
       />
     </div>
   );
