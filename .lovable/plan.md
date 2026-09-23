@@ -12,9 +12,14 @@
    - Depois das 21:00 a marcação continua podendo ser corrigida à mão: dá para trocar para "Falta" ou desfazer.
    - As presenças automáticas ficam identificáveis ("Presença automática 21:00"), sem profissional como autor.
 
-## Ponto de atenção (sua decisão)
+3. **Treino experimental fica só com marcação manual** (decidido)
+   A presença automática não vale para experimentais, porque a presença neles move a pessoa no funil.
 
-Hoje, quando um **treino experimental** recebe presença, o sistema move a pessoa automaticamente no funil (de lead para prospect). Com a presença automática, quem faltou a um experimental e não teve a falta marcada também seria movido. Proposta: **a presença automática não vale para agendamentos de treino experimental**; esses continuam só com marcação manual. Se preferir incluir, é só dizer.
+4. **Dias passados sem marcação recebem "Presente"** (feito uma única vez)
+   - Todo agendamento com aluno, de dias já encerrados até ontem, que ficou sem presença ou falta recebe "Presente", com a nota "Presença retroativa".
+   - Seguem as mesmas regras: não toca no que foi marcado à mão, pula exceções da agenda e experimentais.
+   - Para horários fixos, só conta a partir do dia em que o horário foi criado, para não inventar aulas antes de o aluno estar na agenda.
+   - Antes de gravar, confiro quantas presenças seriam criadas. Se o número parecer fora do esperado, paro e te mostro antes.
 
 ## Detalhes técnicos
 
@@ -24,5 +29,6 @@ Hoje, quando um **treino experimental** recebe presença, o sistema move a pesso
   - `aluno_id` não nulo; experimentais excluídos (conforme a decisão acima);
   - `ON CONFLICT (agenda_id, data) DO NOTHING`, para nunca sobrescrever uma marcação manual.
 - Agendamento: novo job `presencas-auto-21h` com `0 0 * * *` (00:00 UTC = 21:00 em Brasília; o Brasil não tem horário de verão). Sem mexer em nenhum outro job, nem no job 28, que segue desligado.
+- Retroativo: carga única de dados com a mesma lógica, para cada data entre `created_at::date` do agendamento (fixos) ou `data_especifica` (avulsos) e ontem, observação 'Presença retroativa', `ON CONFLICT DO NOTHING`. Antes, contagem com a transação desfeita.
 - Créditos, cobranças e agendamentos não são alterados. A presença não desconta crédito; o desconto já acontece no agendamento.
 - Verificação: teste da função com a transação desfeita (contagem do que seria inserido hoje) e conferência de que as marcações manuais continuam intactas.
