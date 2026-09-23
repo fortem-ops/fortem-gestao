@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShieldCheck } from "lucide-react";
+import { CobrancaAutomaticaCard } from "./CobrancaAutomaticaCard";
 
 interface Certificado {
   id: string;
@@ -122,6 +123,7 @@ export function AdminIntegracoes() {
 
   return (
     <div className="space-y-4">
+      <CobrancaAutomaticaCard />
       <p className="text-sm text-muted-foreground">
         Validade dos certificados usados nas integrações. A auditoria avisa automaticamente quando a data
         estiver próxima.
