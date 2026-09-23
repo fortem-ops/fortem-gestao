@@ -1,21 +1,43 @@
-# Regularizar contrato e pagamentos da Sofia Robin
+# Fiscal de Contratos — nova categoria "contratos" na Auditoria
 
-## Causa
-- A venda do Start+ (20/08/2026, R$ 4.788, recorrência mensal, cartão online) ficou **pendente** — o pagamento nunca foi registrado no sistema (nenhum registro de cartão na Rede para essa venda).
-- Como o contrato de recorrência só nasce quando a primeira parcela é aprovada, ela ficou com **0 contratos e 0 cobranças** — por isso a aba Contrato está vazia.
-- Ela tem 3 registros de plano Start+ (2 inativos, 1 ativo criado em 17/09 sem data de fim). É também por isso que ela aparece no Fiscal de Pipeline como "ganho sem contrato".
+## Como funciona hoje (levantado no banco)
 
-## O que será feito (só dados, nenhuma cobrança na Rede)
-1. Conferir antes, só leitura: o valor mensal (R$ 4.788 / 12 = R$ 399) e o plano ativo certo (usar a função oficial de plano ativo).
-2. Criar o contrato de recorrência com a função oficial já usada pelo sistema: início 20/08/2026, R$ 399/mês, cartão de crédito, primeira parcela marcada como paga.
-3. Dar baixa manual na parcela de 20/09/2026 (cartão de crédito online), sem TID, como recebimento manual.
-4. Marcar a venda como paga e ligar o plano ativo ao contrato (data de fim 20/08/2027).
-5. Não gerar nenhuma cobrança nova nem mexer na trava da recorrência (continua desligada). A próxima parcela (20/10) fica em aberto.
-6. Conferir o resultado no banco (contrato, 12 parcelas, 2 pagas) e na tela; rodar o Fiscal de Pipeline e resolver o alerta "ganho sem contrato" da Sofia.
+- **Aceite**: não fica na tabela de contratos. Cada contrato gera um **documento** (`contratos_documentos`) com o texto gerado, `aceite` (sim/não), `data_aceite`, `formato_aceite`, IP e assinatura. O "Copiar link de aceite" cria um registro em `links_contrato` (token, validade, usado), ligado ao documento.
+- **Anexos Jurídicos** (`legal_annexes`): NÃO têm vínculo com contrato — só com o aluno. São fichas de saúde/uso de imagem/termo experimental (34 "anexo", 2 "experimental", de 11 alunos). Não servem como "anexo do contrato".
+- Portanto o "documento do contrato" real é o `contratos_documentos`. Não existe PDF assinado guardado; o aceite é eletrônico (texto + data + IP + assinatura).
 
-## Ponto de atenção
-Como os pagamentos foram feitos fora do sistema, não haverá número de transação (TID) nessas duas parcelas. Se você tiver os TIDs da Rede, posso gravá-los.
+Números atuais (contratos ativos/suspensos, sem TotalPass/Gympass = 144):
+- 85 sem nenhum documento gerado (60 antigos, com mais de 90 dias; 25 recentes)
+- 46 com documento mas sem aceite
+- 13 com aceite registrado
+- TotalPass/Gympass ativos: 62, quase todos sem documento (fluxo da agregadora).
+
+## Checagens propostas
+
+1. **contrato_sem_documento** — contrato ativo/suspenso sem nenhum documento gerado.
+2. **aceite_pendente** — contrato ativo/suspenso com documento, sem aceite, criado há mais de N dias.
+3. (opcional) **anexo_saude_ausente** — aluno com contrato ativo sem ficha de Anexo Jurídico válida. Só se você quiser; hoje quase nenhum aluno tem, então nasceria com ~150 alertas.
+
+Regras comuns: ignora contratos cancelados/encerrados, ignora TotalPass/Gympass, não altera nenhum contrato, documento ou aceite — só registra o alerta. Resolve sozinho quando o documento/aceite aparecer (mesmo padrão dos outros fiscais).
+
+## Decisões que preciso de você
+
+1. **Carência do aceite pendente**: sugiro **7 dias** após a criação do documento.
+2. **Severidade**: sugiro aceite pendente = **atenção** até 30 dias e **crítico** acima de 30 dias com contrato ativo (peso jurídico); sem documento = **atenção**.
+3. **Contratos antigos sem documento (60, anteriores ao sistema de aceite)**: (a) alertar todos, (b) só contratos criados a partir de uma data de corte (sugiro a data do primeiro documento gerado no sistema), ou (c) alertar antigos como informativo.
+4. **Corrida** (12 com documento, 8 sem aceite): entra normalmente? Sugiro sim.
+5. **Checagem 3 (ficha de saúde/Anexo Jurídico)**: incluir ou deixar de fora? Sugiro deixar de fora nesta versão.
+
+## O que será feito (após aprovação)
+
+- Função nova `fn_auditoria_fiscal_contratos()` com as checagens decididas; antes de gravar, rodo a lógica só como consulta e mostro a lista de casos.
+- Incluída no job diário (cron 33), junto dos quatro fiscais atuais, e na função que o job chama.
+- Tela Auditoria, widget do Dashboard e contador do menu ganham a categoria "Contratos".
 
 ## Detalhes técnicos
-- Venda 5121785d-998f-4a46-a5be-88c3818e5def; plano ativo 797981cc-...; aluno 580c7ac6-....
-- `fn_criar_contrato_recorrencia(p_venda_id, p_aluno_id, p_plano_id, 399, 20, '2026-08-20', 'cartao_credito', null, true)` via run_sql (após SELECT de pré-checagem), depois update da cobrança do ciclo 2 para pago (tid null) e `vendas.status_pagamento='pago'`, respeitando idempotência (verificar antes que não existe contrato).
+
+- Migração nomeada `fiscal_contratos`: função SECURITY DEFINER, search_path=public, EXECUTE só service_role (revogada de PUBLIC/anon); grava em `auditoria_inconsistencias` com categoria `contratos`, subtipos acima, `registros_afetados` com contrato_id, documento_id, aluno, data de criação, dias pendentes, link de aceite (existe/expirado).
+- Documento considerado = o mais recente por contrato (`contratos_documentos` order by created_at desc).
+- Exclusão por `coalesce(plano_tipo,'') not in ('totalpass','gympass')`.
+- Alteração do cron 33 via `cron.alter_job` só no comando, mantendo horário; edge `auditoria-fiscal-pagamentos` passa a devolver `resultado_contratos` e é redeployada.
+- Frontend: `src/pages/Auditoria.tsx`, `src/components/dashboard/AuditoriaWidget.tsx` (filtro/painel/rótulos). Nada de Rede, cobranças, recorrência ou grants de outras funções.
