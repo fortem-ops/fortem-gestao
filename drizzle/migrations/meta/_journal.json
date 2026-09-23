@@ -239,6 +239,13 @@
       "when": 1790170564865,
       "tag": "0033_agenda_credito_em_edicao",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790171324480,
+      "tag": "0034_pipeline_triggers_tolerantes_etapas_inativas",
+      "breakpoints": true
     }
   ]
 }
