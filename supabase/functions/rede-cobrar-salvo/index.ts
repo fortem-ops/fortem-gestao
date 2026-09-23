@@ -26,6 +26,11 @@ import {
 import { cobrarComToken, motivoRecusaLegivel } from "../_shared/rede-recorrencia-core.ts";
 import { atualizarVendaEParcelas, criarContratoPosAprovacao } from "../_shared/venda-pos-aprovacao.ts";
 import { validarCobrancaSalvo } from "../_shared/cobrar-salvo-validacao.ts";
+import {
+  decidirConflitoReserva,
+  isUniqueViolation,
+  respostaIdempotente,
+} from "../_shared/cobrar-salvo-reserva.ts";
 
 const MAX_TENTATIVAS = 5;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
