@@ -232,6 +232,13 @@
       "when": 1790167723343,
       "tag": "0032_fn_auditoria_fiscal_creditos",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790170564865,
+      "tag": "0033_agenda_credito_em_edicao",
+      "breakpoints": true
     }
   ]
 }
