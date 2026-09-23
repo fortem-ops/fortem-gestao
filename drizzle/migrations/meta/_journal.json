@@ -302,6 +302,13 @@
       "when": 1790182364334,
       "tag": "0042_fn_cartoes_cobraveis",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790183318073,
+      "tag": "0043_uniq_pagamentos_rede_venda_ativa",
+      "breakpoints": true
     }
   ]
 }
