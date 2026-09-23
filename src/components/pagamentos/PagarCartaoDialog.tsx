@@ -147,7 +147,7 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
         setTravado(true);
         setResultado({
           status: "pending",
-          msg: r.error ?? r.motivo ?? "Resultado incerto — confira na Rede antes de tentar de novo.",
+          msg: r.motivo ?? r.error ?? "Resultado incerto — confira na Rede antes de tentar de novo.",
         });
         return;
       }
