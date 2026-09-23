@@ -6996,6 +6996,30 @@ export type Database = {
         }
         Relationships: []
       }
+      sistema_config: {
+        Row: {
+          chave: string
+          descricao: string | null
+          updated_at: string
+          updated_by: string | null
+          valor: Json
+        }
+        Insert: {
+          chave: string
+          descricao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor: Json
+        }
+        Update: {
+          chave?: string
+          descricao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor?: Json
+        }
+        Relationships: []
+      }
       student_workout_progress: {
         Row: {
           aluno_id: string
