@@ -620,6 +620,66 @@ export type Database = {
         }
         Relationships: []
       }
+      auditoria_inconsistencias: {
+        Row: {
+          aluno_id: string | null
+          categoria: string
+          descricao: string
+          detectado_em: string
+          id: string
+          nota_resolucao: string | null
+          registros_afetados: Json
+          resolvido_em: string | null
+          resolvido_por: string | null
+          severidade: string
+          status: string
+          subtipo: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          categoria: string
+          descricao: string
+          detectado_em?: string
+          id?: string
+          nota_resolucao?: string | null
+          registros_afetados?: Json
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          status?: string
+          subtipo: string
+        }
+        Update: {
+          aluno_id?: string | null
+          categoria?: string
+          descricao?: string
+          detectado_em?: string
+          id?: string
+          nota_resolucao?: string | null
+          registros_afetados?: Json
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          status?: string
+          subtipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_inconsistencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_inconsistencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       avaliacao_anexos: {
         Row: {
           avaliacao_id: string
@@ -3502,6 +3562,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      integracao_certificados: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          chave: string
+          created_at: string
+          data_validade: string | null
+          descricao: string | null
+          dias_alerta: number
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          chave: string
+          created_at?: string
+          data_validade?: string | null
+          descricao?: string | null
+          dias_alerta?: number
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          chave?: string
+          created_at?: string
+          data_validade?: string | null
+          descricao?: string | null
+          dias_alerta?: number
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       inter_cob_tokens: {
         Row: {

@@ -183,6 +183,13 @@
       "when": 1790090069595,
       "tag": "0025_rls_storage_leitura_escopada",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790160211062,
+      "tag": "0026_create_auditoria_inconsistencias",
+      "breakpoints": true
     }
   ]
 }
