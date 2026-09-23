@@ -246,6 +246,13 @@
       "when": 1790171324480,
       "tag": "0034_pipeline_triggers_tolerantes_etapas_inativas",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790175227620,
+      "tag": "0035_auditoria_uniq_qualquer_status",
+      "breakpoints": true
     }
   ]
 }
