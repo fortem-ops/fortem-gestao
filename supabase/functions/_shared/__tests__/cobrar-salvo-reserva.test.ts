@@ -3,6 +3,7 @@ import {
   respostaIdempotente,
   decidirConflitoReserva,
   isUniqueViolation,
+  classificarResultadoTransacao,
 } from "../cobrar-salvo-reserva";
 
 describe("respostaIdempotente", () => {
