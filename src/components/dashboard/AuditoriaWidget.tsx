@@ -8,6 +8,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
   pagamento: "Pagamentos",
   integracao: "Integrações",
   creditos: "Créditos",
+  agenda_servicos: "Agenda de Serviços",
 };
 
 export function AuditoriaWidget() {
