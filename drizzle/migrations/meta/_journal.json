@@ -309,6 +309,13 @@
       "when": 1790183318073,
       "tag": "0043_uniq_pagamentos_rede_venda_ativa",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1790195804068,
+      "tag": "0044_fix_auditoria_creditos_ajuste_uso",
+      "breakpoints": true
     }
   ]
 }
