@@ -145,6 +145,23 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const historico = contratos.filter(
     (c) => !(STATUS_ATIVOS as readonly string[]).includes(c.status),
   );
+  const historicoIds = historico.map((c) => c.id);
+
+  // Mensalidades ainda em aberto em contratos encerrados/cancelados (permite dar baixa).
+  const { data: cobrancasHistorico = [] } = useQuery({
+    queryKey: ["cobrancas-historico", alunoId, historicoIds.join(",")],
+    enabled: historicoIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cobrancas")
+        .select("*")
+        .in("contrato_id", historicoIds)
+        .in("status", ["pendente", "atrasado", "estornado"])
+        .order("data_vencimento", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
 
   if (isLoading) {
     return (
@@ -317,6 +334,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       qc.invalidateQueries({ queryKey: ["inadimplencias-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["inadimplencias", "abertas"] });
+      qc.invalidateQueries({ queryKey: ["cobrancas-historico", alunoId] });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
@@ -380,20 +398,51 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             {historico.map((c) => {
               const venda = c.plano_id ? vendaPorPlano.get(c.plano_id) : undefined;
               const valores = calcularValoresContrato(c, venda);
+              const abertas = cobrancasHistorico.filter((cb) => cb.contrato_id === c.id);
               return (
-              <Card key={c.id} className="p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Badge className={LABEL_STATUS[c.status]?.color ?? "bg-gray-500"}>
-                    {LABEL_STATUS[c.status]?.label ?? c.status}
-                  </Badge>
-                  <span>{LABEL_PLANO[c.plano_tipo] ?? c.plano_tipo}</span>
-                  <span className="text-muted-foreground">
-                    {fmtDate(c.data_inicio)} → {fmtDate(c.data_fim)}
+              <Card key={c.id} className="p-3 text-sm space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Badge className={LABEL_STATUS[c.status]?.color ?? "bg-gray-500"}>
+                      {LABEL_STATUS[c.status]?.label ?? c.status}
+                    </Badge>
+                    <span>{LABEL_PLANO[c.plano_tipo] ?? c.plano_tipo}</span>
+                    <span className="text-muted-foreground">
+                      {fmtDate(c.data_inicio)} → {fmtDate(c.data_fim)}
+                    </span>
+                    {abertas.length > 0 && (
+                      <Badge variant="outline" className="border-destructive text-destructive">
+                        {abertas.length} mensalidade(s) em aberto
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="font-medium">
+                    {valores.recorrente ? `${fmt(valores.parcela)}/mês` : `${fmt(valores.total)} total`}
                   </span>
                 </div>
-                <span className="font-medium">
-                  {valores.recorrente ? `${fmt(valores.parcela)}/mês` : `${fmt(valores.total)} total`}
-                </span>
+                {abertas.length > 0 && (
+                  <ul className="space-y-1 border-t pt-2">
+                    {abertas.map((cb) => (
+                      <li key={cb.id} className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          Venc. {fmtDate(cb.data_vencimento)} · {fmt(Number(cb.valor))} ·{" "}
+                          {cb.status === "atrasado" ? "Atrasado" : cb.status === "estornado" ? "Estornado" : "Pendente"}
+                        </span>
+                        {podeCancelar && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                            onClick={() => pedirBaixa(cb)}
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            Dar baixa
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Card>
               );
             })}
