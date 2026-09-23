@@ -656,12 +656,12 @@ export function StudentSummary({ student }: { student: Aluno }) {
                       const diffDays = Math.floor(diffMs / 86400000);
                       const anos = Math.floor(diffDays / 365);
                       const meses = Math.floor((diffDays % 365) / 30);
-                      const label =
-                        anos > 0
-                          ? `${anos} ano${anos > 1 ? "s" : ""}${meses > 0 ? ` e ${meses} mês${meses > 1 ? "es" : ""}` : ""}`
-                          : meses > 0
-                          ? `${meses} mês${meses > 1 ? "es" : ""}`
-                          : `${diffDays} dia${diffDays !== 1 ? "s" : ""}`;
+                       const label =
+                         anos > 0
+                           ? `${anos} ano${anos > 1 ? "s" : ""}${meses > 0 ? ` e ${meses} ${meses > 1 ? "meses" : "mês"}` : ""}`
+                           : meses > 0
+                           ? `${meses} ${meses > 1 ? "meses" : "mês"}`
+                           : `${diffDays} dia${diffDays !== 1 ? "s" : ""}`;
                       return `${d.toLocaleDateString("pt-BR")} · ${label}`;
                     })()
                   : "—"}
