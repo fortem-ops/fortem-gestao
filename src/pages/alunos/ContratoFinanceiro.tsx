@@ -590,6 +590,7 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
   const { data: estornosPorCobranca = {} } = useEstornosDoContrato(
     cobrancas.map((c: any) => c.id),
   );
+  const { data: meuNome } = useMeuNome();
 
   const abrirComprovante = (c: any, registro: EstornoRegistro) => {
     setComprovante({
