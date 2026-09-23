@@ -330,6 +330,13 @@
       "when": 1790196353312,
       "tag": "0046_presencas_auto_marcado_por",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790196928247,
+      "tag": "0047_fiscal_agenda_servicos",
+      "breakpoints": true
     }
   ]
 }

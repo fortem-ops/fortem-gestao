@@ -36,7 +36,10 @@ Deno.serve(async (req) => {
     const { data: creditos, error: credErr } = await admin.rpc("fn_auditoria_fiscal_creditos");
     if (credErr) return json({ error: credErr.message }, 500);
 
-    return json({ ok: true, resultado: data, resultado_creditos: creditos });
+    const { data: agenda, error: agErr } = await admin.rpc("fn_auditoria_fiscal_agenda_servicos");
+    if (agErr) return json({ error: agErr.message }, 500);
+
+    return json({ ok: true, resultado: data, resultado_creditos: creditos, resultado_agenda: agenda });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
