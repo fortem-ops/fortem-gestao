@@ -253,6 +253,13 @@
       "when": 1790175227620,
       "tag": "0035_auditoria_uniq_qualquer_status",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790177096779,
+      "tag": "0036_contrato_creditos_do_pacote_vendido",
+      "breakpoints": true
     }
   ]
 }
