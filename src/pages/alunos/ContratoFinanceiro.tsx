@@ -29,6 +29,7 @@ import {
   Link as LinkIcon,
   Undo2,
   ReceiptText,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -104,6 +105,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
   const [baixaForma, setBaixaForma] = useState<string>("dinheiro");
   const [baixaLoading, setBaixaLoading] = useState(false);
+  const [excluirCobranca, setExcluirCobranca] = useState<any | null>(null);
+  const [excluirLoading, setExcluirLoading] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-aluno", alunoId],
@@ -342,6 +345,32 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     }
   };
 
+  const handleExcluir = async () => {
+    if (!excluirCobranca) return;
+    setExcluirLoading(true);
+    try {
+      // Remove inadimplências ligadas a esta cobrança (registro da cobrança errada)
+      await supabase.from("inadimplencias").delete().eq("cobranca_id", excluirCobranca.id);
+      const { error } = await supabase.from("cobrancas").delete().eq("id", excluirCobranca.id);
+      if (error) throw error;
+      toast({
+        title: "Cobrança excluída",
+        description: `Cobrança de ${fmt(Number(excluirCobranca.valor))} (venc. ${fmtDate(excluirCobranca.data_vencimento)}) removida.`,
+      });
+      const contratoId = excluirCobranca.contrato_id;
+      setExcluirCobranca(null);
+      qc.invalidateQueries({ queryKey: ["cobrancas-historico", alunoId] });
+      qc.invalidateQueries({ queryKey: ["cobrancas-contrato", contratoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias-contrato", contratoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias", "abertas"] });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    } finally {
+      setExcluirLoading(false);
+    }
+  };
+
   const pedirBaixa = (c: any) => {
     setBaixaCobranca(c);
     setBaixaData(new Date().toISOString().split("T")[0]);
@@ -429,15 +458,26 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                           {cb.status === "atrasado" ? "Atrasado" : cb.status === "estornado" ? "Estornado" : "Pendente"}
                         </span>
                         {podeCancelar && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
-                            onClick={() => pedirBaixa(cb)}
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                            Dar baixa
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                              onClick={() => pedirBaixa(cb)}
+                            >
+                              <CheckCircle className="h-3 w-3" />
+                              Dar baixa
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10"
+                              onClick={() => setExcluirCobranca(cb)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Excluir
+                            </Button>
+                          </div>
                         )}
                       </li>
                     ))}
@@ -520,6 +560,35 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             >
               {baixaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
               Confirmar pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de exclusão de cobrança errada */}
+      <Dialog open={!!excluirCobranca} onOpenChange={(v) => !v && setExcluirCobranca(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir cobrança</DialogTitle>
+            <DialogDescription>
+              Tem certeza? A cobrança de <strong>{fmt(Number(excluirCobranca?.valor))}</strong> com
+              vencimento em <strong>{fmtDate(excluirCobranca?.data_vencimento)}</strong> será removida
+              definitivamente, junto com a inadimplência ligada a ela. Use apenas para cobranças
+              lançadas por engano — se o aluno pagou, use "Dar baixa".
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExcluirCobranca(null)} disabled={excluirLoading}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleExcluir}
+              disabled={excluirLoading}
+              className="gap-1"
+            >
+              {excluirLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Excluir cobrança
             </Button>
           </DialogFooter>
         </DialogContent>
