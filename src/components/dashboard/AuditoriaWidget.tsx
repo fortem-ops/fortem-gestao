@@ -10,6 +10,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
   creditos: "Créditos",
   agenda_servicos: "Agenda de Serviços",
   pipeline: "Pipeline",
+  contratos: "Contratos",
 };
 
 export function AuditoriaWidget() {
