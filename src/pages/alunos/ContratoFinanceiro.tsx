@@ -68,7 +68,7 @@ import { propagarBaixaParaVenda } from "@/lib/baixaVenda";
 import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
 import { EstornarCobrancaDialog } from "@/components/financeiro/EstornarCobrancaDialog";
 import { ComprovanteEstornoDialog } from "@/components/financeiro/ComprovanteEstornoDialog";
-import { useEstornosDoContrato, type EstornoRegistro } from "@/hooks/useEstorno";
+import { useEstornosDoContrato, useMeuNome, type EstornoRegistro } from "@/hooks/useEstorno";
 import type { ComprovanteEstornoDados } from "@/lib/estornoPdf";
 
 
