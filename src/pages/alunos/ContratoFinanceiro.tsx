@@ -564,6 +564,35 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de exclusão de cobrança errada */}
+      <Dialog open={!!excluirCobranca} onOpenChange={(v) => !v && setExcluirCobranca(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir cobrança</DialogTitle>
+            <DialogDescription>
+              Tem certeza? A cobrança de <strong>{fmt(Number(excluirCobranca?.valor))}</strong> com
+              vencimento em <strong>{fmtDate(excluirCobranca?.data_vencimento)}</strong> será removida
+              definitivamente, junto com a inadimplência ligada a ela. Use apenas para cobranças
+              lançadas por engano — se o aluno pagou, use "Dar baixa".
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExcluirCobranca(null)} disabled={excluirLoading}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleExcluir}
+              disabled={excluirLoading}
+              className="gap-1"
+            >
+              {excluirLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Excluir cobrança
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
