@@ -344,6 +344,32 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     }
   };
 
+  const handleExcluir = async () => {
+    if (!excluirCobranca) return;
+    setExcluirLoading(true);
+    try {
+      // Remove inadimplências ligadas a esta cobrança (registro da cobrança errada)
+      await supabase.from("inadimplencias").delete().eq("cobranca_id", excluirCobranca.id);
+      const { error } = await supabase.from("cobrancas").delete().eq("id", excluirCobranca.id);
+      if (error) throw error;
+      toast({
+        title: "Cobrança excluída",
+        description: `Cobrança de ${fmt(Number(excluirCobranca.valor))} (venc. ${fmtDate(excluirCobranca.data_vencimento)}) removida.`,
+      });
+      const contratoId = excluirCobranca.contrato_id;
+      setExcluirCobranca(null);
+      qc.invalidateQueries({ queryKey: ["cobrancas-historico", alunoId] });
+      qc.invalidateQueries({ queryKey: ["cobrancas-contrato", contratoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias-contrato", contratoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias", "abertas"] });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    } finally {
+      setExcluirLoading(false);
+    }
+  };
+
   const pedirBaixa = (c: any) => {
     setBaixaCobranca(c);
     setBaixaData(new Date().toISOString().split("T")[0]);
