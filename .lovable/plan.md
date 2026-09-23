@@ -1,29 +1,27 @@
-# Quadro "Inadimplentes" no Início
+# Baixa de mensalidades em contratos encerrados/cancelados
 
-## O que o quadro está mostrando
+## Por que não dá para dar baixa hoje
 
-O quadro não está desatualizado: ele lê o banco na hora. Existem hoje 5 registros de inadimplência em aberto, cada um ligado a uma mensalidade marcada como "atrasada" e nunca paga no sistema:
+Na aba Contrato do aluno, o botão "Dar baixa" aparece só na tabela de cobranças dos contratos **ativos**. Contratos encerrados ou cancelados vão para "Histórico de contratos", que mostra apenas uma linha de resumo, sem as cobranças. Os 5 inadimplentes do Início têm justamente a mensalidade em aberto num contrato já encerrado ou cancelado, então o botão nunca aparece para eles.
 
-| Aluno | Plano | Vencimento | Valor | Situação do contrato |
-|---|---|---|---|---|
-| Carla Cimone Portes Rodrigues | Start mensal | 11/07/2026 | R$ 579 | Encerrado em 11/08 |
-| Patricia Tirelli Lena | Start mensal | 12/07/2026 | R$ 379 | Encerrado em 12/08 |
-| Carolina Guerra Baião | Start mensal | 01/08/2026 | R$ 379 | Cancelado (ela tem outro contrato ativo) |
-| Jean Rodrigues da Silva | Start+ recorrente | 04/08/2026 | R$ 379 | Encerrado em 04/09 |
-| Gabrieli Lazzari Vieira | Start+ recorrente | 18/08/2026 | R$ 379 | Encerrado em 18/09 |
+| Aluno | Vencimento | Valor | Contrato |
+|---|---|---|---|
+| Carla Cimone Portes Rodrigues | 11/07/2026 | R$ 579 | Encerrado |
+| Patricia Tirelli Lena | 12/07/2026 | R$ 379 | Encerrado |
+| Carolina Guerra Baião | 01/08/2026 | R$ 379 | Cancelado |
+| Jean Rodrigues da Silva | 04/08/2026 | R$ 379 | Encerrado |
+| Gabrieli Lazzari Vieira | 18/08/2026 | R$ 379 | Encerrado |
 
-Os 5 são cartão recorrente e vencem no período em que a cobrança automática foi desligada. Nenhum tem mensalidade paga depois dessa. Pelo sistema, o dinheiro não entrou.
+## O que vou fazer
 
-## Preciso da sua decisão (pode ser diferente por aluno)
+1. **Tela do aluno > Contrato > Histórico de contratos**: quando um contrato antigo tiver mensalidade pendente, atrasada ou estornada, o cartão dele mostra um aviso "X mensalidade(s) em aberto" e a lista dessas mensalidades, cada uma com o botão **Dar baixa**. Só administrador e coordenação veem o botão, igual aos contratos ativos.
+2. A baixa usa exatamente o mesmo diálogo e a mesma gravação dos contratos ativos: escolha da forma (incluindo "Cartão de crédito online"), data do pagamento, fechamento automático da inadimplência e atualização da venda ligada. Depois da baixa, o quadro de Inadimplentes do Início se atualiza sozinho.
+3. Nenhuma baixa será dada automaticamente. Com a tela pronta, você mesmo dá baixa nos 5 alunos como "Cartão de crédito online", na data certa de cada pagamento. Se preferir, posso gravar os 5 por aqui depois: é só me passar as datas de pagamento.
 
-- **A) Foi pago fora do sistema:** dou baixa na mensalidade como paga (forma de pagamento e data que você informar). A inadimplência fecha sozinha.
-- **B) Não era devido** (contrato cancelado ou encerrado sem cobrança daquele mês): marco a mensalidade como cancelada, com o motivo. A inadimplência sai do quadro e o histórico fica guardado.
-- **C) É dívida real:** deixo como está.
-
-Sugestão: Carolina Guerra Baião provavelmente é B, porque o contrato foi cancelado e trocado por outro ativo. Para os outros 4, preciso saber se pagaram.
+Fora do escopo: contratos ativos, estorno, cobrança automática, operadora do cartão e regras do quadro de Inadimplentes, que continuam como estão.
 
 ## Detalhes técnicos
 
-- A fonte do quadro é `inadimplencias_view` com status 'aberta', e ele ignora cobranças pagas, canceladas ou isentas. A regra está certa, então não mexo no quadro.
-- A = mesma baixa manual da tela do contrato (cobrança paga, tid nulo, venda propagada). B = cobrança cancelada, com o motivo na observação e a inadimplência como 'cancelada'. As duas são gravadas pelo executor de SQL, com a lista de ids conferida antes.
-- Não toco na operadora de cartão, na cobrança automática nem na rotina que roda sozinha.
+- `src/pages/alunos/ContratoFinanceiro.tsx`: no bloco do histórico, buscar as cobranças com status pendente/atrasado/estornado dos contratos do histórico, com a query key `cobrancas-contrato` por contrato para reaproveitar as invalidações que já existem. Renderizar as linhas com botão que chama o `pedirBaixa` que já existe, passando `podeCancelar`.
+- `handleBaixa` fica como está. Ele já grava a cobrança como paga (meio manual_admin; tid nulo se estava estornada), regulariza a inadimplência, propaga para a venda e invalida `["inadimplencias","abertas"]`. Vou só acrescentar a invalidação das cobranças do histórico.
+- Verificação: tipos/build e teste do diálogo de baixa num contrato encerrado (renderizar o botão e chamar o update). Sem gravar nada em produção nos testes.
