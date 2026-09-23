@@ -211,6 +211,13 @@
       "when": 1790162196054,
       "tag": "0029_fix_auditoria_plano_vigente",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790162843288,
+      "tag": "0030_fix_plano_expirado_contrato_tratado",
+      "breakpoints": true
     }
   ]
 }
