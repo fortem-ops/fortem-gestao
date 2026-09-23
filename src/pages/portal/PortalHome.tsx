@@ -532,9 +532,9 @@ export default function PortalHome() {
         const anos = Math.floor(diffDays / 365);
         const meses = Math.floor((diffDays % 365) / 30);
         const tempo = anos > 0
-          ? `${anos} ano${anos > 1 ? "s" : ""}${meses > 0 ? ` e ${meses} mês${meses > 1 ? "es" : ""}` : ""}`
+          ? `${anos} ano${anos > 1 ? "s" : ""}${meses > 0 ? ` e ${meses} ${meses > 1 ? "meses" : "mês"}` : ""}`
           : meses > 0
-          ? `${meses} mês${meses > 1 ? "es" : ""}`
+          ? `${meses} ${meses > 1 ? "meses" : "mês"}`
           : `${diffDays} dia${diffDays !== 1 ? "s" : ""}`;
         const emoji = anos >= 2 ? "🏆" : anos >= 1 ? "⭐" : meses >= 6 ? "💪" : "🌱";
         return (

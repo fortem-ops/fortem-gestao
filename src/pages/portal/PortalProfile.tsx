@@ -55,8 +55,8 @@ export default function PortalProfile() {
   const anosMembro = diasMembro !== null ? Math.floor(diasMembro / 365) : 0;
   const mesesMembro = diasMembro !== null ? Math.floor((diasMembro % 365) / 30) : 0;
   const tempoMembro = anosMembro > 0
-    ? `${anosMembro} ano${anosMembro > 1 ? "s" : ""}${mesesMembro > 0 ? ` e ${mesesMembro} mês${mesesMembro > 1 ? "es" : ""}` : ""}`
-    : mesesMembro > 0 ? `${mesesMembro} mês${mesesMembro > 1 ? "es" : ""}` : `${diasMembro ?? 0} dias`;
+    ? `${anosMembro} ano${anosMembro > 1 ? "s" : ""}${mesesMembro > 0 ? ` e ${mesesMembro} ${mesesMembro > 1 ? "meses" : "mês"}` : ""}`
+    : mesesMembro > 0 ? `${mesesMembro} ${mesesMembro > 1 ? "meses" : "mês"}` : `${diasMembro ?? 0} dias`;
 
   return (
     <div className="space-y-5 pb-32 animate-fade-in">
