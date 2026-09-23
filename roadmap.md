@@ -1,5 +1,5 @@
 # Roadmap
 
-- [ ] Aceites Tecnofit: dry run do cruzamento por nome (aguardando o CSV real)
-- [ ] Aceites Tecnofit: aplicar em contratos_documentos depois da confirmação, marcando a origem Tecnofit
-- [ ] Fiscal de Contratos (carência de 7 dias; atenção até 30 dias / crítico acima; sem documento = atenção; Corrida entra; ficha de saúde fica de fora)
+- [x] Aceites Tecnofit: simulação do cruzamento por nome
+- [x] Aceites Tecnofit: gravados em contratos_documentos com origem Tecnofit
+- [x] Fiscal de Contratos (carência de 7 dias; atenção até 30 dias / crítico acima; sem documento = atenção; Corrida entra; ficha de saúde fica de fora)
