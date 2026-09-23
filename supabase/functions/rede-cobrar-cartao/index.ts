@@ -317,22 +317,9 @@ serve(async (req) => {
   });
   if (insertErr) console.error("[rede] insert pagamentos_rede:", insertErr.message);
 
-  // Atualizar venda
-  await supabase.from("vendas")
-    .update({ status_pagamento: approved ? "pago" : "falha" })
-    .eq("id", venda_id);
+  // Atualizar venda + parcelas (módulo compartilhado — comportamento idêntico)
+  await atualizarVendaEParcelas(supabase, venda_id, approved);
 
-  // Atualizar parcelas se aprovado
-  if (approved) {
-    const { data: pagamento } = await supabase
-      .from("pagamentos").select("id").eq("venda_id", venda_id).maybeSingle();
-    if (pagamento) {
-      await supabase.from("pagamento_parcelas")
-        .update({ status: "pago", data_pagamento: new Date().toISOString().split("T")[0] })
-        .eq("pagamento_id", pagamento.id)
-        .eq("status", "pendente");
-    }
-  }
 
   // (a) Salvar token/cartão — só quando solicitado e aprovado
   let savedCartaoId: string | null = null;
