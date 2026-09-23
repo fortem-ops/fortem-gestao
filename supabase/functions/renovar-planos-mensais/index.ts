@@ -57,16 +57,27 @@ Deno.serve(async (req) => {
     // Cache de catálogo (por nome em minúsculas)
     const { data: catalogo, error: catErr } = await supabase
       .from("planos_catalogo")
-      .select("id, nome, valor, periodo_meses")
+      .select("id, nome, valor, periodo_meses, frequencia, quantidade_creditos, ilimitado")
       .eq("ativo", true);
     if (catErr) throw catErr;
 
     const byName = new Map<string, typeof catalogo>();
+    const byId = new Map<string, any>();
     for (const c of catalogo || []) {
       const k = (c.nome || "").toLowerCase().trim();
       if (!byName.has(k)) byName.set(k, [] as any);
       (byName.get(k) as any).push(c);
+      byId.set(c.id, c);
     }
+
+    // Frequência do cadastro -> rótulo de frequência do catálogo (fallback apenas).
+    const freqLabel = (f: number | null | undefined): string | null => {
+      if (f === 1) return "1x";
+      if (f === 2) return "2x";
+      if (f === 3) return "3x";
+      if (f === 4 || f === 5) return "livre";
+      return null;
+    };
 
     let geradas = 0;
     const erros: any[] = [];
@@ -79,11 +90,57 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Escolhe a variante: prioriza valor igual; senão pega a primeira mensal (periodo_meses=1).
-      const valorAtual = Number(p.valor ?? 0);
-      const exato = variantes.find((v: any) => Number(v.valor) === valorAtual);
-      const mensal = variantes.find((v: any) => Number(v.periodo_meses) === 1);
-      const escolhido = exato || mensal || variantes[0];
+      // Escolhe a variante pela IDENTIDADE do pacote, nunca pelo preço
+      // (preço negociado/com desconto levava à variante errada).
+      // 1) mesmo catalogo_id da última venda de plano do aluno;
+      // 2) variante do mesmo plano com a frequência do cadastro do aluno;
+      // 3) sem correspondência segura -> não renova e registra o motivo.
+      let escolhido: any = null;
+
+      const { data: ultimaVenda, error: uvErr } = await supabase
+        .from("vendas")
+        .select("catalogo_id")
+        .eq("aluno_id", p.aluno_id)
+        .eq("tipo", "plano")
+        .not("catalogo_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (uvErr) {
+        erros.push({ plano_id: p.id, motivo: `Falha ao ler última venda: ${uvErr.message}` });
+        continue;
+      }
+
+      const anterior = ultimaVenda?.[0]?.catalogo_id ? byId.get(ultimaVenda[0].catalogo_id) : null;
+      if (
+        anterior &&
+        Number(anterior.periodo_meses) === 1 &&
+        (anterior.nome || "").toLowerCase().trim() === tipoKey
+      ) {
+        escolhido = anterior;
+      }
+
+      if (!escolhido) {
+        const { data: alunoRow } = await supabase
+          .from("alunos")
+          .select("frequencia_semanal")
+          .eq("id", p.aluno_id)
+          .maybeSingle();
+        const alvo = freqLabel(alunoRow?.frequencia_semanal);
+        if (alvo) {
+          escolhido = variantes.find(
+            (v: any) => Number(v.periodo_meses) === 1 && (v.frequencia || "") === alvo,
+          ) || null;
+        }
+      }
+
+      if (!escolhido) {
+        erros.push({
+          plano_id: p.id,
+          motivo: `Pacote do catálogo não identificado com segurança para "${p.tipo}" — renovação não gerada`,
+        });
+        continue;
+      }
 
       const dataVenda = p.proxima_renovacao as string; // data em que a renovação venceu
       const valor = Number(p.valor ?? 0);
