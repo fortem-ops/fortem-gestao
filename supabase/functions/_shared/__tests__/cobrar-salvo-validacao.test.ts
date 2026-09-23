@@ -33,6 +33,16 @@ describe("validarCobrancaSalvo", () => {
     expect(r).toMatchObject({ ok: false, codigo: "ja_cobrada", tid: "TID-1" });
   });
 
+  it("ja_cobrada com existente approved devolve statusExistente approved", () => {
+    const r = run({ pagamentoExistente: { tid: "TID-1", status: "approved" } });
+    expect(r).toMatchObject({ ok: false, codigo: "ja_cobrada", tid: "TID-1", statusExistente: "approved" });
+  });
+
+  it("ja_cobrada com existente pending devolve statusExistente pending (nunca aprovado)", () => {
+    const r = run({ pagamentoExistente: { tid: null, status: "pending" } });
+    expect(r).toMatchObject({ ok: false, codigo: "ja_cobrada", tid: null, statusExistente: "pending" });
+  });
+
   it("recusa cartão de outro aluno", () => {
     expect(run({ cartao: { ...cartao, aluno_id: "a2" } })).toMatchObject({ ok: false, codigo: "cartao_outro_aluno" });
   });
