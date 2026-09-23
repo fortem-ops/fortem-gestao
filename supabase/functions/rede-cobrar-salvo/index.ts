@@ -291,7 +291,7 @@ serve(async (req) => {
     }
   }
 
-  // ── 10. Pós-aprovação (venda, parcelas, contrato) ─────────
+  // ── 11. Pós-aprovação (venda, parcelas, contrato) ─────────
   await atualizarVendaEParcelas(supabase, venda_id, approved);
   if (approved) {
     await criarContratoPosAprovacao(supabase, {
@@ -311,6 +311,7 @@ serve(async (req) => {
 
   return json({
     success: approved,
+    aviso: avisoRegistro,
     tid: resultado.tid,
     valor_centavos: amount,
     installments,
