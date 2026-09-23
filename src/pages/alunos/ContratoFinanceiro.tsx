@@ -798,11 +798,20 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
               {cobrancas.map((c, idx) => {
                 const estornos = estornosPorCobranca[c.id] ?? [];
                 const totalEstornado = estornos.reduce((s, e) => s + e.valor, 0);
-                const estornoParcial = totalEstornado > 0 && c.status !== "estornado";
+                const estornoParcial =
+                  totalEstornado > 0 &&
+                  c.status !== "estornado" &&
+                  totalEstornado < Number(c.valor) - 0.001;
+                // Estornada por inteiro e recebida de novo por baixa manual.
+                const estornoRecebidoDeNovo =
+                  totalEstornado > 0 &&
+                  c.status === "pago" &&
+                  totalEstornado >= Number(c.valor) - 0.001;
                 const podeEstornar =
                   isAdmin && c.gateway === "rede" && !!c.tid &&
                   (c.status === "pago" || estornoParcial) &&
                   totalEstornado < Number(c.valor) - 0.001;
+
                 return (
                 <TableRow key={c.id} className={c.status === "pago" ? "opacity-60" : ""}>
                   <TableCell className="text-center text-xs text-muted-foreground font-mono">{idx + 1}</TableCell>
@@ -838,6 +847,15 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
                         Estorno parcial {fmt(totalEstornado)} de {fmt(Number(c.valor))}
                       </Badge>
                     )}
+                    {estornoRecebidoDeNovo && (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 block w-fit border-muted-foreground/40 text-muted-foreground"
+                      >
+                        Estornado e recebido novamente
+                      </Badge>
+                    )}
+
                     {Number((c as any).tentativas ?? 0) > 0 && (c as any).status !== "pago" && (
                       <Badge
                         variant="outline"
