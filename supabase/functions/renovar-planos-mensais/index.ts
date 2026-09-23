@@ -57,16 +57,27 @@ Deno.serve(async (req) => {
     // Cache de catálogo (por nome em minúsculas)
     const { data: catalogo, error: catErr } = await supabase
       .from("planos_catalogo")
-      .select("id, nome, valor, periodo_meses")
+      .select("id, nome, valor, periodo_meses, frequencia, quantidade_creditos, ilimitado")
       .eq("ativo", true);
     if (catErr) throw catErr;
 
     const byName = new Map<string, typeof catalogo>();
+    const byId = new Map<string, any>();
     for (const c of catalogo || []) {
       const k = (c.nome || "").toLowerCase().trim();
       if (!byName.has(k)) byName.set(k, [] as any);
       (byName.get(k) as any).push(c);
+      byId.set(c.id, c);
     }
+
+    // Frequência do cadastro -> rótulo de frequência do catálogo (fallback apenas).
+    const freqLabel = (f: number | null | undefined): string | null => {
+      if (f === 1) return "1x";
+      if (f === 2) return "2x";
+      if (f === 3) return "3x";
+      if (f === 4 || f === 5) return "livre";
+      return null;
+    };
 
     let geradas = 0;
     const erros: any[] = [];
