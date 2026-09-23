@@ -42,6 +42,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
   integracao: "Integrações",
   creditos: "Créditos",
   agenda_servicos: "Agenda de Serviços",
+  pipeline: "Pipeline",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -77,7 +78,7 @@ export default function Auditoria() {
       const { data, error } = await supabase.functions.invoke("auditoria-fiscal-pagamentos");
       if (error) throw error;
       const d = data as Record<string, Record<string, number> | undefined>;
-      const r = { ...(d?.resultado ?? {}), ...(d?.resultado_creditos ?? {}), ...(d?.resultado_agenda ?? {}) };
+      const r = { ...(d?.resultado ?? {}), ...(d?.resultado_creditos ?? {}), ...(d?.resultado_agenda ?? {}), ...(d?.resultado_pipeline ?? {}) };
       const novos = Object.entries(r)
         .filter(([k]) => k !== "executado_em")
         .reduce((s, [, v]) => s + (Number(v) || 0), 0);
@@ -144,6 +145,7 @@ export default function Auditoria() {
             <SelectItem value="integracao">Integrações</SelectItem>
             <SelectItem value="creditos">Créditos</SelectItem>
             <SelectItem value="agenda_servicos">Agenda de Serviços</SelectItem>
+            <SelectItem value="pipeline">Pipeline</SelectItem>
           </SelectContent>
         </Select>
 
