@@ -34,6 +34,8 @@ import {
 } from "../_shared/cobrar-salvo-reserva.ts";
 
 const MAX_TENTATIVAS = 5;
+const MOTIVO_EM_PROCESSAMENTO =
+  "Já existe uma cobrança em processamento ou com resultado incerto para esta venda. Confira na Rede antes de tentar de novo.";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
@@ -124,7 +126,18 @@ serve(async (req) => {
   });
   if (!validacao.ok) {
     if (validacao.codigo === "ja_cobrada") {
-      return json({ success: true, idempotente: true, tid: validacao.tid ?? null });
+      // approved → resultado da primeira; pending → reserva de resultado
+      // incerto/em processamento (nunca success:true sem TID).
+      if (validacao.statusExistente === "approved") {
+        return json({ success: true, idempotente: true, tid: validacao.tid ?? null });
+      }
+      return json({
+        success: false,
+        idempotente: true,
+        em_processamento: true,
+        tid: null,
+        motivo: MOTIVO_EM_PROCESSAMENTO,
+      });
     }
     return json({ error: validacao.motivo }, 400);
   }
@@ -174,7 +187,7 @@ serve(async (req) => {
         .maybeSingle();
       const decisao = decidirConflitoReserva(linha);
       if (decisao.tipo === "idempotente") return json(decisao.resposta);
-      return json({ error: decisao.motivo }, 409);
+      return json({ error: decisao.motivo, em_processamento: true, motivo: MOTIVO_EM_PROCESSAMENTO }, 409);
     }
     console.error("[rede-cobrar-salvo] falha ao reservar:", reservaErr?.message);
     return json({ success: false, error: "Não foi possível iniciar a cobrança. Nada foi cobrado." }, 500);
