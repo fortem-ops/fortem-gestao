@@ -58,13 +58,15 @@ export function useEstornosDoContrato(cobrancaIds: string[]) {
     queryFn: async (): Promise<Record<string, EstornoRegistro[]>> => {
       const { data, error } = await supabase
         .from("pagamentos_rede")
-        .select("id, cobranca_id, tid, nsu, authorization_code, return_code, return_message, amount, created_at, created_by")
+        .select("id, cobranca_id, tid, nsu, authorization_code, return_code, return_message, amount, created_at, created_by, motivo_estorno")
         .in("cobranca_id", ids)
         .eq("kind", "refund")
         .eq("status", "refunded")
         .order("created_at", { ascending: true });
       if (error) throw error;
 
+      // O motivo vem do próprio registro do estorno (audit_log é só trilha extra),
+      // para o comprovante reaberto não depender do acesso à auditoria.
       const registros = (data ?? []).map((r) => ({
         id: r.id,
         cobranca_id: r.cobranca_id,
@@ -76,27 +78,8 @@ export function useEstornosDoContrato(cobrancaIds: string[]) {
         valor: Number(r.amount ?? 0) / 100,
         created_at: r.created_at,
         created_by: r.created_by,
+        motivo: r.motivo_estorno ?? null,
       })) as EstornoRegistro[];
-
-      // Motivo e autor vêm do registro de auditoria do estorno.
-      if (registros.length) {
-        const { data: logs } = await supabase
-          .from("audit_log")
-          .select("registro_id, dados_depois, user_id, created_at")
-          .eq("tabela", "cobrancas")
-          .eq("operacao", "estorno")
-          .in("registro_id", ids);
-        const porPagamento = new Map<string, { motivo?: string }>();
-        (logs ?? []).forEach((l) => {
-          const d = (l.dados_depois ?? {}) as Record<string, unknown>;
-          if (typeof d.pagamento_rede_id === "string") {
-            porPagamento.set(d.pagamento_rede_id, { motivo: String(d.motivo ?? "") });
-          }
-        });
-        registros.forEach((r) => {
-          r.motivo = porPagamento.get(r.id)?.motivo ?? null;
-        });
-      }
 
       // Nome de quem executou o estorno.
       const autores = Array.from(new Set(registros.map((r) => r.created_by).filter(Boolean))) as string[];
