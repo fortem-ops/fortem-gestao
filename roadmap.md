@@ -25,3 +25,6 @@
 - [ ] Corrigir erro ao preencher relatório (etapas de CRM desativadas) — plano aguardando aprovação.
 - [ ] Investigar por que agendamento retroativo não consome crédito (caso Vítor Labres da Silveira).
 - [x] Corrigir a exibição de total e parcela dos contratos usando venda e modalidade reais.
+- [ ] Fase 0: confirmar ambiente configurado da Rede (sandbox/producao).
+- [ ] Fase 1: trava global da cobrança automática no cartão (sistema_config + aviso e interruptor admin).
+- [ ] Fase 2 (aguardando confirmação): ação "Estornar cobrança" com estorno total/parcial e comprovante.
