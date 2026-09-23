@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil } from "lucide-react";
-import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
-import { isAutoRenewPlan } from "@/lib/planTipo";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
-import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface EditStudentDialogProps {
@@ -16,121 +16,56 @@ interface EditStudentDialogProps {
   onStudentUpdated: () => void;
 }
 
+const NONE = "__none__";
+
 export default function EditStudentDialog({ student, onStudentUpdated }: EditStudentDialogProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [planDefaults, setPlanDefaults] = useState<{
-    plano?: string; plano_consultas?: string;
-    plano_valor?: number; plano_data_inicio?: string;
-  }>({});
+  const [professors, setProfessors] = useState<{ user_id: string; full_name: string }[]>([]);
+
+  const [frequencia, setFrequencia] = useState(String(student.frequencia_semanal || 3));
+  const [professorId, setProfessorId] = useState(student.responsavel_id || NONE);
+  const [consultorId, setConsultorId] = useState((student as any).consultor_id || NONE);
+  const [observacoes, setObservacoes] = useState(student.observacoes || "");
 
   useEffect(() => {
     if (!open) return;
-    // "Aluno desde": data mais antiga entre TODOS os planos do aluno
-    // (mesma lógica de primeiro_plano_data em StudentSummary.tsx).
-    supabase
-      .from("planos")
-      .select("id, data_inicio")
-      .eq("aluno_id", student.id)
-      .order("data_inicio", { ascending: true })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data: primeiroPlano }: any) => {
-        setPlanDefaults((prev) => ({
-          ...prev,
-          plano_data_inicio: primeiroPlano?.data_inicio || undefined,
-        }));
-      });
+    setFrequencia(String(student.frequencia_semanal || 3));
+    setProfessorId(student.responsavel_id || NONE);
+    setConsultorId((student as any).consultor_id || NONE);
+    setObservacoes(student.observacoes || "");
+  }, [open, student]);
 
-    queryPlanoPrincipalAtivo(student.id, "tipo, servicos, valor, data_inicio").then(
-      ({ data: p }: any) => {
-        if (p) {
-          let consultas: string | undefined;
-          const servicos = p.servicos || [];
-          if (p.tipo === "Power") {
-            consultas = servicos.some((s: string) => s.includes("Reabilitação")) ? "reabilitacao" : "nutricao";
-          } else if (p.tipo === "Pro") {
-            if (servicos.some((s: string) => s.includes("Reabilitação")) && servicos.some((s: string) => s.includes("Nutrição")))
-              consultas = "misto";
-            else if (servicos.some((s: string) => s.includes("Reabilitação")))
-              consultas = "reabilitacao";
-            else consultas = "nutricao";
-          }
-          const tipoSelecao = p.tipo?.startsWith("VIP") ? "VIP" : p.tipo;
-          setPlanDefaults((prev) => ({
-            ...prev,
-            plano: tipoSelecao,
-            plano_consultas: consultas,
-            plano_valor: p.valor ?? undefined,
-          }));
-        } else {
-          setPlanDefaults((prev) => ({
-            plano: undefined,
-            plano_consultas: undefined,
-            plano_valor: undefined,
-            plano_data_inicio: prev.plano_data_inicio,
-          }));
-        }
-      },
-    );
-  }, [open, student.id]);
+  useEffect(() => {
+    async function loadProfessors() {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["professor", "coordenador", "admin"]);
+      if (!roles || roles.length === 0) return;
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", roles.map((r) => r.user_id));
+      if (profiles) setProfessors(profiles as any);
+    }
+    loadProfessors();
+  }, []);
 
-  const defaultValues: StudentFormValues = {
-    nome: student.nome,
-    email: student.email || "",
-    telefone: student.telefone || "",
-    data_nascimento: student.data_nascimento || "",
-    status: (student.status as "ativo" | "licenca" | "encerrado") || "ativo",
-    frequencia_semanal: student.frequencia_semanal || 3,
-    observacoes: student.observacoes || "",
-    plano: planDefaults.plano as any,
-    plano_consultas: planDefaults.plano_consultas,
-    plano_valor: planDefaults.plano_valor,
-    plano_data_inicio: planDefaults.plano_data_inicio,
-    professor_responsavel_id: student.responsavel_id || undefined,
-    consultor_id: (student as any).consultor_id || undefined,
-  };
-
-  async function onSubmit(values: StudentFormValues) {
+  async function handleSave() {
     setLoading(true);
     try {
-      const responsavelId = values.professor_responsavel_id || student.responsavel_id;
-
-      const { error } = await supabase.from("alunos").update({
-        nome: values.nome,
-        email: values.email || null,
-        telefone: values.telefone || null,
-        data_nascimento: values.data_nascimento || null,
-        status: values.status,
-        frequencia_semanal: values.frequencia_semanal,
-        observacoes: values.observacoes || null,
-        responsavel_id: responsavelId,
-        consultor_id: values.consultor_id || null,
-      }).eq("id", student.id);
+      const { error } = await supabase
+        .from("alunos")
+        .update({
+          frequencia_semanal: Number(frequencia),
+          responsavel_id: professorId === NONE ? null : professorId,
+          consultor_id: consultorId === NONE ? null : consultorId,
+          observacoes: observacoes.trim() || null,
+        })
+        .eq("id", student.id);
       if (error) throw error;
-
-      const plan = getPlanDetails(values.plano, values.plano_consultas);
-      if (plan) {
-        await supabase.from("planos").update({ ativo: false }).eq("aluno_id", student.id).eq("ativo", true);
-        const dataInicio = values.plano_data_inicio || new Date().toISOString().split("T")[0];
-        let tipoFinal = plan.tipo;
-        if (plan.tipo === "VIP") {
-          const freq = values.frequencia_semanal;
-          const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
-          tipoFinal = `VIP ${sufixo}`;
-        }
-        await supabase.from("planos").insert({
-          aluno_id: student.id,
-          tipo: tipoFinal,
-          data_inicio: dataInicio,
-          duracao_meses: plan.duracao_meses,
-          servicos: plan.servicos,
-          valor: values.plano_valor || 0,
-          ativo: true,
-          renovacao_automatica: isAutoRenewPlan(tipoFinal) || undefined,
-        });
-      }
 
       toast.success("Aluno atualizado com sucesso!");
       invalidatePlanoCaches(queryClient, student.id);
@@ -151,15 +86,72 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Editar Aluno</DialogTitle></DialogHeader>
-        <StudentFormFields
-          key={student.id + student.updated_at + JSON.stringify(planDefaults)}
-          defaultValues={defaultValues}
-          onSubmit={onSubmit}
-          loading={loading}
-          submitLabel="Salvar Alterações"
-          onCancel={() => setOpen(false)}
-        />
+        <DialogHeader>
+          <DialogTitle>Editar Aluno</DialogTitle>
+          <DialogDescription>
+            Dados cadastrais são editados em "Editar dados cadastrais". Planos seguem o fluxo de contratação/cancelamento.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          <div className="space-y-2">
+            <Label>Frequência Semanal</Label>
+            <Select value={frequencia} onValueChange={setFrequencia}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1x por semana</SelectItem>
+                <SelectItem value="2">2x por semana</SelectItem>
+                <SelectItem value="3">3x por semana</SelectItem>
+                <SelectItem value="4">4x por semana</SelectItem>
+                <SelectItem value="5">Livre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Professor Responsável</Label>
+            <Select value={professorId} onValueChange={setProfessorId}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Sem professor</SelectItem>
+                {professors.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Consultor Responsável</Label>
+            <Select value={consultorId} onValueChange={setConsultorId}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Sem consultor</SelectItem>
+                {professors.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Observações</Label>
+            <Textarea
+              rows={3}
+              maxLength={1000}
+              placeholder="Observações sobre o aluno..."
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="button" onClick={handleSave} disabled={loading}>
+              {loading ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
