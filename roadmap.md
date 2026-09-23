@@ -29,3 +29,6 @@
 - [x] Fase 1: trava global da cobrança automática no cartão (sistema_config + aviso e interruptor admin).
 - [x] Fase 2: ação "Estornar cobrança" (total/parcial), comprovante e idempotência.
 - [x] Fase 3: status "Estornado" na auditoria fiscal, relatórios e telas financeiras.
+- [x] Cobrança em um clique com cartão salvo — Fase 1 (pós-aprovação compartilhado).
+- [x] Cobrança em um clique com cartão salvo — Fase 2 (função rede-cobrar-salvo + fn_cartoes_cobraveis).
+- [ ] Cobrança em um clique com cartão salvo — Fase 3 (tela), aguardando liberação do usuário.
