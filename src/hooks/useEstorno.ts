@@ -182,12 +182,32 @@ export function useEstornarCobranca() {
       return data.comprovante as ComprovanteEstorno;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cobrancas"] });
-      qc.invalidateQueries({ queryKey: ["contratos"] });
-      qc.invalidateQueries({ queryKey: ["estorno-saldo"] });
-      qc.invalidateQueries({ queryKey: ["estornos-contrato"] });
-      qc.invalidateQueries({ queryKey: ["vendas"] });
+      // A tela do contrato usa chaves próprias ("cobrancas-contrato", "ciclo-ativo",
+      // "vendas-planos-contratos"...). Invalidar por prefixo evita que a lista de
+      // cobranças fique com dado velho enquanto a lista de estornos já atualizou.
+      const prefixos = [
+        "cobrancas",
+        "cobrancas-contrato",
+        "contratos",
+        "contratos-aluno",
+        "ciclo-ativo",
+        "estorno-saldo",
+        "estornos-contrato",
+        "vendas",
+        "vendas-aluno",
+        "vendas-planos-contratos",
+        "inadimplencias",
+        "inadimplencias-contrato",
+        "inadimplencias-aluno",
+        "historico-vendas",
+        "pagamentos-aluno",
+      ];
+      qc.invalidateQueries({
+        refetchType: "all",
+        predicate: (q) => typeof q.queryKey[0] === "string" && prefixos.includes(q.queryKey[0] as string),
+      });
     },
+
     onError: (e: unknown) => {
       toast.error(e instanceof Error ? e.message : "Falha ao estornar a cobrança");
     },
