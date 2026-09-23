@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Calendar, CreditCard, Zap, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,8 @@ import {
   Contrato, PLANO_LABELS, FREQUENCIA_LABELS, FORMA_PAGAMENTO_LABELS,
   STATUS_CONTRATO_LABELS, formatBRL, ContratoStatus,
 } from '@/types/financeiro';
+import { supabase } from '@/integrations/supabase/client';
+import { calcularValoresContrato, type VendaVinculada } from '@/lib/contratoValores';
 
 const STATUS_VARIANT: Record<ContratoStatus, string> = {
   ativo:         'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30',
@@ -23,6 +26,24 @@ export function CardContrato({ contrato }: { contrato: Contrato }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: ciclos } = useCiclosCredito(contrato.id);
   const cicloAtivo = ciclos?.find((c) => c.status === 'ativo');
+  const { data: venda } = useQuery({
+    queryKey: ['venda-card-contrato', contrato.plano_id],
+    queryFn: async () => {
+      if (!contrato.plano_id) return null;
+      const { data, error } = await (supabase as any)
+        .from('vendas')
+        .select('valor_final, parcelas, tipo_cobranca')
+        .eq('plano_id', contrato.plano_id)
+        .eq('tipo', 'plano')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as VendaVinculada | null;
+    },
+    enabled: !!contrato.plano_id,
+  });
+  const valoresContrato = calcularValoresContrato(contrato, venda);
 
   const podeCancelar = contrato.status === 'ativo' || contrato.status === 'suspenso';
 
@@ -42,7 +63,12 @@ export function CardContrato({ contrato }: { contrato: Contrato }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <Info icon={CreditCard} label="Valor" value={formatBRL(contrato.valor_cobrado)} sub={FORMA_PAGAMENTO_LABELS[contrato.forma_pagamento]} />
+            <Info
+              icon={CreditCard}
+              label={valoresContrato.recorrente ? 'Valor mensal' : valoresContrato.quantidadeParcelas > 1 ? 'Valor da parcela' : 'Valor total'}
+              value={formatBRL(valoresContrato.parcela)}
+              sub={FORMA_PAGAMENTO_LABELS[contrato.forma_pagamento]}
+            />
             <Info icon={Calendar} label="Próxima cobrança"
               value={contrato.data_renovacao ? formatDate(contrato.data_renovacao) : '—'} />
           </div>
