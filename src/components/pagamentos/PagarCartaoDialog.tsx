@@ -245,6 +245,16 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
               <span>{resultado.msg}</span>
             </div>
           )}
+
+          {temCartaoApto && (
+            <button
+              type="button"
+              className="text-xs text-primary underline underline-offset-2"
+              onClick={() => { setModo("salvo"); setResultado(null); }}
+            >
+              Usar cartão salvo
+            </button>
+          )}
         </div>
 
         <DialogFooter>
@@ -255,7 +265,10 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
             {loading ? "Processando..." : "Cobrar"}
           </Button>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+
