@@ -8626,6 +8626,7 @@ export type Database = {
         Returns: string
       }
       fn_aluno_last_access: { Args: { _aluno_id: string }; Returns: Json }
+      fn_auditoria_fiscal_pagamentos: { Args: never; Returns: Json }
       fn_calcular_rescisao: {
         Args: { p_contrato_id: string; p_data_cancelamento?: string }
         Returns: Json
