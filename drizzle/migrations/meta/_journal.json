@@ -379,6 +379,13 @@
       "when": 1790201373074,
       "tag": "0053_fiscal_contratos",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790251733069,
+      "tag": "0054_fix_reavaliacao_grant_e_estorno_agenda",
+      "breakpoints": true
     }
   ]
 }

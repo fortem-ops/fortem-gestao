@@ -8832,6 +8832,10 @@ export type Database = {
         Args: { _aluno_id: string; _criado_por: string; _data_ultima: string }
         Returns: string
       }
+      fn_criar_tarefa_reavaliacao_app: {
+        Args: { _aluno_id: string; _data_ultima: string }
+        Returns: string
+      }
       fn_current_aluno_id: { Args: never; Returns: string }
       fn_definir_sigla_categoria: {
         Args: { p_categoria: string; p_grupo: string; p_sigla: string }
