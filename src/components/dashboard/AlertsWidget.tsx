@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { getDisplayStatus, ACTIVE_STATUS_KEYS } from "@/lib/studentStatus";
 import { selecionarPlanoExibicao, planoDataFim, type PlanoLike } from "@/lib/planoPrincipal";
 import type { AlunoLicenca } from "@/lib/licencas";
+import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
 
 interface Alert {
   id: string;
@@ -31,16 +32,19 @@ export function AlertsWidget({ professorId }: Props) {
       const result: Alert[] = [];
       const today = new Date();
 
-      const [alunosRes, treinosRes, avaliacoesRes, tarefasRes, planosRes, licencasRes] = await Promise.all([
-        supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id, consultor_id").eq("is_equipe", false),
+      const [alunos, treinosRes, avaliacoesRes, tarefasRes, planosRes, licencasRes] = await Promise.all([
+        carregarTodasAsPaginas<any>({
+          tabela: "alunos",
+          colunas: "id, nome, status, frequencia_semanal, responsavel_id, consultor_id",
+          ordenarPor: [{ coluna: "id" }],
+          filtros: (q) => q.eq("is_equipe", false),
+        }),
         supabase.from("treinos").select("id, aluno_id, created_at, status").eq("status", "atual"),
         supabase.from("avaliacoes").select("id, aluno_id, data, tipo").eq("tipo", "funcional").order("data", { ascending: false }),
         supabase.from("tarefas").select("id, aluno_id, responsavel_id, data_limite, status, tipo_auto").eq("tipo_auto", "atualizar_treino").neq("status", "concluida"),
         supabase.from("planos").select("id, aluno_id, tipo, atividade, data_inicio, data_fim, duracao_meses, ativo, created_at").eq("ativo", true),
         supabase.from("aluno_licencas").select("id, aluno_id, plano_id, tipo, data_inicio, data_fim, dias, motivo, arquivo_url, created_at"),
       ]);
-
-      const alunos = alunosRes.data || [];
       const treinos = treinosRes.data || [];
       const avaliacoes = avaliacoesRes.data || [];
       const tarefasAtualizar = tarefasRes.data || [];
