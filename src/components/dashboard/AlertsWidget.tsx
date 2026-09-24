@@ -86,7 +86,7 @@ export function AlertsWidget({ professorId }: Props) {
       treinos.forEach((t) => {
         if (!isMyStudent(t.aluno_id)) return;
         const aluno = alunoMap[t.aluno_id];
-        if (!aluno || aluno.status !== "ativo") return;
+        if (!aluno || !isAtivo(t.aluno_id, aluno.status)) return;
         const freq = aluno.freq ?? 0;
         const weeksLimit = WEEKS_BY_FREQ[freq] || DEFAULT_WEEKS;
         const treinoDate = new Date(t.created_at);
@@ -112,7 +112,7 @@ export function AlertsWidget({ professorId }: Props) {
         if (!lastAvalByAluno[av.aluno_id]) lastAvalByAluno[av.aluno_id] = av.data;
       });
 
-      alunos.filter((a) => a.status === "ativo" && isMyStudent(a.id)).forEach((a) => {
+      alunos.filter((a) => isAtivo(a.id, a.status) && isMyStudent(a.id)).forEach((a) => {
         const lastDate = lastAvalByAluno[a.id];
         if (!lastDate) return;
         const last = new Date(lastDate + "T00:00:00");
@@ -137,7 +137,7 @@ export function AlertsWidget({ professorId }: Props) {
         // Atualizar treino é tarefa do professor responsável: não aparece para quem é só consultor.
         if (professorId && t.responsavel_id !== professorId) return;
         const aluno = alunoMap[t.aluno_id];
-        if (!aluno) return;
+        if (!aluno || !isAtivo(t.aluno_id, aluno.status)) return;
         const limit = new Date(t.data_limite + "T00:00:00");
         const diffDays = Math.ceil((limit.getTime() - today.getTime()) / 86400000);
         if (diffDays > 7) return;
