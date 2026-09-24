@@ -161,11 +161,14 @@ export default function CarteiraConsultor() {
     (async () => {
       for (const a of alvos) {
         const ultima = a.ultima_aval_funcional as Date | null;
-        await supabase.rpc("fn_criar_tarefa_reavaliacao", {
+        const { error } = await supabase.rpc("fn_criar_tarefa_reavaliacao_app", {
           _aluno_id: a.id,
           _data_ultima: ultima ? ultima.toISOString().slice(0, 10) : null,
-          _criado_por: user.id,
-        });
+        } as any);
+        if (error) {
+          console.error("Falha ao criar tarefa de reavaliação:", error.message);
+          break;
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["tarefas"] });
     })();
