@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Clock, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getDisplayStatus, ACTIVE_STATUS_KEYS } from "@/lib/studentStatus";
+import { selecionarPlanoExibicao, planoDataFim, type PlanoLike } from "@/lib/planoPrincipal";
+import type { AlunoLicenca } from "@/lib/licencas";
 
 interface Alert {
   id: string;
