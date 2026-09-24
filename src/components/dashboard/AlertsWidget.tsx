@@ -31,17 +31,44 @@ export function AlertsWidget({ professorId }: Props) {
       const result: Alert[] = [];
       const today = new Date();
 
-      const [alunosRes, treinosRes, avaliacoesRes, tarefasRes] = await Promise.all([
+      const [alunosRes, treinosRes, avaliacoesRes, tarefasRes, planosRes, licencasRes] = await Promise.all([
         supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id, consultor_id").eq("is_equipe", false),
         supabase.from("treinos").select("id, aluno_id, created_at, status").eq("status", "atual"),
         supabase.from("avaliacoes").select("id, aluno_id, data, tipo").eq("tipo", "funcional").order("data", { ascending: false }),
         supabase.from("tarefas").select("id, aluno_id, responsavel_id, data_limite, status, tipo_auto").eq("tipo_auto", "atualizar_treino").neq("status", "concluida"),
+        supabase.from("planos").select("id, aluno_id, tipo, atividade, data_inicio, data_fim, duracao_meses, ativo, created_at").eq("ativo", true),
+        supabase.from("aluno_licencas").select("id, aluno_id, plano_id, tipo, data_inicio, data_fim, dias, motivo, arquivo_url, created_at"),
       ]);
 
       const alunos = alunosRes.data || [];
       const treinos = treinosRes.data || [];
       const avaliacoes = avaliacoesRes.data || [];
       const tarefasAtualizar = tarefasRes.data || [];
+      const planos = (planosRes.data || []) as PlanoLike[];
+      const licencas = (licencasRes.data || []) as AlunoLicenca[];
+
+      const planosByAluno: Record<string, PlanoLike[]> = {};
+      planos.forEach((p: any) => {
+        (planosByAluno[p.aluno_id] ||= []).push(p);
+      });
+      const licencasByAluno: Record<string, AlunoLicenca[]> = {};
+      licencas.forEach((l) => {
+        (licencasByAluno[l.aluno_id] ||= []).push(l);
+      });
+
+      // "Ativo" canônico: plano vigente, licença vigente ou Ativo · Corrida
+      // (mesma regra da Carteira e de Cadastros > Alunos Ativos).
+      const isAtivo = (alunoId: string, rawStatus: string | null | undefined) => {
+        const sel = selecionarPlanoExibicao(planosByAluno[alunoId]);
+        const ds = getDisplayStatus(
+          rawStatus,
+          planoDataFim(sel.plano),
+          licencasByAluno[alunoId] ?? [],
+          sel.plano?.tipo,
+          { corridaOnly: sel.corridaOnly },
+        );
+        return (ACTIVE_STATUS_KEYS as string[]).includes(ds.key);
+      };
 
       const alunoMap: Record<string, { nome: string; freq: number | null; status: string; responsavel_id: string | null; consultor_id: string | null }> = {};
       alunos.forEach((a: any) => {
