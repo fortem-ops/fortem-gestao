@@ -37,7 +37,7 @@ export function AlertsWidget({ professorId }: Props) {
           tabela: "alunos",
           colunas: "id, nome, status, frequencia_semanal, responsavel_id, consultor_id",
           ordenarPor: [{ coluna: "id" }],
-          filtros: (q) => q.eq("is_equipe", false),
+          filtros: (q: any) => q.eq("is_equipe", false),
         }),
         supabase.from("treinos").select("id, aluno_id, created_at, status").eq("status", "atual"),
         supabase.from("avaliacoes").select("id, aluno_id, data, tipo").eq("tipo", "funcional").order("data", { ascending: false }),
