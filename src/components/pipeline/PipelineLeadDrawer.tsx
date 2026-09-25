@@ -22,8 +22,9 @@ import {
   PLANO_BADGE_CLASSES, PLANOS_INTERESSE, formatCurrencyBRL,
   computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, isLostStage, requiresProspectConversion,
 } from "@/lib/pipeline";
+import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
-import { waMeLink } from "@/lib/pipeline";
+import { waMeLink, isLeadStage, isProspectStage } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import type { PipelineCardData } from "./PipelineCard";
 
@@ -420,6 +421,11 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
           >
             {nextStage ? <>Mover para <strong>{nextStage.name}</strong> <ArrowRight className="w-4 h-4" /></> : "Sem próxima etapa"}
           </Button>
+          {student && (isLeadStage(student.current_stage_name) || isProspectStage(student.current_stage_name)) && (
+            <div className="mt-2 flex justify-center">
+              <ConvertToAvulsoButton alunoId={student.id} alunoNome={student.nome} onConverted={() => onOpenChange(false)} />
+            </div>
+          )}
         </div>
       </SheetContent>
 

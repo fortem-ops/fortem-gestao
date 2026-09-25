@@ -14,6 +14,7 @@ import {
 import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText, Eye, Trash2 } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
+import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
 import { NaoConversaoDialog } from "@/components/prospects/NaoConversaoDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { AssessmentViewerDialog } from "@/components/student/assessment/AssessmentViewerDialog";
@@ -589,6 +590,7 @@ export default function Prospects() {
                           <UserCheck className="w-4 h-4" />
                         </Button>
                       )}
+                      <ConvertToAvulsoButton alunoId={p.id} alunoNome={p.nome} variant="icon" />
                       {isCoordAdmin && (
                         <Button size="icon" variant="ghost" onClick={() => setNaoConvTarget({ id: p.id, nome: p.nome })} title="Não conversão">
                           <UserX className="w-4 h-4 text-destructive" />

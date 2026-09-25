@@ -16,6 +16,8 @@ import {
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
 import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
 import { MarkLostDialog } from "./MarkLostDialog";
+import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
+import { isLeadStage, isProspectStage } from "@/lib/pipeline";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +79,7 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
   const showConvert = stageName === "Follow Up";
   const showRenew = stageName === "Renovação de plano";
   const showLost = stageName === "Follow Up" || stageName === "Renovação de plano" || stageName === "Risco de evasão";
+  const showAvulso = isLeadStage(stageName) || isProspectStage(stageName);
   const lostDest = student.current_funnel === "aluno" ? "Aluno inativo" : "Aluno perdido";
   // Ex-aluno (inativo) pode voltar ao funil de prospects para agendar treino experimental.
   const showReativar = stageName === "Aluno inativo" || student.current_funnel === "inativo";
@@ -219,8 +222,9 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
           </div>
         )}
 
-        {(showConvert || showRenew || showLost || showReativar) && (
+        {(showConvert || showRenew || showLost || showReativar || showAvulso) && (
           <div className="mt-2 flex flex-wrap gap-1.5 pt-2 border-t border-border/50">
+            {showAvulso && <ConvertToAvulsoButton alunoId={student.id} alunoNome={student.nome} variant="compact" />}
             {showConvert && (
               <Button
                 size="sm"

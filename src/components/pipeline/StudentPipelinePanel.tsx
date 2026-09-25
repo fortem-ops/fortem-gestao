@@ -11,6 +11,8 @@ import { ChevronDown, MessageCircle, Settings2, ShieldAlert } from "lucide-react
 import type { Tables } from "@/integrations/supabase/types";
 import { stageColor, waMeLink, QUICK_MESSAGES, requiresProspectConversion } from "@/lib/pipeline";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
+import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
+import { isLeadStage, isProspectStage } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import { PipelineMetadataDialog } from "./PipelineMetadataDialog";
 import { PipelineActivityTimeline } from "./PipelineActivityTimeline";
@@ -71,9 +73,14 @@ export function StudentPipelinePanel({ student, onChanged }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">Etapa atual</CardTitle>
-          <Button variant="outline" size="sm" onClick={() => setMetaOpen(true)} className="gap-2">
-            <Settings2 className="w-3.5 h-3.5" /> Dados comerciais
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {(isLeadStage(currentStage?.name) || isProspectStage(currentStage?.name) || ["lead", "prospect"].includes((student as any).status)) && (
+              <ConvertToAvulsoButton alunoId={student.id} alunoNome={student.nome} onConverted={onChanged} />
+            )}
+            <Button variant="outline" size="sm" onClick={() => setMetaOpen(true)} className="gap-2">
+              <Settings2 className="w-3.5 h-3.5" /> Dados comerciais
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <DropdownMenu>
