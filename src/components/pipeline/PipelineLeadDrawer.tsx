@@ -420,6 +420,11 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
           >
             {nextStage ? <>Mover para <strong>{nextStage.name}</strong> <ArrowRight className="w-4 h-4" /></> : "Sem próxima etapa"}
           </Button>
+          {student && (isLeadStage(student.current_stage_name) || isProspectStage(student.current_stage_name)) && (
+            <div className="mt-2 flex justify-center">
+              <ConvertToAvulsoButton alunoId={student.id} alunoNome={student.nome} onConverted={() => onOpenChange(false)} />
+            </div>
+          )}
         </div>
       </SheetContent>
 

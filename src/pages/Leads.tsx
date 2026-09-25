@@ -14,6 +14,7 @@ import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Settin
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
+import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
 import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { waMeLink, formatDaysAgo, LEAD_STAGE_NAMES } from "@/lib/pipeline";
@@ -338,6 +339,7 @@ export default function Leads() {
                       <Button size="sm" variant="outline" onClick={() => setConvertId(l.id)} className="gap-1">
                         <ArrowRightCircle className="w-4 h-4" /> Converter
                       </Button>
+                      <ConvertToAvulsoButton alunoId={l.id} alunoNome={l.nome} variant="icon" />
                       <Button size="icon" variant="ghost" onClick={() => navigate("/pipeline")} title="Pipeline">
                         <KanbanSquare className="w-4 h-4" />
                       </Button>
