@@ -22,8 +22,9 @@ import {
   PLANO_BADGE_CLASSES, PLANOS_INTERESSE, formatCurrencyBRL,
   computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, isLostStage, requiresProspectConversion,
 } from "@/lib/pipeline";
+import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
-import { waMeLink } from "@/lib/pipeline";
+import { waMeLink, isLeadStage, isProspectStage } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import type { PipelineCardData } from "./PipelineCard";
 
