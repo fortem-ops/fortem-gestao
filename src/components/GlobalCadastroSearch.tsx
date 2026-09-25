@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDebounce } from "@/hooks/useDebounce";
 
-type Tipo = "lead" | "prospect" | "ativo" | "avulso" | "inativo" | "cancelado" | "pausado" | "licenca";
+type Tipo = "perdido" | "lead" | "prospect" | "ativo" | "avulso" | "inativo" | "cancelado" | "pausado" | "licenca";
 
 interface Resultado {
   id: string;
@@ -18,6 +18,7 @@ interface Resultado {
 }
 
 const TIPO_META: Record<Tipo, { label: string; className: string; group: string }> = {
+  perdido: { label: "Perdido", className: "status-urgent", group: "Perdidos" },
   lead: { label: "Lead", className: "status-info", group: "Leads" },
   prospect: { label: "Prospect", className: "status-warning", group: "Prospects" },
   ativo: { label: "Ativo", className: "status-active", group: "Alunos Ativos" },
@@ -28,7 +29,7 @@ const TIPO_META: Record<Tipo, { label: string; className: string; group: string 
   licenca: { label: "Licença", className: "status-license", group: "Em Licença" },
 };
 
-const ORDEM: Tipo[] = ["ativo", "prospect", "lead", "avulso", "licenca", "pausado", "inativo", "cancelado"];
+const ORDEM: Tipo[] = ["ativo", "prospect", "lead", "avulso", "licenca", "pausado", "inativo", "cancelado", "perdido"];
 
 function mapStatus(status: string | null | undefined): Tipo {
   switch (status) {
@@ -81,16 +82,25 @@ export function GlobalCadastroSearch() {
     staleTime: 30_000,
   });
 
+  const { data: perdidoStageId } = useQuery({
+    queryKey: ["stage-aluno-perdido"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pipeline_stages").select("id").eq("name", "Aluno perdido").maybeSingle();
+      return (data?.id as string) ?? null;
+    },
+    staleTime: 600_000,
+  });
+
   const grouped = useMemo(() => {
     const out = ORDEM.reduce((acc, t) => { acc[t] = []; return acc; }, {} as Record<Tipo, Resultado[]>);
     alunos.forEach((a: any) => {
-      const tipo = mapStatus(a.status);
+      const tipo: Tipo = perdidoStageId && a.current_pipeline_stage_id === perdidoStageId && !["ativo", "avulso"].includes(a.status) ? "perdido" : mapStatus(a.status);
       if (out[tipo].length < 8) {
         out[tipo].push({ id: a.id, nome: a.nome, telefone: a.telefone, tipo });
       }
     });
     return out;
-  }, [alunos]);
+  }, [alunos, perdidoStageId]);
 
   const totalResultados = ORDEM.reduce((n, t) => n + grouped[t].length, 0);
 
@@ -98,7 +108,9 @@ export function GlobalCadastroSearch() {
   function handleSelect(r: Resultado) {
     setOpen(false);
     setTerm("");
-    if (r.tipo === "lead") {
+    if (r.tipo === "perdido") {
+      navigate(`/alunos-perdidos`);
+    } else if (r.tipo === "lead") {
       navigate(`/leads?edit=${r.id}`);
     } else if (r.tipo === "prospect") {
       navigate(`/prospects?edit=${r.id}`);

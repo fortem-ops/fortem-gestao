@@ -21,6 +21,7 @@ const ResetPassword = lazyWithReload(() => import("./pages/ResetPassword"));
 // Lazy-loaded routes — keeps initial bundle small and speeds up first paint.
 const StudentList = lazyWithReload(() => import("./pages/StudentList"));
 const ClientesAvulsos = lazyWithReload(() => import("./pages/ClientesAvulsos"));
+const AlunosPerdidos = lazyWithReload(() => import("./pages/AlunosPerdidos"));
 
 const StudentProfile = lazyWithReload(() => import("./pages/StudentProfile"));
 const TaskCenter = lazyWithReload(() => import("./pages/TaskCenter"));
@@ -298,6 +299,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <ClientesAvulsos />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/alunos-perdidos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AlunosPerdidos />
                   </Suspense>
                 }
               />
