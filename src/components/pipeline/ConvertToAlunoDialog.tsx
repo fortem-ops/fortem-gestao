@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export function ConvertToAlunoDialog({
 }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
@@ -168,6 +170,7 @@ export function ConvertToAlunoDialog({
     qc.invalidateQueries({ queryKey: ["prospects-list"] });
     onOpenChange(false);
     onConverted?.();
+    if (fullConvert) navigate(`/alunos/${alunoId}?venda=1`);
   }
 
   return (
