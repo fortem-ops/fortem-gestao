@@ -483,6 +483,12 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     }).eq("id", params.planoId);
   };
 
+  const tipoCobrancaSel = tipoCobranca;
+  const modalidadeSel = modalidade;
+  const canalCartaoSel = canalCartao;
+  const descontoSel = desconto;
+  const parcelasSel = parcelas;
+  const totaisPlanoSel = totaisPlano;
   const venderPlano = useMutation({
     mutationFn: async () => {
       const agreg = isAgregadora;
@@ -610,7 +616,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           svc: servicosInclusos,
           formaPagamento: formaPgto,
           parcelas: parcelas || 1,
-          recorrencia: tipoCobranca === "recorrencia",
+          recorrencia: agreg || tipoCobranca === "recorrencia",
           modo: planoEhCorrida ? "adicional" : (planoVigente ? modoContrato : "substituir"),
         });
       }
