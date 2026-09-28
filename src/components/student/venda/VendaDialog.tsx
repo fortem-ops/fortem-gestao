@@ -1009,7 +1009,13 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
                     <div className="flex justify-between pt-2">
                       <Button variant="outline" onClick={() => setPStep(hasServicos ? 3 : 2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
-                      <Button disabled={!tipoCobranca} onClick={() => setPStep(5)}>Continuar para Pagamento</Button>
+                      {isAgregadora ? (
+                        <Button disabled={venderPlano.isPending} onClick={() => venderPlano.mutate()}>
+                          {venderPlano.isPending ? "Salvando..." : "Concluir adesão"}
+                        </Button>
+                      ) : (
+                        <Button disabled={!tipoCobranca} onClick={() => setPStep(5)}>Continuar para Pagamento</Button>
+                      )}
                     </div>
                   </div>
                 )}
