@@ -393,6 +393,13 @@
       "when": 1790340905979,
       "tag": "0055_converter_em_avulso",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1790606116051,
+      "tag": "0056_venda_delete_remove_cobranca_aberta",
+      "breakpoints": true
     }
   ]
 }
