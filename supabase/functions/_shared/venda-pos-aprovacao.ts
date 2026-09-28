@@ -45,6 +45,8 @@ export interface CriarContratoInput {
   servicosInclusos: unknown;
   /** Forma registrada no contrato tradicional. */
   formaPagamentoTradicional?: string;
+  /** Parcelas efetivamente cobradas no cartão (prioridade sobre vendas.parcelas). */
+  parcelas?: number;
 }
 
 /**
@@ -86,7 +88,7 @@ export async function criarContratoPosAprovacao(
     p_aluno_id: alunoId,
     p_plano_id: (venda as any)?.catalogo_id,
     p_valor_total: subtotal,
-    p_parcelas: Number((venda as any)?.parcelas) || 1,
+    p_parcelas: Number(input.parcelas) || Number((venda as any)?.parcelas) || 1,
     p_forma_pagamento: input.formaPagamentoTradicional ?? "cartao_credito",
     p_data_inicio: (venda as any)?.data_venda ?? new Date().toISOString().split("T")[0],
     p_status_pagamento: "pago",

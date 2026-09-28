@@ -380,6 +380,7 @@ serve(async (req) => {
       venda,
       cartaoTokenId: savedCartaoId,
       servicosInclusos: servicos_inclusos,
+      parcelas: Number(installments) || 1,
     });
   }
 
