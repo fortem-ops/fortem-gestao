@@ -177,7 +177,7 @@ export function LembreteAvaliacoesPendentesBanner() {
     force((n) => n + 1);
   };
 
-  const handleClick = (alunoId: string) => navigate(`/avaliacoes?aluno=${alunoId}&new=1`);
+  const handleClick = (alunoId: string) => navigate(`/avaliacoes-premium/${alunoId}`);
 
   const renderText = (it: PendingItem) => {
     if (it.atividade === "Treino Experimental") {
@@ -192,7 +192,7 @@ export function LembreteAvaliacoesPendentesBanner() {
     if (f.has("funcional") && f.has("forca")) {
       return (
         <>
-          Você ainda não realizou a avaliação funcional (Funcional + Força) do aluno{" "}
+          Falta registrar <span className="font-semibold">Mobilidade/Flexibilidade e Força</span> do aluno{" "}
           <span className="font-semibold text-foreground">{it.alunoNome}</span>
         </>
       );
@@ -200,14 +200,14 @@ export function LembreteAvaliacoesPendentesBanner() {
     if (f.has("forca")) {
       return (
         <>
-          Falta registrar a avaliação de <span className="font-semibold">Força</span> do aluno{" "}
+          Falta registrar <span className="font-semibold">Força</span> do aluno{" "}
           <span className="font-semibold text-foreground">{it.alunoNome}</span>
         </>
       );
     }
     return (
       <>
-        Falta registrar a avaliação <span className="font-semibold">Funcional</span> do aluno{" "}
+        Falta registrar <span className="font-semibold">Mobilidade/Flexibilidade</span> do aluno{" "}
         <span className="font-semibold text-foreground">{it.alunoNome}</span>
       </>
     );
