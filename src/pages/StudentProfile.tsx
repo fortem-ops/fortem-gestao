@@ -69,6 +69,14 @@ export default function StudentProfile() {
   const subParam = searchParams.get("sub") as RegistroSubTab | null;
   const subValue: RegistroSubTab =
     legacySub ?? (subParam && REGISTROS_SUBTABS.includes(subParam) ? subParam : "tarefas");
+  useEffect(() => {
+    if (searchParams.get("venda") === "1") {
+      setVendaOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("venda");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
 
   const { data: isAdmin } = useQuery({
