@@ -109,14 +109,20 @@ export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobran
     }
     setSaving(true);
     try {
+      const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
       for (const l of alteradas) {
+        const novoStatus = l.data_vencimento >= hoje ? "pendente" : "atrasado";
         const { error } = await supabase
           .from("cobrancas")
-          .update({ data_vencimento: l.data_vencimento, valor: Number(l.valor) })
+          .update({ data_vencimento: l.data_vencimento, valor: Number(l.valor), status: novoStatus } as any)
           .eq("id", l.id);
         if (error) throw error;
+        if (novoStatus === "pendente") {
+          await (supabase as any).from("inadimplencias").delete().eq("cobranca_id", l.id);
+        }
       }
       qc.invalidateQueries({ queryKey: ["cobrancas-contrato", contratoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplentes"] });
       toast({ title: "Dados da venda atualizados" });
       onOpenChange(false);
     } catch (e: any) {

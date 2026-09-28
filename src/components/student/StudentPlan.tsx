@@ -341,12 +341,21 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           data_inicio: editInicio,
           duracao_meses: editDuracao,
           data_fim: editFim || null,
+          ...(((data as any).renovacao_automatica && editFim) ? { proxima_renovacao: editFim } : {}),
           desconto_recorrente: editDescRec === "" ? 0 : Number(editDescRec),
           forma_pagamento_padrao: editFormaRec,
           parcelas_padrao: editParcelasRec || 1,
         } as any)
         .eq("id", data.id);
       if (error) throw error;
+      if (editFim && editFim !== (data as any).data_fim) {
+        const { error: cErr } = await supabase
+          .from("contratos")
+          .update({ data_fim: editFim } as any)
+          .eq("aluno_id", student.id)
+          .in("status", ["ativo", "suspenso", "inadimplente"]);
+        if (cErr) throw cErr;
+      }
       toast.success("Plano atualizado");
       invalidatePlanoCaches(queryClient, student.id);
       setEditPlanOpen(false);
