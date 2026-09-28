@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ClipboardCheck, Dumbbell, X, ArrowRight } from "lucide-react";
+import { partesAvaliacaoConcluidas } from "@/lib/avaliacaoPendente";
 
 type AtividadeTipo = "Treino Experimental" | "Avaliação Funcional";
 
@@ -105,13 +106,13 @@ export function LembreteAvaliacoesPendentesBanner() {
         supabase.from("alunos").select("id, nome").in("id", alunoIds),
         supabase
           .from("avaliacoes")
-          .select("aluno_id, tipo, data")
+          .select("aluno_id, tipo, data, dados")
           .in("aluno_id", alunoIds)
           .gte("data", minData),
       ]);
 
       const nameMap = new Map<string, string>((alunos || []).map((a: any) => [a.id, a.nome]));
-      const avalList = (avals || []) as Array<{ aluno_id: string; tipo: string; data: string }>;
+      const avalList = avals || [];
 
       const pending: PendingItem[] = [];
       // Deduplicar por (alunoId, atividade) — primeira ocorrência pendente mais antiga
@@ -125,17 +126,14 @@ export function LembreteAvaliacoesPendentesBanner() {
         const dedupKey = `${o.agenda.aluno_id}:${at}`;
         if (seen.has(dedupKey)) continue;
 
-        const matches = avalList.filter(
-          (v) => v.aluno_id === o.agenda.aluno_id && v.data >= o.data,
-        );
-        const has = new Set(matches.map((m) => (m.tipo || "").toLowerCase()));
+        const concluidas = partesAvaliacaoConcluidas(avalList, o.agenda.aluno_id, o.data);
 
         let faltam: PendingItem["faltam"] = [];
         if (at === "Treino Experimental") {
-          if (!has.has("experimental")) faltam = ["experimental"];
+          if (!concluidas.experimental) faltam = ["experimental"];
         } else {
-          if (!has.has("funcional")) faltam.push("funcional");
-          if (!has.has("forca")) faltam.push("forca");
+          if (!concluidas.funcional) faltam.push("funcional");
+          if (!concluidas.forca) faltam.push("forca");
         }
         if (faltam.length === 0) {
           seen.add(dedupKey);
