@@ -400,6 +400,13 @@
       "when": 1790606116051,
       "tag": "0056_venda_delete_remove_cobranca_aberta",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1790608055349,
+      "tag": "0057_concluir_reavaliacao_funcional",
+      "breakpoints": true
     }
   ]
 }
