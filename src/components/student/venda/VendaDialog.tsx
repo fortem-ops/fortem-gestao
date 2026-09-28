@@ -295,6 +295,15 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     else setModoContrato("substituir");
   }, [planoVigente?.id, planoEhCorrida]);
 
+  const isAgregadora = /gympass|wellhub|total\s?pass/i.test(planoSelecionado?.nome || "");
+
+  // Agregadoras: início sempre no dia 1 do mês corrente
+  useEffect(() => {
+    if (!isAgregadora) return;
+    const hoje = new Date();
+    setDataInicio(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  }, [isAgregadora, modoContrato, fimVigente?.getTime()]);
+
   const totaisPlano = planoSelecionado
     ? calcularTotaisVenda({
         valorPlano: Number(planoSelecionado.valor || 0),
@@ -476,6 +485,15 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
   const venderPlano = useMutation({
     mutationFn: async () => {
+      const agreg = isAgregadora;
+      const tipoCobranca: TipoCobranca | null = agreg ? "tradicional" : tipoCobrancaSel;
+      const modalidade: Modalidade | null = agreg ? "dinheiro" : modalidadeSel;
+      const canalCartao = agreg ? null : canalCartaoSel;
+      const desconto = agreg ? 0 : descontoSel;
+      const parcelas = agreg ? 1 : parcelasSel;
+      const totaisPlano = agreg
+        ? { subtotalPlano: 0, taxaMensal: 0, total: 0, mensalEstimado: 0 } as any
+        : totaisPlanoSel;
       if (!planoSelecionado || !tipoCobranca || !modalidade || !totaisPlano) {
         throw new Error("Dados de pagamento incompletos");
       }
@@ -487,10 +505,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      const valor = Number(planoSelecionado.valor || 0);
+      const valor = agreg ? 0 : Number(planoSelecionado.valor || 0);
       const valorFinal = totaisPlano.subtotalPlano;
       const formaPgto = mapForma(modalidade, canalCartao);
-      const canal = modalidade === "cartao_credito"
+      const canal = agreg ? "manual" : modalidade === "cartao_credito"
         ? (tipoCobranca === "recorrencia" ? "online" : canalCartao)
         : modalidade === "pix_automatico" || modalidade === "boleto" || modalidade === "pix_avista"
           ? "online"
@@ -500,8 +518,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
       // status inicial
       const cartaoOnline = modalidade === "cartao_credito" && (tipoCobranca === "recorrencia" || canalCartao === "online");
-      const initialStatus: "pendente" | "pago" =
-        modalidade === "pendente" ? "pendente"
+      const initialStatus: "pendente" | "pago" = agreg ? "pago"
+        : modalidade === "pendente" ? "pendente"
         : cartaoOnline ? "pendente"  // será atualizado pelo PagarCartaoDialog
         : statusPagamento;
 
@@ -517,7 +535,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         parcelas: parcelas || 1,
         vendedor_id: user?.id,
         status_pagamento: initialStatus,
-        observacoes: observacoes.trim() || null,
+        observacoes: (observacoes.trim() || (agreg ? "Adesão via plataforma (sem cobrança ao aluno)" : "")) || null,
         data_venda: format(dataInicio, "yyyy-MM-dd"),
         tipo_cobranca: tipoCobranca,
         taxa_mensal: totaisPlano.taxaMensal,
