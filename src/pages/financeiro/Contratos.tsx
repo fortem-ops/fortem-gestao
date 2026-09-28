@@ -467,6 +467,94 @@ export default function Contratos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Detalhes de inadimplentes */}
+      <Dialog open={inadOpen} onOpenChange={setInadOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" /> Inadimplentes
+            </DialogTitle>
+            <DialogDescription>Parcelas em aberto com vencimento ultrapassado</DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const lista = [...(inadimplenciasAbertas ?? [])].sort((a: any, b: any) =>
+              (a.data_vencimento || '').localeCompare(b.data_vencimento || ''),
+            );
+            const totalValor = lista.reduce((s: number, i: any) => s + Number(i.valor || 0), 0);
+            const qtdAlunos = new Set(lista.map((i: any) => i.aluno_id)).size;
+            if (lista.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <CheckCircle2 className="h-10 w-10 text-green-500 mb-2" />
+                  <p className="text-sm">Nenhuma inadimplência em aberto</p>
+                </div>
+              );
+            }
+            return (
+              <>
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="rounded-md bg-muted/30 p-2 text-center">
+                    <p className="text-xs text-muted-foreground">Em aberto</p>
+                    <p className="text-sm font-bold text-destructive">{formatBRL(totalValor)}</p>
+                  </div>
+                  <div className="rounded-md bg-muted/30 p-2 text-center">
+                    <p className="text-xs text-muted-foreground">Parcelas</p>
+                    <p className="text-sm font-bold">{lista.length}</p>
+                  </div>
+                  <div className="rounded-md bg-muted/30 p-2 text-center">
+                    <p className="text-xs text-muted-foreground">Alunos</p>
+                    <p className="text-sm font-bold">{qtdAlunos}</p>
+                  </div>
+                </div>
+                <ul className="space-y-2">
+                  {lista.map((i: any) => {
+                    const plano = i.contratos?.plano_tipo as keyof typeof PLANO_LABELS | undefined;
+                    const forma = i.contratos?.forma_pagamento as keyof typeof FORMA_PAGAMENTO_LABELS | undefined;
+                    return (
+                      <li
+                        key={i.id}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border/40 bg-card/40 p-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            to={`/alunos/${i.aluno_id}?tab=contrato`}
+                            onClick={() => setInadOpen(false)}
+                            className="text-sm font-medium hover:text-primary hover:underline truncate block"
+                          >
+                            {i.alunos?.nome ?? '—'}
+                          </Link>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {plano && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1">
+                                {PLANO_LABELS[plano] ?? plano}
+                              </Badge>
+                            )}
+                            {forma && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1">
+                                {FORMA_PAGAMENTO_LABELS[forma] ?? forma}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold text-destructive">{formatBRL(Number(i.valor))}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Venceu em {i.data_vencimento ? format(new Date(i.data_vencimento + 'T00:00:00'), 'dd/MM/yyyy') : '—'}
+                          </p>
+                          <Badge variant="destructive" className="text-[10px] h-4 px-1 mt-0.5">
+                            {i.dias_atraso ?? 0}d de atraso
+                          </Badge>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
