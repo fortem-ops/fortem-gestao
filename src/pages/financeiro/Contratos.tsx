@@ -151,6 +151,7 @@ export default function Contratos() {
   // ---- Baixa em lote ----
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [baixaOpen, setBaixaOpen] = useState(false);
+  const [inadOpen, setInadOpen] = useState(false);
   const [dataBaixa, setDataBaixa] = useState<Date>(new Date());
   const [formaBaixa, setFormaBaixa] = useState<string>('dinheiro');
   const darBaixa = useDarBaixaLote();
@@ -489,9 +490,12 @@ function DateField({ label, value, onChange }: { label: string; value?: Date; on
   );
 }
 
-function Kpi({ icon: Icon, label, value, tone }: { icon: any; label: string; value: string; tone?: 'danger' }) {
+function Kpi({ icon: Icon, label, value, tone, onClick }: { icon: any; label: string; value: string; tone?: 'danger'; onClick?: () => void }) {
   return (
-    <Card>
+    <Card
+      onClick={onClick}
+      className={onClick ? 'cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/30' : undefined}
+    >
       <CardContent className="p-4 flex items-center gap-3">
         <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${tone === 'danger' ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>
           <Icon className="h-5 w-5" />
