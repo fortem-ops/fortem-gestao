@@ -941,6 +941,15 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
                     <div className="space-y-2">
                       <Label>Data de Início do Plano</Label>
+                      {isAgregadora ? (
+                        <>
+                          <Button variant="outline" disabled className="w-full justify-start text-left font-normal">
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {format(dataInicio, "dd/MM/yyyy", { locale: ptBR })}
+                          </Button>
+                          <p className="text-xs text-muted-foreground">Plano de plataforma: renova todo dia 1.</p>
+                        </>
+                      ) : (
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
@@ -959,8 +968,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                           />
                         </PopoverContent>
                       </Popover>
+                      )}
                     </div>
 
+                    {isAgregadora ? (
+                      <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                        Sem cobrança ao aluno — a plataforma paga depois. Valor: <strong>R$ 0,00</strong>
+                      </div>
+                    ) : (
                     <TipoCobrancaSection
                       valorPlano={Number(planoSelecionado.valor || 0)}
                       periodoMeses={planoSelecionado.periodo_meses || 1}
@@ -972,8 +987,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       onAluno2025Change={setAluno2025}
                       canTogglesAluno2025={isCoordAdmin}
                     />
+                    )}
 
-                    {tipoCobranca === "recorrencia" && (
+                    {!isAgregadora && tipoCobranca === "recorrencia" && (
                       <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground/90">
                         {(() => {
                           const periodo = Number(planoSelecionado.periodo_meses) || 1;
