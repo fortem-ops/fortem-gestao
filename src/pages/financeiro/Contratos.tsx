@@ -239,7 +239,7 @@ export default function Contratos() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi icon={Users} label="Contratos ativos" value={String(kpis.ativos)} />
         <Kpi icon={FileText} label="Receita prevista (mês)" value={formatBRL(kpis.receita)} />
-        <Kpi icon={AlertTriangle} label="Inadimplentes" value={String(kpis.inadimplentes)} tone="danger" />
+        <Kpi icon={AlertTriangle} label="Inadimplentes" value={String(kpis.inadimplentes)} tone="danger" onClick={() => setInadOpen(true)} />
         <Kpi icon={RefreshCw} label="Renovações em 30d" value={String(kpis.renovacoes)} />
       </div>
 
