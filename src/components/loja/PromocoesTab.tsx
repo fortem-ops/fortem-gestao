@@ -69,12 +69,33 @@ export function PromocoesTab() {
         uso_maximo: form.uso_maximo === "" ? null : Number(form.uso_maximo),
         ativo: form.ativo,
       };
-      if (editing) {
-        const { error } = await (supabase as any).from("promocoes").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any).from("promocoes").insert(payload);
-        if (error) throw error;
+      const isRede = (e: any) =>
+        /load failed|failed to fetch|networkerror|network request failed/i.test(String(e?.message ?? e));
+      const sb = supabase as any;
+      for (let tentativa = 0; tentativa < 3; tentativa++) {
+        try {
+          if (tentativa > 0) {
+            await new Promise((r) => setTimeout(r, 800 * tentativa));
+            // Evita duplicar: se a tentativa anterior chegou a gravar, encerra.
+            if (!editing && payload.codigo) {
+              const { data: ja } = await sb.from("promocoes").select("id").eq("codigo", payload.codigo).maybeSingle();
+              if (ja?.id) return;
+            }
+          }
+          const { error } = editing
+            ? await sb.from("promocoes").update(payload).eq("id", editing.id)
+            : await sb.from("promocoes").insert(payload);
+          if (error) {
+            if (error.code === "23505") throw new Error("Já existe uma promoção com esse código.");
+            if (isRede(error) && tentativa < 2) continue;
+            throw error;
+          }
+          return;
+        } catch (e: any) {
+          if (isRede(e) && tentativa < 2) continue;
+          if (isRede(e)) throw new Error("Sem conexão com o servidor. Verifique a internet e toque em Criar de novo.");
+          throw e;
+        }
       }
     },
     onSuccess: () => {
