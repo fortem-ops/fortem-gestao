@@ -52,6 +52,7 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { RescisaoDialog } from "@/components/contratos/RescisaoDialog";
 import { AlterarDadosVendaDialog } from "@/components/financeiro/AlterarDadosVendaDialog";
+import { AlterarTipoCobrancaDialog } from "@/components/financeiro/AlterarTipoCobrancaDialog";
 import { HistoricoVendas } from "@/components/student/venda/HistoricoVendas";
 import { ComprasLoja } from "@/components/student/venda/ComprasLoja";
 import {
@@ -619,6 +620,7 @@ interface ContratoAtivoCardProps {
 
 function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alunoNome, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
   const [alterarOpen, setAlterarOpen] = useState(false);
+  const [tipoCobOpen, setTipoCobOpen] = useState(false);
   const { toast } = useToast();
   const [copiandoLink, setCopiandoLink] = useState(false);
   const [estornoCobranca, setEstornoCobranca] = useState<any | null>(null);
@@ -796,6 +798,11 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
             {podeCancelar && cobrancas.some((c) => c.status === "pendente" || c.status === "atrasado") && (
               <Button variant="outline" size="sm" onClick={() => setAlterarOpen(true)}>
                 Alterar dados da venda
+              </Button>
+            )}
+            {podeCancelar && !cobrancas.some((c) => ["pago", "estornado", "isento"].includes(c.status) || c.tid) && (
+              <Button variant="outline" size="sm" onClick={() => setTipoCobOpen(true)}>
+                Alterar tipo de cobrança
               </Button>
             )}
             {podeCancelar && (
@@ -1043,6 +1050,12 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
         open={alterarOpen}
         onOpenChange={setAlterarOpen}
         contratoId={contrato.id}
+        cobrancas={cobrancas}
+      />
+      <AlterarTipoCobrancaDialog
+        open={tipoCobOpen}
+        onOpenChange={setTipoCobOpen}
+        contrato={contrato}
         cobrancas={cobrancas}
       />
 
