@@ -23,6 +23,7 @@ import {
   computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, isLostStage, requiresProspectConversion,
 } from "@/lib/pipeline";
 import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
+import { ConvertToAlunoButton } from "@/components/leads/ConvertToAlunoButton";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { waMeLink, isLeadStage, isProspectStage } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
@@ -422,7 +423,8 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
             {nextStage ? <>Mover para <strong>{nextStage.name}</strong> <ArrowRight className="w-4 h-4" /></> : "Sem próxima etapa"}
           </Button>
           {student && (isLeadStage(student.current_stage_name) || isProspectStage(student.current_stage_name)) && (
-            <div className="mt-2 flex justify-center">
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              <ConvertToAlunoButton alunoId={student.id} alunoNome={student.nome} onConverted={() => onOpenChange(false)} />
               <ConvertToAvulsoButton alunoId={student.id} alunoNome={student.nome} onConverted={() => onOpenChange(false)} />
             </div>
           )}

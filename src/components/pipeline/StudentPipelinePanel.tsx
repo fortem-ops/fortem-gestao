@@ -12,6 +12,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { stageColor, waMeLink, QUICK_MESSAGES, requiresProspectConversion } from "@/lib/pipeline";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
+import { ConvertToAlunoButton } from "@/components/leads/ConvertToAlunoButton";
 import { isLeadStage, isProspectStage } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import { PipelineMetadataDialog } from "./PipelineMetadataDialog";
@@ -75,7 +76,10 @@ export function StudentPipelinePanel({ student, onChanged }: Props) {
           <CardTitle className="text-base">Etapa atual</CardTitle>
           <div className="flex flex-wrap gap-2">
             {(isLeadStage(currentStage?.name) || isProspectStage(currentStage?.name) || ["lead", "prospect"].includes((student as any).status)) && (
-              <ConvertToAvulsoButton alunoId={student.id} alunoNome={student.nome} onConverted={onChanged} />
+              <>
+                <ConvertToAlunoButton alunoId={student.id} alunoNome={student.nome} onConverted={onChanged} />
+                <ConvertToAvulsoButton alunoId={student.id} alunoNome={student.nome} onConverted={onChanged} />
+              </>
             )}
             <Button variant="outline" size="sm" onClick={() => setMetaOpen(true)} className="gap-2">
               <Settings2 className="w-3.5 h-3.5" /> Dados comerciais
