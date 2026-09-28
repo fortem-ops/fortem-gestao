@@ -407,6 +407,13 @@
       "when": 1790608055349,
       "tag": "0057_concluir_reavaliacao_funcional",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790610071604,
+      "tag": "0058_alterar_tipo_cobranca_e_guarda_renovacao",
+      "breakpoints": true
     }
   ]
 }

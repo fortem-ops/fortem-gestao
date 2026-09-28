@@ -8659,6 +8659,18 @@ export type Database = {
         Args: { p_plano_id: string }
         Returns: string
       }
+      fn_alterar_tipo_cobranca_contrato: {
+        Args: {
+          p_aplicar_taxa?: boolean
+          p_contrato_id: string
+          p_dia_venc: number
+          p_forma: string
+          p_parcelas: number
+          p_primeiro_venc?: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
       fn_aluno_last_access: { Args: { _aluno_id: string }; Returns: Json }
       fn_auditoria_fiscal_agenda_servicos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_contratos: { Args: never; Returns: Json }
