@@ -84,6 +84,25 @@ serve(async (req) => {
     return json({ error: "Número de parcelas inválido (1 a 12)" }, 400);
   }
 
+  // Serviços inclusos escolhidos na venda (mesmo formato do fluxo manual).
+  let servicos_inclusos: Record<string, number | boolean> | null = null;
+  const si = body.servicos_inclusos;
+  if (si != null) {
+    if (typeof si !== "object" || Array.isArray(si)) {
+      return json({ error: "Serviços inclusos inválidos" }, 400);
+    }
+    const n = (v: unknown) => {
+      const x = Number(v ?? 0);
+      return Number.isInteger(x) && x >= 0 && x <= 100 ? x : NaN;
+    };
+    const af = n(si.avaliacao_funcional), nu = n(si.nutricao), re = n(si.reabilitacao);
+    if ([af, nu, re].some(Number.isNaN)) return json({ error: "Serviços inclusos inválidos" }, 400);
+    servicos_inclusos = {
+      avaliacao_funcional: af, nutricao: nu, reabilitacao: re,
+      definir_depois: si.definir_depois === true,
+    };
+  }
+
   // ── 3. Idempotência por chave — devolve o resultado da primeira ──
   const { data: mesmaChave } = await supabase
     .from("pagamentos_rede")
@@ -317,7 +336,8 @@ serve(async (req) => {
       alunoId: venda!.aluno_id,
       venda,
       cartaoTokenId: cartao_id,
-      servicosInclusos: null,
+      servicosInclusos: servicos_inclusos,
+      parcelas: installments,
     });
   }
 

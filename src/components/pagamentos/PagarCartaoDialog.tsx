@@ -130,6 +130,7 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
         cartaoId: cartaoAtual.id,
         installments: recorrencia ? 1 : Number(parcelas),
         idempotencyKey: chaveRef.current,
+        servicosInclusos,
       });
 
       if (r.success) {

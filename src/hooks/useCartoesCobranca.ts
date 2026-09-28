@@ -96,6 +96,7 @@ export function useCobrarCartaoSalvo() {
       cartaoId: string;
       installments: number;
       idempotencyKey: string;
+      servicosInclusos?: unknown;
     }): Promise<CobrarSalvoResposta> => {
       const { data, error } = await supabase.functions.invoke("rede-cobrar-salvo", {
         body: {
@@ -103,6 +104,7 @@ export function useCobrarCartaoSalvo() {
           cartao_id: input.cartaoId,
           installments: input.installments,
           idempotency_key: input.idempotencyKey,
+          servicos_inclusos: input.servicosInclusos ?? null,
         },
       });
 
