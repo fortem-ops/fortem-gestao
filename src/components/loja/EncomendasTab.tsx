@@ -17,11 +17,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BadgeCheck, Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
+import { BadgeCheck, FileSpreadsheet, Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
 import { DarBaixaPedidoDialog, type PedidoBaixa } from "./DarBaixaPedidoDialog";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { estornarPedido } from "@/lib/lojaEstorno";
+import { exportarEncomendasXLSX } from "@/lib/encomendasExport";
 
 type ItemRow = {
   quantidade: number;
@@ -302,11 +303,27 @@ export function EncomendasTab() {
             {filtradas.length} {filtradas.length === 1 ? "item" : "itens"} — {totalQtd} peça(s) — recebido{" "}
             {formatBRL(totalRecebido)}
           </p>
-          {temFiltro && (
-            <Button size="sm" variant="ghost" onClick={limpar} className="gap-1">
-              <X className="w-3.5 h-3.5" /> Limpar filtros
+          <div className="flex items-center gap-2">
+            {temFiltro && (
+              <Button size="sm" variant="ghost" onClick={limpar} className="gap-1">
+                <X className="w-3.5 h-3.5" /> Limpar filtros
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => {
+                if (!filtradas.length) {
+                  toast.error("Nada para exportar");
+                  return;
+                }
+                exportarEncomendasXLSX(filtradas, { de, ate });
+              }}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Exportar Excel
             </Button>
-          )}
+          </div>
         </div>
       </div>
 
