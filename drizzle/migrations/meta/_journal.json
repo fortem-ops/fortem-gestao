@@ -421,6 +421,13 @@
       "when": 1790692645446,
       "tag": "0059_proxima_renovacao_inicio_futuro",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1790694133729,
+      "tag": "0060_desativar_planos_vencidos",
+      "breakpoints": true
     }
   ]
 }

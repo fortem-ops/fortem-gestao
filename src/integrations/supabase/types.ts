@@ -8907,6 +8907,7 @@ export type Database = {
         Args: { p_desafio_id: string }
         Returns: number
       }
+      fn_desativar_planos_vencidos: { Args: never; Returns: number }
       fn_detect_evasao: { Args: never; Returns: Json }
       fn_dias_uteis_entre: {
         Args: { p_ate: string; p_de: string }
