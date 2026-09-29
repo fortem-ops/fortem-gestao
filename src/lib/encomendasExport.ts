@@ -56,7 +56,6 @@ export function exportarEncomendasXLSX(linhas: EncomendaExport[], periodo: { de?
         Cupom: l.cupom ?? "",
         Brinde: l.brinde ?? "",
         Status: STATUS_LABEL[l.status] ?? l.status,
-        "Resumo do pedido": l.resumoPedido,
       })),
     ),
     "Encomendas",
