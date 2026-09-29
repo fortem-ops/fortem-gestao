@@ -18,8 +18,11 @@
 4. **Corrigir a Rafaela** (só depois da sua resposta abaixo): reativar o contrato de 28/09 a 28/10, ligar a ele o plano ativo, desativar os planos duplicados e manter uma única mensalidade paga de 28/09.
 5. Conferir no banco e na aba Pagamentos do perfil dela.
 
-## Preciso que você confirme
-Existem duas vendas pagas para o mesmo mês: **R$ 100,00** (23/09, feita na tela de venda) e **R$ 579,00** (29/09, criada pela renovação automática). Qual é o valor correto da mensalidade dela? A outra será removida (nada é enviado à Rede nem cobrado no cartão).
+## Valores confirmados para a Rafaela
+- 28/09 a 28/10: **R$ 100,00** (a venda de 23/09, já paga). Esse é o contrato que volta a ficar ativo.
+- A venda de R$ 579,00 criada por engano em 29/09 (marcada como paga para o mesmo mês) será removida.
+- A partir de 28/10: mensalidade de **R$ 579,00**. O plano fica com próxima renovação em 28/10 e valor de R$ 579,00, para que a renovação de 28/10 e as seguintes saiam com esse valor.
+- Nada é enviado à Rede nem cobrado no cartão.
 
 ## O que NÃO será feito
 - Nenhuma cobrança ou estorno no cartão; cron 28 e cobrança automática continuam desligados.
