@@ -239,7 +239,11 @@ export default function RelatoriosPlanos() {
               <div key={d.plano_id} className="flex items-center justify-between gap-3 text-sm border-t border-border pt-1.5">
                 <span className="font-medium">{d.aluno_nome} · <span className="capitalize">{d.tipo}</span></span>
                 <span className="text-muted-foreground text-xs">
-                  plano {dataBR(d.plano_data_fim)} · contrato {dataBR(d.contrato_data_fim)}
+                  {(d as any).motivo === "plano_sem_fim"
+                    ? `plano sem data final · contrato ${dataBR(d.contrato_data_fim)}`
+                    : (d as any).motivo === "renovacao_diferente"
+                      ? `renovação ${dataBR(d.plano_data_fim)} · contrato ${dataBR(d.contrato_data_fim)}`
+                      : `plano ${dataBR(d.plano_data_fim)} · contrato ${dataBR(d.contrato_data_fim)}`}
                 </span>
                 <Button
                   size="sm"
