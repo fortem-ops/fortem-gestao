@@ -1,5 +1,7 @@
 export type Bandeira = 'visa' | 'mastercard' | 'elo';
 export type Modalidade = 'debito' | 'credito_vista' | 'credito_2_6x' | 'credito_7_12x';
+export type PrazoUnidade = 'corridos' | 'uteis';
+export type MeioPagamento = 'pix' | 'boleto' | 'dinheiro';
 
 export const BANDEIRAS: { value: Bandeira; label: string }[] = [
   { value: 'visa', label: 'VISA' },
@@ -14,6 +16,8 @@ export const MODALIDADES: { value: Modalidade; label: string; hint?: string }[] 
   { value: 'credito_7_12x', label: 'Crédito parcelado 7–12x' },
 ];
 
+export const MODALIDADES_PARCELADAS: Modalidade[] = ['credito_2_6x', 'credito_7_12x'];
+
 export interface AdquirenteTaxa {
   id: string;
   adquirente: string;
@@ -21,6 +25,8 @@ export interface AdquirenteTaxa {
   modalidade: Modalidade;
   taxa_percentual: number;
   prazo_recebimento_dias: number | null;
+  prazo_unidade: PrazoUnidade;
+  intervalo_parcelas_dias: number | null;
   ativo: boolean;
   updated_at: string;
 }
@@ -28,6 +34,16 @@ export interface AdquirenteTaxa {
 export interface AdquirenteConfig {
   adquirente: string;
   aluguel_mensal: number;
+  bandeira_padrao: Bandeira;
+  ativo: boolean;
+  updated_at: string;
+}
+
+export interface MeioPagamentoConfig {
+  meio: MeioPagamento;
+  taxa_percentual: number;
+  prazo_recebimento_dias: number;
+  prazo_unidade: PrazoUnidade;
   ativo: boolean;
   updated_at: string;
 }
