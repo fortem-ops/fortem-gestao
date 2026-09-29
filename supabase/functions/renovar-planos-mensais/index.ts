@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
 
     const { data: planos, error } = await supabase
       .from("planos")
-      .select("id, aluno_id, tipo, valor, proxima_renovacao, desconto_recorrente, forma_pagamento_padrao, parcelas_padrao, atividade")
+      .select("id, aluno_id, tipo, valor, proxima_renovacao, desconto_recorrente, forma_pagamento_padrao, parcelas_padrao, atividade, created_at, data_inicio")
+      .order("created_at", { ascending: false })
       .eq("ativo", true)
       .eq("renovacao_automatica", true)
       .lte("proxima_renovacao", today);
@@ -83,6 +84,32 @@ Deno.serve(async (req) => {
     const erros: any[] = [];
 
     for (const p of planos || []) {
+      // Plano antigo esquecido ativo: se o aluno já tem um plano mais novo ativo
+      // da mesma atividade, este não é renovado (evita plano/venda duplicados e
+      // o encerramento do contrato vigente). Apenas é desativado.
+      const { data: maisNovo, error: mnErr } = await supabase
+        .from("planos")
+        .select("id")
+        .eq("aluno_id", p.aluno_id)
+        .eq("ativo", true)
+        .eq("atividade", (p as any).atividade)
+        .neq("id", p.id)
+        .gt("created_at", (p as any).created_at)
+        .limit(1);
+      if (mnErr) {
+        erros.push({ plano_id: p.id, motivo: `Falha ao verificar plano mais novo: ${mnErr.message}` });
+        continue;
+      }
+      if (maisNovo && maisNovo.length > 0) {
+        await supabase.from("planos").update({ ativo: false }).eq("id", p.id);
+        erros.push({ plano_id: p.id, motivo: "Plano substituído por outro mais novo — desativado, sem renovação" });
+        continue;
+      }
+      // Nunca renovar antes do fim do primeiro ciclo.
+      if ((p as any).data_inicio && (p as any).data_inicio >= today) {
+        erros.push({ plano_id: p.id, motivo: "Plano ainda não completou o primeiro ciclo — sem renovação" });
+        continue;
+      }
       const tipoKey = (p.tipo || "").toLowerCase().trim();
       const variantes = byName.get(tipoKey) || [];
       if (variantes.length === 0) {
