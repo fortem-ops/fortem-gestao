@@ -9025,6 +9025,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_is_agregadora: { Args: { _tipo: string }; Returns: boolean }
       fn_is_auto_renew_plan: { Args: { _tipo: string }; Returns: boolean }
       fn_lgpd_anonimizar_titular: {
         Args: { p_aluno_id: string }
