@@ -1,4 +1,40 @@
-import { useState } from "react";
+import { useState, lazy, Suspense, type ComponentType } from "react";
+import { isPlanilha5RMContent } from "@/lib/planilha5rm";
+
+type MetodoEditorProps = {
+  alunoId: string;
+  alunoNome: string;
+  onBack: () => void;
+  initialTreinoId?: string;
+  initial?: any;
+  onSaved?: () => void;
+};
+const lz = (loader: () => Promise<Record<string, unknown>>, name: string) =>
+  lazy(() => loader().then((m) => ({ default: m[name] as ComponentType<MetodoEditorProps> })));
+// Métodos com shape próprio — cada um abre no seu editor dedicado.
+const METODO_EDITORES: Record<string, ComponentType<MetodoEditorProps>> = {
+  PLANILHA5RM: lz(() => import("./PrescricaoPlanilha5RMEditor"), "PrescricaoPlanilha5RMEditor"),
+  PLANSTRONG50: lz(() => import("./PrescricaoPlanStrongEditor"), "PrescricaoPlanStrongEditor"),
+  EASYSTRENGTH: lz(() => import("./PrescricaoEasyStrengthEditor"), "PrescricaoEasyStrengthEditor"),
+  FOOLPROOF: lz(() => import("./PrescricaoFoolproofEditor"), "PrescricaoFoolproofEditor"),
+  MILEDEEP1RM: lz(() => import("./PrescricaoMileDeep1RMEditor"), "PrescricaoMileDeep1RMEditor"),
+  MILEDEEP5RM: lz(() => import("./PrescricaoMileDeep5RMEditor"), "PrescricaoMileDeep5RMEditor"),
+  PTTP: lz(() => import("./PrescricaoPTTPEditor"), "PrescricaoPTTPEditor"),
+  PTTP2: lz(() => import("./PrescricaoPTTP2Editor"), "PrescricaoPTTP2Editor"),
+  XFAB: lz(() => import("./PrescricaoXFabEditor"), "PrescricaoXFabEditor"),
+};
+const TEMPLATE_FASE_METODO: Record<string, string> = {
+  "Planilha 5RM": "PLANILHA5RM",
+  "Plan Strong 50": "PLANSTRONG50",
+  "Easy Strength": "EASYSTRENGTH",
+};
+function detectarMetodo(conteudo: unknown, templateFase?: string | null): string | null {
+  if (isPlanilha5RMContent(conteudo)) return "PLANILHA5RM";
+  const v = conteudo && typeof conteudo === "object" ? (conteudo as { variante?: unknown }).variante : undefined;
+  if (typeof v === "string" && METODO_EDITORES[v]) return v;
+  if (templateFase && TEMPLATE_FASE_METODO[templateFase]) return TEMPLATE_FASE_METODO[templateFase];
+  return null;
+}
 import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,20 +134,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     );
   }
 
-  // 5-3-1 (Wendler) usa shape próprio (aquecimento como objeto LIB/MOB/ATI/PREV,
-  // levantamentos por dia, training max %). Delegamos ao editor dedicado —
-  // renderizar no visualizador legado quebrava com "aquecimento.forEach is not a function".
-  // Also detecta 5-3-1 legado sem `variante` gravada — via `template_fase`
-  // ou pelo shape de `aquecimento` (objeto {LIB,MOB,ATI,PREV} em vez de array).
-  // Sem esse fallback, o render abaixo tenta `data.aquecimento.forEach` e quebra.
-  const aqShape = treino?.conteudo && typeof treino.conteudo === "object"
-    ? (treino.conteudo as { aquecimento?: unknown }).aquecimento
-    : undefined;
-  const aqIsObject = aqShape !== null && typeof aqShape === "object" && !Array.isArray(aqShape);
+  const metodo = treino ? detectarMetodo(treino.conteudo, treino.template_fase) : null;
+  if (treino && metodo) {
+    const Editor = METODO_EDITORES[metodo];
+    return (
+      <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>}>
+        <Editor
+          alunoId={alunoId}
+          alunoNome={student?.nome ?? ""}
+          initialTreinoId={treino.id}
+          initial={treino.conteudo}
+          onBack={onBack}
+          onSaved={onSaved}
+        />
+      </Suspense>
+    );
+  }
+
+  // 5-3-1 (Wendler): só quando marcado como tal.
   const is531 =
     (treino?.conteudo && isWendler531(treino.conteudo)) ||
-    treino?.template_fase === "5-3-1" ||
-    (aqIsObject && !isPersonalizadoContent(treino?.conteudo));
+    treino?.template_fase === "5-3-1";
   if (treino && is531) {
     return (
       <Prescricao531Editor
