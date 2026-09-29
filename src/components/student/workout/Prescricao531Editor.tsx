@@ -105,8 +105,22 @@ export function Prescricao531Editor({
   onSaved,
 }: Props) {
   const { user } = useAuth();
-  const [data, setData] = useState<Wendler531Conteudo>(
-    initial ?? emptyWendler531(4, 90),
+  const [data, setData] = useState<Wendler531Conteudo>(() => {
+    if (!initial) return emptyWendler531(4, 90);
+    const base = emptyWendler531((initial.frequencia as 2 | 3 | 4 | 5) || 4, initial.percentual_training_max || 90);
+    const dias = Array.isArray(initial.dias) && initial.dias.length ? initial.dias : base.dias;
+    return {
+      ...base,
+      ...initial,
+      aquecimento: { ...base.aquecimento!, ...(initial.aquecimento ?? {}) },
+      dias: dias.map((d, i) => ({
+        ordem: d?.ordem ?? i + 1,
+        levantamentos: Array.isArray(d?.levantamentos) ? d.levantamentos : [],
+        acessorios: Array.isArray(d?.acessorios) ? d.acessorios.map((a) => ({ ...a, semanas: Array.isArray(a?.semanas) ? a.semanas : [] })) : [],
+        auxiliares: Array.isArray(d?.auxiliares) ? d.auxiliares : [],
+      })),
+    };
+  },
   );
   const [treinoId, setTreinoId] = useState<string | undefined>(initialTreinoId);
   const [savingLabel, setSavingLabel] = useState<string>("");
