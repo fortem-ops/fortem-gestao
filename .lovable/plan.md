@@ -17,7 +17,7 @@ Achei **17 planos** assim, cada um de um aluno diferente:
 
 **Alunos que ficam sem nenhum plano em vigor (11).** Esses passam a aparecer como inativos na Carteira, nos alertas e nos relatórios:
 - Guilherme Silveira (até 28/06)
-- Fernanda... não; Alice Brinckmann Oliveira Netto (até 17/07)
+- Alice Brinckmann Oliveira Netto (até 17/07)
 - Gabriela Balaguez, Paulo Sergio de Oliveira Machado, Eliezer Bernart, Eduardo C. Althaus e Alonso Alejandro Gonzalez Cornejo (todos até 26/07)
 - Karina Sassi (até 01/08)
 - Carlos Augusto Piccinini (até 30/08)
