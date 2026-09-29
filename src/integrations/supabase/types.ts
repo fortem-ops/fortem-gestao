@@ -19,6 +19,7 @@ export type Database = {
           adquirente: string
           aluguel_mensal: number
           ativo: boolean
+          bandeira_padrao: Database["public"]["Enums"]["adquirente_bandeira"]
           created_at: string
           updated_at: string
           updated_by: string | null
@@ -27,6 +28,7 @@ export type Database = {
           adquirente?: string
           aluguel_mensal?: number
           ativo?: boolean
+          bandeira_padrao?: Database["public"]["Enums"]["adquirente_bandeira"]
           created_at?: string
           updated_at?: string
           updated_by?: string | null
@@ -35,6 +37,7 @@ export type Database = {
           adquirente?: string
           aluguel_mensal?: number
           ativo?: boolean
+          bandeira_padrao?: Database["public"]["Enums"]["adquirente_bandeira"]
           created_at?: string
           updated_at?: string
           updated_by?: string | null
@@ -48,8 +51,10 @@ export type Database = {
           bandeira: Database["public"]["Enums"]["adquirente_bandeira"]
           created_at: string
           id: string
+          intervalo_parcelas_dias: number | null
           modalidade: Database["public"]["Enums"]["adquirente_modalidade"]
           prazo_recebimento_dias: number | null
+          prazo_unidade: string
           taxa_percentual: number
           updated_at: string
           updated_by: string | null
@@ -60,8 +65,10 @@ export type Database = {
           bandeira: Database["public"]["Enums"]["adquirente_bandeira"]
           created_at?: string
           id?: string
+          intervalo_parcelas_dias?: number | null
           modalidade: Database["public"]["Enums"]["adquirente_modalidade"]
           prazo_recebimento_dias?: number | null
+          prazo_unidade?: string
           taxa_percentual?: number
           updated_at?: string
           updated_by?: string | null
@@ -72,8 +79,10 @@ export type Database = {
           bandeira?: Database["public"]["Enums"]["adquirente_bandeira"]
           created_at?: string
           id?: string
+          intervalo_parcelas_dias?: number | null
           modalidade?: Database["public"]["Enums"]["adquirente_modalidade"]
           prazo_recebimento_dias?: number | null
+          prazo_unidade?: string
           taxa_percentual?: number
           updated_at?: string
           updated_by?: string | null
@@ -4063,6 +4072,39 @@ export type Database = {
           id?: string
           updated_at?: string
           valor_minimo?: number
+        }
+        Relationships: []
+      }
+      meios_pagamento_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          meio: string
+          prazo_recebimento_dias: number
+          prazo_unidade: string
+          taxa_percentual: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          meio: string
+          prazo_recebimento_dias?: number
+          prazo_unidade?: string
+          taxa_percentual?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          meio?: string
+          prazo_recebimento_dias?: number
+          prazo_unidade?: string
+          taxa_percentual?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
