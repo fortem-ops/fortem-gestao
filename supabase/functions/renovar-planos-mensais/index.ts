@@ -110,6 +110,14 @@ Deno.serve(async (req) => {
         erros.push({ plano_id: p.id, motivo: "Plano ainda não completou o primeiro ciclo — sem renovação" });
         continue;
       }
+      // Próxima renovação gravada igual/antes do início: corrige para início + 1 mês e não renova.
+      if ((p as any).data_inicio && p.proxima_renovacao && (p.proxima_renovacao as string) <= (p as any).data_inicio) {
+        const d = new Date(`${(p as any).data_inicio}T00:00:00Z`);
+        d.setUTCMonth(d.getUTCMonth() + 1);
+        await supabase.from("planos").update({ proxima_renovacao: d.toISOString().split("T")[0] }).eq("id", p.id);
+        erros.push({ plano_id: p.id, motivo: "Próxima renovação igual ao início — data corrigida, sem renovação" });
+        continue;
+      }
       const tipoKey = (p.tipo || "").toLowerCase().trim();
       const variantes = byName.get(tipoKey) || [];
       if (variantes.length === 0) {
