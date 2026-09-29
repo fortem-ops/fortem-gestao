@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AlunoDeficitsAlert } from "./AlunoDeficitsAlert";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -111,6 +112,7 @@ export function ImportFromStudentDialog({ alunoId, onSaved }: Props) {
             </DialogHeader>
 
             <div className="space-y-4 mt-2">
+              <AlunoDeficitsAlert alunoId={alunoId} />
               <StudentPicker
                 value={sourceAlunoId}
                 onChange={(id) => setSourceAlunoId(id)}
@@ -206,6 +208,8 @@ export function ImportFromStudentDialog({ alunoId, onSaved }: Props) {
                   </div>
                 </div>
               </DialogHeader>
+
+              <AlunoDeficitsAlert alunoId={alunoId} />
 
               <PersonalizadoEditor
                 initial={initial}
