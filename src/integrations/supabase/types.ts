@@ -9204,6 +9204,7 @@ export type Database = {
           aluno_nome: string
           contrato_data_fim: string
           contrato_id: string
+          motivo: string
           plano_data_fim: string
           plano_id: string
           tipo: string

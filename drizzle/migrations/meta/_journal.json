@@ -435,6 +435,20 @@
       "when": 1790695892947,
       "tag": "0061_agregadora_ciclo_mes_calendario",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1790697149669,
+      "tag": "0062_divergencia_plano_contrato_renovacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1790697179502,
+      "tag": "0063_divergencia_plano_contrato_regra_v2",
+      "breakpoints": true
     }
   ]
 }
