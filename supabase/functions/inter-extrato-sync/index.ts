@@ -92,10 +92,38 @@ Deno.serve(async (req) => {
 
   // Período
   let dias = 10;
+  let modoDiag = false;
   try {
     const body = await req.json();
     if (body && body.dias !== undefined && body.dias !== null) dias = Number(body.dias);
+    if (body && (body.diag === true || body.dias === "diag")) modoDiag = true;
   } catch { /* body vazio */ }
+
+  // Modo diagnóstico: reescreve/valida os PEMs e devolve as checagens de
+  // integridade sem abrir o cliente mTLS e sem chamar nada na API do Inter.
+  if (modoDiag) {
+    const debug: Record<string, unknown> = {};
+    for (const [nome, env] of [["cert", "INTER_EXTRATO_CERT"], ["key", "INTER_EXTRATO_KEY"]] as const) {
+      const raw = Deno.env.get(env);
+      if (!raw) { debug[nome] = { configurado: false }; continue; }
+      let norm: string | null = null;
+      let erroNorm: string | undefined;
+      try { norm = normalizePem(raw, nome); } catch (er) { erroNorm = (er as Error).message; }
+      debug[nome] = {
+        configurado: true,
+        tamanho_bruto: raw.length,
+        tamanho_normalizado: norm?.length ?? null,
+        qtd_begin: norm ? (norm.match(/-----BEGIN/g) || []).length : null,
+        primeiros_27: norm?.substring(0, 27) ?? null,
+        ultimos_25: norm ? norm.substring(norm.length - 25) : null,
+        tem_crlf_bruto: raw.includes("\r\n"),
+        ...diagBase64(norm),
+        ...(erroNorm ? { erro_normalizacao: erroNorm } : {}),
+      };
+    }
+    return json({ ok: true, diagnostico: true, sem_chamada_ao_inter: true, debug });
+  }
+
   if (!Number.isInteger(dias) || dias < 0) {
     return json({ ok: false, error: "Parâmetro 'dias' deve ser um inteiro >= 0" }, 400);
   }
