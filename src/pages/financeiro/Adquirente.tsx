@@ -231,6 +231,19 @@ export default function Adquirente() {
   const updMeio = (meio: string, patch: Partial<MeioDraft>) =>
     setDraftMeios((d) => ({ ...d, [meio]: { ...d[meio], ...patch } }));
 
+  const handleAdicionarBandeira = async () => {
+    const nome = novaBandeiraNome.trim().toLowerCase();
+    if (!nome) return;
+    try {
+      await adicionarBandeira.mutateAsync(nome);
+      setNovaBandeiraOpen(false);
+      setNovaBandeiraNome('');
+      toast({ title: 'Bandeira adicionada', description: `${nome.toUpperCase()} criada com taxas zeradas. Preencha as taxas e salve.` });
+    } catch (e: any) {
+      toast({ title: 'Erro ao adicionar bandeira', description: e?.message ?? 'Tente novamente.', variant: 'destructive' });
+    }
+  };
+
   const opcoes = adquirentesDisponiveisQ.data?.length ? adquirentesDisponiveisQ.data : [adquirente];
   const loading = taxasQ.isLoading || configQ.isLoading;
 
