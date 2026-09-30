@@ -81,6 +81,7 @@ export interface RecebivelRow {
   valor_liquido: Num;
   data_vencimento: string | null;
   data_recebimento_prevista: string | null;
+  bandeira_de_cartao_salvo?: boolean | null;
 }
 
 export function useRecebiveisPrevistos() {
@@ -102,6 +103,29 @@ export function useRecebiveisPrevistos() {
         if (rows.length < PAGE) break;
       }
       return todas;
+    },
+  });
+}
+
+export interface ContratoVencendoRow {
+  contrato_id: string;
+  aluno_id: string | null;
+  aluno_nome: string | null;
+  plano_tipo: string | null;
+  valor_cobrado: Num;
+  data_fim: string | null;
+  dias_restantes: number | null;
+  renovacao_automatica: boolean | null;
+}
+
+export function useContratosVencendo() {
+  return useQuery({
+    queryKey: ["previsibilidade-contratos-vencendo"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from as any)("vw_contratos_vencendo").select("*").order("data_fim");
+      if (error) throw error;
+      return (data ?? []) as ContratoVencendoRow[];
     },
   });
 }
