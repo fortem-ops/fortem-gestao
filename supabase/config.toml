@@ -60,3 +60,6 @@ verify_jwt = false
 [functions.cobrar-link-pagamento]
 verify_jwt = false
 
+[functions.inter-extrato-sync]
+verify_jwt = false
+
