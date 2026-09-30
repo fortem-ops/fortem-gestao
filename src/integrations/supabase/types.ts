@@ -7046,6 +7046,104 @@ export type Database = {
         }
         Relationships: []
       }
+      receitas: {
+        Row: {
+          categoria_id: string | null
+          conciliado: boolean
+          conta_bancaria: string | null
+          created_at: string
+          created_by: string | null
+          data_competencia: string
+          data_recebimento: string | null
+          descricao: string
+          forma_recebimento: string | null
+          id: string
+          observacao: string | null
+          origem: string
+          recorrente: boolean
+          status: string
+          updated_at: string
+          updated_by: string | null
+          valor: number
+          valor_recebido: number | null
+        }
+        Insert: {
+          categoria_id?: string | null
+          conciliado?: boolean
+          conta_bancaria?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_competencia: string
+          data_recebimento?: string | null
+          descricao: string
+          forma_recebimento?: string | null
+          id?: string
+          observacao?: string | null
+          origem?: string
+          recorrente?: boolean
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor: number
+          valor_recebido?: number | null
+        }
+        Update: {
+          categoria_id?: string | null
+          conciliado?: boolean
+          conta_bancaria?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_competencia?: string
+          data_recebimento?: string | null
+          descricao?: string
+          forma_recebimento?: string | null
+          id?: string
+          observacao?: string | null
+          origem?: string
+          recorrente?: boolean
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+          valor_recebido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receitas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "receitas_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receitas_categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rede_tokenizacoes: {
         Row: {
           aluno_id: string
