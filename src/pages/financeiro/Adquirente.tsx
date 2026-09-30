@@ -282,10 +282,19 @@ export default function Adquirente() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Taxas MDR (%) e prazos</CardTitle>
-          <CardDescription>
-            Percentual descontado pelo adquirente e prazo de recebimento, por bandeira e modalidade.
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <CardTitle>Taxas MDR (%) e prazos</CardTitle>
+              <CardDescription>
+                Percentual descontado pelo adquirente e prazo de recebimento, por bandeira e modalidade.
+              </CardDescription>
+            </div>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setNovaBandeiraOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Nova bandeira
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -305,11 +314,11 @@ export default function Adquirente() {
                   </tr>
                 </thead>
                 <tbody>
-                  {BANDEIRAS.map((b) => (
-                    <tr key={b.value} className="border-b last:border-0 align-top">
-                      <td className="p-2 font-medium">{b.label}</td>
+                  {bandeiras.map((b) => (
+                    <tr key={b} className="border-b last:border-0 align-top">
+                      <td className="p-2 font-medium">{b.toUpperCase()}</td>
                       {MODALIDADES.map((m) => {
-                        const t = taxasMap[keyOf(b.value, m.value)];
+                        const t = taxasMap[keyOf(b, m.value)];
                         if (!t) return <td key={m.value} className="p-2 text-muted-foreground">—</td>;
                         const d = draftTaxas[t.id] ?? { taxa: '', prazo: '0', unidade: 'corridos' as PrazoUnidade, intervalo: '' };
                         const isZero = parseNumber(d.taxa) === 0;
@@ -407,8 +416,8 @@ export default function Adquirente() {
             <Select value={draftBandeira} onValueChange={(v) => setDraftBandeira(v as Bandeira)} disabled={!canEdit}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {BANDEIRAS.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                {bandeiras.map((b) => (
+                  <SelectItem key={b} value={b}>{b.toUpperCase()}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
