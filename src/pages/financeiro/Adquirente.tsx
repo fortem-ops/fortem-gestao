@@ -524,6 +524,28 @@ export default function Adquirente() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={novaBandeiraOpen} onOpenChange={setNovaBandeiraOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova bandeira</DialogTitle>
+            <DialogDescription>Nome da bandeira (ex.: amex, hipercard). As taxas começam zeradas — preencha e salve depois.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={novaBandeiraNome}
+            onChange={(e) => setNovaBandeiraNome(e.target.value)}
+            placeholder="ex.: amex"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNovaBandeiraOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAdicionarBandeira} disabled={!novaBandeiraNome.trim() || adicionarBandeira.isPending}>
+              {adicionarBandeira.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
