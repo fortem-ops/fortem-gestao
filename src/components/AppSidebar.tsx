@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert, TrendingUp } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
@@ -97,6 +97,7 @@ const lojaItems = [
 /* ─── Financeiro ─── */
 const financeiroItems = [
   { title: "Contratos", url: "/financeiro/contratos", icon: FileSignature },
+  { title: "Previsibilidade", url: "/financeiro/previsibilidade", icon: TrendingUp },
   { title: "Templates de Contratos", url: "/financeiro/templates-contratos", icon: FileText },
   { title: "Cartões de Crédito", url: "/financeiro/cartoes", icon: CreditCard },
   { title: "Adquirente", url: "/financeiro/adquirente", icon: Percent },
