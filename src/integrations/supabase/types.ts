@@ -3691,6 +3691,48 @@ export type Database = {
         }
         Relationships: []
       }
+      inter_extrato_movimentos: {
+        Row: {
+          chave_natural: string
+          criado_em: string
+          data_entrada: string
+          descricao: string | null
+          id: string
+          numero_documento: string | null
+          raw: Json
+          tipo_operacao: string
+          tipo_transacao: string | null
+          titulo: string | null
+          valor: number
+        }
+        Insert: {
+          chave_natural: string
+          criado_em?: string
+          data_entrada: string
+          descricao?: string | null
+          id?: string
+          numero_documento?: string | null
+          raw: Json
+          tipo_operacao: string
+          tipo_transacao?: string | null
+          titulo?: string | null
+          valor: number
+        }
+        Update: {
+          chave_natural?: string
+          criado_em?: string
+          data_entrada?: string
+          descricao?: string | null
+          id?: string
+          numero_documento?: string | null
+          raw?: Json
+          tipo_operacao?: string
+          tipo_transacao?: string | null
+          titulo?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       inter_tokens: {
         Row: {
           access_token: string
