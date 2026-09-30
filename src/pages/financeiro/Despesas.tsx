@@ -25,7 +25,7 @@ import {
   useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useCategoriaMutations, useUsoCategorias,
 } from "@/hooks/useDespesas";
 import {
-  TIPO_LABELS, STATUS_LABELS, type Despesa, type DespesaCategoria, type DespesaInput, type DespesaStatus, type DespesaTipo,
+  TIPO_LABELS, STATUS_LABELS, FORMAS_DESPESA, CONTAS_DESPESA, type Despesa, type DespesaCategoria, type DespesaInput, type DespesaStatus, type DespesaTipo,
 } from "@/types/despesas";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -73,7 +73,7 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
 
   const { data: despesas = [], isLoading } = useDespesasPeriodo(inicio12, fimMes);
   const { data: categorias = [] } = useCategoriasDespesa(false);
-  const { excluir } = useDespesaMutations();
+  const { excluir, alternarConciliado } = useDespesaMutations();
   const catMap = useMemo(() => new Map(categorias.map((c) => [c.id, c])), [categorias]);
 
   const { resumo, anterior, chart } = useMemo(() => {
@@ -310,7 +310,6 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
   const [pagamento, setPagamento] = useState(despesa?.data_pagamento ?? "");
   const [tipo, setTipo] = useState<DespesaTipo>(despesa?.tipo ?? "fixa");
   const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? "pago");
-  const [observacao, setObservacao] = useState(despesa?.observacao ?? "");
   const [forma, setForma] = useState<string>(despesa?.forma_pagamento ?? "nenhum");
   const [conta, setConta] = useState<string>(despesa?.conta_bancaria ?? "nenhum");
   const [valorPago, setValorPago] = useState(despesa?.valor_pago != null ? String(despesa.valor_pago) : "");
