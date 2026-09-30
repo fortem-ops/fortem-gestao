@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  BANDEIRAS,
+  BANDEIRAS_PADRAO,
   MODALIDADES,
   type AdquirenteTaxa,
   type AdquirenteConfig,
@@ -95,7 +95,7 @@ export function useAdquirente(adquirente: string = 'rede') {
         .from('adquirentes_config')
         .insert({ adquirente: nome, aluguel_mensal: 0 });
       if (cfgErr) throw cfgErr;
-      const rows = BANDEIRAS.flatMap((b) =>
+      const rows = BANDEIRAS_PADRAO.flatMap((b) =>
         MODALIDADES.map((m) => ({
           adquirente: nome,
           bandeira: b.value,

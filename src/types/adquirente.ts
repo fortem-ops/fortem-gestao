@@ -1,9 +1,9 @@
-export type Bandeira = 'visa' | 'mastercard' | 'elo';
+export type Bandeira = string;
 export type Modalidade = 'debito' | 'credito_vista' | 'credito_2_6x' | 'credito_7_12x';
 export type PrazoUnidade = 'corridos' | 'uteis';
 export type MeioPagamento = 'pix' | 'boleto' | 'dinheiro';
 
-export const BANDEIRAS: { value: Bandeira; label: string }[] = [
+export const BANDEIRAS_PADRAO: { value: Bandeira; label: string }[] = [
   { value: 'visa', label: 'VISA' },
   { value: 'mastercard', label: 'MASTERCARD' },
   { value: 'elo', label: 'ELO' },
