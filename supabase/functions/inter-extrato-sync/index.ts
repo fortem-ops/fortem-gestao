@@ -23,9 +23,21 @@ function normalizePem(raw: string, nome: string): string {
       if (decoded.includes("-----BEGIN")) s = decoded;
     } catch { /* ignore */ }
   }
-  s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim() + "\n";
+  s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
   if (!s.includes("-----BEGIN")) throw new Error(`${nome} inválido: nenhum bloco PEM encontrado`);
-  return s;
+
+  // Reescreve o bloco em formato canônico: cabeçalho e rodapé originais
+  // (preservando o tipo declarado no BEGIN — CERTIFICATE vs PRIVATE KEY) e o
+  // corpo base64 sem nenhum caractere fora do alfabeto, quebrado a cada 64
+  // caracteres. Sem isso, um PEM colado em linha única (conteúdo grudado no
+  // cabeçalho) faz o parser do Deno falhar com "Unable to decode certificate".
+  const m = s.match(/-----BEGIN[ \t]*([A-Z0-9 _-]+?)[ \t]*-----([\s\S]*?)-----END[ \t]*([A-Z0-9 _-]+?)[ \t]*-----/);
+  if (!m) throw new Error(`${nome} inválido: bloco PEM incompleto (cabeçalho sem rodapé correspondente)`);
+  const tipo = m[1].trim();
+  const corpo = m[2].replace(/[^A-Za-z0-9+/=]/g, "");
+  if (!corpo) throw new Error(`${nome} inválido: bloco PEM sem conteúdo base64`);
+  const linhas = corpo.match(/.{1,64}/g) ?? [];
+  return `-----BEGIN ${tipo}-----\n${linhas.join("\n")}\n-----END ${tipo}-----\n`;
 }
 
 // Diagnóstico de integridade do payload base64 de um PEM.
