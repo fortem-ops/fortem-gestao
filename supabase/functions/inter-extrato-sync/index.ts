@@ -70,17 +70,85 @@ Deno.serve(async (req) => {
     const certRaw = Deno.env.get("INTER_EXTRATO_CERT");
     const keyRaw = Deno.env.get("INTER_EXTRATO_KEY");
     if (!certRaw || !keyRaw) throw new Error("Certificado/chave do extrato não configurados");
-    const cert = normalizePem(certRaw, "INTER_EXTRATO_CERT");
-    const key = normalizePem(keyRaw, "INTER_EXTRATO_KEY");
+
+    // Diagnóstico sem expor conteúdo (coletado antes do createHttpClient,
+    // incluído no JSON de erro só quando a etapa falhar)
+    const coletarDiag = (nome: string, raw: string, normalizado: string | null, erroNorm?: string) => ({
+      tamanho_bruto: raw.length,
+      tamanho_normalizado: normalizado === null ? null : normalizado.length,
+      qtd_begin: normalizado === null ? null : (normalizado.match(/-----BEGIN/g) || []).length,
+      primeiros_27: normalizado === null ? null : normalizado.substring(0, 27),
+      ultimos_25: normalizado === null ? null : normalizado.substring(normalizado.length - 25),
+      tem_crlf_bruto: raw.includes("\r\n"),
+      ...(erroNorm ? { erro_normalizacao: erroNorm } : {}),
+    });
+
+    let cert: string | null = null;
+    let key: string | null = null;
+    const diagCert = { raw: certRaw!, valor: null as any };
+    const diagKey = { raw: keyRaw!, valor: null as any };
+    try {
+      cert = normalizePem(certRaw, "INTER_EXTRATO_CERT");
+      diagCert.valor = coletarDiag("cert", certRaw!, cert);
+    } catch (e) {
+      diagCert.valor = coletarDiag("cert", certRaw!, null, (e as Error).message);
+      throw e;
+    }
+    try {
+      key = normalizePem(keyRaw, "INTER_EXTRATO_KEY");
+      diagKey.valor = coletarDiag("key", keyRaw!, key);
+    } catch (e) {
+      diagKey.valor = coletarDiag("key", keyRaw!, null, (e as Error).message);
+      throw e;
+    }
+    console.log("[inter-extrato] diagnóstico PEM:", JSON.stringify({ cert: diagCert.valor, key: diagKey.valor }));
+
     // @ts-ignore Deno.createHttpClient disponível no Edge Runtime
     if (typeof Deno.createHttpClient !== "function") {
       throw new Error("Deno.createHttpClient não disponível neste runtime");
     }
     // @ts-ignore
-    httpClient = Deno.createHttpClient({ cert, key });
+    httpClient = Deno.createHttpClient({ cert: cert!, key: key! });
   } catch (e) {
     console.error("[inter-extrato] erro ao preparar mTLS:", (e as Error).message);
-    return json({ ok: false, error: `Falha ao preparar certificado: ${(e as Error).message}` }, 500);
+    const debug: Record<string, unknown> = {};
+    try {
+      const certRaw = Deno.env.get("INTER_EXTRATO_CERT");
+      const keyRaw = Deno.env.get("INTER_EXTRATO_KEY");
+      if (!certRaw) debug.cert = { configurado: false };
+      else {
+        let norm: string | null = null;
+        let erroNorm: string | undefined;
+        try { norm = normalizePem(certRaw, "cert"); } catch (er) { erroNorm = (er as Error).message; }
+        debug.cert = {
+          configurado: true,
+          tamanho_bruto: certRaw.length,
+          tamanho_normalizado: norm?.length ?? null,
+          qtd_begin: norm ? (norm.match(/-----BEGIN/g) || []).length : null,
+          primeiros_27: norm?.substring(0, 27) ?? null,
+          ultimos_25: norm?.substring(norm.length - 25) ?? null,
+          tem_crlf_bruto: certRaw.includes("\r\n"),
+          ...(erroNorm ? { erro_normalizacao: erroNorm } : {}),
+        };
+      }
+      if (!keyRaw) debug.key = { configurado: false };
+      else {
+        let norm: string | null = null;
+        let erroNorm: string | undefined;
+        try { norm = normalizePem(keyRaw, "key"); } catch (er) { erroNorm = (er as Error).message; }
+        debug.key = {
+          configurado: true,
+          tamanho_bruto: keyRaw.length,
+          tamanho_normalizado: norm?.length ?? null,
+          qtd_begin: norm ? (norm.match(/-----BEGIN/g) || []).length : null,
+          primeiros_27: norm?.substring(0, 27) ?? null,
+          ultimos_25: norm?.substring(norm.length - 25) ?? null,
+          tem_crlf_bruto: keyRaw.includes("\r\n"),
+          ...(erroNorm ? { erro_normalizacao: erroNorm } : {}),
+        };
+      }
+    } catch { debug.coleta_falhou = true; }
+    return json({ ok: false, error: `Falha ao preparar certificado: ${(e as Error).message}`, debug }, 500);
   }
 
   // 2) OAuth
