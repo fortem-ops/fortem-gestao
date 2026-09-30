@@ -61,6 +61,11 @@ export default function Adquirente() {
     return map;
   }, [taxasQ.data]);
 
+  const bandeiras = useMemo<Bandeira[]>(() => {
+    const set = new Set((taxasQ.data ?? []).map((t) => t.bandeira));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [taxasQ.data]);
+
   const [draftTaxas, setDraftTaxas] = useState<Record<string, TaxaDraft>>({});
   const [draftAluguel, setDraftAluguel] = useState<string>('');
   const [draftBandeira, setDraftBandeira] = useState<Bandeira>('visa');
