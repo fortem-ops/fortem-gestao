@@ -67,3 +67,41 @@ export function useDiaADiaPrevisibilidade(inicio: string, fim: string) {
     },
   });
 }
+
+export interface RecebivelRow {
+  id: string;
+  aluno_id: string | null;
+  aluno_nome: string | null;
+  origem: OrigemPrevisibilidade;
+  descricao: string | null;
+  forma_pagamento: string | null;
+  bandeira: string | null;
+  valor_bruto: Num;
+  taxa_percentual: Num;
+  valor_liquido: Num;
+  data_vencimento: string | null;
+  data_recebimento_prevista: string | null;
+}
+
+export function useRecebiveisPrevistos() {
+  return useQuery({
+    queryKey: ["previsibilidade-recebiveis"],
+    queryFn: async () => {
+      const PAGE = 1000;
+      const todas: RecebivelRow[] = [];
+      for (let from = 0; ; from += PAGE) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase.from as any)("vw_recebiveis_previstos_todos")
+          .select("*")
+          .order("data_recebimento_prevista", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as RecebivelRow[];
+        todas.push(...rows);
+        if (rows.length < PAGE) break;
+      }
+      return todas;
+    },
+  });
+}
