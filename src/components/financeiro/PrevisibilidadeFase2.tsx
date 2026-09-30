@@ -392,8 +392,8 @@ export function RiscoCarteira() {
                   <TableCell className="py-1.5 text-right">{brl(num(c.valor_cobrado))}</TableCell>
                   <TableCell className="py-1.5">
                     {c.renovacao_automatica
-                      ? <Badge className="status-ativo">Renovação automática</Badge>
-                      : <Badge variant="outline" className="status-atencao">Sem renovação automática</Badge>}
+                      ? <Badge className="status-active">Renovação automática</Badge>
+                      : <Badge variant="outline" className="status-warning">Sem renovação automática</Badge>}
                   </TableCell>
                 </TableRow>
               ))}
