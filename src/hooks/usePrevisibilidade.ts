@@ -6,9 +6,9 @@ type Num = number | string | null;
 export interface KpisPrevisibilidade {
   mes_atual_bruto: Num;
   mes_atual_liquido: Num;
-  proximos_30_bruto: Num;
-  proximos_60_bruto: Num;
-  proximos_90_bruto: Num;
+  proximos_30_liquido: Num;
+  proximos_60_liquido: Num;
+  proximos_90_liquido: Num;
   em_atraso_bruto: Num;
   em_atraso_qtd: Num;
 }
@@ -34,17 +34,6 @@ export interface DiaADiaRow {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = (fn: string, args?: Record<string, unknown>) => (supabase.rpc as any)(fn, args);
 
-export function useKpisPrevisibilidade() {
-  return useQuery({
-    queryKey: ["previsibilidade-kpis"],
-    queryFn: async () => {
-      const { data, error } = await rpc("fn_previsibilidade_kpis");
-      if (error) throw error;
-      return ((data ?? []) as KpisPrevisibilidade[])[0] ?? null;
-    },
-  });
-}
-
 export function useResumoMensalPrevisibilidade() {
   return useQuery({
     queryKey: ["previsibilidade-resumo-mensal"],
@@ -52,6 +41,17 @@ export function useResumoMensalPrevisibilidade() {
       const { data, error } = await rpc("fn_previsibilidade_resumo_mensal");
       if (error) throw error;
       return (data ?? []) as ResumoMensalRow[];
+    },
+  });
+}
+
+export function useKpisPrevisibilidade() {
+  return useQuery({
+    queryKey: ["previsibilidade-kpis"],
+    queryFn: async () => {
+      const { data, error } = await rpc("fn_previsibilidade_kpis");
+      if (error) throw error;
+      return ((data ?? []) as KpisPrevisibilidade[])[0] ?? undefined;
     },
   });
 }
