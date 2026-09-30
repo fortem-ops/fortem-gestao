@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, addMonths, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExportMenu } from "@/components/relatorios/ExportMenu";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
-import { useDiaADiaPrevisibilidade, useRecebiveisPrevistos, type RecebivelRow } from "@/hooks/usePrevisibilidade";
+import { useDiaADiaPrevisibilidade, useRecebiveisPrevistos, useContratosVencendo, type RecebivelRow } from "@/hooks/usePrevisibilidade";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v ?? 0) || 0;
@@ -273,6 +274,136 @@ export function CalendarioCaixa() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+const FAIXAS = [
+  { label: "1–15 dias", min: 1, max: 15 },
+  { label: "16–30 dias", min: 16, max: 30 },
+  { label: "31–60 dias", min: 31, max: 60 },
+  { label: "61–90 dias", min: 61, max: 90 },
+  { label: "90+ dias", min: 91, max: Infinity },
+];
+
+export function RiscoCarteira() {
+  const { data: recebiveis = [] } = useRecebiveisPrevistos();
+  const { data: contratos = [], isLoading } = useContratosVencendo();
+  const [incluirRenov, setIncluirRenov] = useState(false);
+  const hoje = format(new Date(), "yyyy-MM-dd");
+
+  const conservador = recebiveis.filter((r) => r.bandeira_de_cartao_salvo === true).reduce((s, r) => s + num(r.valor_liquido), 0);
+  const provavel = recebiveis.reduce((s, r) => s + num(r.valor_liquido), 0);
+
+  const aging = useMemo(() => {
+    const base = FAIXAS.map((f) => ({ ...f, qtd: 0, valor: 0 }));
+    const hojeMs = new Date(`${hoje}T12:00:00`).getTime();
+    recebiveis.forEach((r) => {
+      if (!r.data_vencimento || r.data_vencimento >= hoje) return;
+      const dias = Math.round((hojeMs - new Date(`${r.data_vencimento}T12:00:00`).getTime()) / 86400000);
+      const f = base.find((b) => dias >= b.min && dias <= b.max);
+      if (f) { f.qtd++; f.valor += num(r.valor_bruto); }
+    });
+    return base;
+  }, [recebiveis, hoje]);
+  const maxAging = Math.max(1, ...aging.map((a) => a.valor));
+
+  const janelas = [30, 60, 90].map((d) => {
+    const cs = contratos.filter((c) => (c.dias_restantes ?? 0) <= d);
+    return { d, qtd: cs.length, valor: cs.reduce((s, c) => s + num(c.valor_cobrado), 0) };
+  });
+  const renovEstimada = contratos.filter((c) => c.renovacao_automatica === true).reduce((s, c) => s + num(c.valor_cobrado), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Card className="glass-card"><CardContent className="p-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Conservador (cartão confirmado)</p>
+          <p className="text-2xl font-display font-semibold mt-1">{brl(conservador)}</p>
+        </CardContent></Card>
+        <Card className="glass-card"><CardContent className="p-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Provável (com premissas)</p>
+          <p className="text-2xl font-display font-semibold mt-1 text-primary">{brl(provavel)}</p>
+        </CardContent></Card>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        A maior parte da carteira hoje depende de cobrança manual, porque a recorrência automática em cartão está pausada. Isso deve mudar quando ela for reativada.
+      </p>
+
+      <div className="flex items-center gap-2">
+        <Switch id="renov" checked={incluirRenov} onCheckedChange={setIncluirRenov} />
+        <Label htmlFor="renov">Incluir renovação estimada</Label>
+      </div>
+      {incluirRenov && (
+        <Card className="glass-card"><CardContent className="p-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Renovação estimada (90 dias)</p>
+          <p className="text-2xl font-display font-semibold mt-1">{brl(renovEstimada)}</p>
+          <p className="text-xs text-muted-foreground mt-1">Estimativa: assume que esses contratos renovam pelo mesmo valor.</p>
+        </CardContent></Card>
+      )}
+
+      <Card className="glass-card">
+        <CardHeader><CardTitle className="text-base">Atrasados por tempo de atraso</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {aging.map((a) => (
+            <div key={a.label}>
+              <div className="flex justify-between text-sm">
+                <span>{a.label}</span>
+                <span className="text-muted-foreground">{a.qtd} • {brl(a.valor)}</span>
+              </div>
+              <div className="h-2 bg-muted rounded mt-1 overflow-hidden">
+                <div className="h-full bg-destructive" style={{ width: `${(a.valor / maxAging) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card">
+        <CardHeader><CardTitle className="text-base">Contratos vencendo</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            {janelas.map((j) => (
+              <div key={j.d} className="rounded-md border p-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Até {j.d} dias</p>
+                <p className="text-xl font-semibold">{j.qtd} contrato(s)</p>
+                <p className="text-sm text-muted-foreground">{brl(j.valor)}</p>
+              </div>
+            ))}
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Aluno</TableHead>
+                <TableHead>Plano</TableHead>
+                <TableHead className="text-right">Vence em</TableHead>
+                <TableHead>Data fim</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Renovação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {contratos.map((c) => (
+                <TableRow key={c.contrato_id}>
+                  <TableCell className="py-1.5">{c.aluno_nome ?? "—"}</TableCell>
+                  <TableCell className="py-1.5 capitalize">{c.plano_tipo ?? "—"}</TableCell>
+                  <TableCell className="py-1.5 text-right">{c.dias_restantes ?? "—"} dia(s)</TableCell>
+                  <TableCell className="py-1.5">{dataBR(c.data_fim)}</TableCell>
+                  <TableCell className="py-1.5 text-right">{brl(num(c.valor_cobrado))}</TableCell>
+                  <TableCell className="py-1.5">
+                    {c.renovacao_automatica
+                      ? <Badge className="status-ativo">Renovação automática</Badge>
+                      : <Badge variant="outline" className="status-atencao">Sem renovação automática</Badge>}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && contratos.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum contrato vencendo</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { CalendarDays, Clock, AlertCircle, TrendingUp, Wallet, ChevronLeft, Chev
 import {
   useKpisPrevisibilidade, useResumoMensalPrevisibilidade, useDiaADiaPrevisibilidade,
 } from "@/hooks/usePrevisibilidade";
-import { CalendarioCaixa, RecebiveisList } from "@/components/financeiro/PrevisibilidadeFase2";
+import { CalendarioCaixa, RecebiveisList, RiscoCarteira } from "@/components/financeiro/PrevisibilidadeFase2";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v ?? 0) || 0;
@@ -49,11 +49,13 @@ export default function Previsibilidade() {
           <TabsTrigger value="dias">Dias úteis</TabsTrigger>
           <TabsTrigger value="calendario">Calendário</TabsTrigger>
           <TabsTrigger value="recebiveis">Recebíveis</TabsTrigger>
+          <TabsTrigger value="risco">Risco</TabsTrigger>
         </TabsList>
         <TabsContent value="geral"><VisaoGeral /></TabsContent>
         <TabsContent value="dias"><DiasUteis /></TabsContent>
         <TabsContent value="calendario"><CalendarioCaixa /></TabsContent>
         <TabsContent value="recebiveis"><RecebiveisList /></TabsContent>
+        <TabsContent value="risco"><RiscoCarteira /></TabsContent>
       </Tabs>
     </div>
   );
