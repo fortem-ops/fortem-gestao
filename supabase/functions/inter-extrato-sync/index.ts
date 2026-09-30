@@ -28,6 +28,37 @@ function normalizePem(raw: string, nome: string): string {
   return s;
 }
 
+// Diagnóstico de integridade do payload base64 de um PEM.
+// Nunca retorna (nem loga) o conteúdo real: só metadados — tamanho, validade do
+// alfabeto, posição (não o caractere) do primeiro caractere inválido, tamanho em
+// bytes da decodificação e o primeiro byte em hex (um DER válido começa com "30").
+function diagBase64(normalizado: string | null): Record<string, unknown> {
+  if (normalizado === null) return { base64_valido: null };
+  const linhas = normalizado.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  const corpo = linhas.filter((l) => !l.startsWith("-----"));
+  const b64 = corpo.join("");
+  const valido = /^[A-Za-z0-9+/=]*$/;
+  let posInvalido = -1;
+  for (let i = 0; i < b64.length; i++) {
+    if (!valido.test(b64[i])) { posInvalido = i; break; }
+  }
+  const out: Record<string, unknown> = {
+    base64_linhas: corpo.length,
+    base64_maior_linha: corpo.length ? Math.max(...corpo.map((l) => l.length)) : 0,
+    base64_chars: b64.length,
+    base64_valido: posInvalido === -1,
+  };
+  if (posInvalido >= 0) out.caracter_invalido_pos = posInvalido;
+  try {
+    const bin = atob(b64);
+    out.bytes_decodificados = bin.length;
+    out.primeiro_byte_hex = bin.length ? bin.charCodeAt(0).toString(16).padStart(2, "0") : "";
+  } catch (e) {
+    out.erro_decode_base64 = (e as Error).message;
+  }
+  return out;
+}
+
 function fmtDate(d: Date): string {
   return d.toISOString().split("T")[0];
 }
@@ -80,6 +111,7 @@ Deno.serve(async (req) => {
       primeiros_27: normalizado === null ? null : normalizado.substring(0, 27),
       ultimos_25: normalizado === null ? null : normalizado.substring(normalizado.length - 25),
       tem_crlf_bruto: raw.includes("\r\n"),
+      ...diagBase64(normalizado),
       ...(erroNorm ? { erro_normalizacao: erroNorm } : {}),
     });
 
@@ -128,6 +160,7 @@ Deno.serve(async (req) => {
           primeiros_27: norm?.substring(0, 27) ?? null,
           ultimos_25: norm?.substring(norm.length - 25) ?? null,
           tem_crlf_bruto: certRaw.includes("\r\n"),
+          ...diagBase64(norm),
           ...(erroNorm ? { erro_normalizacao: erroNorm } : {}),
         };
       }
@@ -144,6 +177,7 @@ Deno.serve(async (req) => {
           primeiros_27: norm?.substring(0, 27) ?? null,
           ultimos_25: norm?.substring(norm.length - 25) ?? null,
           tem_crlf_bruto: keyRaw.includes("\r\n"),
+          ...diagBase64(norm),
           ...(erroNorm ? { erro_normalizacao: erroNorm } : {}),
         };
       }
