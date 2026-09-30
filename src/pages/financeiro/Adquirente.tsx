@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { useAdquirente, useMeiosPagamento } from '@/hooks/useAdquirente';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import {
-  BANDEIRAS, MODALIDADES, MODALIDADES_PARCELADAS,
+  MODALIDADES, MODALIDADES_PARCELADAS,
   type Bandeira, type Modalidade, type AdquirenteTaxa, type PrazoUnidade, type MeioPagamento,
 } from '@/types/adquirente';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +49,7 @@ function UnidadeSelect({ value, onChange, disabled }: { value: PrazoUnidade; onC
 
 export default function Adquirente() {
   const [adquirente, setAdquirente] = useState<string>('rede');
-  const { adquirentesDisponiveisQ, taxasQ, configQ, salvar, criarAdquirente } = useAdquirente(adquirente);
+  const { adquirentesDisponiveisQ, taxasQ, configQ, salvar, criarAdquirente, adicionarBandeira } = useAdquirente(adquirente);
   const { meiosQ, salvar: salvarMeios } = useMeiosPagamento();
   const { data: roles } = useUserRoles();
   const canEdit = !!roles?.isCoordAdmin;
@@ -61,12 +61,19 @@ export default function Adquirente() {
     return map;
   }, [taxasQ.data]);
 
+  const bandeiras = useMemo<Bandeira[]>(() => {
+    const set = new Set((taxasQ.data ?? []).map((t) => t.bandeira));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [taxasQ.data]);
+
   const [draftTaxas, setDraftTaxas] = useState<Record<string, TaxaDraft>>({});
   const [draftAluguel, setDraftAluguel] = useState<string>('');
   const [draftBandeira, setDraftBandeira] = useState<Bandeira>('visa');
   const [draftMeios, setDraftMeios] = useState<Record<string, MeioDraft>>({});
   const [novoOpen, setNovoOpen] = useState(false);
   const [novoNome, setNovoNome] = useState('');
+  const [novaBandeiraOpen, setNovaBandeiraOpen] = useState(false);
+  const [novaBandeiraNome, setNovaBandeiraNome] = useState('');
 
   const buildTaxasDraft = () => {
     const d: Record<string, TaxaDraft> = {};
@@ -224,6 +231,19 @@ export default function Adquirente() {
   const updMeio = (meio: string, patch: Partial<MeioDraft>) =>
     setDraftMeios((d) => ({ ...d, [meio]: { ...d[meio], ...patch } }));
 
+  const handleAdicionarBandeira = async () => {
+    const nome = novaBandeiraNome.trim().toLowerCase();
+    if (!nome) return;
+    try {
+      await adicionarBandeira.mutateAsync(nome);
+      setNovaBandeiraOpen(false);
+      setNovaBandeiraNome('');
+      toast({ title: 'Bandeira adicionada', description: `${nome.toUpperCase()} criada com taxas zeradas. Preencha as taxas e salve.` });
+    } catch (e: any) {
+      toast({ title: 'Erro ao adicionar bandeira', description: e?.message ?? 'Tente novamente.', variant: 'destructive' });
+    }
+  };
+
   const opcoes = adquirentesDisponiveisQ.data?.length ? adquirentesDisponiveisQ.data : [adquirente];
   const loading = taxasQ.isLoading || configQ.isLoading;
 
@@ -262,10 +282,19 @@ export default function Adquirente() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Taxas MDR (%) e prazos</CardTitle>
-          <CardDescription>
-            Percentual descontado pelo adquirente e prazo de recebimento, por bandeira e modalidade.
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <CardTitle>Taxas MDR (%) e prazos</CardTitle>
+              <CardDescription>
+                Percentual descontado pelo adquirente e prazo de recebimento, por bandeira e modalidade.
+              </CardDescription>
+            </div>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setNovaBandeiraOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Nova bandeira
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -285,11 +314,11 @@ export default function Adquirente() {
                   </tr>
                 </thead>
                 <tbody>
-                  {BANDEIRAS.map((b) => (
-                    <tr key={b.value} className="border-b last:border-0 align-top">
-                      <td className="p-2 font-medium">{b.label}</td>
+                  {bandeiras.map((b) => (
+                    <tr key={b} className="border-b last:border-0 align-top">
+                      <td className="p-2 font-medium">{b.toUpperCase()}</td>
                       {MODALIDADES.map((m) => {
-                        const t = taxasMap[keyOf(b.value, m.value)];
+                        const t = taxasMap[keyOf(b, m.value)];
                         if (!t) return <td key={m.value} className="p-2 text-muted-foreground">—</td>;
                         const d = draftTaxas[t.id] ?? { taxa: '', prazo: '0', unidade: 'corridos' as PrazoUnidade, intervalo: '' };
                         const isZero = parseNumber(d.taxa) === 0;
@@ -387,8 +416,8 @@ export default function Adquirente() {
             <Select value={draftBandeira} onValueChange={(v) => setDraftBandeira(v as Bandeira)} disabled={!canEdit}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {BANDEIRAS.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                {bandeiras.map((b) => (
+                  <SelectItem key={b} value={b}>{b.toUpperCase()}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -491,6 +520,28 @@ export default function Adquirente() {
             <Button onClick={handleCriar} disabled={!novoNome.trim() || criarAdquirente.isPending}>
               {criarAdquirente.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={novaBandeiraOpen} onOpenChange={setNovaBandeiraOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova bandeira</DialogTitle>
+            <DialogDescription>Nome da bandeira (ex.: amex, hipercard). As taxas começam zeradas — preencha e salve depois.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={novaBandeiraNome}
+            onChange={(e) => setNovaBandeiraNome(e.target.value)}
+            placeholder="ex.: amex"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNovaBandeiraOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAdicionarBandeira} disabled={!novaBandeiraNome.trim() || adicionarBandeira.isPending}>
+              {adicionarBandeira.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Adicionar
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -19,7 +19,7 @@ export type Database = {
           adquirente: string
           aluguel_mensal: number
           ativo: boolean
-          bandeira_padrao: Database["public"]["Enums"]["adquirente_bandeira"]
+          bandeira_padrao: string
           created_at: string
           updated_at: string
           updated_by: string | null
@@ -28,7 +28,7 @@ export type Database = {
           adquirente?: string
           aluguel_mensal?: number
           ativo?: boolean
-          bandeira_padrao?: Database["public"]["Enums"]["adquirente_bandeira"]
+          bandeira_padrao?: string
           created_at?: string
           updated_at?: string
           updated_by?: string | null
@@ -37,7 +37,7 @@ export type Database = {
           adquirente?: string
           aluguel_mensal?: number
           ativo?: boolean
-          bandeira_padrao?: Database["public"]["Enums"]["adquirente_bandeira"]
+          bandeira_padrao?: string
           created_at?: string
           updated_at?: string
           updated_by?: string | null
@@ -48,7 +48,7 @@ export type Database = {
         Row: {
           adquirente: string
           ativo: boolean
-          bandeira: Database["public"]["Enums"]["adquirente_bandeira"]
+          bandeira: string
           created_at: string
           id: string
           intervalo_parcelas_dias: number | null
@@ -62,7 +62,7 @@ export type Database = {
         Insert: {
           adquirente?: string
           ativo?: boolean
-          bandeira: Database["public"]["Enums"]["adquirente_bandeira"]
+          bandeira: string
           created_at?: string
           id?: string
           intervalo_parcelas_dias?: number | null
@@ -76,7 +76,7 @@ export type Database = {
         Update: {
           adquirente?: string
           ativo?: boolean
-          bandeira?: Database["public"]["Enums"]["adquirente_bandeira"]
+          bandeira?: string
           created_at?: string
           id?: string
           intervalo_parcelas_dias?: number | null
@@ -9423,7 +9423,6 @@ export type Database = {
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
-      adquirente_bandeira: "visa" | "mastercard" | "elo"
       adquirente_modalidade:
         | "debito"
         | "credito_vista"
@@ -9702,7 +9701,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      adquirente_bandeira: ["visa", "mastercard", "elo"],
       adquirente_modalidade: [
         "debito",
         "credito_vista",

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  BANDEIRAS,
+  BANDEIRAS_PADRAO,
   MODALIDADES,
   type AdquirenteTaxa,
   type AdquirenteConfig,
@@ -95,7 +95,7 @@ export function useAdquirente(adquirente: string = 'rede') {
         .from('adquirentes_config')
         .insert({ adquirente: nome, aluguel_mensal: 0 });
       if (cfgErr) throw cfgErr;
-      const rows = BANDEIRAS.flatMap((b) =>
+      const rows = BANDEIRAS_PADRAO.flatMap((b) =>
         MODALIDADES.map((m) => ({
           adquirente: nome,
           bandeira: b.value,
@@ -116,7 +116,32 @@ export function useAdquirente(adquirente: string = 'rede') {
     },
   });
 
-  return { adquirentesDisponiveisQ, taxasQ, configQ, salvar, criarAdquirente };
+  const adicionarBandeira = useMutation({
+    mutationFn: async (nome: string) => {
+      const nomeNormalizado = nome.trim().toLowerCase();
+      if (!nomeNormalizado) throw new Error('Informe o nome da bandeira.');
+      const existentes = new Set((taxasQ.data ?? []).map((t) => t.bandeira));
+      if (existentes.has(nomeNormalizado)) {
+        throw new Error(`A bandeira "${nomeNormalizado.toUpperCase()}" já existe para este adquirente.`);
+      }
+      const rows = MODALIDADES.map((m) => ({
+        adquirente,
+        bandeira: nomeNormalizado,
+        modalidade: m.value,
+        taxa_percentual: 0,
+        prazo_recebimento_dias: 0,
+        prazo_unidade: 'corridos',
+      }));
+      const { error } = await supabase.from('adquirentes_taxas').insert(rows);
+      if (error) throw error;
+      return nomeNormalizado;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['adquirente-taxas', adquirente] });
+    },
+  });
+
+  return { adquirentesDisponiveisQ, taxasQ, configQ, salvar, criarAdquirente, adicionarBandeira };
 }
 
 export function useMeiosPagamento() {
