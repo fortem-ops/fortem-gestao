@@ -3224,6 +3224,95 @@ export type Database = {
           },
         ]
       }
+      despesas: {
+        Row: {
+          categoria_id: string | null
+          created_at: string
+          created_by: string | null
+          data_competencia: string
+          data_pagamento: string | null
+          descricao: string
+          id: string
+          observacao: string | null
+          origem: string
+          recorrente: boolean
+          status: string
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_competencia: string
+          data_pagamento?: string | null
+          descricao: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          recorrente?: boolean
+          status?: string
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+          valor: number
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_competencia?: string
+          data_pagamento?: string | null
+          descricao?: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          recorrente?: boolean
+          status?: string
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "despesas_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesas_categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estoque_movimentos: {
         Row: {
           created_at: string
