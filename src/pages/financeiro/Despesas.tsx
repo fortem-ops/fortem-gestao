@@ -310,6 +310,7 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
   const [pagamento, setPagamento] = useState(despesa?.data_pagamento ?? "");
   const [tipo, setTipo] = useState<DespesaTipo>(despesa?.tipo ?? "fixa");
   const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? "pago");
+  const [observacao, setObservacao] = useState(despesa?.observacao ?? "");
   const [forma, setForma] = useState<string>(despesa?.forma_pagamento ?? "nenhum");
   const [conta, setConta] = useState<string>(despesa?.conta_bancaria ?? "nenhum");
   const [valorPago, setValorPago] = useState(despesa?.valor_pago != null ? String(despesa.valor_pago) : "");
