@@ -209,36 +209,49 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
               <TableRow>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Competência</TableHead>
+                <TableHead>Forma</TableHead>
+                <TableHead>Conta</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Pagamento</TableHead>
+                <TableHead className="text-right">Valor Total</TableHead>
+                <TableHead className="text-right">Valor Pago</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Origem</TableHead>
+                <TableHead>Conciliação</TableHead>
                 {canEdit && <TableHead className="w-24" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {linhas.map((d) => (
-                <TableRow key={d.id} className={d.origem === "importado_historico" ? "bg-muted/20" : ""}>
+                <TableRow key={d.id}>
                   <TableCell className="py-1.5">{d.descricao}</TableCell>
                   <TableCell className="py-1.5">{d.categoria_id ? catMap.get(d.categoria_id)?.nome ?? "—" : "—"}</TableCell>
-                  <TableCell className="py-1.5">
-                    <Badge variant={d.tipo === "fixa" ? "secondary" : "outline"}>{TIPO_LABELS[d.tipo]}</Badge>
-                  </TableCell>
-                  <TableCell className="py-1.5 text-right">{brl(num(d.valor))}</TableCell>
+                  <TableCell className="py-1.5 text-xs">{d.forma_pagamento ?? "—"}</TableCell>
+                  <TableCell className="py-1.5 text-xs">{d.conta_bancaria ?? "—"}</TableCell>
                   <TableCell className="py-1.5">{fmtData(d.data_competencia)}</TableCell>
+                  <TableCell className="py-1.5">{d.data_pagamento ? fmtData(d.data_pagamento) : "—"}</TableCell>
+                  <TableCell className="py-1.5 text-right">{brl(num(d.valor))}</TableCell>
+                  <TableCell className="py-1.5 text-right">{d.valor_pago != null ? brl(num(d.valor_pago)) : "—"}</TableCell>
                   <TableCell className="py-1.5">
                     <Badge className={d.status === "pago" ? "status-active" : "status-warning"}>{STATUS_LABELS[d.status]}</Badge>
                   </TableCell>
                   <TableCell className="py-1.5">
-                    {d.origem === "importado_historico"
-                      ? <Badge variant="outline" className="text-muted-foreground text-[10px]">Histórico</Badge>
-                      : d.origem === "recorrente"
-                        ? <Badge variant="outline" className="text-[10px]">Recorrente</Badge>
-                        : <span className="text-xs text-muted-foreground">Manual</span>}
+                    <button
+                      type="button"
+                      disabled={!canEdit}
+                      onClick={() => alternarConciliado.mutate(
+                        { id: d.id, conciliado: !d.conciliado },
+                        { onError: (e) => toast.error(errMsg(e)) },
+                      )}
+                      className={canEdit ? "cursor-pointer" : "cursor-default"}
+                      aria-label="Alternar conciliação"
+                    >
+                      {d.conciliado
+                        ? <Badge className="status-active">Conciliado</Badge>
+                        : <Badge variant="outline" className="text-muted-foreground">Não conciliado</Badge>}
+                    </button>
                   </TableCell>
                   {canEdit && (
-                    <TableCell className="py-1.5 text-right">
+                    <TableCell className="py-1.5 text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => setEditando(d)} aria-label="Editar"><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setExcluindo(d)} aria-label="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </TableCell>
@@ -246,10 +259,10 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
                 </TableRow>
               ))}
               {!isLoading && linhas.length === 0 && (
-                <TableRow><TableCell colSpan={canEdit ? 8 : 7} className="text-center text-muted-foreground">Nenhuma despesa no período</TableCell></TableRow>
+                <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground">Nenhuma despesa no período</TableCell></TableRow>
               )}
               {isLoading && (
-                <TableRow><TableCell colSpan={canEdit ? 8 : 7} className="text-center text-muted-foreground">Carregando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground">Carregando…</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -298,6 +311,10 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
   const [tipo, setTipo] = useState<DespesaTipo>(despesa?.tipo ?? "fixa");
   const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? "pago");
   const [observacao, setObservacao] = useState(despesa?.observacao ?? "");
+  const [forma, setForma] = useState<string>(despesa?.forma_pagamento ?? "nenhum");
+  const [conta, setConta] = useState<string>(despesa?.conta_bancaria ?? "nenhum");
+  const [valorPago, setValorPago] = useState(despesa?.valor_pago != null ? String(despesa.valor_pago) : "");
+  const [conciliado, setConciliado] = useState(despesa?.conciliado ?? false);
 
   const catsVisiveis = categorias.filter((c) => c.ativo || c.id === despesa?.categoria_id);
 
@@ -312,11 +329,20 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
     if (!categoriaId) return toast.error("Selecione a categoria.");
     if (!descricao.trim()) return toast.error("Informe a descrição.");
     if (!Number.isFinite(v) || v <= 0) return toast.error("Informe um valor maior que zero.");
-    if (!competencia) return toast.error("Informe a data de competência.");
+    if (!competencia) return toast.error("Informe a data de vencimento.");
+    let vp = v;
+    if (valorPago.trim()) {
+      vp = Number(valorPago.replace(",", "."));
+      if (!Number.isFinite(vp) || vp < 0) return toast.error("Valor pago inválido.");
+    }
     const input: DespesaInput = {
       categoria_id: categoriaId, descricao: descricao.trim(), valor: Math.round(v * 100) / 100,
       data_competencia: competencia, data_pagamento: pagamento || null, tipo, status,
       observacao: observacao.trim() || null,
+      forma_pagamento: forma === "nenhum" ? null : (forma as DespesaInput["forma_pagamento"]),
+      conta_bancaria: conta === "nenhum" ? null : (conta as DespesaInput["conta_bancaria"]),
+      valor_pago: Math.round(vp * 100) / 100,
+      conciliado,
     };
     try {
       await salvar.mutateAsync({ id: despesa?.id, input });
@@ -362,12 +388,8 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Data de competência</Label>
-              <Input type="date" value={competencia} onChange={(e) => setCompetencia(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Data de pagamento (opcional)</Label>
-              <Input type="date" value={pagamento} onChange={(e) => setPagamento(e.target.value)} />
+              <Label>Valor pago (R$, opcional)</Label>
+              <Input inputMode="decimal" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Igual ao valor" />
             </div>
             <div className="space-y-1">
               <Label>Status</Label>
@@ -379,6 +401,38 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1">
+              <Label>Data de vencimento</Label>
+              <Input type="date" value={competencia} onChange={(e) => setCompetencia(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Data de pagamento (opcional)</Label>
+              <Input type="date" value={pagamento} onChange={(e) => setPagamento(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Forma de pagamento</Label>
+              <Select value={forma} onValueChange={setForma}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Nenhuma</SelectItem>
+                  {FORMAS_DESPESA.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Conta</Label>
+              <Select value={conta} onValueChange={setConta}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Nenhuma</SelectItem>
+                  {CONTAS_DESPESA.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="conciliado" checked={conciliado} onCheckedChange={setConciliado} />
+            <Label htmlFor="conciliado">Conciliado</Label>
           </div>
           <div className="space-y-1">
             <Label>Observação (opcional)</Label>

@@ -89,7 +89,24 @@ export function useDespesaMutations() {
     onSuccess: inval,
   });
 
-  return { salvar, excluir };
+  const alternarConciliado = useMutation({
+    mutationFn: async ({ id, conciliado }: { id: string; conciliado: boolean }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from('despesas')
+        .update({ conciliado, updated_by: u.user?.id ?? null }).eq('id', id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, conciliado }) => {
+      await qc.cancelQueries({ queryKey: ['despesas'] });
+      const snaps = qc.getQueriesData<Despesa[]>({ queryKey: ['despesas'] });
+      snaps.forEach(([k, v]) => v && qc.setQueryData(k, v.map((d) => (d.id === id ? { ...d, conciliado } : d))));
+      return { snaps };
+    },
+    onError: (_e, _v, ctx) => ctx?.snaps.forEach(([k, v]) => qc.setQueryData(k, v)),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['despesas'] }),
+  });
+
+  return { salvar, excluir, alternarConciliado };
 }
 
 export function useCategoriaMutations() {
