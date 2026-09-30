@@ -352,7 +352,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         const { error: cErr } = await supabase
           .from("contratos")
           .update({ data_fim: editFim } as any)
-          .eq("aluno_id", student.id)
+          .eq("plano_id", data.id)
           .in("status", ["ativo", "suspenso", "inadimplente"]);
         if (cErr) throw cErr;
       }

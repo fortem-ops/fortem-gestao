@@ -112,6 +112,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     );
   }
 
+  // Métodos com shape próprio (Planilha 5RM, Plan Strong 50, Easy Strength,
+  // Foolproof, Mile Deep, PTTP, PTTP2, X-FAB) abrem no editor dedicado.
+  // Precisa vir ANTES do M102: X-FAB também tem `rm` como objeto e seria
+  // confundido com M102 pelo palpite abaixo.
+  const metodo = treino ? detectarMetodo(treino.conteudo, treino.template_fase) : null;
+  if (treino && metodo) {
+    const Editor = METODO_EDITORES[metodo];
+    return (
+      <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>}>
+        <Editor
+          alunoId={alunoId}
+          alunoNome={student?.nome ?? ""}
+          initialTreinoId={treino.id}
+          initial={treino.conteudo}
+          onBack={onBack}
+          onSaved={onSaved}
+        />
+      </Suspense>
+    );
+  }
+
   // M102 usa shape próprio (rm/treinos[ordem,acessorios]/aquecimento objeto).
   // Precisa vir ANTES do fallback do 5-3-1 porque ambos têm `aquecimento` como objeto.
   const conteudoObj = treino?.conteudo && typeof treino.conteudo === "object"
@@ -131,23 +152,6 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
         onBack={onBack}
         onSaved={onSaved}
       />
-    );
-  }
-
-  const metodo = treino ? detectarMetodo(treino.conteudo, treino.template_fase) : null;
-  if (treino && metodo) {
-    const Editor = METODO_EDITORES[metodo];
-    return (
-      <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>}>
-        <Editor
-          alunoId={alunoId}
-          alunoNome={student?.nome ?? ""}
-          initialTreinoId={treino.id}
-          initial={treino.conteudo}
-          onBack={onBack}
-          onSaved={onSaved}
-        />
-      </Suspense>
     );
   }
 
