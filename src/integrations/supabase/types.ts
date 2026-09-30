@@ -1482,6 +1482,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ciclos_credito_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_mensalidades"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
             foreignKeyName: "ciclos_credito_contrato_id_fkey"
             columns: ["contrato_id"]
             isOneToOne: false
@@ -3076,6 +3083,13 @@ export type Database = {
             referencedRelation: "vendas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "corrida_inscricoes_prova_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
+          },
         ]
       }
       creditos_aluno: {
@@ -3564,6 +3578,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_mensalidades"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
             foreignKeyName: "inadimplencias_contrato_id_fkey"
             columns: ["contrato_id"]
             isOneToOne: false
@@ -4036,6 +4057,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vendas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrida_links_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
           },
         ]
       }
@@ -4602,6 +4630,13 @@ export type Database = {
             referencedRelation: "vendas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
+          },
         ]
       }
       pagamentos_rede: {
@@ -4674,11 +4709,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pagamentos_rede_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_mensalidades"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
             foreignKeyName: "pagamentos_rede_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_rede_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_produtos"
+            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pagamentos_rede_venda_id_fkey"
@@ -4700,6 +4749,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vendas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_rede_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
           },
         ]
       }
@@ -4807,6 +4863,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pedidos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_produtos"
+            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "pedido_itens_variante_id_fkey"
@@ -5261,6 +5324,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pix_cobrancas_corrida_venda_id_fkey"
+            columns: ["corrida_venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
+          },
+          {
             foreignKeyName: "pix_cobrancas_id_rec_fkey"
             columns: ["id_rec"]
             isOneToOne: false
@@ -5280,6 +5350,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pedidos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_produtos"
+            referencedColumns: ["pedido_id"]
           },
         ]
       }
@@ -7873,6 +7950,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vendas_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_mensalidades"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
             foreignKeyName: "vendas_motivo_cancelamento_id_fkey"
             columns: ["motivo_cancelamento_id"]
             isOneToOne: false
@@ -8220,6 +8304,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_mensalidades"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
             foreignKeyName: "inadimplencias_contrato_id_fkey"
             columns: ["contrato_id"]
             isOneToOne: false
@@ -8468,6 +8559,13 @@ export type Database = {
             referencedRelation: "vendas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
+          },
         ]
       }
       v_financeiro_recebimentos: {
@@ -8527,6 +8625,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vendas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
           },
         ]
       }
@@ -8659,6 +8764,125 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_planos_base"
             referencedColumns: ["plano_id"]
+          },
+        ]
+      }
+      vw_recebiveis_previstos_mensalidades: {
+        Row: {
+          adquirente: string | null
+          aluno_id: string | null
+          aluno_nome: string | null
+          bandeira: string | null
+          bandeira_de_cartao_salvo: boolean | null
+          cobranca_id: string | null
+          contrato_id: string | null
+          data_recebimento_prevista: string | null
+          data_vencimento: string | null
+          forma_pagamento: string | null
+          origem: string | null
+          plano_tipo: string | null
+          prazo_recebimento_dias: number | null
+          prazo_unidade: string | null
+          status_cobranca: string | null
+          taxa_percentual: number | null
+          taxa_via_bandeira_padrao: boolean | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_recebiveis_previstos_produtos: {
+        Row: {
+          adquirente: string | null
+          aluno_id: string | null
+          aluno_nome: string | null
+          bandeira: string | null
+          data_recebimento_prevista: string | null
+          data_vencimento: string | null
+          forma_pagamento: string | null
+          forma_pagamento_assumida: boolean | null
+          origem: string | null
+          pedido_id: string | null
+          prazo_recebimento_dias: number | null
+          prazo_unidade: string | null
+          taxa_percentual: number | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      vw_recebiveis_previstos_servicos: {
+        Row: {
+          adquirente: string | null
+          aluno_id: string | null
+          aluno_nome: string | null
+          bandeira: string | null
+          data_recebimento_prevista: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          forma_pagamento: string | null
+          forma_pagamento_assumida: boolean | null
+          numero_parcela: number | null
+          origem: string | null
+          prazo_recebimento_dias: number | null
+          prazo_unidade: string | null
+          taxa_percentual: number | null
+          total_parcelas: number | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+          venda_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
           },
         ]
       }
@@ -8956,6 +9180,12 @@ export type Database = {
       fn_excluir_horario_fixo: {
         Args: { p_horario_fixo_id: string }
         Returns: Json
+      }
+      fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
+      fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }
+      fn_fin_somar_dias_uteis: {
+        Args: { p_data: string; p_dias: number }
+        Returns: string
       }
       fn_forca_comparativo: {
         Args: {
@@ -9294,6 +9524,38 @@ export type Database = {
         Returns: number
       }
       fn_presencas_auto_21h: { Args: never; Returns: number }
+      fn_previsibilidade_dia_a_dia: {
+        Args: { p_fim: string; p_inicio: string }
+        Returns: {
+          dia: string
+          dia_util: boolean
+          previsto_bruto: number
+          previsto_liquido: number
+          realizado_bruto: number
+        }[]
+      }
+      fn_previsibilidade_kpis: {
+        Args: never
+        Returns: {
+          em_atraso_bruto: number
+          em_atraso_qtd: number
+          mes_atual_bruto: number
+          mes_atual_liquido: number
+          proximos_30_bruto: number
+          proximos_60_bruto: number
+          proximos_90_bruto: number
+        }[]
+      }
+      fn_previsibilidade_resumo_mensal: {
+        Args: never
+        Returns: {
+          mes: string
+          origem: string
+          qtd: number
+          total_bruto: number
+          total_liquido: number
+        }[]
+      }
       fn_processar_comissao_carteira: {
         Args: { _ref?: string }
         Returns: number
