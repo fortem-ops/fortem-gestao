@@ -3227,11 +3227,14 @@ export type Database = {
       despesas: {
         Row: {
           categoria_id: string | null
+          conciliado: boolean
+          conta_bancaria: string | null
           created_at: string
           created_by: string | null
           data_competencia: string
           data_pagamento: string | null
           descricao: string
+          forma_pagamento: string | null
           id: string
           observacao: string | null
           origem: string
@@ -3241,14 +3244,18 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           valor: number
+          valor_pago: number | null
         }
         Insert: {
           categoria_id?: string | null
+          conciliado?: boolean
+          conta_bancaria?: string | null
           created_at?: string
           created_by?: string | null
           data_competencia: string
           data_pagamento?: string | null
           descricao: string
+          forma_pagamento?: string | null
           id?: string
           observacao?: string | null
           origem?: string
@@ -3258,14 +3265,18 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           valor: number
+          valor_pago?: number | null
         }
         Update: {
           categoria_id?: string | null
+          conciliado?: boolean
+          conta_bancaria?: string | null
           created_at?: string
           created_by?: string | null
           data_competencia?: string
           data_pagamento?: string | null
           descricao?: string
+          forma_pagamento?: string | null
           id?: string
           observacao?: string | null
           origem?: string
@@ -3275,6 +3286,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           valor?: number
+          valor_pago?: number | null
         }
         Relationships: [
           {
