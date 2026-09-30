@@ -1495,6 +1495,13 @@ export type Database = {
             referencedRelation: "contratos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ciclos_credito_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
         ]
       }
       clube_alertas: {
@@ -2357,6 +2364,13 @@ export type Database = {
             referencedRelation: "contratos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
         ]
       }
       comissionamento_config: {
@@ -2589,6 +2603,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contratos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumo_servicos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
           },
           {
             foreignKeyName: "consumo_servicos_plano_id_fkey"
@@ -2844,6 +2865,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contratos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_documentos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
           },
           {
             foreignKeyName: "contratos_documentos_template_id_fkey"
@@ -3590,6 +3618,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contratos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
           },
         ]
       }
@@ -8317,6 +8352,13 @@ export type Database = {
             referencedRelation: "contratos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inadimplencias_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
         ]
       }
       parceiros_publico: {
@@ -8767,6 +8809,34 @@ export type Database = {
           },
         ]
       }
+      vw_contratos_vencendo: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          contrato_id: string | null
+          data_fim: string | null
+          dias_restantes: number | null
+          plano_tipo: string | null
+          renovacao_automatica: boolean | null
+          valor_cobrado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       vw_recebiveis_previstos_mensalidades: {
         Row: {
           adquirente: string | null
@@ -8810,6 +8880,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contratos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
           },
         ]
       }
@@ -8891,6 +8968,7 @@ export type Database = {
           aluno_id: string | null
           aluno_nome: string | null
           bandeira: string | null
+          bandeira_de_cartao_salvo: boolean | null
           data_recebimento_prevista: string | null
           data_vencimento: string | null
           descricao: string | null
