@@ -9541,9 +9541,9 @@ export type Database = {
           em_atraso_qtd: number
           mes_atual_bruto: number
           mes_atual_liquido: number
-          proximos_30_bruto: number
-          proximos_60_bruto: number
-          proximos_90_bruto: number
+          proximos_30_liquido: number
+          proximos_60_liquido: number
+          proximos_90_liquido: number
         }[]
       }
       fn_previsibilidade_resumo_mensal: {

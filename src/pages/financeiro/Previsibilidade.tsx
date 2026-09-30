@@ -1,36 +1,32 @@
 import { useMemo, useState } from "react";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, AreaChart, Area, Line,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
 } from "recharts";
+import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/relatorios/KpiCard";
-import { CalendarDays, Clock, AlertCircle, TrendingUp, Wallet } from "lucide-react";
+import { CalendarDays, Clock, AlertCircle, TrendingUp, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   useKpisPrevisibilidade, useResumoMensalPrevisibilidade, useDiaADiaPrevisibilidade,
 } from "@/hooks/usePrevisibilidade";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v ?? 0) || 0;
-const pad = (n: number) => String(n).padStart(2, "0");
-const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 function proximos12Meses(): string[] {
   const hoje = new Date();
-  return Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-  });
+  return Array.from({ length: 12 }, (_, i) => format(addMonths(startOfMonth(hoje), i), "yyyy-MM"));
 }
 
-function labelMes(mes: string, anoCompleto = false) {
+function labelMes(mes: string) {
   const [y, m] = mes.split("-").map(Number);
-  const d = new Date(y, m - 1, 1);
-  const mmm = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
-  return `${mmm}/${anoCompleto ? y : String(y).slice(2)}`;
+  const mmm = format(new Date(y, m - 1, 1), "MMM", { locale: ptBR }).replace(".", "");
+  return `${mmm}/${String(y).slice(2)}`;
 }
 
 const SERIES = [
@@ -43,7 +39,7 @@ export default function Previsibilidade() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-display font-semibold">Previsibilidade Financeira</h1>
+        <h1 className="text-2xl font-display font-semibold">Previsibilidade</h1>
         <p className="text-sm text-muted-foreground">Quanto está previsto para entrar nos próximos meses e dias úteis.</p>
       </div>
       <Tabs defaultValue="geral">
@@ -66,25 +62,32 @@ function VisaoGeral() {
   const chartData = useMemo(() => meses.map((mes) => {
     const row: Record<string, number | string> = { mes, label: labelMes(mes), mensalidade: 0, servico: 0, produto: 0 };
     resumo.filter((r) => r.mes === mes).forEach((r) => {
-      row[r.origem] = num(row[r.origem]) + num(r.total_bruto);
+      row[r.origem] = num(row[r.origem]) + num(r.total_liquido);
     });
-    row.total = num(row.mensalidade) + num(row.servico) + num(row.produto);
     return row;
   }), [meses, resumo]);
+
+  const atrasoQtd = num(k?.em_atraso_qtd);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard label="A receber no mês" value={brl(num(k?.mes_atual_bruto))} hint={`líquido: ${brl(num(k?.mes_atual_liquido))}`} icon={Wallet} />
-        <KpiCard label="Próximos 30 dias" value={brl(num(k?.proximos_30_bruto))} icon={Clock} />
-        <KpiCard label="Próximos 60 dias" value={brl(num(k?.proximos_60_bruto))} icon={Clock} />
-        <KpiCard label="Próximos 90 dias" value={brl(num(k?.proximos_90_bruto))} icon={TrendingUp} />
-        <KpiCard label="Em atraso" value={brl(num(k?.em_atraso_bruto))} tone="danger" icon={AlertCircle} hint={`${num(k?.em_atraso_qtd)} recebível(is)`} />
+        <KpiCard label="A receber este mês" value={brl(num(k?.mes_atual_liquido))} icon={Wallet} />
+        <KpiCard label="Próximos 30 dias" value={brl(num(k?.proximos_30_liquido))} icon={Clock} />
+        <KpiCard label="Próximos 60 dias" value={brl(num(k?.proximos_60_liquido))} icon={Clock} />
+        <KpiCard label="Próximos 90 dias" value={brl(num(k?.proximos_90_liquido))} icon={TrendingUp} />
+        <KpiCard
+          label="Em atraso"
+          value={brl(num(k?.em_atraso_bruto))}
+          tone={atrasoQtd > 0 ? "danger" : "default"}
+          icon={AlertCircle}
+          hint={`${atrasoQtd} cobrança(s)`}
+        />
       </div>
 
       <Card className="glass-card">
         <CardHeader><CardTitle className="text-base">Previsto por mês e origem</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -102,22 +105,9 @@ function VisaoGeral() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mês</TableHead>
-                <TableHead className="text-right">Total bruto</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {chartData.map((r) => (
-                <TableRow key={String(r.mes)}>
-                  <TableCell className="py-1.5">{labelMes(String(r.mes))}</TableCell>
-                  <TableCell className="py-1.5 text-right">{brl(num(r.total))}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <p className="text-xs text-muted-foreground">
+            Valores líquidos de taxa. Contratos anuais que vencem sem renovação lançada aparecem como queda na carteira — isso é esperado, não é um erro.
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -125,77 +115,64 @@ function VisaoGeral() {
 }
 
 function DiasUteis() {
-  const meses = useMemo(proximos12Meses, []);
-  const [mes, setMes] = useState(meses[0]);
-  const [y, m] = mes.split("-").map(Number);
-  const inicio = `${mes}-01`;
-  const fim = ymd(new Date(y, m, 0));
-  const hoje = ymd(new Date());
-  const ehMesAtual = mes === meses[0];
+  const [mesRef, setMesRef] = useState(() => startOfMonth(new Date()));
+  const inicio = format(startOfMonth(mesRef), "yyyy-MM-dd");
+  const fim = format(endOfMonth(mesRef), "yyyy-MM-dd");
+  const hoje = format(new Date(), "yyyy-MM-dd");
 
   const { data: dias = [], isLoading } = useDiaADiaPrevisibilidade(inicio, fim);
 
   const { linhas, stats } = useMemo(() => {
-    let accPrev = 0, accReal = 0;
+    let accPrev = 0;
     const linhas = dias.map((d) => {
-      const prev = num(d.previsto_bruto);
-      const passou = d.dia <= hoje;
-      const real = passou ? num(d.realizado_bruto) : null;
+      const prev = num(d.previsto_liquido);
       accPrev += prev;
-      if (real !== null) accReal += real;
-      return { ...d, prev, real, passou, accPrev, accReal: passou ? accReal : null };
+      return { ...d, prev, real: num(d.realizado_bruto), accPrev };
     });
     const uteis = dias.filter((d) => d.dia_util).length;
-    const passados = ehMesAtual ? dias.filter((d) => d.dia_util && d.dia < hoje).length : 0;
+    const passados = dias.filter((d) => d.dia_util && d.dia <= hoje).length;
     const restantes = uteis - passados;
     const totalPrev = accPrev;
     const media = uteis > 0 ? totalPrev / uteis : 0;
-    const necessario = ehMesAtual && restantes > 0 ? Math.max(0, (totalPrev - accReal) / restantes) : null;
-    return { linhas, stats: { uteis, passados, restantes, media, necessario } };
-  }, [dias, hoje, ehMesAtual]);
+    const prevRestante = dias
+      .filter((d) => d.dia > hoje)
+      .reduce((s, d) => s + num(d.previsto_liquido), 0);
+    const falta = restantes > 0 ? prevRestante / restantes : null;
+    return { linhas, stats: { uteis, passados, restantes, media, falta } };
+  }, [dias, hoje]);
+
+  const blocos = [
+    { label: "Dias úteis no mês", value: String(stats.uteis) },
+    { label: "Dias úteis já passados", value: String(stats.passados) },
+    { label: "Dias úteis restantes", value: String(stats.restantes) },
+    { label: "Média prevista por dia útil", value: brl(stats.media) },
+    { label: "Falta por dia útil restante", value: stats.falta === null ? "—" : brl(stats.falta) },
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-2">
-        <Select value={mes} onValueChange={setMes}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {meses.map((mm) => <SelectItem key={mm} value={mm}>{labelMes(mm, true)}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" onClick={() => setMesRef((d) => addMonths(d, -1))} aria-label="Mês anterior">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="min-w-40 text-center font-medium capitalize">
+          {format(mesRef, "MMMM/yyyy", { locale: ptBR })}
+        </span>
+        <Button variant="outline" size="icon" onClick={() => setMesRef((d) => addMonths(d, 1))} aria-label="Próximo mês">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard label="Dias úteis no mês" value={stats.uteis} icon={CalendarDays} />
-        <KpiCard label="Dias úteis já passados" value={stats.passados} />
-        <KpiCard label="Dias úteis restantes" value={stats.restantes} />
-        <KpiCard label="Média prevista por dia útil" value={brl(stats.media)} />
-        {stats.necessario !== null && (
-          <KpiCard label="Necessário por dia útil restante" value={brl(stats.necessario)} tone="warning" />
-        )}
+        {blocos.map((b) => (
+          <Card key={b.label} className="glass-card">
+            <CardContent className="p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{b.label}</p>
+              <p className="text-2xl font-display font-semibold mt-1 text-primary">{b.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      <Card className="glass-card">
-        <CardHeader><CardTitle className="text-base">Acumulado no mês</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={linhas.map((l) => ({ dia: l.dia.slice(8, 10), previsto: l.accPrev, realizado: l.accReal }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(v) => (v == null ? "—" : brl(Number(v)))}
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
-                />
-                <Legend />
-                <Area type="monotone" dataKey="previsto" name="Previsto acumulado" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} />
-                <Line type="monotone" dataKey="realizado" name="Realizado acumulado" stroke="hsl(217 91% 60%)" strokeWidth={2} dot={false} connectNulls={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card className="glass-card">
         <CardContent className="pt-4">
@@ -211,16 +188,20 @@ function DiasUteis() {
             </TableHeader>
             <TableBody>
               {linhas.map((l) => {
-                const d = new Date(`${l.dia}T12:00:00`);
-                const sem = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+                const sem = format(new Date(`${l.dia}T12:00:00`), "EEE", { locale: ptBR }).replace(".", "");
                 return (
-                  <TableRow key={l.dia} className={l.dia_util ? "" : "text-muted-foreground"}>
-                    <TableCell className="py-1.5">{l.dia.slice(8, 10)}/{l.dia.slice(5, 7)} <span className="text-xs text-muted-foreground">{sem}</span></TableCell>
+                  <TableRow key={l.dia} className={l.dia_util ? "" : "opacity-60 bg-muted/30"}>
                     <TableCell className="py-1.5">
-                      {l.dia_util ? <Badge variant="secondary">Útil</Badge> : <Badge variant="outline" className="text-muted-foreground">Não útil</Badge>}
+                      {l.dia.slice(8, 10)}/{l.dia.slice(5, 7)}{" "}
+                      <span className="text-xs text-muted-foreground">{sem}</span>
+                    </TableCell>
+                    <TableCell className="py-1.5">
+                      {l.dia_util
+                        ? <Badge variant="secondary">Dia útil</Badge>
+                        : <Badge variant="outline" className="text-muted-foreground">Fim de semana/feriado</Badge>}
                     </TableCell>
                     <TableCell className="py-1.5 text-right">{brl(l.prev)}</TableCell>
-                    <TableCell className="py-1.5 text-right">{l.real === null ? "—" : brl(l.real)}</TableCell>
+                    <TableCell className="py-1.5 text-right">{brl(l.real)}</TableCell>
                     <TableCell className="py-1.5 text-right">{brl(l.accPrev)}</TableCell>
                   </TableRow>
                 );
