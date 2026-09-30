@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { useAdquirente, useMeiosPagamento } from '@/hooks/useAdquirente';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import {
-  BANDEIRAS, MODALIDADES, MODALIDADES_PARCELADAS,
+  MODALIDADES, MODALIDADES_PARCELADAS,
   type Bandeira, type Modalidade, type AdquirenteTaxa, type PrazoUnidade, type MeioPagamento,
 } from '@/types/adquirente';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +49,7 @@ function UnidadeSelect({ value, onChange, disabled }: { value: PrazoUnidade; onC
 
 export default function Adquirente() {
   const [adquirente, setAdquirente] = useState<string>('rede');
-  const { adquirentesDisponiveisQ, taxasQ, configQ, salvar, criarAdquirente } = useAdquirente(adquirente);
+  const { adquirentesDisponiveisQ, taxasQ, configQ, salvar, criarAdquirente, adicionarBandeira } = useAdquirente(adquirente);
   const { meiosQ, salvar: salvarMeios } = useMeiosPagamento();
   const { data: roles } = useUserRoles();
   const canEdit = !!roles?.isCoordAdmin;
@@ -67,6 +67,8 @@ export default function Adquirente() {
   const [draftMeios, setDraftMeios] = useState<Record<string, MeioDraft>>({});
   const [novoOpen, setNovoOpen] = useState(false);
   const [novoNome, setNovoNome] = useState('');
+  const [novaBandeiraOpen, setNovaBandeiraOpen] = useState(false);
+  const [novaBandeiraNome, setNovaBandeiraNome] = useState('');
 
   const buildTaxasDraft = () => {
     const d: Record<string, TaxaDraft> = {};
