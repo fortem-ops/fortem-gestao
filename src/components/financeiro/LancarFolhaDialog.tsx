@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, FileUp } from "lucide-react";
+import { ChevronDown, ChevronRight, FileUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { Fornecedor } from "@/types/despesas";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -258,3 +260,212 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
         </div>
   );
 });
+
+const normNome = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+
+/** Casa um nome do PDF com o cadastro: exato, aproximado ("confirme") ou não encontrado. */
+function casarFuncionario(nome: string, funcs: Func[]): { id: string; status: "ok" | "confirme" | "nao" } {
+  const alvo = normNome(nome);
+  const exato = funcs.find((f) => normNome(f.nome) === alvo);
+  if (exato) return { id: exato.id, status: "ok" };
+  const ta = alvo.split(" ").filter((t) => t.length > 2);
+  let melhor: Func | null = null, score = 0;
+  for (const f of funcs) {
+    const tf = normNome(f.nome).split(" ").filter((t) => t.length > 2);
+    const comum = ta.filter((t) => tf.includes(t)).length;
+    let sc = comum / Math.max(ta.length, tf.length, 1);
+    if (ta[0] && ta[0] === tf[0] && ta[ta.length - 1] === tf[tf.length - 1]) sc = Math.max(sc, 0.7);
+    if (sc > score) { score = sc; melhor = f; }
+  }
+  if (melhor && score >= 0.4) return { id: melhor.id, status: "confirme" };
+  return { id: "", status: "nao" };
+}
+
+async function lerPdf(file: File): Promise<{ modo: "recibo" | "extrato"; registro?: RegistroHolerite; registros?: RegistroHolerite[] }> {
+  const texto = await extrairTextoDocumento(file);
+  const { data, error } = await supabase.functions.invoke("ler-holerite", { body: { texto } });
+  if (error || data?.error) {
+    let msg = data?.error as string | undefined;
+    try { msg ??= (await (error as { context?: Response })?.context?.json())?.error; } catch { /* ignore */ }
+    throw new Error(msg || "Não foi possível ler o holerite.");
+  }
+  if (data.modo === "extrato") return { modo: "extrato", registros: data.registros };
+  return { modo: "recibo", registro: data };
+}
+
+export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: fornecedores = [] } = useFornecedores();
+  const funcionarios = useMemo(() => fornecedores.filter((f) => f.eh_funcionario && f.ativo), [fornecedores]);
+  const [lendo, setLendo] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [extrato, setExtrato] = useState<RegistroHolerite[] | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<FolhaFormHandle>(null);
+
+  async function importar(file: File, aplicarRecibo: (r: RegistroHolerite) => void) {
+    setLendo(true);
+    try {
+      const r = await lerPdf(file);
+      if (r.modo === "extrato") {
+        setExtrato(r.registros ?? []);
+        toast.success(`Extrato com ${r.registros?.length ?? 0} funcionários — confira cada um antes de lançar.`);
+      } else {
+        aplicarRecibo(r.registro!);
+        toast.success("Valores importados do PDF — confira antes de salvar.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível ler o holerite.");
+    } finally {
+      setLendo(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    const erro = await formRef.current?.lancar();
+    setSalvando(false);
+    if (erro) return toast.error(erro);
+    toast.success("Salário lançado.");
+    qc.invalidateQueries({ queryKey: ["despesas"] });
+    onClose();
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className={`${extrato ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto`}>
+        <DialogHeader><DialogTitle>{extrato ? "Lançar folha — Extrato mensal" : "Lançar folha"}</DialogTitle></DialogHeader>
+        {extrato ? (
+          <ExtratoLista registros={extrato} mesTela={mesTela} funcionarios={funcionarios} onVoltar={() => setExtrato(null)} onClose={onClose} />
+        ) : (
+          <>
+            <FolhaForm ref={formRef} mesTela={mesTela} funcionarios={funcionarios}>
+              {({ importar: aplicar, ferias, setFerias }) => (
+                <div className="flex items-center justify-between gap-2">
+                  <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importar(f, aplicar); }} />
+                  <Button type="button" variant="outline" size="sm" disabled={lendo} onClick={() => fileRef.current?.click()}>
+                    <FileUp className="h-4 w-4 mr-1" />{lendo ? "Lendo PDF…" : "Importar recibo ou extrato (PDF)"}
+                  </Button>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={ferias} onCheckedChange={setFerias} />Este lançamento é de férias
+                  </label>
+                </div>
+              )}
+            </FolhaForm>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>Cancelar</Button>
+              <Button onClick={salvar} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type EstadoLinha = { fornId: string; match: "ok" | "confirme" | "nao"; pular: boolean; aberto: boolean; lancado: boolean; erro?: string; enviando: boolean };
+
+function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
+  registros: RegistroHolerite[]; mesTela: Date; funcionarios: Func[]; onVoltar: () => void; onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const refs = useRef<(FolhaFormHandle | null)[]>([]);
+  const [linhas, setLinhas] = useState<EstadoLinha[]>(() => registros.map((r) => {
+    const m = r.erro || !r.funcionario ? { id: "", status: "nao" as const } : casarFuncionario(r.funcionario, funcionarios);
+    return { fornId: m.id, match: m.status, pular: !!r.erro, aberto: false, lancado: false, enviando: false };
+  }));
+  const [lote, setLote] = useState(false);
+  const upd = (i: number, p: Partial<EstadoLinha>) => setLinhas((ls) => ls.map((l, j) => (j === i ? { ...l, ...p } : l)));
+
+  async function lancarUma(i: number): Promise<"ok" | "erro" | "pulado"> {
+    const l = linhas[i];
+    if (l.lancado) return "pulado";
+    if (!l.fornId) { upd(i, { erro: "Selecione o funcionário no cadastro.", aberto: true }); return "erro"; }
+    upd(i, { enviando: true });
+    const erro = (await refs.current[i]?.lancar()) ?? "Formulário não carregado.";
+    upd(i, { enviando: false, erro: erro ?? undefined, lancado: !erro, aberto: erro ? true : false });
+    return erro ? "erro" : "ok";
+  }
+
+  async function lancarIndividual(i: number) {
+    const r = await lancarUma(i);
+    if (r === "ok") { toast.success("Salário lançado."); qc.invalidateQueries({ queryKey: ["despesas"] }); }
+    else if (r === "erro") toast.error("Não foi possível lançar este funcionário. Veja o aviso na linha.");
+  }
+
+  async function lancarTodos() {
+    setLote(true);
+    let ok = 0, pulados = 0, erros = 0;
+    for (let i = 0; i < linhas.length; i++) {
+      if (linhas[i].lancado) continue;
+      if (linhas[i].pular) { pulados++; continue; }
+      const r = await lancarUma(i);
+      if (r === "ok") ok++; else if (r === "erro") erros++;
+    }
+    setLote(false);
+    qc.invalidateQueries({ queryKey: ["despesas"] });
+    const msg = `${ok} lançado(s), ${pulados} pulado(s)${erros ? `, ${erros} com erro` : ""}.`;
+    if (erros) toast.warning(msg + " Confira as linhas marcadas em vermelho."); else toast.success(msg);
+  }
+
+  const pendentes = linhas.filter((l) => !l.lancado && !l.pular).length;
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+        Valores importados do PDF — confira cada funcionário antes de lançar. Nada foi salvo ainda.
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={onVoltar} disabled={lote}>← Voltar</Button>
+        <Button onClick={lancarTodos} disabled={lote || pendentes === 0}>{lote ? "Lançando…" : `Lançar todos (${pendentes})`}</Button>
+      </div>
+      <div className="space-y-2">
+        {registros.map((r, i) => {
+          const l = linhas[i];
+          const cd = compDe(r.competencia);
+          return (
+            <div key={i} className={`rounded-md border ${l.erro ? "border-destructive/60" : ""} ${l.lancado || l.pular ? "opacity-70" : ""}`}>
+              <div className="flex flex-wrap items-center gap-2 p-2">
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={!!r.erro} onClick={() => upd(i, { aberto: !l.aberto })} aria-label="Expandir">
+                  {l.aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </Button>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{r.funcionario || "(nome não lido)"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {cd ? format(cd, "MM/yyyy") : "competência ?"} · Venc. {brl(Number(r.total_vencimentos) || 0)} · Desc. {brl(Number(r.total_descontos) || 0)} · Líq. {brl(Number(r.valor_liquido) || 0)}
+                  </div>
+                </div>
+                {r.mapeado?.ferias && <Badge variant="outline">Férias</Badge>}
+                {l.lancado ? <Badge className="bg-success/20 text-success border-success/40" variant="outline">Lançado</Badge>
+                  : r.erro ? <Badge variant="destructive">Não lido</Badge>
+                  : l.match === "ok" ? <Badge variant="outline" className="border-success/40 text-success">Encontrado</Badge>
+                  : l.match === "confirme" ? <Badge variant="outline" className="border-warning/50 text-warning">Confirme</Badge>
+                  : <Badge variant="destructive">Não encontrado</Badge>}
+                {!l.lancado && (
+                  <label className="flex items-center gap-1 text-xs"><Switch checked={l.pular} onCheckedChange={(b) => upd(i, { pular: b })} />Pular</label>
+                )}
+              </div>
+              {(l.erro || r.erro) && <p className="px-3 pb-2 text-xs text-destructive">{l.erro || r.erro}</p>}
+              {!r.erro && (
+                <div className={l.aberto ? "border-t p-3 space-y-3" : "hidden"}>
+                  <FolhaForm
+                    ref={(h) => { refs.current[i] = h; }}
+                    mesTela={mesTela} funcionarios={funcionarios} fornIdInicial={l.fornId} registro={r}
+                    onFornChange={(id) => upd(i, { fornId: id, match: "ok", erro: undefined })}
+                  />
+                  {!l.lancado && (
+                    <div className="flex justify-end">
+                      <Button size="sm" onClick={() => lancarIndividual(i)} disabled={l.enviando || lote}>{l.enviando ? "Lançando…" : "Lançar"}</Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>
+    </div>
+  );
+}
