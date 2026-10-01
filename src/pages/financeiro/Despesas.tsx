@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 import { format, startOfMonth, endOfMonth, addMonths, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,7 +24,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { KpiCard } from "@/components/relatorios/KpiCard";
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign, Copy, X } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useFornecedores } from "@/hooks/useDespesas";
 import { LancarFolhaDialog } from "@/components/financeiro/LancarFolhaDialog";
@@ -43,6 +43,76 @@ const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Erro inesperad
 const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const ANO_INICIO = 2017;
 const ANO_ATUAL = new Date().getFullYear();
+
+type Periodo = "mes" | "mes_ant" | "3m" | "ano" | "custom";
+
+function BaixaLoteDialog({ despesas, onClose }: { despesas: Despesa[]; onClose: (ok: boolean) => void }) {
+  const qc = useQueryClient();
+  const pendentes = despesas.filter((d) => d.status === "pendente");
+  const [data, setData] = useState("");
+  const [forma, setForma] = useState("manter");
+  const [conta, setConta] = useState("manter");
+  const [salvando, setSalvando] = useState(false);
+  const salvar = async () => {
+    setSalvando(true);
+    const results = await Promise.all(pendentes.map((d) => supabase.from("despesas").update({
+      status: "pago",
+      data_pagamento: data || d.data_competencia,
+      valor_pago: num(d.valor),
+      ...(forma !== "manter" ? { forma_pagamento: forma } : {}),
+      ...(conta !== "manter" ? { conta_bancaria: conta } : {}),
+    } as never).eq("id", d.id)));
+    setSalvando(false);
+    const falhas = results.filter((r) => r.error).length;
+    qc.invalidateQueries({ queryKey: ["despesas"] });
+    if (falhas) toast.error(`${falhas} baixa(s) falharam`);
+    else toast.success(`${pendentes.length} baixa(s) registrada(s)`);
+    onClose(!falhas);
+  };
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose(false)}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Dar baixa em lote</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          {pendentes.length} pendente(s) de {despesas.length} selecionada(s). Cada uma é marcada como paga pelo seu valor total.
+        </p>
+        <div className="grid gap-3">
+          <div className="space-y-1">
+            <Label>Data de pagamento</Label>
+            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            <p className="text-xs text-muted-foreground">Em branco = usa o vencimento de cada lançamento.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Forma</Label>
+              <Select value={forma} onValueChange={setForma}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manter">Manter atual</SelectItem>
+                  {FORMAS_DESPESA.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Conta</Label>
+              <Select value={conta} onValueChange={setConta}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manter">Manter atual</SelectItem>
+                  {CONTAS_DESPESA.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose(false)}>Cancelar</Button>
+          <Button onClick={salvar} disabled={salvando || pendentes.length === 0}>{salvando ? "Salvando…" : "Confirmar baixa"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Despesas() {
   const { data: roles } = useUserRoles();
@@ -76,7 +146,17 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   const [fCat, setFCat] = useState("todas");
   const [fTipo, setFTipo] = useState("todos");
   const [fStatus, setFStatus] = useState("todos");
+  const [fForn, setFForn] = useState("todos");
+  const [fForma, setFForma] = useState("todos");
+  const [fConta, setFConta] = useState("todos");
+  const [fConc, setFConc] = useState("todos");
+  const [busca, setBusca] = useState("");
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const [base, setBase] = useState<"venc" | "pag">("venc");
+  const [dIni, setDIni] = useState("");
+  const [dFim, setDFim] = useState("");
   const [editando, setEditando] = useState<Despesa | null>(null);
+  const [copiando, setCopiando] = useState<Despesa | null>(null);
   const [baixando, setBaixando] = useState<Despesa | null>(null);
   const [novoAberto, setNovoAberto] = useState(false);
   const [excluindo, setExcluindo] = useState<Despesa | null>(null);
@@ -115,15 +195,85 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   const totalAnt = anterior.fixa + anterior.variavel;
   const variacao = totalAnt > 0 ? ((totalMes - totalAnt) / totalAnt) * 100 : null;
 
-  const linhas = useMemo(() => despesas
-    .filter((d) => d.data_competencia.startsWith(mesKey))
-    .filter((d) => fCat === "todas" || d.categoria_id === fCat)
-    .filter((d) => fTipo === "todos" || d.tipo === fTipo)
-    .filter((d) => fStatus === "todos" || d.status === fStatus),
-  [despesas, mesKey, fCat, fTipo, fStatus]);
+  // Intervalo da lista conforme o período escolhido
+  const [rIni, rFim] = useMemo(() => {
+    const f = (d: Date) => format(d, "yyyy-MM-dd");
+    switch (periodo) {
+      case "mes_ant": { const m = addMonths(mesRef, -1); return [f(startOfMonth(m)), f(endOfMonth(m))]; }
+      case "3m": return [f(startOfMonth(addMonths(mesRef, -2))), f(endOfMonth(mesRef))];
+      case "ano": return [`${mesRef.getFullYear()}-01-01`, `${mesRef.getFullYear()}-12-31`];
+      case "custom": return [dIni || f(startOfMonth(mesRef)), dFim || f(endOfMonth(mesRef))];
+      default: return [f(startOfMonth(mesRef)), f(endOfMonth(mesRef))];
+    }
+  }, [periodo, mesRef, dIni, dFim]);
+  // Por pagamento: busca vencimentos numa janela mais larga e filtra pela data de pagamento.
+  const qIni = base === "pag" ? format(addMonths(parseISO(rIni), -6), "yyyy-MM-dd") : rIni;
+  const qFim = base === "pag" ? format(addMonths(parseISO(rFim), 6), "yyyy-MM-dd") : rFim;
+  const { data: despesasLista = [], isLoading: loadingLista } = useDespesasPeriodo(qIni, qFim);
+  const { data: fornecedores = [] } = useFornecedores();
+  const fornMap = useMemo(() => new Map(fornecedores.map((f) => [f.id, f.nome])), [fornecedores]);
+
+  const linhas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return despesasLista
+      .filter((d) => {
+        const ref = base === "pag" ? d.data_pagamento : d.data_competencia;
+        return !!ref && ref >= rIni && ref <= rFim;
+      })
+      .filter((d) => fCat === "todas" || d.categoria_id === fCat)
+      .filter((d) => fTipo === "todos" || d.tipo === fTipo)
+      .filter((d) => fStatus === "todos" || d.status === fStatus)
+      .filter((d) => fForn === "todos" || (fForn === "nenhum" ? !d.fornecedor_id : d.fornecedor_id === fForn))
+      .filter((d) => fForma === "todos" || d.forma_pagamento === fForma)
+      .filter((d) => fConta === "todos" || d.conta_bancaria === fConta)
+      .filter((d) => fConc === "todos" || (fConc === "sim") === !!d.conciliado)
+      .filter((d) => !q || d.descricao.toLowerCase().includes(q)
+        || (d.fornecedor_id ? (fornMap.get(d.fornecedor_id) ?? "").toLowerCase().includes(q) : false));
+  }, [despesasLista, base, rIni, rFim, fCat, fTipo, fStatus, fForn, fForma, fConta, fConc, busca, fornMap]);
   const totalFiltrado = linhas.reduce((s, d) => s + num(d.valor), 0);
+  const isLoadingAll = isLoading || loadingLista;
+
+  const filtrosAtivos = periodo !== "mes" || base !== "venc" || !!busca || fCat !== "todas" || fTipo !== "todos"
+    || fStatus !== "todos" || fForn !== "todos" || fForma !== "todos" || fConta !== "todos" || fConc !== "todos";
+  const limparFiltros = () => {
+    setPeriodo("mes"); setBase("venc"); setBusca(""); setFCat("todas"); setFTipo("todos"); setFStatus("todos");
+    setFForn("todos"); setFForma("todos"); setFConta("todos"); setFConc("todos"); setDIni(""); setDFim("");
+  };
+
+  // Seleção em lote: limpa ao mudar período/filtros
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  useEffect(() => { setSelecionadas(new Set()); },
+    [rIni, rFim, base, busca, fCat, fTipo, fStatus, fForn, fForma, fConta, fConc]);
+  const alternarSel = (id: string) => setSelecionadas((s) => {
+    const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n;
+  });
+  const todasMarcadas = linhas.length > 0 && linhas.every((d) => selecionadas.has(d.id));
+  const totalSel = linhas.filter((d) => selecionadas.has(d.id)).reduce((s, d) => s + num(d.valor), 0);
+  const [excluirLote, setExcluirLote] = useState(false);
+  const [baixaLote, setBaixaLote] = useState(false);
+  const [processandoLote, setProcessandoLote] = useState(false);
 
   const qc = useQueryClient();
+  const confirmarExclusaoLote = async () => {
+    const ids = [...selecionadas];
+    setProcessandoLote(true);
+    const { error } = await supabase.from("despesas").delete().in("id", ids);
+    setProcessandoLote(false);
+    setExcluirLote(false);
+    if (error) { toast.error("Erro ao excluir: " + error.message); return; }
+    toast.success(`${ids.length} despesa(s) excluída(s)`);
+    setSelecionadas(new Set());
+    qc.invalidateQueries({ queryKey: ["despesas"] });
+  };
+  const conciliarLote = async (valor: boolean) => {
+    const ids = [...selecionadas];
+    setProcessandoLote(true);
+    const { error } = await supabase.from("despesas").update({ conciliado: valor } as never).in("id", ids);
+    setProcessandoLote(false);
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success(`${ids.length} despesa(s) atualizada(s)`);
+    qc.invalidateQueries({ queryKey: ["despesas"] });
+  };
   const [calcDsr, setCalcDsr] = useState(false);
   const calcularDsr = async () => {
     const rotulo = format(mesRef, "MMMM/yyyy", { locale: ptBR });
@@ -242,6 +392,32 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
 
       <Card className="glass-card">
         <CardContent className="pt-4 space-y-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mes">Mês selecionado</SelectItem>
+                <SelectItem value="mes_ant">Mês anterior</SelectItem>
+                <SelectItem value="3m">Últimos 3 meses</SelectItem>
+                <SelectItem value="ano">Ano inteiro</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+            {periodo === "custom" && (
+              <>
+                <Input type="date" className="w-40" value={dIni} onChange={(e) => setDIni(e.target.value)} aria-label="Data inicial" />
+                <Input type="date" className="w-40" value={dFim} onChange={(e) => setDFim(e.target.value)} aria-label="Data final" />
+              </>
+            )}
+            <Select value={base} onValueChange={(v) => setBase(v as "venc" | "pag")}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="venc">Por vencimento</SelectItem>
+                <SelectItem value="pag">Por pagamento</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input className="w-56" placeholder="Buscar descrição ou fornecedor…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          </div>
           <div className="flex flex-wrap gap-2">
             <Select value={fCat} onValueChange={setFCat}>
               <SelectTrigger className="w-56"><SelectValue placeholder="Categoria" /></SelectTrigger>
@@ -250,8 +426,16 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
                 {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.codigo ? `${c.codigo} ` : ""}{nomeCategoria(c, catMap)}{c.nivel ? "" : " (antiga)"}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={fForn} onValueChange={setFForn}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os fornecedores</SelectItem>
+                <SelectItem value="nenhum">Sem fornecedor</SelectItem>
+                {fornecedores.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <Select value={fTipo} onValueChange={setFTipo}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os tipos</SelectItem>
                 <SelectItem value="fixa">Fixa</SelectItem>
@@ -259,21 +443,64 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
               </SelectContent>
             </Select>
             <Select value={fStatus} onValueChange={setFStatus}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os status</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={fForma} onValueChange={setFForma}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as formas</SelectItem>
+                {FORMAS_DESPESA.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={fConta} onValueChange={setFConta}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as contas</SelectItem>
+                {CONTAS_DESPESA.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={fConc} onValueChange={setFConc}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Conciliação: todas</SelectItem>
+                <SelectItem value="sim">Conciliadas</SelectItem>
+                <SelectItem value="nao">Não conciliadas</SelectItem>
+              </SelectContent>
+            </Select>
+            {filtrosAtivos && <Button variant="ghost" size="sm" onClick={limparFiltros}><X className="h-4 w-4 mr-1" />Limpar filtros</Button>}
             <span className="ml-auto self-center text-sm text-muted-foreground">
               {linhas.length} lançamento(s) · {brl(totalFiltrado)}
             </span>
           </div>
 
+          {canEdit && selecionadas.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+              <span className="font-medium">{selecionadas.size} selecionada(s) · {brl(totalSel)}</span>
+              <Button size="sm" variant="outline" onClick={() => setBaixaLote(true)}><CircleDollarSign className="h-4 w-4 mr-1" />Dar baixa</Button>
+              <Button size="sm" variant="outline" disabled={processandoLote} onClick={() => conciliarLote(true)}>Marcar conciliado</Button>
+              <Button size="sm" variant="outline" disabled={processandoLote} onClick={() => conciliarLote(false)}>Marcar não conciliado</Button>
+              <Button size="sm" variant="destructive" onClick={() => setExcluirLote(true)}><Trash2 className="h-4 w-4 mr-1" />Excluir</Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelecionadas(new Set())}>Limpar seleção</Button>
+            </div>
+          )}
+
           <Table>
             <TableHeader>
               <TableRow>
+                {canEdit && (
+                  <TableHead className="w-8">
+                    <Checkbox
+                      checked={todasMarcadas ? true : selecionadas.size > 0 ? "indeterminate" : false}
+                      onCheckedChange={(v) => setSelecionadas(v === true ? new Set(linhas.map((d) => d.id)) : new Set())}
+                      aria-label="Selecionar todas"
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Forma</TableHead>
@@ -284,12 +511,17 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
                 <TableHead className="text-right">Valor Pago</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Conciliação</TableHead>
-                {canEdit && <TableHead className="w-24" />}
+                {canEdit && <TableHead className="w-32" />}
               </TableRow>
             </TableHeader>
             <TableBody>
               {linhas.map((d) => (
-                <TableRow key={d.id}>
+                <TableRow key={d.id} data-state={selecionadas.has(d.id) ? "selected" : undefined}>
+                  {canEdit && (
+                    <TableCell className="py-1.5">
+                      <Checkbox checked={selecionadas.has(d.id)} onCheckedChange={() => alternarSel(d.id)} aria-label="Selecionar" />
+                    </TableCell>
+                  )}
                   <TableCell className="py-1.5">
                     {d.descricao}
                     {d.parcela_total ? <span className="ml-1 text-xs text-muted-foreground">({d.parcela_atual}/{d.parcela_total})</span> : null}
@@ -325,17 +557,18 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
                       {d.status === "pendente" && (
                         <Button variant="ghost" size="icon" onClick={() => setBaixando(d)} aria-label="Dar baixa" title="Dar baixa"><CircleDollarSign className="h-4 w-4 text-primary" /></Button>
                       )}
+                      <Button variant="ghost" size="icon" onClick={() => setCopiando(d)} aria-label="Copiar" title="Copiar"><Copy className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setEditando(d)} aria-label="Editar"><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setExcluindo(d)} aria-label="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </TableCell>
                   )}
                 </TableRow>
               ))}
-              {!isLoading && linhas.length === 0 && (
-                <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground">Nenhuma despesa no período</TableCell></TableRow>
+              {!isLoadingAll && linhas.length === 0 && (
+                <TableRow><TableCell colSpan={canEdit ? 12 : 10} className="text-center text-muted-foreground">Nenhuma despesa no período</TableCell></TableRow>
               )}
-              {isLoading && (
-                <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground">Carregando…</TableCell></TableRow>
+              {isLoadingAll && (
+                <TableRow><TableCell colSpan={canEdit ? 12 : 10} className="text-center text-muted-foreground">Carregando…</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -343,15 +576,37 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
       </Card>
 
       {baixando && <DarBaixaDialog despesa={baixando} onClose={() => setBaixando(null)} />}
-      {folhaAberta && <LancarFolhaDialog mesTela={mesRef} onClose={() => setFolhaAberta(false)} />}
-      {(novoAberto || editando) && (
-        <DespesaDialog
-          despesa={editando}
-          categorias={categorias}
-          mesPadrao={mesRef}
-          onClose={() => { setNovoAberto(false); setEditando(null); }}
+      {baixaLote && (
+        <BaixaLoteDialog
+          despesas={linhas.filter((d) => selecionadas.has(d.id))}
+          onClose={(ok) => { setBaixaLote(false); if (ok) setSelecionadas(new Set()); }}
         />
       )}
+      {folhaAberta && <LancarFolhaDialog mesTela={mesRef} onClose={() => setFolhaAberta(false)} />}
+      {(novoAberto || editando || copiando) && (
+        <DespesaDialog
+          despesa={editando}
+          copiaDe={copiando}
+          categorias={categorias}
+          mesPadrao={mesRef}
+          onClose={() => { setNovoAberto(false); setEditando(null); setCopiando(null); }}
+        />
+      )}
+
+      <AlertDialog open={excluirLote} onOpenChange={setExcluirLote}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selecionadas.size} despesa(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Somente os lançamentos selecionados ({brl(totalSel)}) serão excluídos; parcelas futuras não marcadas permanecem. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarExclusaoLote}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && setExcluindo(null)}>
         <AlertDialogContent>
@@ -505,8 +760,8 @@ function DarBaixaDialog({ despesa, onClose }: { despesa: Despesa; onClose: () =>
   );
 }
 
-function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
-  despesa: Despesa | null; categorias: DespesaCategoria[]; mesPadrao: Date; onClose: () => void;
+function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose }: {
+  despesa: Despesa | null; copiaDe?: Despesa | null; categorias: DespesaCategoria[]; mesPadrao: Date; onClose: () => void;
 }) {
   const { salvar, criarLote, atualizarFuturasGrupo } = useDespesaMutations();
   const { data: fornecedores = [] } = useFornecedores();
@@ -514,8 +769,10 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
   const catMap = useMemo(() => new Map(categorias.map((c) => [c.id, c])), [categorias]);
   const hoje = format(new Date(), "yyyy-MM-dd");
   const compPadrao = format(mesPadrao, "yyyy-MM") === hoje.slice(0, 7) ? hoje : format(mesPadrao, "yyyy-MM-dd");
+  // Fonte dos valores iniciais: edição usa a própria despesa; cópia usa o lançamento copiado.
+  const src = despesa ?? copiaDe ?? null;
 
-  const catInicial = despesa?.categoria_id ? catMap.get(despesa.categoria_id) : undefined;
+  const catInicial = src?.categoria_id ? catMap.get(src.categoria_id) : undefined;
   const ehAntiga = !!catInicial && !catInicial.nivel;
   const [centralId, setCentralId] = useState(
     catInicial?.nivel === "sub" ? catInicial.categoria_pai_id ?? "" : catInicial?.nivel === "central" ? catInicial.id : "",
@@ -523,17 +780,17 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
   const [subId, setSubId] = useState(catInicial?.nivel === "sub" ? catInicial.id : "");
   const [manterAntiga, setManterAntiga] = useState(ehAntiga);
 
-  const [fornecedorId, setFornecedorId] = useState<string | null>(despesa?.fornecedor_id ?? null);
-  const [descricao, setDescricao] = useState(despesa?.descricao ?? "");
-  const [valor, setValor] = useState(despesa ? String(despesa.valor) : "");
-  const [competencia, setCompetencia] = useState(despesa?.data_competencia ?? compPadrao);
+  const [fornecedorId, setFornecedorId] = useState<string | null>(src?.fornecedor_id ?? null);
+  const [descricao, setDescricao] = useState(src?.descricao ?? "");
+  const [valor, setValor] = useState(src ? String(src.valor) : "");
+  const [competencia, setCompetencia] = useState(src?.data_competencia ?? compPadrao);
   const [pagamento, setPagamento] = useState(despesa?.data_pagamento ?? "");
-  const [tipo, setTipo] = useState<DespesaTipo>(despesa?.tipo ?? "fixa");
-  const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? "pago");
-  const [observacao, setObservacao] = useState(despesa?.observacao ?? "");
-  const [forma, setForma] = useState<string>(despesa?.forma_pagamento ?? "nenhum");
-  // Conta padrão em lançamentos novos: Banco Inter (conta atual). Edição mantém o valor gravado.
-  const [conta, setConta] = useState<string>(despesa ? despesa.conta_bancaria ?? "nenhum" : "BANCO INTER");
+  const [tipo, setTipo] = useState<DespesaTipo>(src?.tipo ?? "fixa");
+  const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? (copiaDe ? "pendente" : "pago"));
+  const [observacao, setObservacao] = useState(src?.observacao ?? "");
+  const [forma, setForma] = useState<string>(src?.forma_pagamento ?? "nenhum");
+  // Conta padrão em lançamentos novos: Banco Inter (conta atual). Edição/cópia mantém o valor gravado.
+  const [conta, setConta] = useState<string>(src ? src.conta_bancaria ?? "nenhum" : "BANCO INTER");
   const [valorPago, setValorPago] = useState(despesa?.valor_pago != null ? String(despesa.valor_pago) : "");
   const [conciliado, setConciliado] = useState(despesa?.conciliado ?? false);
   const [repetir, setRepetir] = useState(false);
@@ -649,7 +906,7 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{despesa ? "Editar despesa" : "Nova despesa"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{despesa ? "Editar despesa" : copiaDe ? "Copiar despesa" : "Nova despesa"}</DialogTitle></DialogHeader>
         {despesa?.origem === "importado_historico" && (
           <Badge variant="outline" className="w-fit text-muted-foreground">Registro histórico importado — edite com cuidado</Badge>
         )}
