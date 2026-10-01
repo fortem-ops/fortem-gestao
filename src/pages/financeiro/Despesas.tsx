@@ -348,18 +348,19 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
     if (!descricao.trim()) return toast.error("Informe a descrição.");
     if (!Number.isFinite(v) || v <= 0) return toast.error("Informe um valor maior que zero.");
     if (!competencia) return toast.error("Informe a data de vencimento.");
-    let vp = v;
+    let vp: number | null = v;
     if (valorPago.trim()) {
       vp = Number(valorPago.replace(",", "."));
       if (!Number.isFinite(vp) || vp < 0) return toast.error("Valor pago inválido.");
     }
+    if (status === "pendente") vp = null;
     const input: DespesaInput = {
       categoria_id: categoriaId, descricao: descricao.trim(), valor: Math.round(v * 100) / 100,
       data_competencia: competencia, data_pagamento: pagamento || null, tipo, status,
       observacao: observacao.trim() || null,
       forma_pagamento: forma === "nenhum" ? null : (forma as DespesaInput["forma_pagamento"]),
       conta_bancaria: conta === "nenhum" ? null : (conta as DespesaInput["conta_bancaria"]),
-      valor_pago: Math.round(vp * 100) / 100,
+      valor_pago: vp == null ? null : Math.round(vp * 100) / 100,
       conciliado,
     };
     try {

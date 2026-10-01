@@ -3572,6 +3572,81 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_pagamentos_clientes: {
+        Row: {
+          aluno_id: string | null
+          ano: number
+          cliente_codigo_legado: string | null
+          cliente_cpf_ultimos3: string | null
+          cliente_nome_legado: string | null
+          confiabilidade: string
+          created_at: string
+          fonte: string
+          formas_pagamento: string | null
+          id: string
+          observacao: string | null
+          primeira_data: string | null
+          qtd_transacoes: number
+          ultima_data: string | null
+          updated_at: string
+          valor_liquido_total: number | null
+          valor_total: number
+        }
+        Insert: {
+          aluno_id?: string | null
+          ano: number
+          cliente_codigo_legado?: string | null
+          cliente_cpf_ultimos3?: string | null
+          cliente_nome_legado?: string | null
+          confiabilidade: string
+          created_at?: string
+          fonte: string
+          formas_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          primeira_data?: string | null
+          qtd_transacoes?: number
+          ultima_data?: string | null
+          updated_at?: string
+          valor_liquido_total?: number | null
+          valor_total: number
+        }
+        Update: {
+          aluno_id?: string | null
+          ano?: number
+          cliente_codigo_legado?: string | null
+          cliente_cpf_ultimos3?: string | null
+          cliente_nome_legado?: string | null
+          confiabilidade?: string
+          created_at?: string
+          fonte?: string
+          formas_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          primeira_data?: string | null
+          qtd_transacoes?: number
+          ultima_data?: string | null
+          updated_at?: string
+          valor_liquido_total?: number | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_pagamentos_clientes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_pagamentos_clientes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       historico_profissional: {
         Row: {
           aluno_id: string

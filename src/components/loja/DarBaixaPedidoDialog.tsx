@@ -49,10 +49,11 @@ export function DarBaixaPedidoDialog({
         .eq("status", "aguardando_pagamento");
       if (error) throw error;
 
-      try {
-        await db.rpc("fn_loja_vincular_aluno", { p_pedido_id: pedido.id });
-      } catch {
-        /* vínculo é opcional */
+      const { error: vincErr } = await db.rpc("fn_loja_vincular_aluno", { p_pedido_id: pedido.id });
+      if (vincErr) {
+        toast.warning("Pedido pago, mas não vinculado ao aluno", {
+          description: "O pagamento foi registrado, mas o pedido não foi ligado ao cadastro do aluno.",
+        });
       }
       try {
         await supabase.functions.invoke("loja-enviar-confirmacao-email", {
