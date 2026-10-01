@@ -1,6 +1,6 @@
 export type DespesaTipo = 'fixa' | 'variavel';
 export type DespesaStatus = 'pago' | 'pendente';
-export type DespesaOrigem = 'manual' | 'importado_historico' | 'recorrente';
+export type DespesaOrigem = 'manual' | 'importado_historico' | 'recorrente' | 'automatico';
 
 export type CategoriaNivel = 'central' | 'sub';
 
