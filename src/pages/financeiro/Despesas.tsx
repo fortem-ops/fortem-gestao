@@ -32,6 +32,9 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 const num = (v: unknown) => Number(v ?? 0) || 0;
 const fmtData = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—");
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Erro inesperado");
+const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const ANO_INICIO = 2017;
+const ANO_ATUAL = new Date().getFullYear();
 
 export default function Despesas() {
   const { data: roles } = useUserRoles();
@@ -128,13 +131,28 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
           <Button variant="outline" size="icon" onClick={() => setMesRef((d) => addMonths(d, 1))} aria-label="Próximo mês">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Input
-            type="month"
-            className="w-40"
-            value={mesKey}
-            onChange={(e) => { if (e.target.value) { const [y, m] = e.target.value.split("-").map(Number); setMesRef(new Date(y, m - 1, 1)); } }}
-            aria-label="Ir para mês"
-          />
+          <Select
+            value={String(mesRef.getMonth())}
+            onValueChange={(m) => setMesRef(new Date(mesRef.getFullYear(), Number(m), 1))}
+            aria-label="Selecionar mês"
+          >
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MESES_PT.map((nome, i) => <SelectItem key={i} value={String(i)}>{nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select
+            value={String(mesRef.getFullYear())}
+            onValueChange={(y) => setMesRef(new Date(Number(y), mesRef.getMonth(), 1))}
+            aria-label="Selecionar ano"
+          >
+            <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: Math.max(ANO_ATUAL, mesRef.getFullYear()) - ANO_INICIO + 1 }, (_, i) => ANO_INICIO + i).map((a) => (
+                <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {canEdit && (
           <Button onClick={() => setNovoAberto(true)}><Plus className="h-4 w-4 mr-1" /> Nova Despesa</Button>
