@@ -140,8 +140,11 @@ export function agregarLTV(rows: HistoricoPagamentoRow[]): LTVData {
     .map(({ soma, ...co }) => ({ ...co, ltvMedio: co.clientes ? soma / co.clientes : 0 }))
     .sort((a, b) => a.ano - b.ano);
 
+  const anosPresentes = [...anoMap.keys()];
+  const anoMin = anosPresentes.length ? Math.min(...anosPresentes) : 2019;
+  const anoMax = anosPresentes.length ? Math.max(...anosPresentes) : new Date().getFullYear();
   const porAno: { ano: number; total: number }[] = [];
-  for (let a = 2019; a <= 2026; a++) porAno.push({ ano: a, total: Math.round((anoMap.get(a) ?? 0) * 100) / 100 });
+  for (let a = anoMin; a <= anoMax; a++) porAno.push({ ano: a, total: Math.round((anoMap.get(a) ?? 0) * 100) / 100 });
 
   return {
     clientes, porAno, coortes, receitaTotal, linhas: rows.length,
@@ -153,7 +156,10 @@ export function agregarLTV(rows: HistoricoPagamentoRow[]): LTVData {
 export function useLTV(enabled = true) {
   return useQuery({
     queryKey: ["ltv-historico"],
-    queryFn: async () => agregarLTV(await fetchHistorico()),
+    queryFn: async () => {
+      const [historico, cobrancas] = await Promise.all([fetchHistorico(), fetchCobrancasPagas()]);
+      return agregarLTV([...historico, ...cobrancas]);
+    },
     enabled,
     staleTime: 10 * 60_000,
   });
