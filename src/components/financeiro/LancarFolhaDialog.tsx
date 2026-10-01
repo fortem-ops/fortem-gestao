@@ -34,11 +34,23 @@ function useAuto(sugestao: number | null, deps: unknown[]) {
   return { v, editado, set: (x: string) => { setV(x); setEditado(true); }, fixar: (x: string) => { setV(x); setEditado(true); }, reset: () => setEditado(false) };
 }
 
-export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose: () => void }) {
-  const qc = useQueryClient();
-  const { data: fornecedores = [] } = useFornecedores();
-  const funcionarios = useMemo(() => fornecedores.filter((f) => f.eh_funcionario && f.ativo), [fornecedores]);
-  const [fornId, setFornId] = useState("");
+type Mapeado = { campos: Record<string, number>; outrosVenc: number; outrosVencDesc: string; outrosDesc: number; outrosDescDesc: string; ferias: boolean };
+export type RegistroHolerite = {
+  funcionario?: string | null; cpf?: string | null; competencia?: string | null;
+  total_vencimentos?: number | null; total_descontos?: number | null; valor_liquido?: number | null;
+  mapeado?: Mapeado; erro?: string;
+};
+type Func = Fornecedor;
+export type FolhaFormHandle = { lancar: () => Promise<string | null> };
+
+const compDe = (c?: string | null) => { const mc = /^(\d{1,2})\/(\d{4})$/.exec(String(c ?? "")); return mc ? new Date(Number(mc[2]), Number(mc[1]) - 1, 1) : null; };
+
+const FolhaForm = forwardRef<FolhaFormHandle, {
+  mesTela: Date; funcionarios: Func[]; fornIdInicial?: string; registro?: RegistroHolerite;
+  onFornChange?: (id: string) => void; children?: (ctx: { importar: (r: RegistroHolerite) => void; ferias: boolean; setFerias: (b: boolean) => void }) => React.ReactNode;
+}>(function FolhaForm({ mesTela, funcionarios, fornIdInicial, registro, onFornChange, children }, ref) {
+  const [fornId, setFornIdRaw] = useState(fornIdInicial ?? "");
+  const setFornId = (v: string) => { setFornIdRaw(v); onFornChange?.(v); };
   const [comp, setComp] = useState(() => startOfMonth(addMonths(mesTela, -1)));
   const [horas, setHoras] = useState("");
   const [inss, setInss] = useState("");
@@ -51,10 +63,6 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
   const [outrosDesc, setOutrosDesc] = useState("");
   const [outrosDescDesc, setOutrosDescDesc] = useState("");
   const [outrosAberto, setOutrosAberto] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-  const [lendo, setLendo] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
   const forn = funcionarios.find((f) => f.id === fornId);
   const confianca = !!forn?.cargo_confianca;
   const ini = format(comp, "yyyy-MM-dd");
@@ -105,53 +113,41 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
 
   const anos = Array.from({ length: new Date().getFullYear() + 1 - 2017 + 1 }, (_, i) => 2017 + i);
 
-  async function importarPdf(file: File) {
-    setLendo(true);
-    try {
-      const texto = await extrairTextoDocumento(file);
-      const { data, error } = await supabase.functions.invoke("ler-holerite", { body: { texto } });
-      if (error || data?.error) {
-        let msg = data?.error as string | undefined;
-        try { msg ??= (await (error as { context?: Response })?.context?.json())?.error; } catch { /* ignore */ }
-        throw new Error(msg || "Não foi possível ler o holerite.");
-      }
-      const m = data.mapeado as { campos: Record<string, number>; outrosVenc: number; outrosVencDesc: string; outrosDesc: number; outrosDescDesc: string; ferias: boolean };
-      const c = m.campos;
-      // tenta identificar o funcionário pelo nome
-      if (data.funcionario && !fornId) {
-        const alvo = String(data.funcionario).toLowerCase();
-        const f = funcionarios.find((x) => alvo.includes(x.nome.toLowerCase().split(" ")[0]) && alvo.includes(x.nome.toLowerCase().split(" ").slice(-1)[0]));
-        if (f) setFornId(f.id);
-      }
-      const mc = /^(\d{1,2})\/(\d{4})$/.exec(String(data.competencia ?? ""));
-      if (mc) setComp(new Date(Number(mc[2]), Number(mc[1]) - 1, 1));
-      setHoras(str(c.horas));
-      setInss(str(c.inss));
-      if (c.grat) grat.fixar(str(c.grat));
-      vt.fixar(str(c.vt)); com.fixar(str(c.com)); dsr.fixar(str(c.dsr));
-      setFerias(m.ferias);
-      setHorasFerias(str(c.horasFerias)); setMediaFerias(str(c.mediaFerias)); setAdiantFerias(str(c.adiantFerias));
-      if (m.ferias) terco.fixar(str(c.tercoFerias));
-      setOutrosVenc(str(m.outrosVenc)); setOutrosVencDesc(m.outrosVencDesc);
-      setOutrosDesc(str(m.outrosDesc)); setOutrosDescDesc(m.outrosDescDesc);
-      if (m.outrosVenc || m.outrosDesc) setOutrosAberto(true);
-      toast.success("Valores importados do PDF — confira antes de salvar.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível ler o holerite.");
-    } finally {
-      setLendo(false);
-      if (fileRef.current) fileRef.current.value = "";
+  function aplicar(data: RegistroHolerite, tentarFuncionario: boolean) {
+    const m = data.mapeado;
+    if (!m) return;
+    const c = m.campos;
+    if (tentarFuncionario && data.funcionario && !fornId) {
+      const f = casarFuncionario(String(data.funcionario), funcionarios);
+      if (f.id) setFornId(f.id);
     }
+    const cd = compDe(data.competencia);
+    if (cd) setComp(cd);
+    setHoras(str(c.horas));
+    setInss(str(c.inss));
+    if (c.grat) grat.fixar(str(c.grat));
+    vt.fixar(str(c.vt)); com.fixar(str(c.com)); dsr.fixar(str(c.dsr));
+    setFerias(m.ferias);
+    setHorasFerias(str(c.horasFerias)); setMediaFerias(str(c.mediaFerias)); setAdiantFerias(str(c.adiantFerias));
+    if (m.ferias) terco.fixar(str(c.tercoFerias));
+    setOutrosVenc(str(m.outrosVenc)); setOutrosVencDesc(m.outrosVencDesc);
+    setOutrosDesc(str(m.outrosDesc)); setOutrosDescDesc(m.outrosDescDesc);
+    if (m.outrosVenc || m.outrosDesc) setOutrosAberto(true);
   }
+  const aplicado = useRef(false);
+  useEffect(() => {
+    if (registro && !aplicado.current) { aplicado.current = true; aplicar(registro, false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registro]);
 
-  async function salvar() {
-    if (!forn) return toast.error("Escolha o funcionário.");
-    if (!forn.categoria_padrao_id) return toast.error("Este funcionário não tem subcategoria pessoal cadastrada em Fornecedores.");
-    if (vHoras <= 0) return toast.error("Informe o valor de Horas Normais.");
-    if ([vGrat, vCom, vDsr, vInss, vVt, vHF, vMF, vTerco, vAdF, vOV, vOD].some((x) => x < 0)) return toast.error("Valores não podem ser negativos.");
+  async function lancar(): Promise<string | null> {
+    if (!forn) return "Escolha o funcionário.";
+    if (!forn.categoria_padrao_id) return "Este funcionário não tem subcategoria pessoal cadastrada em Fornecedores.";
+    if (vHoras <= 0) return "Informe o valor de Horas Normais.";
+    if ([vGrat, vCom, vDsr, vInss, vVt, vHF, vMF, vTerco, vAdF, vOV, vOD].some((x) => x < 0)) return "Valores não podem ser negativos.";
     const valor = r2(vHoras + vGrat + vHF + vMF + vTerco + vOV);
     const valorPago = r2(valor - vInss - vVt - vAdF - vOD);
-    if (valorPago < 0) return toast.error("Os descontos são maiores que o salário.");
+    if (valorPago < 0) return "Os descontos são maiores que o salário.";
     const mesAbrev = format(comp, "MMM", { locale: ptBR }).replace(".", "");
     const partes: string[] = [`Horas Normais: ${brl(vHoras)}`];
     const p = (l: string, v: number, neg = false) => { if (v) partes.push(`${l}: ${neg ? "-" : ""}${brl(v)}`); };
@@ -161,7 +157,6 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
     p("INSS", vInss, true); p("Vale Transporte", vVt, true); p("Adiantamento Férias", vAdF, true);
     if (vOD) partes.push(`Outros Descontos${outrosDescDesc ? ` (${outrosDescDesc})` : ""}: -${brl(vOD)}`);
     partes.push(`Total Vencimentos: ${brl(totalVenc)}`, `Total Descontos: -${brl(totalDesc)}`, `Líquido: ${brl(liquido)}`);
-    setSalvando(true);
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from("despesas").insert({
       categoria_id: forn.categoria_padrao_id,
@@ -178,12 +173,10 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
       observacao: partes.join(" | "),
       created_by: u.user?.id ?? null,
     } as never);
-    setSalvando(false);
-    if (error) return toast.error("Não foi possível lançar a folha: " + error.message);
-    toast.success("Salário lançado.");
-    qc.invalidateQueries({ queryKey: ["despesas"] });
-    onClose();
+    if (error) return "Não foi possível lançar a folha: " + error.message;
+    return null;
   }
+  useImperativeHandle(ref, () => ({ lancar }));
 
   const Linha = ({ label, valor, forte }: { label: string; valor: number; forte?: boolean }) => (
     <div className={`flex justify-between text-sm ${forte ? "font-semibold" : ""}`}>
@@ -195,19 +188,12 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
   );
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Lançar folha</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importarPdf(f); }} />
-            <Button type="button" variant="outline" size="sm" disabled={lendo} onClick={() => fileRef.current?.click()}>
-              <FileUp className="h-4 w-4 mr-1" />{lendo ? "Lendo holerite…" : "Importar de holerite (PDF)"}
-            </Button>
+          {children ? children({ importar: (r) => aplicar(r, true), ferias, setFerias }) : (
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={ferias} onCheckedChange={setFerias} />Este lançamento é de férias
             </label>
-          </div>
+          )}
           <div>
             <Label>Funcionário</Label>
             <Select value={fornId} onValueChange={trocarFuncionario}>
@@ -270,11 +256,5 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
             <Linha label="Valor Líquido" valor={liquido} forte />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={salvar} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
-}
+});
