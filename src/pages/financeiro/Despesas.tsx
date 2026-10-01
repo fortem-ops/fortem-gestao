@@ -3,6 +3,8 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Cart
 import { format, startOfMonth, endOfMonth, addMonths, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -118,6 +120,30 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   [despesas, mesKey, fCat, fTipo, fStatus]);
   const totalFiltrado = linhas.reduce((s, d) => s + num(d.valor), 0);
 
+  const qc = useQueryClient();
+  const [calcDsr, setCalcDsr] = useState(false);
+  const calcularDsr = async () => {
+    const rotulo = format(mesRef, "MMMM/yyyy", { locale: ptBR });
+    if (!window.confirm(`Calcular o DSR das comissões pagas em ${rotulo}?`)) return;
+    setCalcDsr(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_calcular_dsr_comissoes", { p_mes: format(mesRef, "yyyy-MM-dd") });
+      if (error) throw error;
+      const r = data as { criadas: number; ja_existentes: number; total_criado: number; domingos_feriados: number; dias_uteis: number; sem_fornecedor: { nome: string | null }[] };
+      toast.success(`DSR ${rotulo}: ${r.criadas} despesa(s) criada(s) — ${brl(Number(r.total_criado))}`, {
+        description: `${r.domingos_feriados} domingos/feriados ÷ ${r.dias_uteis} dias úteis.` +
+          (r.ja_existentes ? ` ${r.ja_existentes} já existiam e não foram duplicadas.` : ""),
+      });
+      if (r.sem_fornecedor?.length) {
+        toast.warning("Profissionais sem fornecedor vinculado", {
+          description: r.sem_fornecedor.map((s) => s.nome ?? "sem nome").join(", "),
+        });
+      }
+      qc.invalidateQueries({ queryKey: ["despesas"] });
+    } catch (e) { toast.error(errMsg(e)); }
+    setCalcDsr(false);
+  };
+
   const confirmarExclusao = async (futuras = false) => {
     if (!excluindo) return;
     try {
@@ -169,7 +195,12 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
           </Select>
         </div>
         {canEdit && (
-          <Button onClick={() => setNovoAberto(true)}><Plus className="h-4 w-4 mr-1" /> Nova Despesa</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={calcDsr} onClick={calcularDsr}>
+              {calcDsr ? "Calculando…" : "Calcular DSR do mês"}
+            </Button>
+            <Button onClick={() => setNovoAberto(true)}><Plus className="h-4 w-4 mr-1" /> Nova Despesa</Button>
+          </div>
         )}
       </div>
 

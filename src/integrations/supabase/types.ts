@@ -3284,6 +3284,8 @@ export type Database = {
           id: string
           observacao: string | null
           origem: string
+          origem_id: string | null
+          origem_tabela: string | null
           parcela_atual: number | null
           parcela_total: number | null
           recorrente: boolean
@@ -3309,6 +3311,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          origem_id?: string | null
+          origem_tabela?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
           recorrente?: boolean
@@ -3334,6 +3338,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          origem_id?: string | null
+          origem_tabela?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
           recorrente?: boolean
@@ -3666,6 +3672,7 @@ export type Database = {
           id: string
           nome: string
           observacao: string | null
+          profissional_user_id: string | null
           telefone: string | null
           tipo_pessoa: string | null
           updated_at: string
@@ -3680,6 +3687,7 @@ export type Database = {
           id?: string
           nome: string
           observacao?: string | null
+          profissional_user_id?: string | null
           telefone?: string | null
           tipo_pessoa?: string | null
           updated_at?: string
@@ -3694,6 +3702,7 @@ export type Database = {
           id?: string
           nome?: string
           observacao?: string | null
+          profissional_user_id?: string | null
           telefone?: string | null
           tipo_pessoa?: string | null
           updated_at?: string
@@ -9490,6 +9499,7 @@ export type Database = {
       fn_auditoria_fiscal_creditos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_pagamentos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_pipeline: { Args: never; Returns: Json }
+      fn_calcular_dsr_comissoes: { Args: { p_mes: string }; Returns: Json }
       fn_calcular_rescisao: {
         Args: { p_contrato_id: string; p_data_cancelamento?: string }
         Returns: Json
@@ -9728,6 +9738,10 @@ export type Database = {
         Args: { p_horario_fixo_id: string }
         Returns: Json
       }
+      fn_feriados_nacionais: {
+        Args: { p_fim: string; p_ini: string }
+        Returns: string[]
+      }
       fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }
       fn_fin_somar_dias_uteis: {
@@ -9939,6 +9953,7 @@ export type Database = {
         Args: { p_parceiro_id: string; p_senha: string }
         Returns: undefined
       }
+      fn_pascoa: { Args: { p_ano: number }; Returns: string }
       fn_pipeline_relatorio: {
         Args: { p_ate: string; p_desde: string; p_funnel_id: string }
         Returns: Json
