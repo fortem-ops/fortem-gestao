@@ -48,9 +48,9 @@ export type FolhaFormHandle = { lancar: () => Promise<string | null> };
 const compDe = (c?: string | null) => { const mc = /^(\d{1,2})\/(\d{4})$/.exec(String(c ?? "")); return mc ? new Date(Number(mc[2]), Number(mc[1]) - 1, 1) : null; };
 
 const FolhaForm = forwardRef<FolhaFormHandle, {
-  mesTela: Date; funcionarios: Func[]; fornIdInicial?: string; registro?: RegistroHolerite;
+  mesTela: Date; funcionarios: Func[]; fornIdInicial?: string; registro?: RegistroHolerite; casar?: boolean;
   onFornChange?: (id: string) => void; children?: (ctx: { importar: (r: RegistroHolerite) => void; ferias: boolean; setFerias: (b: boolean) => void }) => React.ReactNode;
-}>(function FolhaForm({ mesTela, funcionarios, fornIdInicial, registro, onFornChange, children }, ref) {
+}>(function FolhaForm({ mesTela, funcionarios, fornIdInicial, registro, casar, onFornChange, children }, ref) {
   const [fornId, setFornIdRaw] = useState(fornIdInicial ?? "");
   const setFornId = (v: string) => { setFornIdRaw(v); onFornChange?.(v); };
   const [comp, setComp] = useState(() => startOfMonth(addMonths(mesTela, -1)));
@@ -138,7 +138,7 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
   }
   const aplicado = useRef(false);
   useEffect(() => {
-    if (registro && !aplicado.current) { aplicado.current = true; aplicar(registro, false); }
+    if (registro && !aplicado.current) { aplicado.current = true; aplicar(registro, !!casar); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registro]);
 
@@ -300,10 +300,14 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
   const [lendo, setLendo] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [extrato, setExtrato] = useState<RegistroHolerite[] | null>(null);
+  const [recibo, setRecibo] = useState<RegistroHolerite | null>(null);
+  const [manual, setManual] = useState(false);
+  const [arrastando, setArrastando] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<FolhaFormHandle>(null);
 
-  async function importar(file: File, aplicarRecibo: (r: RegistroHolerite) => void) {
+  async function escolher(file: File | null | undefined) {
+    if (!file) return;
     setLendo(true);
     try {
       const r = await lerPdf(file);
@@ -311,7 +315,8 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
         setExtrato(r.registros ?? []);
         toast.success(`Extrato com ${r.registros?.length ?? 0} funcionários — confira cada um antes de lançar.`);
       } else {
-        aplicarRecibo(r.registro!);
+        setManual(false);
+        setRecibo(r.registro!);
         toast.success("Valores importados do PDF — confira antes de salvar.");
       }
     } catch (e) {
@@ -336,28 +341,56 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className={`${extrato ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader><DialogTitle>{extrato ? "Lançar folha — Extrato mensal" : "Lançar folha"}</DialogTitle></DialogHeader>
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => escolher(e.target.files?.[0])} />
         {extrato ? (
           <ExtratoLista registros={extrato} mesTela={mesTela} funcionarios={funcionarios} onVoltar={() => setExtrato(null)} onClose={onClose} />
-        ) : (
+        ) : recibo || manual ? (
           <>
-            <FolhaForm ref={formRef} mesTela={mesTela} funcionarios={funcionarios}>
-              {({ importar: aplicar, ferias, setFerias }) => (
-                <div className="flex items-center justify-between gap-2">
-                  <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importar(f, aplicar); }} />
-                  <Button type="button" variant="outline" size="sm" disabled={lendo} onClick={() => fileRef.current?.click()}>
-                    <FileUp className="h-4 w-4 mr-1" />{lendo ? "Lendo PDF…" : "Importar recibo ou extrato (PDF)"}
-                  </Button>
+            <FolhaForm ref={formRef} mesTela={mesTela} funcionarios={funcionarios} registro={recibo ?? undefined} casar={!!recibo}>
+              {(ctx) => (
+                <div className="space-y-2">
+                  {recibo ? (
+                    <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
+                      Valores importados do PDF — confira antes de salvar. Nada foi gravado ainda.
+                    </div>
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" disabled={lendo} onClick={() => fileRef.current?.click()}>
+                      <FileUp className="h-4 w-4 mr-1" />{lendo ? "Lendo PDF…" : "Importar recibo ou extrato (PDF)"}
+                    </Button>
+                  )}
                   <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={ferias} onCheckedChange={setFerias} />Este lançamento é de férias
+                    <Switch checked={ctx.ferias} onCheckedChange={ctx.setFerias} />Este lançamento é de férias
                   </label>
                 </div>
               )}
             </FolhaForm>
             <DialogFooter>
+              <Button variant="ghost" onClick={() => { setRecibo(null); setManual(false); }}>{recibo ? "← Trocar PDF" : "← Voltar"}</Button>
               <Button variant="outline" onClick={onClose}>Cancelar</Button>
               <Button onClick={salvar} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
             </DialogFooter>
           </>
+        ) : (
+          <div className="space-y-4 py-2">
+            <button
+              type="button"
+              disabled={lendo}
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); if (!lendo) setArrastando(true); }}
+              onDragLeave={() => setArrastando(false)}
+              onDrop={(e) => { e.preventDefault(); setArrastando(false); escolher(e.dataTransfer.files?.[0]); }}
+              className={`w-full rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors ${arrastando ? "border-primary/70 bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/40"} ${lendo ? "opacity-60" : ""}`}
+            >
+              <FileUp className="mx-auto h-9 w-9 text-muted-foreground" />
+              <p className="mt-3 font-medium">{lendo ? "Lendo PDF…" : "Subir holerite (PDF)"}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Recibo de um funcionário ou Extrato Mensal com todos. Você também pode arrastar o arquivo aqui.</p>
+            </button>
+            <div className="flex justify-center">
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs font-normal text-muted-foreground" disabled={lendo} onClick={() => setManual(true)}>
+                Preencher manualmente
+              </Button>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>
