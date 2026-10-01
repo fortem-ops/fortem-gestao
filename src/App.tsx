@@ -75,6 +75,7 @@ const Adquirente = lazyWithReload(() => import("./pages/financeiro/Adquirente"))
 const Previsibilidade = lazyWithReload(() => import("./pages/financeiro/Previsibilidade"));
 const Despesas = lazyWithReload(() => import("./pages/financeiro/Despesas"));
 const Receitas = lazyWithReload(() => import("./pages/financeiro/Receitas"));
+const ConciliacaoBancaria = lazyWithReload(() => import("./pages/financeiro/ConciliacaoBancaria"));
 const LtvAlunos = lazyWithReload(() => import("./pages/financeiro/LtvAlunos"));
 const RelatoriosPlanos = lazyWithReload(() => import("./pages/relatorios/Planos"));
 const RelatoriosCancelamentos = lazyWithReload(() => import("./pages/relatorios/Cancelamentos"));
@@ -677,6 +678,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <Receitas />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/financeiro/conciliacao-bancaria"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <ConciliacaoBancaria />
                   </Suspense>
                 }
               />
