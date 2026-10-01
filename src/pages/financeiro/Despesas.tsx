@@ -379,6 +379,17 @@ function FornecedorPicker({ fornecedores, value, onChange }: {
 }) {
   const [aberto, setAberto] = useState(false);
   const atual = fornecedores.find((f) => f.id === value);
+  const visiveis = fornecedores.filter((f) => f.ativo || f.id === value);
+  // Agrupa por tipo_pessoa (PF / PJ). Fornecedores sem tipo informado vão para um
+  // grupo próprio para não sumirem da lista.
+  const grupos = [
+    { titulo: "PF", itens: visiveis.filter((f) => f.tipo_pessoa === "PF") },
+    { titulo: "PJ", itens: visiveis.filter((f) => f.tipo_pessoa === "PJ") },
+    {
+      titulo: "Não informado",
+      itens: visiveis.filter((f) => f.tipo_pessoa !== "PF" && f.tipo_pessoa !== "PJ"),
+    },
+  ].filter((g) => g.itens.length > 0);
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
@@ -394,13 +405,17 @@ function FornecedorPicker({ fornecedores, value, onChange }: {
             <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
             <CommandGroup>
               <CommandItem value="__nenhum" onSelect={() => { onChange(null); setAberto(false); }}>Nenhum</CommandItem>
-              {fornecedores.filter((f) => f.ativo || f.id === value).map((f) => (
-                <CommandItem key={f.id} value={`${f.nome} ${f.id}`} onSelect={() => { onChange(f); setAberto(false); }}>
-                  <Check className={`mr-2 h-4 w-4 ${f.id === value ? "opacity-100" : "opacity-0"}`} />
-                  {f.nome}{f.eh_funcionario && <span className="ml-2 text-xs text-muted-foreground">funcionário</span>}
-                </CommandItem>
-              ))}
             </CommandGroup>
+            {grupos.map((g) => (
+              <CommandGroup key={g.titulo} heading={g.titulo}>
+                {g.itens.map((f) => (
+                  <CommandItem key={f.id} value={`${f.nome} ${f.id}`} onSelect={() => { onChange(f); setAberto(false); }}>
+                    <Check className={`mr-2 h-4 w-4 ${f.id === value ? "opacity-100" : "opacity-0"}`} />
+                    {f.nome}{f.eh_funcionario && <span className="ml-2 text-xs text-muted-foreground">funcionário</span>}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
           </CommandList>
         </Command>
       </PopoverContent>
