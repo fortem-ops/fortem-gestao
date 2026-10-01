@@ -180,6 +180,8 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
       data_competencia: dataPag,
       data_pagamento: dataPag,
       conta_bancaria: "BANCO INTER",
+      // Folha é sempre paga via PIX — fixo, sem campo na tela.
+      forma_pagamento: "PIX",
       observacao: partes.join(" | "),
       created_by: u.user?.id ?? null,
     } as never);
