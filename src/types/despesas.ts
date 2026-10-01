@@ -25,6 +25,7 @@ export interface Fornecedor {
   cpf_cnpj: string | null;
   categoria_padrao_id: string | null;
   eh_funcionario: boolean;
+  cargo_confianca?: boolean;
   telefone: string | null;
   email: string | null;
   observacao: string | null;
