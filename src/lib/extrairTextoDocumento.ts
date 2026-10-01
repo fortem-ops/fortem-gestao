@@ -16,15 +16,25 @@ async function extrairPdf(file: File): Promise<string> {
     const content = await page.getTextContent();
     // Ordena por posição (de cima para baixo, da esquerda para a direita) e agrupa por linha.
     // Sem isso, PDFs em tabela (ex.: Extrato Mensal da folha) saem fora da ordem de leitura.
-    const itens = (content.items as { str?: string; transform?: number[] }[])
+    const itens = (content.items as { str?: string; transform?: number[]; width?: number }[])
       .filter((it) => (it.str ?? "") !== "")
-      .map((it) => ({ s: it.str ?? "", x: it.transform?.[4] ?? 0, y: it.transform?.[5] ?? 0 }));
+      .map((it) => ({ s: it.str ?? "", x: it.transform?.[4] ?? 0, y: it.transform?.[5] ?? 0, w: it.width ?? 0 }));
     itens.sort((a, b) => (Math.abs(b.y - a.y) > 3 ? b.y - a.y : a.x - b.x));
     const linhas: string[] = [];
     let atual: typeof itens = [];
     let yLinha: number | null = null;
     const fechar = () => {
-      if (atual.length) linhas.push(atual.sort((a, b) => a.x - b.x).map((i) => i.s).join(" ").replace(/\s+/g, " ").trim());
+      if (atual.length) {
+        // Só insere espaço quando há distância real entre os pedaços — alguns PDFs vêm letra por letra.
+        atual.sort((a, b) => a.x - b.x);
+        let txt = "", fimAnt: number | null = null;
+        for (const i of atual) {
+          if (fimAnt !== null && i.x - fimAnt > 1.5 && !txt.endsWith(" ") && !i.s.startsWith(" ")) txt += " ";
+          txt += i.s;
+          fimAnt = i.x + i.w;
+        }
+        linhas.push(txt.replace(/\s+/g, " ").trim());
+      }
       atual = [];
     };
     for (const it of itens) {
