@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Receita, ReceitaCategoria, ReceitaInput } from '@/types/receitas';
 
@@ -25,6 +25,7 @@ export function useReceitasPeriodo(inicio: string, fim: string) {
   return useQuery({
     queryKey: ['receitas', inicio, fim],
     queryFn: () => fetchReceitas(inicio, fim),
+    placeholderData: keepPreviousData,
   });
 }
 

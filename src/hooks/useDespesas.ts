@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type {
   Despesa, DespesaCategoria, DespesaInput, DespesaRecorrenciaInput, DespesaTipo, Fornecedor, FornecedorInput,
@@ -27,6 +27,8 @@ export function useDespesasPeriodo(inicio: string, fim: string) {
   return useQuery({
     queryKey: ['despesas', inicio, fim],
     queryFn: () => fetchDespesas(inicio, fim),
+    // Ao trocar de mês, mantém a tela anterior visível enquanto carrega (sem piscar o "carregando").
+    placeholderData: keepPreviousData,
   });
 }
 

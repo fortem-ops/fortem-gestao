@@ -98,17 +98,22 @@ export default function WhatsAppChat() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Realtime: conversas
+  // Realtime: conversas (rajadas de eventos agrupadas numa única recarga da lista)
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const ch = supabase
       .channel("whatsapp_conversas_ch")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "whatsapp_conversas" },
-        () => qc.invalidateQueries({ queryKey: ["whatsapp-conversas"] }),
+        () => {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => qc.invalidateQueries({ queryKey: ["whatsapp-conversas"] }), 500);
+        },
       )
       .subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(ch);
     };
   }, [qc]);
@@ -134,16 +139,17 @@ export default function WhatsAppChat() {
     };
   }, [selectedId, qc]);
 
-  // Zerar não lidas ao abrir
+  // Zerar não lidas ao abrir — só grava se houver não lidas (evita escrita + evento realtime à toa).
+  // O realtime da lista já recarrega as conversas depois da gravação.
   useEffect(() => {
     if (!selectedId) return;
+    const conv = (qc.getQueryData<Conversa[]>(["whatsapp-conversas"]) ?? []).find((c) => c.id === selectedId);
+    if (conv && !((conv as any).nao_lidas > 0)) return;
     supabase
       .from("whatsapp_conversas" as never)
       .update({ nao_lidas: 0 } as never)
       .eq("id", selectedId)
-      .then(({ error }) => {
-        if (!error) qc.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
-      });
+      .then(() => {});
   }, [selectedId, qc]);
 
   // Scroll bottom on new messages
