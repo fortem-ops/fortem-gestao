@@ -1,0 +1,38 @@
+CREATE OR REPLACE FUNCTION public.fn_loja_vincular_aluno(p_pedido_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _cpf text;
+  _atual uuid;
+  _aluno uuid;
+BEGIN
+  -- Chamadas do navegador (role authenticated) exigem coordenador/admin;
+  -- service_role (edge functions) passa direto.
+  IF auth.role() = 'authenticated'
+     AND NOT public.is_coordinator_or_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+
+  SELECT regexp_replace(coalesce(cpf,''), '\D', '', 'g'), aluno_id
+    INTO _cpf, _atual
+  FROM public.pedidos WHERE id = p_pedido_id;
+
+  IF _atual IS NOT NULL THEN RETURN _atual; END IF;
+  IF _cpf IS NULL OR length(_cpf) <> 11 THEN RETURN NULL; END IF;
+
+  SELECT id INTO _aluno
+  FROM public.alunos
+  WHERE cpf_hash = encode(sha256(_cpf::bytea), 'hex')
+  LIMIT 1;
+
+  IF _aluno IS NULL THEN RETURN NULL; END IF;
+
+  UPDATE public.pedidos SET aluno_id = _aluno WHERE id = p_pedido_id;
+  RETURN _aluno;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.fn_loja_vincular_aluno(uuid) TO authenticated;
