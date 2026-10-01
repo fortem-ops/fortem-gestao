@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Despesa, DespesaCategoria, DespesaInput, DespesaTipo } from '@/types/despesas';
+import type {
+  Despesa, DespesaCategoria, DespesaInput, DespesaRecorrenciaInput, DespesaTipo, Fornecedor, FornecedorInput,
+} from '@/types/despesas';
 
 /** Busca despesas com data_competencia entre inicio e fim (inclusive), paginando em lotes de 1000. */
 async function fetchDespesas(inicio: string, fim: string): Promise<Despesa[]> {
@@ -59,17 +61,21 @@ export function useUsoCategorias() {
   });
 }
 
+/** Campos que se propagam para as demais parcelas de um grupo (datas e status não). */
+type CamposGrupo = Pick<DespesaInput,
+  'categoria_id' | 'descricao' | 'valor' | 'tipo' | 'observacao' | 'forma_pagamento' | 'conta_bancaria' | 'fornecedor_id'>;
+
 export function useDespesaMutations() {
   const qc = useQueryClient();
   const inval = () => {
     qc.invalidateQueries({ queryKey: ['despesas'] });
     qc.invalidateQueries({ queryKey: ['despesas-categorias-uso'] });
   };
+  const uidAtual = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
   const salvar = useMutation({
     mutationFn: async ({ id, input }: { id?: string; input: DespesaInput }) => {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id ?? null;
+      const uid = await uidAtual();
       if (id) {
         const { error } = await supabase.from('despesas').update({ ...input, updated_by: uid }).eq('id', id);
         if (error) throw error;
@@ -81,9 +87,44 @@ export function useDespesaMutations() {
     onSuccess: inval,
   });
 
+  /** Cria várias despesas de uma vez (repetição de lançamento). */
+  const criarLote = useMutation({
+    mutationFn: async (linhas: (DespesaInput & DespesaRecorrenciaInput)[]) => {
+      const uid = await uidAtual();
+      const { error } = await supabase.from('despesas')
+        .insert(linhas.map((l) => ({ ...l, origem: 'manual', created_by: uid, updated_by: uid })));
+      if (error) throw error;
+    },
+    onSuccess: inval,
+  });
+
+  /** Aplica campos comuns às parcelas seguintes ainda pendentes do grupo. */
+  const atualizarFuturasGrupo = useMutation({
+    mutationFn: async ({ grupoId, aPartirDe, campos }: { grupoId: string; aPartirDe: number; campos: CamposGrupo }) => {
+      const uid = await uidAtual();
+      const { error } = await supabase.from('despesas')
+        .update({ ...campos, updated_by: uid })
+        .eq('grupo_recorrencia_id', grupoId).eq('status', 'pendente').gt('parcela_atual', aPartirDe);
+      if (error) throw error;
+    },
+    onSuccess: inval,
+  });
+
   const excluir = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('despesas').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: inval,
+  });
+
+  /** Exclui este lançamento e as parcelas seguintes ainda pendentes do grupo. */
+  const excluirFuturasGrupo = useMutation({
+    mutationFn: async ({ id, grupoId, aPartirDe }: { id: string; grupoId: string; aPartirDe: number }) => {
+      const { error: e1 } = await supabase.from('despesas').delete().eq('id', id);
+      if (e1) throw e1;
+      const { error } = await supabase.from('despesas').delete()
+        .eq('grupo_recorrencia_id', grupoId).eq('status', 'pendente').gt('parcela_atual', aPartirDe);
       if (error) throw error;
     },
     onSuccess: inval,
@@ -106,20 +147,35 @@ export function useDespesaMutations() {
     onSettled: () => qc.invalidateQueries({ queryKey: ['despesas'] }),
   });
 
-  return { salvar, excluir, alternarConciliado };
+  return { salvar, criarLote, atualizarFuturasGrupo, excluir, excluirFuturasGrupo, alternarConciliado };
 }
 
 export function useCategoriaMutations() {
   const qc = useQueryClient();
   const inval = () => qc.invalidateQueries({ queryKey: ['despesas-categorias'] });
 
-  const salvar = useMutation({
-    mutationFn: async ({ id, nome, tipo }: { id?: string; nome: string; tipo: DespesaTipo }) => {
+  /** Cria ou edita uma subcategoria. Centrais não são criadas pela interface. */
+  const salvarSub = useMutation({
+    mutationFn: async ({ id, nome, tipo, ordem, pai }: {
+      id?: string; nome: string; tipo: DespesaTipo; ordem: number | null; pai?: DespesaCategoria;
+    }) => {
       const n = nome.trim();
-      if (!n) throw new Error('Informe o nome da categoria.');
-      const { error } = id
-        ? await supabase.from('despesas_categorias').update({ nome: n, tipo }).eq('id', id)
-        : await supabase.from('despesas_categorias').insert({ nome: n, tipo });
+      if (!n) throw new Error('Informe o nome da subcategoria.');
+      let error;
+      if (id) {
+        ({ error } = await supabase.from('despesas_categorias').update({ nome: n, tipo, ordem }).eq('id', id));
+      } else {
+        if (!pai) throw new Error('Categoria central não informada.');
+        const { data: irmas, error: e } = await supabase.from('despesas_categorias')
+          .select('codigo, ordem').eq('categoria_pai_id', pai.id);
+        if (e) throw e;
+        const maxSeq = Math.max(0, ...(irmas ?? []).map((r) => Number((r.codigo ?? '').split('.')[1]) || 0));
+        const maxOrdem = Math.max(0, ...(irmas ?? []).map((r) => r.ordem ?? 0));
+        ({ error } = await supabase.from('despesas_categorias').insert({
+          nome: n, tipo, nivel: 'sub', categoria_pai_id: pai.id,
+          codigo: `${pai.codigo}.${maxSeq + 1}`, ordem: ordem ?? maxOrdem + 1,
+        }));
+      }
       if (error) {
         if (error.code === '23505') throw new Error('Já existe uma categoria com esse nome.');
         throw error;
@@ -136,17 +192,43 @@ export function useCategoriaMutations() {
     onSuccess: inval,
   });
 
-  const excluir = useMutation({
-    mutationFn: async (id: string) => {
-      const { count, error: cErr } = await supabase
-        .from('despesas').select('id', { count: 'exact', head: true }).eq('categoria_id', id);
-      if (cErr) throw cErr;
-      if ((count ?? 0) > 0) throw new Error('Categoria possui despesas vinculadas — desative em vez de excluir.');
-      const { error } = await supabase.from('despesas_categorias').delete().eq('id', id);
+  return { salvarSub, alternarAtivo };
+}
+
+export function useFornecedores() {
+  return useQuery({
+    queryKey: ['fornecedores'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fornecedores').select('*').order('nome');
+      if (error) throw error;
+      return (data ?? []) as Fornecedor[];
+    },
+  });
+}
+
+export function useFornecedorMutations() {
+  const qc = useQueryClient();
+  const inval = () => qc.invalidateQueries({ queryKey: ['fornecedores'] });
+
+  const salvar = useMutation({
+    mutationFn: async ({ id, input }: { id?: string; input: FornecedorInput }) => {
+      if (!input.nome.trim()) throw new Error('Informe o nome do fornecedor.');
+      const payload = { ...input, nome: input.nome.trim() };
+      const { error } = id
+        ? await supabase.from('fornecedores').update(payload).eq('id', id)
+        : await supabase.from('fornecedores').insert(payload);
       if (error) throw error;
     },
     onSuccess: inval,
   });
 
-  return { salvar, alternarAtivo, excluir };
+  const alternarAtivo = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from('fornecedores').update({ ativo }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: inval,
+  });
+
+  return { salvar, alternarAtivo };
 }
