@@ -36,6 +36,18 @@ export interface LTVData {
   linhas: number;
 }
 
+// Data em que o sistema atual passou a ser a fonte de cobrança real,
+// substituindo o sistema antigo. O histórico legado vai até agosto/2026;
+// a partir daqui os pagamentos vêm de `cobrancas` (status 'pago').
+const DATA_CORTE_SISTEMA_NOVO = "2026-09-01";
+
+interface CobrancaPagaRow {
+  aluno_id: string;
+  valor: number | string | null;
+  data_pagamento: string;
+  alunos: { nome: string | null; status: string | null } | null;
+}
+
 async function fetchHistorico(): Promise<HistoricoPagamentoRow[]> {
   const out: HistoricoPagamentoRow[] = [];
   for (let from = 0; ; from += 1000) {
@@ -46,6 +58,36 @@ async function fetchHistorico(): Promise<HistoricoPagamentoRow[]> {
       .range(from, from + 999);
     if (error) throw error;
     out.push(...((data ?? []) as unknown as HistoricoPagamentoRow[]));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
+async function fetchCobrancasPagas(): Promise<HistoricoPagamentoRow[]> {
+  const out: HistoricoPagamentoRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("cobrancas")
+      .select("aluno_id, valor, data_pagamento, alunos(nome, status)")
+      .eq("status", "pago")
+      .gte("data_pagamento", DATA_CORTE_SISTEMA_NOVO)
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw error;
+    const rows = (data ?? []) as unknown as CobrancaPagaRow[];
+    for (const c of rows) {
+      if (!c.aluno_id || !c.data_pagamento) continue;
+      out.push({
+        id: `cob:${c.aluno_id}:${c.data_pagamento}:${out.length}`,
+        aluno_id: c.aluno_id,
+        cliente_codigo_legado: null,
+        cliente_nome_legado: null,
+        ano: new Date(`${c.data_pagamento}T00:00:00`).getFullYear(),
+        valor_total: c.valor,
+        fonte: "sistema_atual",
+        alunos: c.alunos,
+      });
+    }
     if (!data || data.length < 1000) break;
   }
   return out;
@@ -98,8 +140,11 @@ export function agregarLTV(rows: HistoricoPagamentoRow[]): LTVData {
     .map(({ soma, ...co }) => ({ ...co, ltvMedio: co.clientes ? soma / co.clientes : 0 }))
     .sort((a, b) => a.ano - b.ano);
 
+  const anosPresentes = [...anoMap.keys()];
+  const anoMin = anosPresentes.length ? Math.min(...anosPresentes) : 2019;
+  const anoMax = anosPresentes.length ? Math.max(...anosPresentes) : new Date().getFullYear();
   const porAno: { ano: number; total: number }[] = [];
-  for (let a = 2019; a <= 2026; a++) porAno.push({ ano: a, total: Math.round((anoMap.get(a) ?? 0) * 100) / 100 });
+  for (let a = anoMin; a <= anoMax; a++) porAno.push({ ano: a, total: Math.round((anoMap.get(a) ?? 0) * 100) / 100 });
 
   return {
     clientes, porAno, coortes, receitaTotal, linhas: rows.length,
@@ -111,7 +156,10 @@ export function agregarLTV(rows: HistoricoPagamentoRow[]): LTVData {
 export function useLTV(enabled = true) {
   return useQuery({
     queryKey: ["ltv-historico"],
-    queryFn: async () => agregarLTV(await fetchHistorico()),
+    queryFn: async () => {
+      const [historico, cobrancas] = await Promise.all([fetchHistorico(), fetchCobrancasPagas()]);
+      return agregarLTV([...historico, ...cobrancas]);
+    },
     enabled,
     staleTime: 10 * 60_000,
   });
