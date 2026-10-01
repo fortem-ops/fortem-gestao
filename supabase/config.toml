@@ -63,3 +63,6 @@ verify_jwt = false
 [functions.inter-extrato-sync]
 verify_jwt = false
 
+
+[functions.conciliar-extrato-diario]
+verify_jwt = false
