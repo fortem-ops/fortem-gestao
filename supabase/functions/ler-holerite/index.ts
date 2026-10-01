@@ -10,9 +10,10 @@ const json = (body: unknown, status = 200) =>
 const schema = {
   type: "object",
   additionalProperties: false,
-  required: ["funcionario", "competencia", "itens", "total_vencimentos", "total_descontos", "valor_liquido"],
+  required: ["funcionario", "cpf", "competencia", "itens", "total_vencimentos", "total_descontos", "valor_liquido"],
   properties: {
     funcionario: { type: ["string", "null"] },
+    cpf: { type: ["string", "null"] },
     competencia: { type: ["string", "null"], description: "MM/AAAA" },
     total_vencimentos: { type: ["number", "null"] },
     total_descontos: { type: ["number", "null"] },
@@ -88,6 +89,38 @@ Deno.serve(async (req) => {
     const texto = typeof body?.texto === "string" ? body.texto.slice(0, 60000) : "";
     if (texto.replace(/\s/g, "").length < 30) return json({ error: "Texto do holerite vazio." }, 400);
 
+    // Extrato Mensal: vários blocos "Empr.: <n> <NOME>". Cada bloco é lido separadamente.
+    const re = /Empr\.?\s*:\s*\d+/gi;
+    const pos: number[] = [];
+    for (let m; (m = re.exec(texto)); ) pos.push(m.index);
+    if (pos.length >= 2) {
+      const cab = texto.slice(0, pos[0]).slice(0, 1500);
+      const blocos = pos.map((p, i) => cab + "\n" + texto.slice(p, pos[i + 1] ?? texto.length)).slice(0, 60);
+      const registros: unknown[] = new Array(blocos.length);
+      let idx = 0;
+      const worker = async () => {
+        while (idx < blocos.length) {
+          const i = idx++;
+          try { registros[i] = await lerUm(key, blocos[i]); }
+          catch (e) { registros[i] = { erro: (e as Error).message || "Não foi possível ler este funcionário." }; }
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      const credito = registros.find((r) => (r as { status?: number })?.status === 402);
+      if (credito) return json({ error: "Créditos de IA esgotados." }, 402);
+      return json({ modo: "extrato", registros });
+    }
+    try { return json({ modo: "recibo", ...(await lerUm(key, texto)) }); }
+    catch (e) { const st = (e as { status?: number }).status ?? 502; return json({ error: (e as Error).message }, st); }
+  } catch (e) {
+    console.error(e);
+    return json({ error: "Não foi possível ler o holerite." }, 500);
+  }
+});
+
+class LeituraErro extends Error { constructor(msg: string, public status: number) { super(msg); } }
+
+async function lerUm(key: string, texto: string) {
     const r = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Lovable-API-Key": key, Authorization: `Bearer ${key}`, "X-Lovable-AIG-SDK": "fetch" },
@@ -97,7 +130,7 @@ Deno.serve(async (req) => {
         store: false,
         reasoning: { effort: "low" },
         input: [
-          { role: "system", content: "Você extrai dados de holerites (contracheques) brasileiros. Liste SOMENTE as linhas de proventos/descontos da tabela de itens (não inclua bases de cálculo como Base INSS, Base FGTS, FGTS do mês, Base IRRF, salário contratual). Para cada linha: código, descrição exatamente como no documento, referência, valor na coluna Vencimentos (ou null) e valor na coluna Descontos (ou null). Números em formato decimal (1.234,56 → 1234.56). Também o nome do funcionário, a competência MM/AAAA e os totais." },
+          { role: "system", content: "Você extrai dados de holerites (contracheques) brasileiros. Liste SOMENTE as linhas de proventos/descontos da tabela de itens (não inclua bases de cálculo como Base INSS, Base FGTS, FGTS do mês, Base IRRF, salário contratual). Para cada linha: código, descrição exatamente como no documento, referência, valor na coluna Vencimentos (ou null) e valor na coluna Descontos (ou null). Números em formato decimal (1.234,56 → 1234.56). Também o nome do funcionário, o CPF, a competência MM/AAAA e os totais." },
           { role: "user", content: texto },
         ],
         text: { format: { type: "json_schema", name: "holerite", strict: true, schema } },
@@ -107,7 +140,7 @@ Deno.serve(async (req) => {
       const t = await r.text().catch(() => "");
       console.error("gateway", r.status, t.slice(0, 500));
       const msg = r.status === 402 ? "Créditos de IA esgotados." : r.status === 429 ? "Muitas leituras seguidas, tente em instantes." : "Não foi possível ler o holerite.";
-      return json({ error: msg }, r.status === 402 || r.status === 429 ? r.status : 502);
+      throw new LeituraErro(msg, r.status === 402 || r.status === 429 ? r.status : 502);
     }
     // consome SSE
     const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -130,11 +163,7 @@ Deno.serve(async (req) => {
       }
     }
     let dados: { itens: Item[] } & Record<string, unknown>;
-    try { dados = JSON.parse(out); } catch { return json({ error: "A IA não conseguiu ler este holerite." }, 422); }
-    if (!Array.isArray(dados.itens) || !dados.itens.length) return json({ error: "Nenhum item encontrado no holerite." }, 422);
-    return json({ ...dados, mapeado: mapear(dados.itens) });
-  } catch (e) {
-    console.error(e);
-    return json({ error: "Não foi possível ler o holerite." }, 500);
-  }
-});
+    try { dados = JSON.parse(out); } catch { throw new LeituraErro("A IA não conseguiu ler este holerite.", 422); }
+    if (!Array.isArray(dados.itens) || !dados.itens.length) throw new LeituraErro("Nenhum item encontrado no holerite.", 422);
+  return { ...dados, mapeado: mapear(dados.itens) };
+}
