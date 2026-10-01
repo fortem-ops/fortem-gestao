@@ -564,10 +564,10 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
                   )}
                 </TableRow>
               ))}
-              {!isLoading && linhas.length === 0 && (
+              {!isLoadingAll && linhas.length === 0 && (
                 <TableRow><TableCell colSpan={canEdit ? 12 : 10} className="text-center text-muted-foreground">Nenhuma despesa no período</TableCell></TableRow>
               )}
-              {isLoading && (
+              {isLoadingAll && (
                 <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-muted-foreground">Carregando…</TableCell></TableRow>
               )}
             </TableBody>
