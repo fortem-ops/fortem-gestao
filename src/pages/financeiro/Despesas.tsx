@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
-import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, addMonths, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -19,13 +22,15 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { KpiCard } from "@/components/relatorios/KpiCard";
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useFornecedores } from "@/hooks/useDespesas";
 import {
-  useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useCategoriaMutations, useUsoCategorias,
-} from "@/hooks/useDespesas";
+  CategoriasHierarquia, FornecedoresCadastro, nomeCategoria, useArvoreCategorias,
+} from "@/components/financeiro/DespesasCadastros";
 import {
-  TIPO_LABELS, STATUS_LABELS, FORMAS_DESPESA, CONTAS_DESPESA, type Despesa, type DespesaCategoria, type DespesaInput, type DespesaStatus, type DespesaTipo,
+  STATUS_LABELS, FORMAS_DESPESA, CONTAS_DESPESA, type Despesa, type DespesaCategoria, type DespesaInput,
+  type DespesaStatus, type DespesaTipo, type Fornecedor,
 } from "@/types/despesas";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -52,9 +57,11 @@ export default function Despesas() {
         <TabsList>
           <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
+          <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
         </TabsList>
         <TabsContent value="lancamentos"><Lancamentos canEdit={canEdit} /></TabsContent>
-        <TabsContent value="categorias"><Categorias canEdit={canEdit} /></TabsContent>
+        <TabsContent value="categorias"><CategoriasHierarquia canEdit={canEdit} /></TabsContent>
+        <TabsContent value="fornecedores"><FornecedoresCadastro canEdit={canEdit} /></TabsContent>
       </Tabs>
     </div>
   );
@@ -76,7 +83,7 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
 
   const { data: despesas = [], isLoading } = useDespesasPeriodo(inicio12, fimMes);
   const { data: categorias = [] } = useCategoriasDespesa(false);
-  const { excluir, alternarConciliado } = useDespesaMutations();
+  const { excluir, excluirFuturasGrupo, alternarConciliado } = useDespesaMutations();
   const catMap = useMemo(() => new Map(categorias.map((c) => [c.id, c])), [categorias]);
 
   const { resumo, anterior, chart } = useMemo(() => {
@@ -111,11 +118,18 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   [despesas, mesKey, fCat, fTipo, fStatus]);
   const totalFiltrado = linhas.reduce((s, d) => s + num(d.valor), 0);
 
-  const confirmarExclusao = async () => {
+  const confirmarExclusao = async (futuras = false) => {
     if (!excluindo) return;
     try {
-      await excluir.mutateAsync(excluindo.id);
-      toast.success("Despesa excluída");
+      if (futuras && excluindo.grupo_recorrencia_id) {
+        await excluirFuturasGrupo.mutateAsync({
+          id: excluindo.id, grupoId: excluindo.grupo_recorrencia_id, aPartirDe: excluindo.parcela_atual ?? 0,
+        });
+        toast.success("Despesa e parcelas futuras excluídas");
+      } else {
+        await excluir.mutateAsync(excluindo.id);
+        toast.success("Despesa excluída");
+      }
     } catch (e) { toast.error(errMsg(e)); }
     setExcluindo(null);
   };
@@ -198,7 +212,7 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
               <SelectTrigger className="w-56"><SelectValue placeholder="Categoria" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas as categorias</SelectItem>
-                {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.codigo ? `${c.codigo} ` : ""}{nomeCategoria(c, catMap)}{c.nivel ? "" : " (antiga)"}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={fTipo} onValueChange={setFTipo}>
@@ -241,8 +255,11 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
             <TableBody>
               {linhas.map((d) => (
                 <TableRow key={d.id}>
-                  <TableCell className="py-1.5">{d.descricao}</TableCell>
-                  <TableCell className="py-1.5">{d.categoria_id ? catMap.get(d.categoria_id)?.nome ?? "—" : "—"}</TableCell>
+                  <TableCell className="py-1.5">
+                    {d.descricao}
+                    {d.parcela_total ? <span className="ml-1 text-xs text-muted-foreground">({d.parcela_atual}/{d.parcela_total})</span> : null}
+                  </TableCell>
+                  <TableCell className="py-1.5">{d.categoria_id ? nomeCategoria(catMap.get(d.categoria_id), catMap) : "—"}</TableCell>
                   <TableCell className="py-1.5 text-xs">{d.forma_pagamento ?? "—"}</TableCell>
                   <TableCell className="py-1.5 text-xs">{d.conta_bancaria ?? "—"}</TableCell>
                   <TableCell className="py-1.5">{fmtData(d.data_competencia)}</TableCell>
@@ -302,12 +319,21 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
             <AlertDialogTitle>Excluir despesa?</AlertDialogTitle>
             <AlertDialogDescription>
               {excluindo?.descricao} — {brl(num(excluindo?.valor))}.
-              {excluindo?.origem === "importado_historico" && " Este é um registro histórico importado."} Esta ação não pode ser desfeita.
+              {excluindo?.origem === "importado_historico" && " Este é um registro histórico importado."}
+              {excluindo?.grupo_recorrencia_id && ` Parcela ${excluindo.parcela_atual}/${excluindo.parcela_total} de um lançamento repetido — você pode excluir só esta ou também as futuras ainda pendentes.`}
+              {" "}Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmarExclusao}>Excluir</AlertDialogAction>
+            {excluindo?.grupo_recorrencia_id ? (
+              <>
+                <Button variant="outline" onClick={() => confirmarExclusao(false)}>Só esta</Button>
+                <AlertDialogAction onClick={() => confirmarExclusao(true)}>Esta e as futuras pendentes</AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction onClick={() => confirmarExclusao(false)}>Excluir</AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
