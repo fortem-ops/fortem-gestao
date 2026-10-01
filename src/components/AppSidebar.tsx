@@ -99,6 +99,7 @@ const financeiroItems = [
   { title: "Contratos", url: "/financeiro/contratos", icon: FileSignature },
   { title: "Previsibilidade", url: "/financeiro/previsibilidade", icon: TrendingUp },
   { title: "Receitas", url: "/financeiro/receitas", icon: HandCoins },
+  { title: "LTV de Alunos", url: "/financeiro/ltv", icon: TrendingUp },
   { title: "Despesas", url: "/financeiro/despesas", icon: Receipt },
   { title: "Templates de Contratos", url: "/financeiro/templates-contratos", icon: FileText },
   { title: "Cartões de Crédito", url: "/financeiro/cartoes", icon: CreditCard },
