@@ -2522,6 +2522,50 @@ export type Database = {
         }
         Relationships: []
       }
+      conciliacoes_bancarias: {
+        Row: {
+          confianca: string
+          created_at: string
+          criado_por: string | null
+          desfeito: boolean
+          id: string
+          movimento_id: string
+          registro_id: string
+          tabela_origem: string
+          tipo_match: string
+        }
+        Insert: {
+          confianca: string
+          created_at?: string
+          criado_por?: string | null
+          desfeito?: boolean
+          id?: string
+          movimento_id: string
+          registro_id: string
+          tabela_origem: string
+          tipo_match: string
+        }
+        Update: {
+          confianca?: string
+          created_at?: string
+          criado_por?: string | null
+          desfeito?: boolean
+          id?: string
+          movimento_id?: string
+          registro_id?: string
+          tabela_origem?: string
+          tipo_match?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conciliacoes_bancarias_movimento_id_fkey"
+            columns: ["movimento_id"]
+            isOneToOne: false
+            referencedRelation: "inter_extrato_movimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumo_servicos: {
         Row: {
           agenda_id: string | null
