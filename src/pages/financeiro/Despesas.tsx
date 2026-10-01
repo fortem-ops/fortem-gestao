@@ -528,7 +528,8 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
   const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? "pago");
   const [observacao, setObservacao] = useState(despesa?.observacao ?? "");
   const [forma, setForma] = useState<string>(despesa?.forma_pagamento ?? "nenhum");
-  const [conta, setConta] = useState<string>(despesa?.conta_bancaria ?? "nenhum");
+  // Conta padrão em lançamentos novos: Banco Inter (conta atual). Edição mantém o valor gravado.
+  const [conta, setConta] = useState<string>(despesa ? despesa.conta_bancaria ?? "nenhum" : "BANCO INTER");
   const [valorPago, setValorPago] = useState(despesa?.valor_pago != null ? String(despesa.valor_pago) : "");
   const [conciliado, setConciliado] = useState(despesa?.conciliado ?? false);
   const [repetir, setRepetir] = useState(false);
