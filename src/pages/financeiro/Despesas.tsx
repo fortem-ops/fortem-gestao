@@ -24,7 +24,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { KpiCard } from "@/components/relatorios/KpiCard";
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useFornecedores } from "@/hooks/useDespesas";
 import {
@@ -75,6 +75,7 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   const [fTipo, setFTipo] = useState("todos");
   const [fStatus, setFStatus] = useState("todos");
   const [editando, setEditando] = useState<Despesa | null>(null);
+  const [baixando, setBaixando] = useState<Despesa | null>(null);
   const [novoAberto, setNovoAberto] = useState(false);
   const [excluindo, setExcluindo] = useState<Despesa | null>(null);
 
@@ -318,6 +319,9 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
                   </TableCell>
                   {canEdit && (
                     <TableCell className="py-1.5 text-right whitespace-nowrap">
+                      {d.status === "pendente" && (
+                        <Button variant="ghost" size="icon" onClick={() => setBaixando(d)} aria-label="Dar baixa" title="Dar baixa"><CircleDollarSign className="h-4 w-4 text-primary" /></Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => setEditando(d)} aria-label="Editar"><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setExcluindo(d)} aria-label="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </TableCell>
@@ -335,6 +339,7 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
         </CardContent>
       </Card>
 
+      {baixando && <DarBaixaDialog despesa={baixando} onClose={() => setBaixando(null)} />}
       {(novoAberto || editando) && (
         <DespesaDialog
           despesa={editando}
@@ -420,6 +425,79 @@ function FornecedorPicker({ fornecedores, value, onChange }: {
         </Command>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function DarBaixaDialog({ despesa, onClose }: { despesa: Despesa; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [data, setData] = useState(despesa.data_competencia);
+  const [valor, setValor] = useState(String(despesa.valor));
+  const [forma, setForma] = useState<string>(despesa.forma_pagamento ?? "nenhum");
+  const [conta, setConta] = useState<string>(despesa.conta_bancaria ?? "nenhum");
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar() {
+    const v = Number(valor.replace(",", "."));
+    if (!data) { toast.error("Informe a data de pagamento"); return; }
+    if (!Number.isFinite(v) || v < 0) { toast.error("Valor pago inválido"); return; }
+    setSalvando(true);
+    const { error } = await supabase.from("despesas").update({
+      status: "pago",
+      data_pagamento: data,
+      valor_pago: Math.round(v * 100) / 100,
+      forma_pagamento: forma === "nenhum" ? null : forma,
+      conta_bancaria: conta === "nenhum" ? null : conta,
+    } as never).eq("id", despesa.id);
+    setSalvando(false);
+    if (error) { toast.error("Erro ao dar baixa: " + error.message); return; }
+    toast.success("Baixa registrada");
+    qc.invalidateQueries({ queryKey: ["despesas"] });
+    onClose();
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Dar baixa</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground truncate">
+          {despesa.descricao}{despesa.parcela_total ? ` (${despesa.parcela_atual}/${despesa.parcela_total})` : ""}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label>Data de pagamento</Label>
+            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Valor pago</Label>
+            <Input type="number" step="0.01" min="0" value={valor} onChange={(e) => setValor(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Forma de pagamento</Label>
+            <Select value={forma} onValueChange={setForma}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Nenhuma</SelectItem>
+                {FORMAS_DESPESA.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Conta</Label>
+            <Select value={conta} onValueChange={setConta}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Nenhuma</SelectItem>
+                {CONTAS_DESPESA.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Confirmar pagamento"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
