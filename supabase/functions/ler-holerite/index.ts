@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     if (texto.replace(/\s/g, "").length < 30) return json({ error: "Texto do holerite vazio." }, 400);
 
     // Extrato Mensal: vários blocos "Empr.: <n> <NOME>". Cada bloco é lido separadamente.
-    const re = /Empr\.?\s*:\s*\d+/gi;
+    const re = /Empr(?:egado)?\s*\.?\s*:\s*\d+/gi;
     const pos: number[] = [];
     for (let m; (m = re.exec(texto)); ) pos.push(m.index);
     if (pos.length >= 2) {
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         .slice(0, 4).join("\n");
       const blocos = pos.map((p, i) => {
         const corpo = texto.slice(p, pos[i + 1] ?? texto.length);
-        const nome = /Empr\.?\s*:\s*\d+\s+([^\n\d]+)/i.exec(corpo)?.[1]?.trim() ?? "";
+        const nome = /Empr(?:egado)?\s*\.?\s*:\s*\d+\s+([^\n\d]+)/i.exec(corpo)?.[1]?.trim() ?? "";
         return `FUNCIONÁRIO DESTE BLOCO: ${nome}\nLeia SOMENTE os itens deste funcionário.\n${cab ? `Cabeçalho do documento (apenas competência):\n${cab}\n` : ""}---\n${corpo}`;
       }).slice(0, 60);
       const registros: unknown[] = new Array(blocos.length);
@@ -172,6 +172,6 @@ async function lerUm(key: string, texto: string) {
     }
     let dados: { itens: Item[] } & Record<string, unknown>;
     try { dados = JSON.parse(out); } catch { throw new LeituraErro("A IA não conseguiu ler este holerite.", 422); }
-    if (!Array.isArray(dados.itens) || !dados.itens.length) throw new LeituraErro("Nenhum item encontrado no holerite.", 422);
+    if (!Array.isArray(dados.itens) || !dados.itens.length) throw new LeituraErro("Não encontrei itens de vencimento/desconto neste PDF. Confira se é o recibo ou o extrato mensal da folha.", 422);
   return { ...dados, mapeado: mapear(dados.itens) };
 }
