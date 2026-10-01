@@ -15,6 +15,7 @@ const compact = (n: number) => n.toLocaleString("pt-BR", { notation: "compact", 
 const FONTE_LABEL: Record<string, string> = {
   recebiveis_legado: "Recebíveis (legado)",
   box_checkin_2019: "Box check-in 2019",
+  sistema_atual: "Sistema atual",
 };
 
 const STATUS_CLASS: Record<string, string> = {
