@@ -89,28 +89,51 @@ Deno.serve(async (req) => {
     const texto = typeof body?.texto === "string" ? body.texto.slice(0, 60000) : "";
     if (texto.replace(/\s/g, "").length < 30) return json({ error: "Texto do holerite vazio." }, 400);
 
-    // Extrato Mensal: vários blocos "Empr.: <n> <NOME>". Cada bloco é lido separadamente.
-    const re = /Empr(?:egado)?\s*\.?\s*:\s*\d+/gi;
+    // Competência por extenso ("Agosto de 2026") → MM/AAAA, para todos os blocos.
+    const MESES = ["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+    const semAc = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const mc = /\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})/i.exec(semAc);
+    const compTxt = mc ? `Competência: ${String(MESES.indexOf(mc[1].toLowerCase()) + 1).padStart(2, "0")}/${mc[2]}` : "";
+
+    // Divide em um bloco por funcionário. Dois formatos:
+    // 1) Extrato Mensal: "Empr.: <n> <NOME>"
+    // 2) Recibos (REC): cada recibo começa em "Código Nome do Funcionário", seguido da linha "<cód> <NOME> <CBO>";
+    //    cada funcionário vem em 2 vias — mantemos só a primeira.
+    type Bloco = { nome: string; corpo: string };
+    let blocos: Bloco[] = [];
+    const reEmpr = /Empr(?:egado)?\s*\.?\s*:\s*\d+/gi;
     const pos: number[] = [];
-    for (let m; (m = re.exec(texto)); ) pos.push(m.index);
+    for (let m; (m = reEmpr.exec(texto)); ) pos.push(m.index);
     if (pos.length >= 2) {
-      // Do cabeçalho geral só aproveitamos linhas de competência/período — nunca itens de folha,
-      // senão a IA pode ler os valores do 1º funcionário em todos os blocos.
-      const cab = texto.slice(0, pos[0]).split("\n")
-        .filter((l) => /compet|per[ií]odo|refer[eê]ncia|\b\d{2}\/\d{4}\b/i.test(l) && !/\d+[.,]\d{2}\s*$/.test(l.trim()))
-        .slice(0, 4).join("\n");
-      const blocos = pos.map((p, i) => {
+      blocos = pos.map((p, i) => {
         const corpo = texto.slice(p, pos[i + 1] ?? texto.length);
-        const nome = /Empr(?:egado)?\s*\.?\s*:\s*\d+\s+([^\n\d]+)/i.exec(corpo)?.[1]?.trim() ?? "";
-        return `FUNCIONÁRIO DESTE BLOCO: ${nome}\nLeia SOMENTE os itens deste funcionário.\n${cab ? `Cabeçalho do documento (apenas competência):\n${cab}\n` : ""}---\n${corpo}`;
-      }).slice(0, 60);
-      const registros: unknown[] = new Array(blocos.length);
+        return { nome: /Empr(?:egado)?\s*\.?\s*:\s*\d+\s+([^\n\d]+)/i.exec(corpo)?.[1]?.trim() ?? "", corpo };
+      });
+    } else {
+      const reRec = /C[óo]digo\s+Nome\s+do\s+Funcion[áa]rio/gi;
+      const pr: number[] = [];
+      for (let m; (m = reRec.exec(texto)); ) pr.push(m.index);
+      const vistos = new Set<string>();
+      for (let i = 0; i < pr.length; i++) {
+        const corpo = texto.slice(pr[i], pr[i + 1] ?? texto.length);
+        const linhaFunc = corpo.split("\n").slice(1).find((l) => l.trim()) ?? "";
+        const nome = /^\s*\d+\s+([A-ZÀ-Ú][A-ZÀ-Ú .'-]+?)\s+\d/i.exec(linhaFunc)?.[1]?.trim() ?? linhaFunc.trim();
+        const chave = nome.toUpperCase();
+        if (!chave || vistos.has(chave)) continue;
+        vistos.add(chave);
+        blocos.push({ nome, corpo });
+      }
+    }
+    if (blocos.length >= 2) {
+      const entradas = blocos.slice(0, 60).map(({ nome, corpo }) =>
+        `FUNCIONÁRIO DESTE BLOCO: ${nome}\nLeia SOMENTE os itens deste funcionário (ignore a segunda via, se houver).\n${compTxt}\n---\n${corpo}`);
+      const registros: unknown[] = new Array(entradas.length);
       let idx = 0;
       const worker = async () => {
-        while (idx < blocos.length) {
+        while (idx < entradas.length) {
           const i = idx++;
-          try { registros[i] = await lerUm(key, blocos[i]); }
-          catch (e) { registros[i] = { erro: (e as Error).message || "Não foi possível ler este funcionário.", status: (e as { status?: number }).status }; }
+          try { registros[i] = await lerUm(key, entradas[i]); }
+          catch (e) { registros[i] = { funcionario: blocos[i].nome, erro: (e as Error).message || "Não foi possível ler este funcionário.", status: (e as { status?: number }).status }; }
         }
       };
       await Promise.all([worker(), worker(), worker(), worker()]);
@@ -118,7 +141,8 @@ Deno.serve(async (req) => {
       if (credito) return json({ error: "Créditos de IA esgotados." }, 402);
       return json({ modo: "extrato", registros });
     }
-    try { return json({ modo: "recibo", ...(await lerUm(key, texto)) }); }
+    const unico = blocos[0] ? `${compTxt}\n${blocos[0].corpo}` : `${compTxt}\n${texto}`;
+    try { return json({ modo: "recibo", ...(await lerUm(key, unico)) }); }
     catch (e) { const st = (e as { status?: number }).status ?? 502; return json({ error: (e as Error).message }, st); }
   } catch (e) {
     console.error(e);
