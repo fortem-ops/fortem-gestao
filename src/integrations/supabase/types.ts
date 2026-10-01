@@ -3279,9 +3279,13 @@ export type Database = {
           data_pagamento: string | null
           descricao: string
           forma_pagamento: string | null
+          fornecedor_id: string | null
+          grupo_recorrencia_id: string | null
           id: string
           observacao: string | null
           origem: string
+          parcela_atual: number | null
+          parcela_total: number | null
           recorrente: boolean
           status: string
           tipo: string
@@ -3300,9 +3304,13 @@ export type Database = {
           data_pagamento?: string | null
           descricao: string
           forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          grupo_recorrencia_id?: string | null
           id?: string
           observacao?: string | null
           origem?: string
+          parcela_atual?: number | null
+          parcela_total?: number | null
           recorrente?: boolean
           status?: string
           tipo: string
@@ -3321,9 +3329,13 @@ export type Database = {
           data_pagamento?: string | null
           descricao?: string
           forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          grupo_recorrencia_id?: string | null
           id?: string
           observacao?: string | null
           origem?: string
+          parcela_atual?: number | null
+          parcela_total?: number | null
           recorrente?: boolean
           status?: string
           tipo?: string
@@ -3340,34 +3352,61 @@ export type Database = {
             referencedRelation: "despesas_categorias"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "despesas_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       despesas_categorias: {
         Row: {
           ativo: boolean
+          categoria_pai_id: string | null
+          codigo: string | null
           created_at: string
           id: string
+          nivel: string | null
           nome: string
+          ordem: number | null
           tipo: string
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          categoria_pai_id?: string | null
+          codigo?: string | null
           created_at?: string
           id?: string
+          nivel?: string | null
           nome: string
+          ordem?: number | null
           tipo: string
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          categoria_pai_id?: string | null
+          codigo?: string | null
           created_at?: string
           id?: string
+          nivel?: string | null
           nome?: string
+          ordem?: number | null
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "despesas_categorias_categoria_pai_id_fkey"
+            columns: ["categoria_pai_id"]
+            isOneToOne: false
+            referencedRelation: "despesas_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estoque_movimentos: {
         Row: {
@@ -3615,6 +3654,59 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          categoria_padrao_id: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          eh_funcionario: boolean
+          email: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          telefone: string | null
+          tipo_pessoa: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_padrao_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          eh_funcionario?: boolean
+          email?: string | null
+          id?: string
+          nome: string
+          observacao?: string | null
+          telefone?: string | null
+          tipo_pessoa?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_padrao_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          eh_funcionario?: boolean
+          email?: string | null
+          id?: string
+          nome?: string
+          observacao?: string | null
+          telefone?: string | null
+          tipo_pessoa?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_categoria_padrao_id_fkey"
+            columns: ["categoria_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "despesas_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       historico_pagamentos_clientes: {
         Row: {
