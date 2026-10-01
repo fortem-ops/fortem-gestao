@@ -360,7 +360,7 @@ function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
       observacao: observacao.trim() || null,
       forma_pagamento: forma === "nenhum" ? null : (forma as DespesaInput["forma_pagamento"]),
       conta_bancaria: conta === "nenhum" ? null : (conta as DespesaInput["conta_bancaria"]),
-      valor_pago: Math.round(vp * 100) / 100,
+      valor_pago: vp == null ? null : Math.round(vp * 100) / 100,
       conciliado,
     };
     try {
