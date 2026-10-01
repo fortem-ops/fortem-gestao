@@ -84,23 +84,24 @@ export function StatsCards({ professorId }: Props) {
       const { data: alunos } = await alunosQ;
       if (!alunos?.length) return 0;
       const ids = alunos.map((a) => a.id);
-      const { data: avs } = await supabase
-        .from("avaliacoes")
-        .select("aluno_id, data")
-        .eq("tipo", "funcional")
-        .in("aluno_id", ids)
-        .order("data", { ascending: false });
-      const lastByAluno: Record<string, string> = {};
-      (avs || []).forEach((a) => { if (!lastByAluno[a.aluno_id]) lastByAluno[a.aluno_id] = a.data; });
+      // Só interessa saber quem teve avaliação nos últimos 6 meses: filtra a data no banco
+      // em vez de baixar todo o histórico (e sem mandar centenas de IDs na URL).
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const limit = new Date(today); limit.setMonth(limit.getMonth() - 6);
-      let count = 0;
-      ids.forEach((id) => {
-        const last = lastByAluno[id];
-        if (!last) { count++; return; }
-        if (new Date(last + "T00:00:00") < limit) count++;
-      });
-      return count;
+      const limitStr = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, "0")}-${String(limit.getDate()).padStart(2, "0")}`;
+      const recentes = new Set<string>();
+      for (let from = 0; ; from += 1000) {
+        const { data: avs } = await supabase
+          .from("avaliacoes")
+          .select("aluno_id")
+          .eq("tipo", "funcional")
+          .gte("data", limitStr)
+          .order("id")
+          .range(from, from + 999);
+        (avs || []).forEach((a) => recentes.add(a.aluno_id));
+        if (!avs || avs.length < 1000) break;
+      }
+      return ids.filter((id) => !recentes.has(id)).length;
     },
     staleTime: 60_000,
     enabled: !nutriFisio,
