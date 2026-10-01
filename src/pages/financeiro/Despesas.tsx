@@ -27,6 +27,7 @@ import { KpiCard } from "@/components/relatorios/KpiCard";
 import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useFornecedores } from "@/hooks/useDespesas";
+import { LancarFolhaDialog } from "@/components/financeiro/LancarFolhaDialog";
 import {
   CategoriasHierarquia, FornecedoresCadastro, nomeCategoria, useArvoreCategorias,
 } from "@/components/financeiro/DespesasCadastros";
@@ -71,6 +72,7 @@ export default function Despesas() {
 
 function Lancamentos({ canEdit }: { canEdit: boolean }) {
   const [mesRef, setMesRef] = useState(() => startOfMonth(new Date()));
+  const [folhaAberta, setFolhaAberta] = useState(false);
   const [fCat, setFCat] = useState("todas");
   const [fTipo, setFTipo] = useState("todos");
   const [fStatus, setFStatus] = useState("todos");
@@ -200,6 +202,7 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
             <Button variant="outline" disabled={calcDsr} onClick={calcularDsr}>
               {calcDsr ? "Calculando…" : "Calcular DSR do mês"}
             </Button>
+            <Button variant="outline" onClick={() => setFolhaAberta(true)}>Lançar Folha</Button>
             <Button onClick={() => setNovoAberto(true)}><Plus className="h-4 w-4 mr-1" /> Nova Despesa</Button>
           </div>
         )}
@@ -340,6 +343,7 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
       </Card>
 
       {baixando && <DarBaixaDialog despesa={baixando} onClose={() => setBaixando(null)} />}
+      {folhaAberta && <LancarFolhaDialog mesTela={mesRef} onClose={() => setFolhaAberta(false)} />}
       {(novoAberto || editando) && (
         <DespesaDialog
           despesa={editando}
