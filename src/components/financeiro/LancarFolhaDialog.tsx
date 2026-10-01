@@ -138,7 +138,7 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
   }
   const aplicado = useRef(false);
   useEffect(() => {
-    if (registro && !aplicado.current) { aplicado.current = true; aplicar(registro, false); }
+    if (registro && !aplicado.current) { aplicado.current = true; aplicar(registro, !!casar); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registro]);
 
