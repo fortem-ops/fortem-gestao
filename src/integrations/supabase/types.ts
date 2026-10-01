@@ -3284,6 +3284,8 @@ export type Database = {
           id: string
           observacao: string | null
           origem: string
+          origem_id: string | null
+          origem_tabela: string | null
           parcela_atual: number | null
           parcela_total: number | null
           recorrente: boolean
@@ -3309,6 +3311,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          origem_id?: string | null
+          origem_tabela?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
           recorrente?: boolean
@@ -3334,6 +3338,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          origem_id?: string | null
+          origem_tabela?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
           recorrente?: boolean
@@ -3666,6 +3672,7 @@ export type Database = {
           id: string
           nome: string
           observacao: string | null
+          profissional_user_id: string | null
           telefone: string | null
           tipo_pessoa: string | null
           updated_at: string
@@ -3680,6 +3687,7 @@ export type Database = {
           id?: string
           nome: string
           observacao?: string | null
+          profissional_user_id?: string | null
           telefone?: string | null
           tipo_pessoa?: string | null
           updated_at?: string
@@ -3694,6 +3702,7 @@ export type Database = {
           id?: string
           nome?: string
           observacao?: string | null
+          profissional_user_id?: string | null
           telefone?: string | null
           tipo_pessoa?: string | null
           updated_at?: string
