@@ -48,9 +48,9 @@ export type FolhaFormHandle = { lancar: () => Promise<string | null> };
 const compDe = (c?: string | null) => { const mc = /^(\d{1,2})\/(\d{4})$/.exec(String(c ?? "")); return mc ? new Date(Number(mc[2]), Number(mc[1]) - 1, 1) : null; };
 
 const FolhaForm = forwardRef<FolhaFormHandle, {
-  mesTela: Date; funcionarios: Func[]; fornIdInicial?: string; registro?: RegistroHolerite;
+  mesTela: Date; funcionarios: Func[]; fornIdInicial?: string; registro?: RegistroHolerite; casar?: boolean;
   onFornChange?: (id: string) => void; children?: (ctx: { importar: (r: RegistroHolerite) => void; ferias: boolean; setFerias: (b: boolean) => void }) => React.ReactNode;
-}>(function FolhaForm({ mesTela, funcionarios, fornIdInicial, registro, onFornChange, children }, ref) {
+}>(function FolhaForm({ mesTela, funcionarios, fornIdInicial, registro, casar, onFornChange, children }, ref) {
   const [fornId, setFornIdRaw] = useState(fornIdInicial ?? "");
   const setFornId = (v: string) => { setFornIdRaw(v); onFornChange?.(v); };
   const [comp, setComp] = useState(() => startOfMonth(addMonths(mesTela, -1)));
