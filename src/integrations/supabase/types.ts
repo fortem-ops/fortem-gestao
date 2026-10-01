@@ -3664,6 +3664,7 @@ export type Database = {
       fornecedores: {
         Row: {
           ativo: boolean
+          cargo_confianca: boolean
           categoria_padrao_id: string | null
           cpf_cnpj: string | null
           created_at: string
@@ -3679,6 +3680,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cargo_confianca?: boolean
           categoria_padrao_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -3694,6 +3696,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cargo_confianca?: boolean
           categoria_padrao_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
