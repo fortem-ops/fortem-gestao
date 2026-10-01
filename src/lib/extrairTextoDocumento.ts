@@ -14,20 +14,25 @@ async function extrairPdf(file: File): Promise<string> {
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
-    let ultimoY: number | null = null;
-    let linha = "";
+    // Ordena por posição (de cima para baixo, da esquerda para a direita) e agrupa por linha.
+    // Sem isso, PDFs em tabela (ex.: Extrato Mensal da folha) saem fora da ordem de leitura.
+    const itens = (content.items as { str?: string; transform?: number[] }[])
+      .filter((it) => (it.str ?? "") !== "")
+      .map((it) => ({ s: it.str ?? "", x: it.transform?.[4] ?? 0, y: it.transform?.[5] ?? 0 }));
+    itens.sort((a, b) => (Math.abs(b.y - a.y) > 3 ? b.y - a.y : a.x - b.x));
     const linhas: string[] = [];
-    for (const item of content.items as { str?: string; transform?: number[] }[]) {
-      const texto = item.str ?? "";
-      const y = item.transform?.[5] ?? null;
-      if (ultimoY !== null && y !== null && Math.abs(y - ultimoY) > 3) {
-        linhas.push(linha.trim());
-        linha = "";
-      }
-      linha += texto;
-      if (y !== null) ultimoY = y;
+    let atual: typeof itens = [];
+    let yLinha: number | null = null;
+    const fechar = () => {
+      if (atual.length) linhas.push(atual.sort((a, b) => a.x - b.x).map((i) => i.s).join(" ").replace(/\s+/g, " ").trim());
+      atual = [];
+    };
+    for (const it of itens) {
+      if (yLinha !== null && Math.abs(it.y - yLinha) > 3) fechar();
+      if (!atual.length) yLinha = it.y;
+      atual.push(it);
     }
-    if (linha.trim()) linhas.push(linha.trim());
+    fechar();
     paginas.push(linhas.join("\n"));
   }
 

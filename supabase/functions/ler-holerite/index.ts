@@ -94,8 +94,16 @@ Deno.serve(async (req) => {
     const pos: number[] = [];
     for (let m; (m = re.exec(texto)); ) pos.push(m.index);
     if (pos.length >= 2) {
-      const cab = texto.slice(0, pos[0]).slice(0, 1500);
-      const blocos = pos.map((p, i) => cab + "\n" + texto.slice(p, pos[i + 1] ?? texto.length)).slice(0, 60);
+      // Do cabeçalho geral só aproveitamos linhas de competência/período — nunca itens de folha,
+      // senão a IA pode ler os valores do 1º funcionário em todos os blocos.
+      const cab = texto.slice(0, pos[0]).split("\n")
+        .filter((l) => /compet|per[ií]odo|refer[eê]ncia|\b\d{2}\/\d{4}\b/i.test(l) && !/\d+[.,]\d{2}\s*$/.test(l.trim()))
+        .slice(0, 4).join("\n");
+      const blocos = pos.map((p, i) => {
+        const corpo = texto.slice(p, pos[i + 1] ?? texto.length);
+        const nome = /Empr\.?\s*:\s*\d+\s+([^\n\d]+)/i.exec(corpo)?.[1]?.trim() ?? "";
+        return `FUNCIONÁRIO DESTE BLOCO: ${nome}\nLeia SOMENTE os itens deste funcionário.\n${cab ? `Cabeçalho do documento (apenas competência):\n${cab}\n` : ""}---\n${corpo}`;
+      }).slice(0, 60);
       const registros: unknown[] = new Array(blocos.length);
       let idx = 0;
       const worker = async () => {
