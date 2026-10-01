@@ -55,7 +55,7 @@ function mapear(itens: Item[]) {
     else if (d.includes("HORAS FERIAS") || d === "FERIAS") campo = "horasFerias";
     else if (d.includes("DSR")) campo = "dsr";
     else if (d.includes("COMISS")) campo = "com";
-    else if (d.includes("HORAS NORMAIS") || d.includes("SALARIO BASE")) campo = "horas";
+    else if (d.includes("HORAS NORMAIS") || d.includes("SALARIO BASE") || /PRO[ -]?LABORE/.test(d) || d.includes("BOLSA AUXILIO")) campo = "horas";
     else if (d.includes("GRATIFICACAO")) campo = "grat";
     else if (d.includes("INSS")) campo = "inss";
     else if (d.includes("VALE TRANSPORTE") || d.includes("VALE-TRANSPORTE")) campo = "vt";

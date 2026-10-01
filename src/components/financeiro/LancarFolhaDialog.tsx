@@ -159,6 +159,12 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     p("INSS", vInss, true); p("Vale Transporte", vVt, true); p("Adiantamento Férias", vAdF, true);
     if (vOD) partes.push(`Outros Descontos${outrosDescDesc ? ` (${outrosDescDesc})` : ""}: -${brl(vOD)}`);
     partes.push(`Total Vencimentos: ${brl(totalVenc)}`, `Total Descontos: -${brl(totalDesc)}`, `Líquido: ${brl(liquido)}`);
+    // Trava de duplicidade: um salário por funcionário por competência.
+    const { data: ja, error: eJa } = await supabase.from("despesas").select("id")
+      .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
+      .eq("data_competencia", dataPag).ilike("descricao", "Salário%").limit(1);
+    if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
+    if (ja?.length) return `Já lançado para ${mesAbrev}/${format(comp, "yyyy")}.`;
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from("despesas").insert({
       categoria_id: forn.categoria_padrao_id,
@@ -416,7 +422,8 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
     if (l.lancado) return "pulado";
     if (!l.fornId) { upd(i, { erro: "Selecione o funcionário no cadastro.", aberto: true }); return "erro"; }
     upd(i, { enviando: true });
-    const erro = (await refs.current[i]?.lancar()) ?? "Formulário não carregado.";
+    const form = refs.current[i];
+    const erro = form ? await form.lancar() : "Formulário não carregado.";
     upd(i, { enviando: false, erro: erro ?? undefined, lancado: !erro, aberto: erro ? true : false });
     return erro ? "erro" : "ok";
   }
