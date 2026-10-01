@@ -315,3 +315,341 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   );
 }
 
+type Escopo = "este" | "futuras";
+
+function FornecedorPicker({ fornecedores, value, onChange }: {
+  fornecedores: Fornecedor[]; value: string | null; onChange: (f: Fornecedor | null) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const atual = fornecedores.find((f) => f.id === value);
+  return (
+    <Popover open={aberto} onOpenChange={setAberto}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+          <span className="truncate">{atual?.nome ?? "Nenhum"}</span>
+          <ChevronsUpDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
+        <Command>
+          <CommandInput placeholder="Buscar fornecedor…" />
+          <CommandList>
+            <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem value="__nenhum" onSelect={() => { onChange(null); setAberto(false); }}>Nenhum</CommandItem>
+              {fornecedores.filter((f) => f.ativo || f.id === value).map((f) => (
+                <CommandItem key={f.id} value={`${f.nome} ${f.id}`} onSelect={() => { onChange(f); setAberto(false); }}>
+                  <Check className={`mr-2 h-4 w-4 ${f.id === value ? "opacity-100" : "opacity-0"}`} />
+                  {f.nome}{f.eh_funcionario && <span className="ml-2 text-xs text-muted-foreground">funcionário</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function DespesaDialog({ despesa, categorias, mesPadrao, onClose }: {
+  despesa: Despesa | null; categorias: DespesaCategoria[]; mesPadrao: Date; onClose: () => void;
+}) {
+  const { salvar, criarLote, atualizarFuturasGrupo } = useDespesaMutations();
+  const { data: fornecedores = [] } = useFornecedores();
+  const { centrais, subsPor } = useArvoreCategorias(categorias);
+  const catMap = useMemo(() => new Map(categorias.map((c) => [c.id, c])), [categorias]);
+  const hoje = format(new Date(), "yyyy-MM-dd");
+  const compPadrao = format(mesPadrao, "yyyy-MM") === hoje.slice(0, 7) ? hoje : format(mesPadrao, "yyyy-MM-dd");
+
+  const catInicial = despesa?.categoria_id ? catMap.get(despesa.categoria_id) : undefined;
+  const ehAntiga = !!catInicial && !catInicial.nivel;
+  const [centralId, setCentralId] = useState(
+    catInicial?.nivel === "sub" ? catInicial.categoria_pai_id ?? "" : catInicial?.nivel === "central" ? catInicial.id : "",
+  );
+  const [subId, setSubId] = useState(catInicial?.nivel === "sub" ? catInicial.id : "");
+  const [manterAntiga, setManterAntiga] = useState(ehAntiga);
+
+  const [fornecedorId, setFornecedorId] = useState<string | null>(despesa?.fornecedor_id ?? null);
+  const [descricao, setDescricao] = useState(despesa?.descricao ?? "");
+  const [valor, setValor] = useState(despesa ? String(despesa.valor) : "");
+  const [competencia, setCompetencia] = useState(despesa?.data_competencia ?? compPadrao);
+  const [pagamento, setPagamento] = useState(despesa?.data_pagamento ?? "");
+  const [tipo, setTipo] = useState<DespesaTipo>(despesa?.tipo ?? "fixa");
+  const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? "pago");
+  const [observacao, setObservacao] = useState(despesa?.observacao ?? "");
+  const [forma, setForma] = useState<string>(despesa?.forma_pagamento ?? "nenhum");
+  const [conta, setConta] = useState<string>(despesa?.conta_bancaria ?? "nenhum");
+  const [valorPago, setValorPago] = useState(despesa?.valor_pago != null ? String(despesa.valor_pago) : "");
+  const [conciliado, setConciliado] = useState(despesa?.conciliado ?? false);
+  const [repetir, setRepetir] = useState(false);
+  const [vezes, setVezes] = useState("2");
+  const [intervalo, setIntervalo] = useState("1");
+  const [unidade, setUnidade] = useState<"dias" | "meses">("meses");
+  const [perguntaEscopo, setPerguntaEscopo] = useState<DespesaInput | null>(null);
+
+  const subsDaCentral = (subsPor.get(centralId) ?? []).filter((s) => s.ativo || s.id === subId);
+  const centraisVisiveis = centrais.filter((c) => c.ativo || c.id === centralId);
+  const categoriaId = manterAntiga ? catInicial?.id ?? "" : subsDaCentral.length ? subId : centralId;
+
+  const aplicarCategoria = (id: string) => {
+    const c = catMap.get(id);
+    if (!c) return;
+    setTipo(c.tipo);
+    if (!descricao.trim()) setDescricao(c.nome);
+  };
+  const escolherCentral = (id: string) => {
+    setManterAntiga(false); setCentralId(id); setSubId("");
+    if (!(subsPor.get(id) ?? []).length) aplicarCategoria(id);
+  };
+  const escolherSub = (id: string) => { setSubId(id); aplicarCategoria(id); };
+  const escolherFornecedor = (f: Fornecedor | null) => {
+    setFornecedorId(f?.id ?? null);
+    const c = f?.categoria_padrao_id ? catMap.get(f.categoria_padrao_id) : undefined;
+    if (!c?.nivel) return;
+    setManterAntiga(false);
+    if (c.nivel === "sub") { setCentralId(c.categoria_pai_id ?? ""); setSubId(c.id); }
+    else { setCentralId(c.id); setSubId(""); }
+    setTipo(c.tipo);
+    if (!descricao.trim()) setDescricao(f!.nome);
+  };
+
+  const montarInput = (): DespesaInput | null => {
+    const v = Number(valor.replace(",", "."));
+    if (!categoriaId) { toast.error(subsDaCentral.length ? "Selecione a subcategoria." : "Selecione a categoria."); return null; }
+    if (!descricao.trim()) { toast.error("Informe a descrição."); return null; }
+    if (!Number.isFinite(v) || v <= 0) { toast.error("Informe um valor maior que zero."); return null; }
+    if (!competencia) { toast.error("Informe a data de vencimento."); return null; }
+    let vp: number | null = v;
+    if (valorPago.trim()) {
+      vp = Number(valorPago.replace(",", "."));
+      if (!Number.isFinite(vp) || vp < 0) { toast.error("Valor pago inválido."); return null; }
+    }
+    if (status === "pendente") vp = null;
+    return {
+      categoria_id: categoriaId, descricao: descricao.trim(), valor: Math.round(v * 100) / 100,
+      data_competencia: competencia, data_pagamento: pagamento || null, tipo, status,
+      observacao: observacao.trim() || null,
+      forma_pagamento: forma === "nenhum" ? null : (forma as DespesaInput["forma_pagamento"]),
+      conta_bancaria: conta === "nenhum" ? null : (conta as DespesaInput["conta_bancaria"]),
+      valor_pago: vp == null ? null : Math.round(vp * 100) / 100,
+      conciliado, fornecedor_id: fornecedorId,
+    };
+  };
+
+  const salvarEdicao = async (input: DespesaInput, escopo: Escopo) => {
+    if (!despesa) return;
+    try {
+      await salvar.mutateAsync({ id: despesa.id, input });
+      if (escopo === "futuras" && despesa.grupo_recorrencia_id) {
+        const { categoria_id, descricao, valor, tipo, observacao, forma_pagamento, conta_bancaria, fornecedor_id } = input;
+        await atualizarFuturasGrupo.mutateAsync({
+          grupoId: despesa.grupo_recorrencia_id, aPartirDe: despesa.parcela_atual ?? 0,
+          campos: { categoria_id, descricao, valor, tipo, observacao, forma_pagamento, conta_bancaria, fornecedor_id },
+        });
+      }
+      toast.success(escopo === "futuras" ? "Despesa e parcelas futuras atualizadas" : "Despesa atualizada");
+      onClose();
+    } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  const submit = async () => {
+    const input = montarInput();
+    if (!input) return;
+    if (despesa) {
+      if (despesa.grupo_recorrencia_id) { setPerguntaEscopo(input); return; }
+      return salvarEdicao(input, "este");
+    }
+    try {
+      if (!repetir) {
+        await salvar.mutateAsync({ input });
+        toast.success("Despesa cadastrada");
+      } else {
+        const n = Number(vezes), passo = Number(intervalo);
+        if (!Number.isInteger(n) || n < 2 || n > 120) return toast.error("Repetir: informe de 2 a 120 vezes.");
+        if (!Number.isInteger(passo) || passo < 1) return toast.error("Repetir: intervalo deve ser 1 ou mais.");
+        const grupo = crypto.randomUUID();
+        const base = parseISO(competencia);
+        const linhas = Array.from({ length: n }, (_, i) => {
+          const venc = format(unidade === "meses" ? addMonths(base, i * passo) : addDays(base, i * passo), "yyyy-MM-dd");
+          const primeira = i === 0;
+          const pago = primeira && input.status === "pago";
+          return {
+            ...input, data_competencia: venc,
+            status: (pago ? "pago" : "pendente") as DespesaStatus,
+            data_pagamento: pago ? input.data_pagamento : null,
+            valor_pago: pago ? input.valor_pago : null,
+            conciliado: primeira ? input.conciliado : false,
+            grupo_recorrencia_id: grupo, parcela_atual: i + 1, parcela_total: n, recorrente: true,
+          };
+        });
+        await criarLote.mutateAsync(linhas);
+        toast.success(`${n} despesas cadastradas`);
+      }
+      onClose();
+    } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  const salvando = salvar.isPending || criarLote.isPending || atualizarFuturasGrupo.isPending;
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{despesa ? "Editar despesa" : "Nova despesa"}</DialogTitle></DialogHeader>
+        {despesa?.origem === "importado_historico" && (
+          <Badge variant="outline" className="w-fit text-muted-foreground">Registro histórico importado — edite com cuidado</Badge>
+        )}
+        {despesa?.grupo_recorrencia_id && (
+          <Badge variant="outline" className="w-fit">Parcela {despesa.parcela_atual}/{despesa.parcela_total} de um lançamento repetido</Badge>
+        )}
+        <div className="grid gap-3">
+          <div className="space-y-1">
+            <Label>Fornecedor (opcional)</Label>
+            <FornecedorPicker fornecedores={fornecedores} value={fornecedorId} onChange={escolherFornecedor} />
+          </div>
+          {manterAntiga && catInicial && (
+            <p className="text-xs text-muted-foreground">
+              Categoria antiga: <strong>{catInicial.nome}</strong>. Escolha uma categoria abaixo para trocar.
+            </p>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Categoria</Label>
+              <Select value={manterAntiga ? "" : centralId} onValueChange={escolherCentral}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {centraisVisiveis.map((c) => <SelectItem key={c.id} value={c.id}>{c.codigo} {c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Subcategoria</Label>
+              <Select value={subId} onValueChange={escolherSub} disabled={manterAntiga || !centralId || subsDaCentral.length === 0}>
+                <SelectTrigger>
+                  <SelectValue placeholder={centralId && !manterAntiga && subsDaCentral.length === 0 ? "Sem subcategoria" : "Selecione"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {subsDaCentral.map((s) => <SelectItem key={s.id} value={s.id}>{s.codigo} {s.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Descrição</Label>
+            <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Valor (R$)</Label>
+              <Input inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+            </div>
+            <div className="space-y-1">
+              <Label>Tipo</Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as DespesaTipo)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fixa">Fixa</SelectItem>
+                  <SelectItem value="variavel">Variável</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Valor pago (R$, opcional)</Label>
+              <Input inputMode="decimal" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Igual ao valor" />
+            </div>
+            <div className="space-y-1">
+              <Label>Status{repetir && " (1ª parcela)"}</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as DespesaStatus)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pago">Pago</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Data de vencimento{repetir && " (1ª parcela)"}</Label>
+              <Input type="date" value={competencia} onChange={(e) => setCompetencia(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Data de pagamento (opcional)</Label>
+              <Input type="date" value={pagamento} onChange={(e) => setPagamento(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Forma de pagamento</Label>
+              <Select value={forma} onValueChange={setForma}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Nenhuma</SelectItem>
+                  {FORMAS_DESPESA.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Conta</Label>
+              <Select value={conta} onValueChange={setConta}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Nenhuma</SelectItem>
+                  {CONTAS_DESPESA.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="conciliado" checked={conciliado} onCheckedChange={setConciliado} />
+            <Label htmlFor="conciliado">Conciliado</Label>
+          </div>
+          {!despesa && (
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox id="repetir" checked={repetir} onCheckedChange={(v) => setRepetir(v === true)} />
+                <Label htmlFor="repetir">Repetir lançamento</Label>
+              </div>
+              {repetir && (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span>por</span>
+                  <Input className="w-16" inputMode="numeric" value={vezes} onChange={(e) => setVezes(e.target.value)} aria-label="Quantidade de vezes" />
+                  <span>vezes — com intervalo de</span>
+                  <Input className="w-16" inputMode="numeric" value={intervalo} onChange={(e) => setIntervalo(e.target.value)} aria-label="Intervalo" />
+                  <Select value={unidade} onValueChange={(v) => setUnidade(v as "dias" | "meses")}>
+                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dias">Dias</SelectItem>
+                      <SelectItem value="meses">Meses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="w-full text-xs text-muted-foreground">As parcelas seguintes são criadas como pendentes.</p>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="space-y-1">
+            <Label>Observação (opcional)</Label>
+            <Textarea rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={submit} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+
+      <AlertDialog open={!!perguntaEscopo} onOpenChange={(o) => !o && setPerguntaEscopo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar alteração a quais parcelas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta despesa faz parte de um lançamento repetido. As parcelas futuras recebem descrição, valor, categoria,
+              fornecedor, forma, conta e observação — datas e status de cada uma não mudam. Parcelas já pagas não são alteradas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button variant="outline" onClick={() => { const i = perguntaEscopo!; setPerguntaEscopo(null); salvarEdicao(i, "este"); }}>Só esta</Button>
+            <AlertDialogAction onClick={() => { const i = perguntaEscopo!; setPerguntaEscopo(null); salvarEdicao(i, "futuras"); }}>Esta e as futuras pendentes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Dialog>
+  );
+}
