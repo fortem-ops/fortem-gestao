@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         while (idx < blocos.length) {
           const i = idx++;
           try { registros[i] = await lerUm(key, blocos[i]); }
-          catch (e) { registros[i] = { erro: (e as Error).message || "Não foi possível ler este funcionário." }; }
+          catch (e) { registros[i] = { erro: (e as Error).message || "Não foi possível ler este funcionário.", status: (e as { status?: number }).status }; }
         }
       };
       await Promise.all([worker(), worker(), worker(), worker()]);
