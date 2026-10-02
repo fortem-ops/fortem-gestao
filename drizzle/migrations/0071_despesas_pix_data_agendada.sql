@@ -1,0 +1,2 @@
+ALTER TABLE public.despesas ADD COLUMN IF NOT EXISTS pix_data_agendada date;
+COMMENT ON COLUMN public.despesas.pix_data_agendada IS 'Data de pagamento Pix agendada no Banco Inter (dataPagamento enviada). data_pagamento só é preenchida na baixa, com a data confirmada pelo Inter.';

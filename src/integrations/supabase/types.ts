@@ -3325,6 +3325,7 @@ export type Database = {
           parcela_atual: number | null
           parcela_total: number | null
           pix_codigo_solicitacao: string | null
+          pix_data_agendada: string | null
           pix_erro: string | null
           pix_status: string | null
           recorrente: boolean
@@ -3355,6 +3356,7 @@ export type Database = {
           parcela_atual?: number | null
           parcela_total?: number | null
           pix_codigo_solicitacao?: string | null
+          pix_data_agendada?: string | null
           pix_erro?: string | null
           pix_status?: string | null
           recorrente?: boolean
@@ -3385,6 +3387,7 @@ export type Database = {
           parcela_atual?: number | null
           parcela_total?: number | null
           pix_codigo_solicitacao?: string | null
+          pix_data_agendada?: string | null
           pix_erro?: string | null
           pix_status?: string | null
           recorrente?: boolean

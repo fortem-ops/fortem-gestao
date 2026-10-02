@@ -62,7 +62,9 @@ async function parse(r: Response) {
   return { status: r.status, data, raw };
 }
 
-export async function enviarPix(valor: number, chave: string, descricao: string, idempotente: string) {
+export async function enviarPix(valor: number, chave: string, descricao: string, idempotente: string, dataPagamento?: string) {
+  const payload: Record<string, unknown> = { valor: Number(valor.toFixed(2)), descricao: descricao.substring(0, 140), destinatario: { tipo: "CHAVE", chave } };
+  if (dataPagamento) payload.dataPagamento = dataPagamento;
   const r = await fetch(`${origin()}/banking/v2/pix`, {
     method: "POST",
     headers: {
@@ -71,7 +73,7 @@ export async function enviarPix(valor: number, chave: string, descricao: string,
       "x-conta-corrente": conta(),
       "x-id-idempotente": idempotente,
     },
-    body: JSON.stringify({ valor: Number(valor.toFixed(2)), descricao: descricao.substring(0, 140), destinatario: { tipo: "CHAVE", chave } }),
+    body: JSON.stringify(payload),
     // @ts-ignore
     client: httpClient(),
   });

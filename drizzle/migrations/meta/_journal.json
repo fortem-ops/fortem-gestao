@@ -498,6 +498,13 @@
       "when": 1790965042569,
       "tag": "0070_pagamentos_pix",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1790966888482,
+      "tag": "0071_despesas_pix_data_agendada",
+      "breakpoints": true
     }
   ]
 }
