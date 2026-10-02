@@ -311,8 +311,8 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Button size="sm" variant="outline" className="h-8" disabled={l.lancada || lote} onClick={() => setNovaCatPara(i)}>Nova</Button>
                           </div>
+                          <Button size="sm" variant="outline" className="h-8" disabled={l.lancada || lote} onClick={() => setNovaCatPara(i)}>Nova</Button>
                           {l.lancada ? <Badge variant="outline" className="border-success/40 text-success">{l.jaExistia ? "Já lançada antes" : "Lançada"}</Badge>
                             : l.regra ? <Badge variant="outline" className="border-success/40 text-success">Regra aplicada</Badge>
                             : !l.categoriaId ? <Badge variant="outline" className="border-warning/50 text-warning">Escolha a categoria</Badge> : null}
