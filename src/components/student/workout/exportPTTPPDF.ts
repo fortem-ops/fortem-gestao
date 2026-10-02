@@ -46,6 +46,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   const gutter = 4;
   const freqColW = 22;
   const mainW = pageW - margin * 2 - freqColW - gutter;
+  const fullW = pageW - margin * 2;
   const freqX = mainX + mainW + gutter;
   const bottomY = pageH - margin;
 
@@ -230,13 +231,13 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   y = margin;
 
   // ── PROGRESSÃO DOS LEVANTAMENTOS CENTRAIS ───────────────────
-  // As duas tabelas ocupam a página 2 lado a lado e deixam uma área extensa
-  // para registros futuros. A legenda fica inteira no rodapé desta página.
+  // A página 2 não tem frequência lateral: progressões, regra e auxiliares
+  // usam toda a largura útil, como na Planilha 5RM.
   const progressGap = 5;
-  const progressW = (mainW - progressGap) / 2;
+  const progressW = (fullW - progressGap) / 2;
   const progressXs = [mainX, mainX + progressW + progressGap];
   const progressTop = y;
-  const progressRows = 45;
+  const progressRows = 24;
   const progressFinalYs: number[] = [];
 
   data.levantamentos.forEach((lev, levIndex) => {
@@ -308,7 +309,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   const instruction = "2 séries de 5 no mesmo peso. Completou as duas? Sobe na próxima sessão. Não completou? O peso recua e a contagem reinicia.";
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.2);
-  const instructionLines = doc.splitTextToSize(instruction, mainW - 8) as string[];
+  const instructionLines = doc.splitTextToSize(instruction, fullW - 8) as string[];
   const instructionH = 8.5 + instructionLines.length * 3.6;
   let instructionY = progressBottom + 3;
   if (instructionY + instructionH > bottomY) {
@@ -316,10 +317,10 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
     instructionY = margin;
   }
   doc.setFillColor(...SURFACE);
-  doc.rect(mainX, instructionY, mainW, instructionH, "F");
+  doc.rect(mainX, instructionY, fullW, instructionH, "F");
   doc.setDrawColor(...INK);
   doc.setLineWidth(0.35);
-  doc.rect(mainX, instructionY, mainW, instructionH);
+  doc.rect(mainX, instructionY, fullW, instructionH);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...INK);
@@ -329,8 +330,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   doc.text(instructionLines, mainX + 2, instructionY + 8.2);
 
   // ── TREINOS AUXILIARES ──────────────────────────────────────
-  doc.addPage();
-  y = margin;
+  y = instructionY + instructionH + 3;
   const colsTreino: StrengthCol[] = [
     { header: "SÉRIES/REPS", width: 30, strong: true },
     { header: "KG", width: 16, muted: true },
@@ -339,13 +339,13 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
 
   data.treinos.forEach((tr) => {
     ensurePage(38);
-    y = sectionBar(doc, `Treino ${tr.ordem}`, `T${tr.ordem}`, mainX, y, mainW, 6.0);
+    y = sectionBar(doc, `Treino ${tr.ordem}`, `T${tr.ordem}`, mainX, y, fullW, 6.0);
     const auxiliares: StrengthRow[] = tr.auxiliares.map((aux) => ({
       cat: aux.categoria || "",
       nome: cleanName(aux.exercicio) || "—",
       cells: [`${aux.series}x${aux.reps}`, aux.kg ?? "", ""],
     }));
-    y = drawStrengthTable(doc, { x: mainX, y, w: mainW, cols: colsTreino, groups: [auxiliares] }) + 2.4;
+    y = drawStrengthTable(doc, { x: mainX, y, w: fullW, cols: colsTreino, groups: [auxiliares] }) + 2.4;
   });
 
   const nome = `PTTP-${student.nome.replace(/\s+/g, "-")}.pdf`;
