@@ -25,6 +25,9 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  drawStrengthTable,
+  type StrengthCol,
+  type StrengthRow,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -229,65 +232,38 @@ export async function exportPTTP2PDF({ student, data, print }: ExportArgs): Prom
   y = margin;
 
   // ── TREINOS ─────────────────────────────────────────────────
-  const wBloco = 30;
-  const wAlvo = 30;
-  const wKg = 18;
-  const wCargaF = 18;
-  const wExercicio = mainW - (wBloco + wAlvo + wKg + wCargaF);
-
-  const colStylesTreino: Record<number, Record<string, unknown>> = {
-    0: { cellWidth: wBloco, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
-    1: { cellWidth: wExercicio, overflow: "ellipsize" },
-    2: { cellWidth: wAlvo, halign: "center", fontStyle: "bold" },
-    3: { cellWidth: wKg, halign: "center" },
-    4: { cellWidth: wCargaF, halign: "center" },
-  };
+  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | SÉRIES/REPS | KG | CARGA.
+  const colsTreino: StrengthCol[] = [
+    { header: "SÉRIES/REPS", width: 30, strong: true },
+    { header: "KG", width: 16, muted: true },
+    { header: "CARGA", width: 16 },
+  ];
 
   data.treinos.forEach((tr) => {
     ensurePage(44);
     y = sectionBar(doc, `Treino ${tr.ordem}`, `T${tr.ordem}`, mainX, y, mainW, 6.0);
 
-    const linhas: string[][] = [];
+    const principais: StrengthRow[] = [];
     data.levantamentos.forEach((lev) => {
       const base = PTTP2_LEV_BASE[lev.levantamento];
       const alvo = alvoPTTP2(lev);
-      linhas.push([
-        `Levantamento · ${base.categoria}`,
-        `${lev.levantamento} — ${cleanName(base.nome)}`,
-        alvo.concluido ? "Ciclo concluído" : alvo.esquema,
-        alvo.concluido ? `1RM ${lev.rm1Testado}` : alvo.peso ? `${alvo.peso}` : "",
-      ]);
+      principais.push({
+        cat: base.categoria,
+        nome: `${lev.levantamento} — ${cleanName(base.nome)}`,
+        cells: [
+          alvo.concluido ? "Ciclo concluído" : alvo.esquema,
+          alvo.concluido ? `1RM ${lev.rm1Testado}` : alvo.peso ? `${alvo.peso}` : "",
+          "",
+        ],
+      });
     });
-    tr.auxiliares.forEach((aux, i) => {
-      linhas.push([
-        `Auxiliar ${i + 1} · ${aux.categoria || "—"}`,
-        cleanName(aux.exercicio) || "—",
-        `${aux.series}x${aux.reps}`,
-        aux.kg ?? "",
-      ]);
-    });
+    const auxiliares: StrengthRow[] = tr.auxiliares.map((aux) => ({
+      cat: aux.categoria || "",
+      nome: cleanName(aux.exercicio) || "—",
+      cells: [`${aux.series}x${aux.reps}`, aux.kg ?? "", ""],
+    }));
 
-    autoTable(doc, {
-      startY: y,
-      margin: tableMargin,
-      tableWidth: mainW,
-      theme: "plain",
-      rowPageBreak: "avoid",
-      head: [[
-        { content: "BLOCO", styles: { halign: "left" as const } },
-        { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-        { content: "SÉRIES/REPS", styles: { halign: "center" as const } },
-        { content: "KG", styles: { halign: "center" as const } },
-        { content: "CARGA", styles: { halign: "center" as const } },
-      ]],
-      body: linhas.map((r) => [...r, ""]),
-      styles: commonStyles,
-      headStyles: commonHeadStyles,
-      alternateRowStyles: { fillColor: SURFACE },
-      columnStyles: colStylesTreino,
-      didParseCell: bodyBorders,
-    });
-    y = lastY(doc) + 2;
+    y = drawStrengthTable(doc, { x: mainX, y, w: mainW, cols: colsTreino, groups: [principais, auxiliares] }) + 2.4;
   });
 
   // ── HISTÓRICO POR LEVANTAMENTO (tabela ampla, com a fase) ───
