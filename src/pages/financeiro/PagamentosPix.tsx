@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -292,7 +292,7 @@ export default function PagamentosPix() {
                 <ul className="list-disc pl-5">
                   {datasLote.map((d) => {
                     const ls = selecionadas.filter((l) => dataDe(l) === d);
-                    return <li key={d}><strong>{dataBR(d)}</strong> — {ls.length} pagamento(s), {brl(ls.reduce((s, l) => s + Number(l.valor_liquido_previsto ?? l.valor), 0))}</li>;
+                    return <li key={d}><strong>{dataBR(d)}</strong> — {ls.length} pagamento(s), {brl(ls.reduce((s, l) => s + valorDe(l), 0))}</li>;
                   })}
                 </ul>
               </div>
