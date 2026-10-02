@@ -424,3 +424,74 @@ function NovoCartaoDialog({ identificador, onClose }: { identificador: string; o
     </Dialog>
   );
 }
+
+function NovaCategoriaDialog({ centrais, onClose }: { centrais: DespesaCategoria[]; onClose: (id?: string) => void }) {
+  const [modo, setModo] = useState<"sub" | "central">("sub");
+  const [paiId, setPaiId] = useState("");
+  const [nome, setNome] = useState("");
+  const [tipo, setTipo] = useState<DespesaTipo>("variavel");
+  const [salvando, setSalvando] = useState(false);
+  const { salvarSub, salvarCentral } = useCategoriaMutations();
+
+  async function salvar() {
+    if (!nome.trim()) return toast.error("Informe o nome.");
+    if (modo === "sub" && !paiId) return toast.error("Escolha a categoria central.");
+    setSalvando(true);
+    try {
+      const id = modo === "sub"
+        ? await salvarSub.mutateAsync({ nome, tipo, ordem: null, pai: centrais.find((c) => c.id === paiId) })
+        : await salvarCentral.mutateAsync({ nome, tipo });
+      toast.success("Categoria cadastrada.");
+      onClose(id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Nova categoria</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Tipo de categoria</Label>
+            <Select value={modo} onValueChange={(v) => setModo(v as "sub" | "central")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sub">Subcategoria (dentro de uma central)</SelectItem>
+                <SelectItem value="central">Categoria central (grupo novo)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {modo === "sub" && (
+            <div className="space-y-1">
+              <Label>Categoria central</Label>
+              <Select value={paiId} onValueChange={setPaiId}>
+                <SelectTrigger><SelectValue placeholder="Escolha" /></SelectTrigger>
+                <SelectContent>{centrais.map((c) => <SelectItem key={c.id} value={c.id}>{c.codigo} {c.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1"><Label>Nome</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+          <div className="space-y-1">
+            <Label>Comportamento</Label>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as DespesaTipo)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="variavel">Variável</SelectItem>
+                <SelectItem value="fixa">Fixa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">O código e a ordem são gerados automaticamente.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose()}>Cancelar</Button>
+          <Button onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Cadastrar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
