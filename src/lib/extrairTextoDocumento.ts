@@ -71,13 +71,13 @@ async function extrairDocx(file: File): Promise<string> {
 }
 
 /** Lê o texto de um arquivo PDF ou DOCX. Lança erro com mensagem amigável. */
-export async function extrairTextoDocumento(file: File): Promise<string> {
+export async function extrairTextoDocumento(file: File, senha?: string): Promise<string> {
   if (file.size > TAMANHO_MAX_BYTES) {
     throw new Error("Arquivo muito grande. O limite é de 15 MB.");
   }
   const nome = file.name.toLowerCase();
   let texto = "";
-  if (nome.endsWith(".pdf")) texto = await extrairPdf(file);
+  if (nome.endsWith(".pdf")) texto = await extrairPdf(file, senha);
   else if (nome.endsWith(".docx")) texto = await extrairDocx(file);
   else throw new Error("Formato não aceito. Envie um arquivo PDF ou Word (.docx).");
 

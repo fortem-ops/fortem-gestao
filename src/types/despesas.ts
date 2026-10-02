@@ -60,7 +60,7 @@ export interface Despesa {
   updated_at: string;
 }
 
-export type DespesaForma = 'PIX' | 'BOLETO' | 'DINHEIRO' | 'CARTÃO DE DÉBITO' | 'CARTÃO DE CRÉDITO';
+export type DespesaForma = 'PIX' | 'BOLETO' | 'DINHEIRO' | 'CARTÃO DE DÉBITO' | 'CARTÃO DE CRÉDITO' | 'DÉBITO AUTOMÁTICO';
 export type DespesaConta = 'BANCO INTER' | 'ITAÚ';
 
 export const FORMAS_DESPESA: { value: DespesaForma; label: string }[] = [
@@ -69,6 +69,7 @@ export const FORMAS_DESPESA: { value: DespesaForma; label: string }[] = [
   { value: 'DINHEIRO', label: 'Dinheiro' },
   { value: 'CARTÃO DE DÉBITO', label: 'Cartão de Débito' },
   { value: 'CARTÃO DE CRÉDITO', label: 'Cartão de Crédito' },
+  { value: 'DÉBITO AUTOMÁTICO', label: 'Débito Automático' },
 ];
 export const CONTAS_DESPESA: { value: DespesaConta; label: string }[] = [
   { value: 'BANCO INTER', label: 'Banco Inter' },
