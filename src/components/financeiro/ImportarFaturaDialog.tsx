@@ -356,7 +356,7 @@ function NovoCartaoDialog({ identificador, onClose }: { identificador: string; o
   const [nome, setNome] = useState(identificador);
   const [ident, setIdent] = useState(identificador);
   const [dia, setDia] = useState("");
-  const [forma, setForma] = useState("DÉBITO AUTOMÁTICO");
+  const [forma, setForma] = useState("CARTÃO DE CRÉDITO");
   const [conta, setConta] = useState("BANCO INTER");
   const [salvando, setSalvando] = useState(false);
 
