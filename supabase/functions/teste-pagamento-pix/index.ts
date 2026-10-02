@@ -52,10 +52,17 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body?.confirmar !== "PAGAR_1_REAL") return jsonResponse({ error: "confirmacao_ausente" }, 400);
 
-    const cert = normalizePem(Deno.env.get("INTER_PAGAMENTO_CERTIFICADO") ?? "");
-    const key = normalizePem(Deno.env.get("INTER_PAGAMENTO_CHAVE_PRIVADA") ?? "");
-    // @ts-ignore unstable
-    const client = Deno.createHttpClient({ cert, key });
+    const certRaw = Deno.env.get("INTER_PAGAMENTO_CERTIFICADO") ?? "";
+    const keyRaw = Deno.env.get("INTER_PAGAMENTO_CHAVE_PRIVADA") ?? "";
+    let client: any;
+    try {
+      const cert = normalizePem(certRaw, "CERTIFICATE");
+      const key = normalizePem(keyRaw, "PRIVATE KEY");
+      // @ts-ignore unstable
+      client = Deno.createHttpClient({ cert, key });
+    } catch (e) {
+      return jsonResponse({ etapa: "certificado", erro: String((e as Error).message), cert: diag(certRaw), key: diag(keyRaw) });
+    }
     const origin = new URL(Deno.env.get("INTER_BASE_URL") ?? "https://cdpj.partners.bancointer.com.br").origin;
     const conta = Deno.env.get("INTER_CONTA_CORRENTE") ?? "";
 
