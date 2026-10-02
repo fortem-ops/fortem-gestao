@@ -4540,6 +4540,30 @@ export type Database = {
         }
         Relationships: []
       }
+      mapeamento_beneficiarios_pix: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          despesa_descricao: string
+          id: string
+          padrao_pix: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          despesa_descricao: string
+          id?: string
+          padrao_pix: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          despesa_descricao?: string
+          id?: string
+          padrao_pix?: string
+        }
+        Relationships: []
+      }
       meios_pagamento_config: {
         Row: {
           ativo: boolean
