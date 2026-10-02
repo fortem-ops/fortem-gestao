@@ -458,6 +458,16 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       if (isEditing) {
         const alunoAnterior = editEvent?.aluno_id ?? null;
 
+        // Proteção: remover o aluno de uma reserva exige confirmação explícita.
+        // O crédito é devolvido automaticamente pelo banco ao desvincular.
+        if (!editandoFixo && alunoAnterior && !payload.aluno_id) {
+          const ok = window.confirm(
+            "Remover o aluno deste horário? O horário ficará livre na agenda e o crédito será devolvido.",
+          );
+          if (!ok) throw new Error("Edição cancelada — o aluno foi mantido no horário.");
+        }
+
+
         // Update existing event — em horário fixo o aluno nunca é gravado no modelo
         const { data: atualizado, error } = await supabase
           .from("agenda_servicos")
