@@ -7,8 +7,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const CHAVE_DESTINO = "01574308041";
 const VALOR = 1.0;
 
-function normalizePem(raw: string): string {
-  let s = raw.trim();
+function normalizePem(raw: string, label: "CERTIFICATE" | "PRIVATE KEY"): string {
+  let s = raw.trim().replace(/^["']|["']$/g, "");
   if (s.includes("\\n")) s = s.replace(/\\r/g, "").replace(/\\n/g, "\n");
   if (!s.includes("-----BEGIN")) {
     try {
@@ -16,7 +16,20 @@ function normalizePem(raw: string): string {
       if (d.includes("-----BEGIN")) s = d;
     } catch { /* ignore */ }
   }
-  return s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim() + "\n";
+  if (!s.includes("-----BEGIN")) {
+    // base64 puro (DER) sem cabeçalho → embrulha
+    const b = s.replace(/\s+/g, "");
+    s = `-----BEGIN ${label}-----\n${b.match(/.{1,64}/g)?.join("\n")}\n-----END ${label}-----`;
+  } else {
+    // PEM colado em uma linha só: refaz quebras
+    s = s.replace(/-----BEGIN ([A-Z ]+)-----\s*([\s\S]*?)\s*-----END \1-----/g, (_m, l, b) =>
+      `-----BEGIN ${l}-----\n${String(b).replace(/\s+/g, "").match(/.{1,64}/g)?.join("\n")}\n-----END ${l}-----`);
+  }
+  return s.replace(/\r\n/g, "\n").trim() + "\n";
+}
+function diag(raw: string) {
+  const s = raw.trim();
+  return { len: s.length, inicio: s.substring(0, 27), tem_begin: s.includes("-----BEGIN"), tem_barra_n: s.includes("\\n") };
 }
 
 async function requireAdmin(req: Request) {
