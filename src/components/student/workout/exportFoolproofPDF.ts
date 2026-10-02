@@ -328,6 +328,10 @@ export async function exportFoolproofPDF({ student, data, print }: ExportArgs): 
       linhasHist.push([`SEMANA ${linhasHist.length + 1}`, "", "", ""]);
     }
 
+    // Mantém cada histórico inteiro na mesma página e evita continuação sem título.
+    const historyNeeded = 6 + 5 + linhasHist.length * 5 + 3;
+    ensurePage(historyNeeded);
+
     autoTable(doc, {
       startY: y,
       margin: tableMargin,
