@@ -30,6 +30,9 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  drawStrengthTable,
+  type StrengthCol,
+  type StrengthRow,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -241,19 +244,12 @@ export async function exportEasyStrengthPDF({
   y = margin;
 
   // ── TREINOS POR SLOT ────────────────────────────────────────
-  const wBloco = 34;
-  const wAlvo = 28;
-  const wKg = 18;
-  const wCargaF = 18;
-  const wExercicio = mainW - (wBloco + wAlvo + wKg + wCargaF);
-
-  const colStylesTreino: Record<number, Record<string, unknown>> = {
-    0: { cellWidth: wBloco, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
-    1: { cellWidth: wExercicio, overflow: "ellipsize" },
-    2: { cellWidth: wAlvo, halign: "center", fontStyle: "bold" },
-    3: { cellWidth: wKg, halign: "center" },
-    4: { cellWidth: wCargaF, halign: "center" },
-  };
+  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | SÉRIES/REPS | KG | CARGA.
+  const colsTreino: StrengthCol[] = [
+    { header: "SÉRIES/REPS", width: 30, strong: true },
+    { header: "KG", width: 16, muted: true },
+    { header: "CARGA", width: 16 },
+  ];
 
   dias.forEach((slot, i) => {
     const sessao = sessaoDoSlotES(data, slot);
@@ -271,46 +267,25 @@ export async function exportEasyStrengthPDF({
       6.0,
     );
 
-    const linhas: string[][] = data.levantamentos.map((l) => {
+    const principais: StrengthRow[] = data.levantamentos.map((l) => {
       const base = ES_LEV_BASE[l.levantamento];
       const kg = kgES(l.rm1, plano.pct);
-      return [
-        `${ES_NIVEL_LABEL[sessao.nivel]} · ${base.categoria}`,
-        `${l.levantamento} — ${cleanName(base.nome)}`,
-        `${plano.esquema} @ ${plano.pct}%`,
-        kg ? `${kg}` : "",
-      ];
+      return {
+        cat: base.categoria,
+        nome: `${l.levantamento} — ${cleanName(base.nome)}`,
+        cells: [`${plano.esquema} @ ${plano.pct}%`, kg ? `${kg}` : "", ""],
+      };
     });
-    sessao.auxiliares.forEach((aux, idx) => {
-      linhas.push([
-        `Auxiliar ${idx + 1} · ${aux.categoria || "—"}`,
-        cleanName(aux.exercicio) || "—",
-        `${aux.series}x${aux.reps}`,
-        aux.kg ?? "",
-      ]);
-    });
-
-    autoTable(doc, {
-      startY: y,
-      margin: tableMargin,
-      tableWidth: mainW,
-      theme: "plain",
-      rowPageBreak: "avoid",
-      head: [[
-        { content: "BLOCO", styles: { halign: "left" as const } },
-        { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-        { content: "SÉRIES/REPS", styles: { halign: "center" as const } },
-        { content: "KG", styles: { halign: "center" as const } },
-        { content: "CARGA", styles: { halign: "center" as const } },
-      ]],
-      body: (linhas.length ? linhas : [["—", "Sem exercícios neste dia", "", ""]]).map((r) => [...r, ""]),
-      styles: commonStyles,
-      headStyles: commonHeadStyles,
-      alternateRowStyles: { fillColor: SURFACE },
-      columnStyles: colStylesTreino,
-      didParseCell: bodyBorders,
-    });
-    y = lastY(doc) + 2;
+    const auxiliaresRows: StrengthRow[] = sessao.auxiliares.map((aux) => ({
+      cat: aux.categoria || "",
+      nome: cleanName(aux.exercicio) || "—",
+      cells: [`${aux.series}x${aux.reps}`, aux.kg ?? "", ""],
+    }));
+    const groups = [principais, auxiliaresRows];
+    if (!principais.length && !auxiliaresRows.length) {
+      groups[0] = [{ cat: "—", nome: "Sem exercícios neste dia", cells: ["", "", ""] }];
+    }
+    y = drawStrengthTable(doc, { x: mainX, y, w: mainW, cols: colsTreino, groups }) + 2.4;
   });
 
   // ── TABELA DE REFERÊNCIA DAS 9 SEMANAS ──────────────────────

@@ -22,6 +22,8 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  drawStrengthTable,
+  type StrengthRow,
 } from "./pdfShared";
 
 export interface MileDeepPdfLevantamento {
@@ -29,6 +31,8 @@ export interface MileDeepPdfLevantamento {
   nome: string;
   /** Nome do exercício no banco. */
   base: string;
+  /** Código de categoria (EH, DJS, ...). */
+  categoria?: string;
   /** Referência (1RM ou 5RM) em kg. */
   rm: number;
 }
@@ -232,46 +236,32 @@ export async function exportMileDeepPDF({
       6.0,
     );
 
-    const linhas: string[][] = s.levantamentos.map((l) => [
-      "Principal",
-      `${l.nome} — ${cleanName(l.base)}`,
-      s.plano.esquema,
-      `${s.plano.faixaLabel} do ${refLabel}${l.rm ? ` (${refLabel} ${l.rm} kg)` : ""}`,
-    ]);
-    s.auxiliares.forEach((aux, idx) => {
-      linhas.push([
-        `Auxiliar ${idx + 1} · ${aux.categoria || "—"}`,
-        cleanName(aux.exercicio) || "—",
-        `${aux.series}x${aux.reps}`,
-        aux.kg ? `${aux.kg} kg` : "",
-      ]);
-    });
-
-    autoTable(doc, {
-      startY: y,
-      margin: tableMargin,
-      tableWidth: mainW,
-      theme: "plain",
-      rowPageBreak: "avoid",
-      head: [[
-        { content: "BLOCO", styles: { halign: "left" as const } },
-        { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-        { content: "SÉRIES/REPS", styles: { halign: "center" as const } },
-        { content: "CARGA", styles: { halign: "center" as const } },
-      ]],
-      body: linhas.length ? linhas : [["—", "Sem exercícios nesta sessão", "", ""]],
-      styles: commonStyles,
-      headStyles: commonHeadStyles,
-      alternateRowStyles: { fillColor: SURFACE },
-      columnStyles: {
-        0: { cellWidth: 34, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
-        1: { cellWidth: mainW - 34 - 26 - 44 },
-        2: { cellWidth: 26, halign: "center", fontStyle: "bold" },
-        3: { cellWidth: 44, halign: "center" },
-      },
-      didParseCell: bodyBorders,
-    });
-    y = lastY(doc) + 2;
+    // Lista única (modelo Personalizado): CAT | EXERCÍCIO | SÉRIES/REPS | % / KG | CARGA.
+    const principais: StrengthRow[] = s.levantamentos.map((l) => ({
+      cat: l.categoria ?? "",
+      nome: `${l.nome} — ${cleanName(l.base)}`,
+      cells: [s.plano.esquema, `${s.plano.faixaLabel}${l.rm ? ` (${refLabel} ${l.rm})` : ""}`, ""],
+    }));
+    const auxiliares: StrengthRow[] = s.auxiliares.map((aux) => ({
+      cat: aux.categoria || "",
+      nome: cleanName(aux.exercicio) || "—",
+      cells: [`${aux.series}x${aux.reps}`, aux.kg ? `${aux.kg} kg` : "", ""],
+    }));
+    const groups = [principais, auxiliares];
+    if (!principais.length && !auxiliares.length) {
+      groups[0] = [{ cat: "—", nome: "Sem exercícios nesta sessão", cells: ["", "", ""] }];
+    }
+    y = drawStrengthTable(doc, {
+      x: mainX,
+      y,
+      w: mainW,
+      cols: [
+        { header: "SÉRIES/REPS", width: 24, strong: true },
+        { header: `% / KG`, width: 34, muted: true },
+        { header: "CARGA", width: 16 },
+      ],
+      groups,
+    }) + 2.4;
   });
 
   // ── Tabelas de referência (12 semanas por sessão) ───────────

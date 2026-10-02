@@ -28,6 +28,9 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  drawStrengthTable,
+  type StrengthCol,
+  type StrengthRow,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -265,75 +268,31 @@ export async function exportPlanilha5RMPDF({ student, data, print }: ExportArgs)
   });
   y = lastY(doc) + 3;
 
-  const wKg = 18;
-  const wCargaT = 20;
-  const wEx5 = fullW - wKg * 4 - wCargaT;
-  const colStyles5: Record<number, Record<string, unknown>> = {
-    0: { cellWidth: wEx5, fontStyle: "bold", overflow: "ellipsize" },
-    1: { cellWidth: wKg, halign: "center" },
-    2: { cellWidth: wKg, halign: "center" },
-    3: { cellWidth: wKg, halign: "center" },
-    4: { cellWidth: wKg, halign: "center" },
-    5: { cellWidth: wCargaT, halign: "center" },
-  };
-
-  const tabelaBloco = (titulo: string, exercicios: ExercicioPlanilha5RM[]) => {
-    ensurePage(26);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.8);
-    doc.setTextColor(...INK);
-    doc.text(titulo.toUpperCase(), mainX, y + 3);
-    y += 4.6;
-
-    autoTable(doc, {
-      startY: y,
-      margin: fullMargin,
-      tableWidth: fullW,
-      theme: "plain",
-      rowPageBreak: "avoid",
-      head: [[
-        { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-        { content: "S1", styles: { halign: "center" as const } },
-        { content: "S2", styles: { halign: "center" as const } },
-        { content: "S3", styles: { halign: "center" as const } },
-        { content: "S4", styles: { halign: "center" as const } },
-        { content: "CARGA", styles: { halign: "center" as const } },
-      ]],
-      body: exercicios.map((ex) => [
-        cleanName(ex.exercicio) || "—",
-        ex.kgSemanas[0] || "",
-        ex.kgSemanas[1] || "",
-        ex.kgSemanas[2] || "",
-        ex.kgSemanas[3] || "",
-        "",
-      ]),
-      styles: commonStyles,
-      headStyles: commonHeadStyles,
-      alternateRowStyles: { fillColor: SURFACE },
-      columnStyles: colStyles5,
-      didParseCell: (hd) => {
-        if (hd.section === "body") {
-          hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.25, left: 0 } as unknown as number;
-          hd.cell.styles.lineColor = INK_SOFT;
-        }
-      },
-      didDrawCell: (hd) => {
-        if (hd.section === "body" && hd.column.index > 1) {
-          doc.setDrawColor(...RULE);
-          doc.setLineWidth(0.12);
-          doc.line(hd.cell.x, hd.cell.y + 0.4, hd.cell.x, hd.cell.y + hd.cell.height - 0.4);
-        }
-      },
-    });
-    y = lastY(doc) + 1.6;
-  };
+  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | S1–S4 | CARGA.
+  // Básicos × acessórios separados só por linha grossa.
+  const colsTreino: StrengthCol[] = [
+    { header: "S1", width: 18 },
+    { header: "S2", width: 18 },
+    { header: "S3", width: 18 },
+    { header: "S4", width: 18 },
+    { header: "CARGA", width: 20 },
+  ];
+  const toRow = (ex: ExercicioPlanilha5RM): StrengthRow => ({
+    cat: ex.categoria || "",
+    nome: cleanName(ex.exercicio) || "—",
+    cells: [ex.kgSemanas[0] || "", ex.kgSemanas[1] || "", ex.kgSemanas[2] || "", ex.kgSemanas[3] || "", ""],
+  });
 
   data.treinos.forEach((treino) => {
     ensurePage(34);
     y = sectionBar(doc, `Treino ${treino.ordem}`, undefined, mainX, y, fullW, 6.0);
-    tabelaBloco(PLANILHA5RM_BLOCO_PRINCIPAL_LABEL, treino.blocoPrincipal);
-    tabelaBloco(PLANILHA5RM_BLOCO_ACESSORIO_LABEL, treino.blocoAcessorio);
-    y += 1;
+    y = drawStrengthTable(doc, {
+      x: mainX,
+      y,
+      w: fullW,
+      cols: colsTreino,
+      groups: [treino.blocoPrincipal.map(toRow), treino.blocoAcessorio.map(toRow)],
+    }) + 2.4;
   });
 
   const nome = `Planilha5RM-${student.nome.replace(/\s+/g, "-")}.pdf`;

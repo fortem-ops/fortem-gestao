@@ -29,6 +29,9 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  drawStrengthTable,
+  type StrengthCol,
+  type StrengthRow,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -230,119 +233,52 @@ export async function exportXFabPDF({
   }
 
   // ── TREINOS ─────────────────────────────────────────────────
-  const wAlvo = 30;
-  const wKg = 18;
-  const wNomeBloco = 26;
-  const wCargaF = 18;
-  const wExercicio = mainW - (wNomeBloco + wAlvo + wKg + wCargaF);
-
-  const colStylesTreino: Record<number, Record<string, unknown>> = {
-    0: { cellWidth: wNomeBloco, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
-    1: { cellWidth: wExercicio, overflow: "ellipsize" },
-    2: { cellWidth: wAlvo, halign: "center", fontStyle: "bold" },
-    3: { cellWidth: wKg, halign: "center" },
-    4: { cellWidth: wCargaF, halign: "center" },
-  };
-
-  const desenharTabela = (
-    body: string[][],
-    subtitulo: string,
-    meta: string,
-  ) => {
-    ensurePage(26);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.8);
-    doc.setTextColor(...INK);
-    doc.text(subtitulo.toUpperCase(), mainX, y + 3);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...INK_MUTED);
-    doc.text(meta, mainX + mainW, y + 3, { align: "right" });
-    y += 4.6;
-
-    autoTable(doc, {
-      startY: y,
-      margin: tableMargin,
-      tableWidth: mainW,
-      theme: "plain",
-      rowPageBreak: "avoid",
-      head: [[
-        { content: "BLOCO", styles: { halign: "left" as const } },
-        { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-        { content: "ALVO", styles: { halign: "center" as const } },
-        { content: "KG", styles: { halign: "center" as const } },
-        { content: "CARGA", styles: { halign: "center" as const } },
-      ]],
-      body: body.map((r) => [...r, ""]),
-      styles: commonStyles,
-      headStyles: commonHeadStyles,
-      alternateRowStyles: { fillColor: SURFACE },
-      columnStyles: colStylesTreino,
-      didParseCell: (hd) => {
-        if (hd.section === "body") {
-          hd.cell.styles.lineWidth = {
-            top: 0,
-            right: 0,
-            bottom: 0.25,
-            left: 0,
-          } as unknown as number;
-          hd.cell.styles.lineColor = INK_SOFT;
-        }
-      },
-    });
-    y = lastY(doc) + 1.6;
-  };
+  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | ALVO | KG | CARGA.
+  const colsTreino: StrengthCol[] = [
+    { header: "ALVO", width: 30, strong: true },
+    { header: "KG", width: 16, muted: true },
+    { header: "CARGA", width: 16 },
+  ];
 
   ([1, 2, 3] as XFabTreinoOrdem[]).forEach((ordem) => {
     const estrutura = XFAB_TREINOS[ordem];
     const treino = data.treinos.find((t) => t.ordem === ordem);
     ensurePage(40);
-    y = sectionBar(doc, `Treino ${ordem}`, `T${ordem}`, mainX, y, mainW, 6.0);
 
-    // Levantamentos básicos — um bloco por par
-    estrutura.pares.forEach((par, bi) => {
+    const metas: string[] = [];
+    const principais: StrengthRow[] = [];
+    estrutura.pares.forEach((par) => {
       const st = statusPar(counts, par);
-      const linhas: string[][] = XFAB_PARES[par].map((lev) => {
+      metas.push(st.phase === "concluded" ? `Par ${par} concluído` : `Par ${par} · ${st.proxima.sessao}/12`);
+      XFAB_PARES[par].forEach((lev) => {
         const base = XFAB_LEV_BASE[lev];
+        const nome = `${base.label} — ${cleanName(base.nome)}`;
         if (st.phase === "concluded") {
-          return [`Bloco ${bi + 1} · ${base.categoria}`, `${base.label} — ${cleanName(base.nome)}`, "—", ""];
+          principais.push({ cat: base.categoria, nome, cells: ["—", "", ""] });
+          return;
         }
         const { alvo, kg } = alvoLevantamento(lev, st.proxima, data.rm);
-        return [
-          `Bloco ${bi + 1} · ${base.categoria}`,
-          `${base.label} — ${cleanName(base.nome)}`,
-          alvo,
-          kg ? `${kg}` : "",
-        ];
+        principais.push({ cat: base.categoria, nome, cells: [alvo, kg ? `${kg}` : "", ""] });
       });
-      const meta =
-        st.phase === "concluded"
-          ? XFAB_MENSAGEM_CONCLUIDO
-          : `Par ${par} · sessão ${st.proxima.sessao}/12`;
-      desenharTabela(linhas, `Levantamentos básicos — Par ${par}`, meta);
     });
 
-    // Auxiliares
     const planoAux = sessaoAuxiliar(counts, ordem);
-    const linhasAux: string[][] = [];
+    metas.push(planoAux ? `Aux ${planoAux.sessao}/12` : "Aux concluído");
+    const auxiliares: StrengthRow[] = [];
     (treino?.blocosAuxiliares ?? estrutura.auxiliares.map((b) => b.map((c) => ({ categoria: c, exercicio: "" })))).forEach(
-      (bloco, bi) => {
+      (bloco) => {
         bloco.forEach((ex) => {
-          linhasAux.push([
-            `Bloco ${bi + 3} · ${ex.categoria}`,
-            cleanName(ex.exercicio) || "—",
-            planoAux ? planoAux.auxiliar : "—",
-            "",
-          ]);
+          auxiliares.push({
+            cat: ex.categoria || "",
+            nome: cleanName(ex.exercicio) || "—",
+            cells: [planoAux ? planoAux.auxiliar : "—", "", ""],
+          });
         });
       },
     );
-    desenharTabela(
-      linhasAux,
-      "Auxiliares",
-      planoAux ? `Sessão ${planoAux.sessao}/12` : XFAB_MENSAGEM_CONCLUIDO,
-    );
-    y += 1;
+
+    y = sectionBar(doc, `Treino ${ordem}`, metas.join("  ·  "), mainX, y, mainW, 6.0);
+    y = drawStrengthTable(doc, { x: mainX, y, w: mainW, cols: colsTreino, groups: [principais, auxiliares] }) + 2.4;
   });
 
   const nome = `XFAB-${student.nome.replace(/\s+/g, "-")}.pdf`;

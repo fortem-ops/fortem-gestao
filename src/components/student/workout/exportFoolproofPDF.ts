@@ -30,6 +30,9 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  drawStrengthTable,
+  type StrengthCol,
+  type StrengthRow,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -233,75 +236,51 @@ export async function exportFoolproofPDF({ student, data, print }: ExportArgs): 
   y = margin;
 
   // ── TREINOS POR SLOT ────────────────────────────────────────
-  const wBloco = 34;
-  const wAlvo = 28;
-  const wKg = 18;
-  const wCargaF = 18;
-  const wExercicio = mainW - (wBloco + wAlvo + wKg + wCargaF);
-
-  const colStylesTreino: Record<number, Record<string, unknown>> = {
-    0: { cellWidth: wBloco, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
-    1: { cellWidth: wExercicio, overflow: "ellipsize" },
-    2: { cellWidth: wAlvo, halign: "center", fontStyle: "bold" },
-    3: { cellWidth: wKg, halign: "center" },
-    4: { cellWidth: wCargaF, halign: "center" },
-  };
+  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | SÉRIES/REPS | KG | CARGA.
+  const colsTreino: StrengthCol[] = [
+    { header: "SÉRIES/REPS", width: 30, strong: true },
+    { header: "KG", width: 16, muted: true },
+    { header: "CARGA", width: 16 },
+  ];
 
   dias.forEach((slot, i) => {
     ensurePage(44);
     y = sectionBar(doc, `Treino ${i + 1}`, slot, mainX, y, mainW, 6.0);
 
-    const linhas: string[][] = [];
+    const principais: StrengthRow[] = [];
     fpLevantamentosDoSlot(data, slot).forEach(({ estado, tipo }) => {
       const base = FP_LEV_BASE[estado.levantamento];
+      const nome = `${estado.levantamento} — ${cleanName(base.nome)}`;
       if (tipo === "principal") {
         const alvo = alvoFP(estado);
-        linhas.push([
-          `Principal · ${base.categoria}`,
-          `${estado.levantamento} — ${cleanName(base.nome)}`,
-          alvo.concluido ? "Ciclo concluído" : alvo.esquema,
-          alvo.concluido ? (estado.rm1Final ? `1RM ${estado.rm1Final}` : "") : alvo.peso ? `${alvo.peso}` : "",
-        ]);
+        principais.push({
+          cat: base.categoria,
+          nome,
+          cells: [
+            alvo.concluido ? "Ciclo concluído" : alvo.esquema,
+            alvo.concluido ? (estado.rm1Final ? `1RM ${estado.rm1Final}` : "") : alvo.peso ? `${alvo.peso}` : "",
+            "",
+          ],
+        });
       } else {
         const h = alvoHipertrofiaFP(estado);
-        linhas.push([
-          `Hipertrofia · ${base.categoria}`,
-          `${estado.levantamento} — ${cleanName(base.nome)}`,
-          h ? h.esquema : `—x${FP_HIPER_REPS}`,
-          h?.peso ? `${h.peso}` : "",
-        ]);
+        principais.push({
+          cat: base.categoria,
+          nome: `${nome} (hipertrofia)`,
+          cells: [h ? h.esquema : `—x${FP_HIPER_REPS}`, h?.peso ? `${h.peso}` : "", ""],
+        });
       }
     });
-    fpAuxiliaresDoSlot(data, slot).forEach((aux, idx) => {
-      linhas.push([
-        `Auxiliar ${idx + 1} · ${aux.categoria || "—"}`,
-        cleanName(aux.exercicio) || "—",
-        `${aux.series}x${aux.reps}`,
-        aux.kg ?? "",
-      ]);
-    });
-
-    autoTable(doc, {
-      startY: y,
-      margin: tableMargin,
-      tableWidth: mainW,
-      theme: "plain",
-      rowPageBreak: "avoid",
-      head: [[
-        { content: "BLOCO", styles: { halign: "left" as const } },
-        { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-        { content: "SÉRIES/REPS", styles: { halign: "center" as const } },
-        { content: "KG", styles: { halign: "center" as const } },
-        { content: "CARGA", styles: { halign: "center" as const } },
-      ]],
-      body: (linhas.length ? linhas : [["—", "Sem exercícios neste dia", "", ""]]).map((r) => [...r, ""]),
-      styles: commonStyles,
-      headStyles: commonHeadStyles,
-      alternateRowStyles: { fillColor: SURFACE },
-      columnStyles: colStylesTreino,
-      didParseCell: bodyBorders,
-    });
-    y = lastY(doc) + 2;
+    const auxiliaresRows: StrengthRow[] = fpAuxiliaresDoSlot(data, slot).map((aux) => ({
+      cat: aux.categoria || "",
+      nome: cleanName(aux.exercicio) || "—",
+      cells: [`${aux.series}x${aux.reps}`, aux.kg ?? "", ""],
+    }));
+    const groups = [principais, auxiliaresRows];
+    if (!principais.length && !auxiliaresRows.length) {
+      groups[0] = [{ cat: "—", nome: "Sem exercícios neste dia", cells: ["", "", ""] }];
+    }
+    y = drawStrengthTable(doc, { x: mainX, y, w: mainW, cols: colsTreino, groups }) + 2.4;
   });
 
   // ── HISTÓRICO POR LEVANTAMENTO (semana, peso e fase) ────────
