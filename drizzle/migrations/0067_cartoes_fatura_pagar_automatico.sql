@@ -1,0 +1,1 @@
+ALTER TABLE public.cartoes_fatura ADD COLUMN pagar_automatico_no_vencimento boolean NOT NULL DEFAULT false;

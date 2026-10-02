@@ -1386,6 +1386,7 @@ export type Database = {
           id: string
           identificador_pdf: string | null
           nome: string
+          pagar_automatico_no_vencimento: boolean
         }
         Insert: {
           ativo?: boolean
@@ -1396,6 +1397,7 @@ export type Database = {
           id?: string
           identificador_pdf?: string | null
           nome: string
+          pagar_automatico_no_vencimento?: boolean
         }
         Update: {
           ativo?: boolean
@@ -1406,6 +1408,7 @@ export type Database = {
           id?: string
           identificador_pdf?: string | null
           nome?: string
+          pagar_automatico_no_vencimento?: boolean
         }
         Relationships: []
       }
