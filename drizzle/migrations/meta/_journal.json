@@ -505,6 +505,13 @@
       "when": 1790966888482,
       "tag": "0071_despesas_pix_data_agendada",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1790968459675,
+      "tag": "0072_despesas_valor_liquido_previsto",
+      "breakpoints": true
     }
   ]
 }

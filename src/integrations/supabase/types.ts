@@ -3334,6 +3334,7 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           valor: number
+          valor_liquido_previsto: number | null
           valor_pago: number | null
         }
         Insert: {
@@ -3365,6 +3366,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           valor: number
+          valor_liquido_previsto?: number | null
           valor_pago?: number | null
         }
         Update: {
@@ -3396,6 +3398,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           valor?: number
+          valor_liquido_previsto?: number | null
           valor_pago?: number | null
         }
         Relationships: [

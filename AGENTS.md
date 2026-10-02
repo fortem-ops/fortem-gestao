@@ -5,3 +5,4 @@
 - PDFs de treino: a coluna CAT do aquecimento usa a regra compartilhada de ajuste de fonte e reticências, nunca quebra linha; por quê: manter todas as linhas com altura uniforme em todos os métodos.
 - Pagamentos Pix (Inter Banking v2) só saem pela função `enviar-pagamentos-pix`, Admin-only e após confirmação na tela; a baixa vem de `verificar-pagamentos-pix-diario` (agendada, só consulta). Por quê: nenhum dinheiro sai sem confirmação humana e o status do Inter é a fonte da verdade.
 - Pix agendado: a data escolhida fica em `despesas.pix_data_agendada`; `data_pagamento` só é preenchida na baixa, com a data confirmada pelo Inter. Por quê: despesa pendente com data_pagamento parece paga em outras telas.
+- Valor a enviar por Pix = `despesas.valor_liquido_previsto ?? valor`; a folha grava o líquido nesse campo no lançamento e `valor_pago` só nasce na baixa. Por quê: `valor` da folha é o custo bruto de categoria, sem Comissão/DSR.

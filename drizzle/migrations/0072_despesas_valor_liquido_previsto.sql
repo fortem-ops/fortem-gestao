@@ -1,0 +1,2 @@
+ALTER TABLE public.despesas ADD COLUMN IF NOT EXISTS valor_liquido_previsto numeric;
+COMMENT ON COLUMN public.despesas.valor_liquido_previsto IS 'Quanto deve ser efetivamente pago/enviado, calculado no lançamento, antes da baixa real';

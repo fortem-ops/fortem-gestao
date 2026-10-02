@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
   const sup = admin();
   const { data: pend } = await sup.from("despesas")
-    .select("id, valor, pix_codigo_solicitacao, pix_data_agendada")
+    .select("id, valor, valor_liquido_previsto, pix_codigo_solicitacao, pix_data_agendada")
     .eq("pix_status", "AGUARDANDO_APROVACAO")
     .not("pix_codigo_solicitacao", "is", null)
     .limit(200);
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
           : (d as any).pix_data_agendada ?? hoje();
         await sup.from("despesas").update({
           status: "pago", pix_status: "CONCLUIDO", data_pagamento: data,
-          valor_pago: Number(r.data?.transacaoPix?.valor ?? d.valor), conciliado: true, pix_erro: null,
+          valor_pago: Number(r.data?.transacaoPix?.valor ?? d.valor_liquido_previsto ?? d.valor), conciliado: true, pix_erro: null,
         }).eq("id", d.id).eq("pix_status", "AGUARDANDO_APROVACAO");
         concluidos++;
       } else if (REJEITADO.has(st)) {
