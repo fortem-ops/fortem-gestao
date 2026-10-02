@@ -175,12 +175,15 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
     const uid = (await supabase.auth.getUser()).data.user?.id ?? null;
     const cat = categorias.find((c) => c.id === l.categoriaId);
     const parc = l.parcela_atual && l.parcela_total ? ` — Parcela ${l.parcela_atual}/${l.parcela_total}` : "";
+    const valorLancado = Math.round(Number(l.valor) * 100) / 100;
+    const pagaAuto = cartao.pagar_automatico_no_vencimento;
     const { error } = await supabase.from("despesas").insert({
       categoria_id: l.categoriaId,
       descricao: `${l.beneficiario.trim()} (${mesAno})${parc}`,
-      valor: Math.round(Number(l.valor) * 100) / 100,
-      tipo: "variavel", status: cartao.pagar_automatico_no_vencimento ? "pago" : "pendente", data_competencia: vencimento,
-      data_pagamento: cartao.pagar_automatico_no_vencimento ? proximoDiaUtil(vencimento) : null,
+      valor: valorLancado,
+      tipo: "variavel", status: pagaAuto ? "pago" : "pendente", data_competencia: vencimento,
+      data_pagamento: pagaAuto ? proximoDiaUtil(vencimento) : null,
+      valor_pago: pagaAuto ? valorLancado : null,
       forma_pagamento: "CARTÃO DE CRÉDITO", conta_bancaria: cartao.conta_bancaria,
       observacao: `Fatura ${cartao.nome}${fatura?.cartao_final ? ` final ${fatura.cartao_final}` : ""} ${mesAno} · compra em ${dataBR(l.data)}`,
       origem: "automatico", origem_tabela: ORIGEM, origem_id: l.origemId,
