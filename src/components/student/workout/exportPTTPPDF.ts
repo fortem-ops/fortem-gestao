@@ -236,7 +236,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   const progressW = (mainW - progressGap) / 2;
   const progressXs = [mainX, mainX + progressW + progressGap];
   const progressTop = y;
-  const progressRows = 55;
+  const progressRows = 45;
   const progressFinalYs: number[] = [];
 
   data.levantamentos.forEach((lev, levIndex) => {
