@@ -157,11 +157,16 @@ export default function Contratos() {
   const darBaixa = useDarBaixaLote();
 
 
-  const vencidasVisiveis = useMemo(
-    () => filtradas.filter((c) => c.status_pagamento === 'vencida'),
-    [filtradas],
-  );
-  const idsVisiveisKey = vencidasVisiveis.map((c) => c.id).join(',');
+  const baixaveisVisiveis = useMemo(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return filtradas.filter((c) => {
+      if (c.status_pagamento === 'vencida') return true;
+      if (c.status_pagamento !== 'pendente' || !c.data_vencimento) return false;
+      return new Date(c.data_vencimento + 'T00:00:00') <= hoje;
+    });
+  }, [filtradas]);
+  const idsVisiveisKey = baixaveisVisiveis.map((c) => c.id).join(',');
 
   // Limpa seleção sempre que o recorte visível muda
   useEffect(() => { setSelecionadas(new Set()); }, [idsVisiveisKey]);
