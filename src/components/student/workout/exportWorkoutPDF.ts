@@ -306,6 +306,7 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
           { content: "T3", styles: { halign: "center" } },
           { content: "T4", styles: { halign: "center" } },
           { content: "REP", styles: { halign: "right" } },
+          { content: "CARGA", styles: { halign: "center" } },
         ]],
         body: bloco.items.map((ex, i) => [
           String(i + 1),
@@ -316,6 +317,7 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
           ex.dias?.includes("T3") ? CHECK : "",
           ex.dias?.includes("T4") ? CHECK : "",
           String(ex.repeticoes ?? ""),
+          "",
         ]),
         styles: {
           ...bodyTextStyles,
@@ -333,8 +335,8 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
         },
         alternateRowStyles: { fillColor: SURFACE },
         columnStyles: (() => {
-          const wNum = 6, wCat = 22, wT = 7, wRep = 14;
-          const wEx = mainW - (wNum + wCat + wT * 4 + wRep);
+          const wNum = 6, wCat = 22, wT = 7, wRep = 14, wCarga = 16;
+          const wEx = mainW - (wNum + wCat + wT * 4 + wRep + wCarga);
           return {
             0: { cellWidth: wNum, halign: "center", textColor: INK_SOFT, fontStyle: "bold", fontSize: SMALL_FONT },
             1: { cellWidth: wCat, overflow: "ellipsize", textColor: INK_SOFT, fontStyle: "bold", fontSize: ROW_FONT },
@@ -437,14 +439,14 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
           { content: "SEMANA", styles: { halign: "center" as const } },
           { content: "SÉRIES", styles: { halign: "center" as const } },
           { content: "REP", styles: { halign: "center" as const } },
-          { content: "KG", styles: { halign: "center" as const } },
+          { content: "CARGA", styles: { halign: "center" as const } },
         ]]
       : [[
           { content: "CAT", styles: { halign: "left" as const } },
           { content: "", styles: { halign: "left" as const } },
           { content: "SÉRIES", styles: { halign: "center" as const } },
           { content: "REP", styles: { halign: "center" as const } },
-          { content: "KG", styles: { halign: "center" as const } },
+          { content: "CARGA", styles: { halign: "center" as const } },
         ]];
 
     autoTable(doc, {
