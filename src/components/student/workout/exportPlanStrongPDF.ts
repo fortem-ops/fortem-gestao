@@ -336,7 +336,7 @@ export async function exportPlanStrongPDF({
           { content: "EXERCÍCIO", styles: { halign: "left" as const } },
           { content: "SÉRIES", styles: { halign: "center" as const } },
           { content: "REPS", styles: { halign: "center" as const } },
-          { content: "KG", styles: { halign: "right" as const } },
+          { content: "CARGA", styles: { halign: "right" as const } },
         ]],
         body: itens.map((a, i) => [
           String(i + 1),

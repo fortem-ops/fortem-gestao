@@ -259,7 +259,7 @@ export async function exportM102PDF({
         { content: "EXERCÍCIO", styles: { halign: "left" as const } },
         { content: "SÉRIES", styles: { halign: "center" as const } },
         { content: "REP.", styles: { halign: "center" as const } },
-        { content: "KG", styles: { halign: "right" as const } },
+        { content: "CARGA", styles: { halign: "right" as const } },
       ]];
 
       const commonColStyles: Record<number, Record<string, unknown>> = {
