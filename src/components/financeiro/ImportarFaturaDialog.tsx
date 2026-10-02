@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useCategoriasDespesa } from "@/hooks/useDespesas";
+import { useCategoriasDespesa, useCategoriaMutations } from "@/hooks/useDespesas";
 import { extrairTextoDocumento, SenhaPdfError } from "@/lib/extrairTextoDocumento";
-import { CONTAS_DESPESA, FORMAS_DESPESA } from "@/types/despesas";
+import { CONTAS_DESPESA, FORMAS_DESPESA, type DespesaCategoria, type DespesaTipo } from "@/types/despesas";
 
 const ORIGEM = "fatura_cartao";
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -60,6 +60,7 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
   const [linhas, setLinhas] = useState<Linha[] | null>(null);
   const [lote, setLote] = useState(false);
   const [novoCartao, setNovoCartao] = useState(false);
+  const [novaCatPara, setNovaCatPara] = useState<number | null>(null);
 
   const { data: categorias = [] } = useCategoriasDespesa(true);
   const cartoesQ = useQuery({
@@ -311,6 +312,7 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
                               </SelectContent>
                             </Select>
                           </div>
+                          <Button size="sm" variant="outline" className="h-8" disabled={l.lancada || lote} onClick={() => setNovaCatPara(i)}>Nova</Button>
                           {l.lancada ? <Badge variant="outline" className="border-success/40 text-success">{l.jaExistia ? "Já lançada antes" : "Lançada"}</Badge>
                             : l.regra ? <Badge variant="outline" className="border-success/40 text-success">Regra aplicada</Badge>
                             : !l.categoriaId ? <Badge variant="outline" className="border-warning/50 text-warning">Escolha a categoria</Badge> : null}
@@ -347,6 +349,16 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
             onClose={async (id) => {
               setNovoCartao(false);
               if (id) { await cartoesQ.refetch(); await escolherCartao(id); }
+            }}
+          />
+        )}
+        {novaCatPara !== null && (
+          <NovaCategoriaDialog
+            centrais={categorias.filter((c) => c.nivel === "central").sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))}
+            onClose={(id) => {
+              const i = novaCatPara;
+              setNovaCatPara(null);
+              if (id && i !== null && linhas?.[i] && !linhas[i].lancada) upd(i, { categoriaId: id, regra: false, erro: undefined });
             }}
           />
         )}
@@ -403,6 +415,77 @@ function NovoCartaoDialog({ identificador, onClose }: { identificador: string; o
               <SelectContent>{CONTAS_DESPESA.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose()}>Cancelar</Button>
+          <Button onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Cadastrar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NovaCategoriaDialog({ centrais, onClose }: { centrais: DespesaCategoria[]; onClose: (id?: string) => void }) {
+  const [modo, setModo] = useState<"sub" | "central">("sub");
+  const [paiId, setPaiId] = useState("");
+  const [nome, setNome] = useState("");
+  const [tipo, setTipo] = useState<DespesaTipo>("variavel");
+  const [salvando, setSalvando] = useState(false);
+  const { salvarSub, salvarCentral } = useCategoriaMutations();
+
+  async function salvar() {
+    if (!nome.trim()) return toast.error("Informe o nome.");
+    if (modo === "sub" && !paiId) return toast.error("Escolha a categoria central.");
+    setSalvando(true);
+    try {
+      const id = modo === "sub"
+        ? await salvarSub.mutateAsync({ nome, tipo, ordem: null, pai: centrais.find((c) => c.id === paiId) })
+        : await salvarCentral.mutateAsync({ nome, tipo });
+      toast.success("Categoria cadastrada.");
+      onClose(id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Nova categoria</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Tipo de categoria</Label>
+            <Select value={modo} onValueChange={(v) => setModo(v as "sub" | "central")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sub">Subcategoria (dentro de uma central)</SelectItem>
+                <SelectItem value="central">Categoria central (grupo novo)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {modo === "sub" && (
+            <div className="space-y-1">
+              <Label>Categoria central</Label>
+              <Select value={paiId} onValueChange={setPaiId}>
+                <SelectTrigger><SelectValue placeholder="Escolha" /></SelectTrigger>
+                <SelectContent>{centrais.map((c) => <SelectItem key={c.id} value={c.id}>{c.codigo} {c.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1"><Label>Nome</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+          <div className="space-y-1">
+            <Label>Comportamento</Label>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as DespesaTipo)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="variavel">Variável</SelectItem>
+                <SelectItem value="fixa">Fixa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">O código e a ordem são gerados automaticamente.</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onClose()}>Cancelar</Button>
