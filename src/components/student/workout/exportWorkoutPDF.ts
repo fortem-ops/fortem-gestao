@@ -53,7 +53,7 @@ const WARMUP_DEFAULT = { fill: INK, text: WHITE } as const;
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
 const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
-import { drawFrequencyColumn, drawPrescriptionObservations } from "./pdfShared";
+import { drawFrequencyColumn, drawPrescriptionObservations, warmupCategoryColumnStyle } from "./pdfShared";
 
 /** Removes leading numeric prefixes from exercise names (e.g. "4-Agachamento" → "Agachamento"). */
 const cleanExerciseName = (name: string): string =>
@@ -335,11 +335,11 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
         },
         alternateRowStyles: { fillColor: SURFACE },
         columnStyles: (() => {
-          const wNum = 6, wCat = 22, wT = 7, wRep = 14, wCarga = 16;
+          const wNum = 6, wCat = 25, wT = 7, wRep = 14, wCarga = 13;
           const wEx = mainW - (wNum + wCat + wT * 4 + wRep + wCarga);
           return {
             0: { cellWidth: wNum, halign: "center", textColor: INK_SOFT, fontStyle: "bold", fontSize: SMALL_FONT },
-            1: { cellWidth: wCat, overflow: "ellipsize", textColor: INK_SOFT, fontStyle: "bold", fontSize: ROW_FONT },
+            1: warmupCategoryColumnStyle(doc, bloco.items.map((ex) => ex.subcategoria), wCat, ROW_FONT, SIDE_PAD),
             2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
             3: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             4: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },

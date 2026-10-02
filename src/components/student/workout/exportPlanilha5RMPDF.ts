@@ -28,6 +28,7 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  warmupCategoryColumnStyle,
   drawStrengthTable,
   type StrengthCol,
   type StrengthRow,
