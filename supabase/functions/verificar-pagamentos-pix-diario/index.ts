@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
   const sup = admin();
   const { data: pend } = await sup.from("despesas")
-    .select("id, valor, pix_codigo_solicitacao")
+    .select("id, valor, pix_codigo_solicitacao, pix_data_agendada")
     .eq("pix_status", "AGUARDANDO_APROVACAO")
     .not("pix_codigo_solicitacao", "is", null)
     .limit(200);
@@ -36,7 +36,13 @@ Deno.serve(async (req) => {
       if (CONCLUIDO.has(st)) {
         const hist: any[] = r.data?.historico ?? [];
         const ult = hist[hist.length - 1]?.dataHoraEvento;
-        const data = ult ? new Date(new Date(ult).getTime() - 3 * 3600_000).toISOString().slice(0, 10) : hoje();
+        // Data confirmada pelo Inter: dataPagamento da transação > último evento do histórico > data agendada > hoje
+        const tx = r.data?.transacaoPix ?? {};
+        const confirmada = [tx.dataPagamento, r.data?.dataPagamento, tx.dataHoraMovimento]
+          .find((v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v));
+        const data = confirmada ? String(confirmada).slice(0, 10)
+          : ult ? new Date(new Date(ult).getTime() - 3 * 3600_000).toISOString().slice(0, 10)
+          : (d as any).pix_data_agendada ?? hoje();
         await sup.from("despesas").update({
           status: "pago", pix_status: "CONCLUIDO", data_pagamento: data,
           valor_pago: Number(r.data?.transacaoPix?.valor ?? d.valor), conciliado: true, pix_erro: null,
