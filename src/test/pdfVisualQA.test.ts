@@ -30,9 +30,9 @@ const OUT = "/tmp/pdf-qa";
 const student = { id: "00000000-0000-0000-0000-000000000000", nome: "Aluno Validação Visual" } as Tables<"alunos">;
 const observations = "Observação da prescrição: priorizar técnica, controlar a descida e registrar a carga utilizada.";
 const warmup = {
-  LIB: [{ subcategoria: "Quadril", exercicio: "Liberação miofascial", repeticoes: "60s", dias: ["T1", "T2", "T3", "T4"] }],
-  MOB: [{ subcategoria: "Tornozelo", exercicio: "Mobilidade de tornozelo", repeticoes: "10", dias: ["T1", "T3"] }],
-  ATI: [{ subcategoria: "Core", exercicio: "Prancha frontal", repeticoes: "30s", dias: ["T2", "T4"] }],
+  LIB: [{ subcategoria: "QUADRIL-ISQUIOS", exercicio: "Liberação miofascial", repeticoes: "60s", dias: ["T1", "T2", "T3", "T4"] }],
+  MOB: [{ subcategoria: "TORÁCICA ROTAÇÃO", exercicio: "Mobilidade de tornozelo", repeticoes: "10", dias: ["T1", "T3"] }],
+  ATI: [{ subcategoria: "ESTABILIDADE LOMBAR PA", exercicio: "Prancha frontal", repeticoes: "30s", dias: ["T2", "T4"] }],
   PREV: [{ subcategoria: "Ombro", exercicio: "Rotação externa", repeticoes: "12", dias: ["T1", "T2", "T3"] }],
   POT: [{ subcategoria: "Salto", exercicio: "Salto vertical", repeticoes: "5", dias: ["T1", "T3"] }],
 };
