@@ -346,6 +346,7 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
             5: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             6: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             7: { cellWidth: wRep, halign: "right", textColor: INK_SOFT, fontStyle: "bold", fontSize: NUM_FONT },
+            8: { cellWidth: wCarga, halign: "center" },
           };
         })(),
         didParseCell: (hookData) => {
