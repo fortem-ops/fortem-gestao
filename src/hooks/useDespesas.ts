@@ -164,6 +164,7 @@ export function useCategoriaMutations() {
       const n = nome.trim();
       if (!n) throw new Error('Informe o nome da subcategoria.');
       let error;
+      let novoId: string | undefined;
       if (id) {
         ({ error } = await supabase.from('despesas_categorias').update({ nome: n, tipo, ordem }).eq('id', id));
       } else {
@@ -173,15 +174,40 @@ export function useCategoriaMutations() {
         if (e) throw e;
         const maxSeq = Math.max(0, ...(irmas ?? []).map((r) => Number((r.codigo ?? '').split('.')[1]) || 0));
         const maxOrdem = Math.max(0, ...(irmas ?? []).map((r) => r.ordem ?? 0));
-        ({ error } = await supabase.from('despesas_categorias').insert({
+        const { data: nova, error: e2 } = await supabase.from('despesas_categorias').insert({
           nome: n, tipo, nivel: 'sub', categoria_pai_id: pai.id,
           codigo: `${pai.codigo}.${maxSeq + 1}`, ordem: ordem ?? maxOrdem + 1,
-        }));
+        }).select('id').single();
+        error = e2;
+        novoId = nova?.id;
       }
       if (error) {
         if (error.code === '23505') throw new Error('Já existe uma categoria com esse nome.');
         throw error;
       }
+      return novoId ?? id;
+    },
+    onSuccess: inval,
+  });
+
+  /** Cria uma categoria central (código e ordem automáticos). */
+  const salvarCentral = useMutation({
+    mutationFn: async ({ nome, tipo }: { nome: string; tipo: DespesaTipo }) => {
+      const n = nome.trim();
+      if (!n) throw new Error('Informe o nome da categoria.');
+      const { data: centrais, error: e } = await supabase.from('despesas_categorias')
+        .select('codigo, ordem').eq('nivel', 'central');
+      if (e) throw e;
+      const maxCod = Math.max(0, ...(centrais ?? []).map((r) => Number(r.codigo) || 0));
+      const maxOrdem = Math.max(0, ...(centrais ?? []).map((r) => r.ordem ?? 0));
+      const { data: nova, error } = await supabase.from('despesas_categorias').insert({
+        nome: n, tipo, nivel: 'central', codigo: String(maxCod + 1), ordem: maxOrdem + 1,
+      }).select('id').single();
+      if (error) {
+        if (error.code === '23505') throw new Error('Já existe uma categoria com esse nome.');
+        throw error;
+      }
+      return nova?.id as string;
     },
     onSuccess: inval,
   });
