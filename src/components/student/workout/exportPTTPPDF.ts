@@ -105,7 +105,8 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
     const wCat = 22;
     const wT = 8;
     const wRep = 14;
-    const wEx = mainW - (wNum + wCat + wT * nDias + wRep);
+    const wCarga = 16;
+    const wEx = mainW - (wNum + wCat + wT * nDias + wRep + wCarga);
 
     const colStyles: Record<number, Record<string, unknown>> = {
       0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
@@ -120,6 +121,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
       2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
     };
     for (let i = 0; i < nDias; i++) colStyles[3 + i] = { cellWidth: wT, halign: "center" };
+    colStyles[4 + nDias] = { cellWidth: wCarga, halign: "center" };
     colStyles[3 + nDias] = {
       cellWidth: wRep,
       halign: "right",
@@ -133,6 +135,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
       { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
       ...dias.map((d) => ({ content: d, styles: { halign: "center" as const } })),
       { content: "REP.", styles: { halign: "right" as const } },
+      { content: "CARGA", styles: { halign: "center" as const } },
     ]];
 
     gruposAtivos.forEach((g) => {
@@ -164,6 +167,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
         ];
         dias.forEach((d) => cells.push(ex.dias?.includes(d) ? CHECK : ""));
         cells.push(String(ex.repeticoes ?? ""));
+        cells.push("");
         return cells;
       });
 
@@ -227,13 +231,15 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   const wBloco = 28;
   const wAlvo = 28;
   const wKg = 18;
-  const wExercicio = mainW - (wBloco + wAlvo + wKg);
+  const wCargaF = 18;
+  const wExercicio = mainW - (wBloco + wAlvo + wKg + wCargaF);
 
   const colStylesTreino: Record<number, Record<string, unknown>> = {
     0: { cellWidth: wBloco, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
     1: { cellWidth: wExercicio, overflow: "ellipsize" },
     2: { cellWidth: wAlvo, halign: "center", fontStyle: "bold" },
     3: { cellWidth: wKg, halign: "center" },
+    4: { cellWidth: wCargaF, halign: "center" },
   };
 
   data.treinos.forEach((tr) => {
@@ -271,8 +277,9 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
         { content: "EXERCÍCIO", styles: { halign: "left" as const } },
         { content: "SÉRIES/REPS", styles: { halign: "center" as const } },
         { content: "KG", styles: { halign: "center" as const } },
+        { content: "CARGA", styles: { halign: "center" as const } },
       ]],
-      body: linhas,
+      body: linhas.map((r) => [...r, ""]),
       styles: commonStyles,
       headStyles: commonHeadStyles,
       alternateRowStyles: { fillColor: SURFACE },
