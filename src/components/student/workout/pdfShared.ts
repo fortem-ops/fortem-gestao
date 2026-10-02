@@ -114,3 +114,99 @@ export function drawObservacoes(
   }
   return lineY - LINE_GAP + Math.max(1.2, 2.0 * scale);
 }
+
+/**
+ * Observações da prescrição seguidas de linhas livres para anotações manuais.
+ * O texto salvo sempre vem antes das linhas, sem sobreposição.
+ */
+export function drawPrescriptionObservations(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  text?: string | null,
+  scale = 1,
+  manualLines = 2,
+): number {
+  const TITLE_FONT = Math.max(6.4, 8.4 * scale);
+  const TEXT_FONT = Math.max(6.2, 7.6 * scale);
+  const LINE_GAP = Math.max(3.0, 4.4 * scale);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(TITLE_FONT);
+  doc.setTextColor(...INK);
+  doc.text("OBSERVAÇÕES", x, y + TITLE_FONT * 0.35);
+
+  let cursorY = y + TITLE_FONT * 0.35 + Math.max(2.8, 3.8 * scale);
+  const trimmed = text?.trim();
+  if (trimmed) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(TEXT_FONT);
+    doc.setTextColor(...INK_SOFT);
+    const textLines = doc.splitTextToSize(trimmed, w) as string[];
+    doc.text(textLines, x, cursorY);
+    cursorY += textLines.length * Math.max(2.8, 3.2 * scale) + Math.max(1.2, 1.8 * scale);
+  }
+
+  doc.setDrawColor(...INK_MUTED);
+  doc.setLineWidth(0.15);
+  for (let i = 0; i < manualLines; i++) {
+    doc.line(x, cursorY, x + w, cursorY);
+    cursorY += LINE_GAP;
+  }
+  return cursorY + Math.max(0.8, 1.2 * scale);
+}
+
+/** Coluna lateral de frequência usada na primeira página dos PDFs de treino. */
+export function drawFrequencyColumn(
+  doc: jsPDF,
+  freqX: number,
+  freqColW: number,
+  topY: number,
+  bottomY: number,
+  activeSlots: number,
+  weeks = 4,
+): void {
+  const safeSlots = Math.max(1, Math.floor(activeSlots));
+  const safeWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
+  const headerH = 10;
+
+  doc.setFillColor(...RED);
+  doc.rect(freqX, topY, freqColW, headerH, "F");
+  doc.setTextColor(...WHITE);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.text("FREQUÊNCIA", freqX + freqColW / 2, topY + 4.2, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.8);
+  doc.text(`${safeWeeks} ${safeWeeks === 1 ? "SEMANA" : "SEMANAS"}`, freqX + freqColW / 2, topY + 7.6, { align: "center" });
+
+  const slotsTop = topY + headerH + 1;
+  const slotCount = safeWeeks * safeSlots;
+  const slotH = (bottomY - slotsTop) / slotCount;
+  for (let i = 0; i < slotCount; i++) {
+    const sy = slotsTop + i * slotH;
+    const week = Math.floor(i / safeSlots) + 1;
+    const slot = (i % safeSlots) + 1;
+    if (week % 2 === 0) {
+      doc.setFillColor(...RED_TINT);
+      doc.rect(freqX, sy, freqColW, slotH, "F");
+    }
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.15);
+    doc.rect(freqX, sy, freqColW, slotH);
+    if (slot === 1) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(5.5);
+      doc.setTextColor(...RED);
+      doc.text(`SEM ${week}`, freqX + freqColW - 1.5, sy + 2.2, { align: "right" });
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...INK);
+    doc.text(`T${slot}`, freqX + 2, sy + slotH / 2 + 1.2);
+    doc.setDrawColor(...INK_MUTED);
+    doc.setLineWidth(0.1);
+    doc.line(freqX + 7, sy + slotH - 1.5, freqX + freqColW - 1.5, sy + slotH - 1.5);
+  }
+}

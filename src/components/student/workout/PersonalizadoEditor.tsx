@@ -696,6 +696,7 @@ export function PersonalizadoEditor({
       descricao: name || "TREINO PERSONALIZADO",
       templateFase: "Personalizado",
       data: flat,
+      // Mantém as observações digitadas junto da versão achatada usada pelo PDF.
       print: mode === "print",
       weeks: weeksCount,
     });

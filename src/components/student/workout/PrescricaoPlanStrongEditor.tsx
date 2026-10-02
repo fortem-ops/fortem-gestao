@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -955,6 +956,14 @@ export function PrescricaoPlanStrongEditor({
             >
               <Plus className="w-3.5 h-3.5 mr-1" /> Levantamento
             </Button>
+          </div>
+          <div>
+            <Label>Observações da prescrição</Label>
+            <Textarea
+              value={data.observacoes ?? ""}
+              onChange={(e) => setData((prev) => ({ ...prev, observacoes: e.target.value }))}
+              rows={3}
+            />
           </div>
         </CardContent>
       </Card>

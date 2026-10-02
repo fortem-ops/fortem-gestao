@@ -121,6 +121,7 @@ export interface Wendler531Conteudo {
   percentual_training_max: number; // ex.: 90
   /** Bloco global de Aquecimento (idêntico ao Personalizado). */
   aquecimento?: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+  observacoes?: string;
   dias: Dia531[];
 }
 
@@ -233,6 +234,7 @@ export function emptyWendler531(frequencia: 2 | 3 | 4 | 5 = 4, pctTM = 90): Wend
     frequencia,
     percentual_training_max: pctTM,
     aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
+    observacoes: "",
     dias: Array.from({ length: frequencia }, (_, i) => ({
       ordem: i + 1,
       levantamentos: [],

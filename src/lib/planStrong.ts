@@ -303,6 +303,7 @@ export interface PlanStrong50Conteudo {
   diasTreinoSemana?: number;
   levantamentos: PSLevantamentoConfig[];
   aquecimento: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+  observacoes?: string;
   /** Auxiliares por slot de dia — chave "T1", "T2", ... */
   auxiliaresPorSlot?: Record<string, PSAuxiliar[]>;
 }
@@ -386,6 +387,7 @@ export function emptyPlanStrong50(duracaoMeses = 3): PlanStrong50Conteudo {
     levantamentos: [emptyLevantamento("agachamento", duracaoMeses)],
     aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
     auxiliaresPorSlot: {},
+    observacoes: "",
   };
 }
 

@@ -29,7 +29,8 @@ import {
   cleanName,
   drawWorkoutHeader,
   sectionBar,
-  drawObservacoes,
+  drawFrequencyColumn,
+  drawPrescriptionObservations,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -52,7 +53,10 @@ export async function exportPlanStrongPDF({
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
   const mainX = margin;
-  const mainW = pageW - margin * 2;
+  const gutter = 4;
+  const freqColW = 22;
+  const mainW = pageW - margin * 2 - freqColW - gutter;
+  const freqX = mainX + mainW + gutter;
   const bottomY = pageH - margin;
 
   const ROW_FONT = 8;
@@ -85,7 +89,8 @@ export async function exportPlanStrongPDF({
   // PÁGINA 1 — visão geral
   // ============================================================
   let y = drawWorkoutHeader(doc, student, mainX, mainW, margin, "PLAN STRONG 50");
-  y = drawObservacoes(doc, mainX, y, mainW, 1, 3);
+  drawFrequencyColumn(doc, freqX, freqColW, margin, bottomY, psSlots(data.diasTreinoSemana).length, 4);
+  y = drawPrescriptionObservations(doc, mainX, y, mainW, data.observacoes, 1, 3);
 
   // Slots de treino compartilhados (T1..Tn) — mesmos usados no editor
   const dias = psSlots(data.diasTreinoSemana);

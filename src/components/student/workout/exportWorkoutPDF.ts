@@ -8,6 +8,7 @@ import { aquecimentoLabel, ordenarBlocosAquecimento } from "@/lib/aquecimentoBlo
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
   treinos: { nome: string; exercicios: WorkoutExercise[] }[];
+  observacoes?: string;
 }
 
 interface ExportArgs {
@@ -52,6 +53,7 @@ const WARMUP_DEFAULT = { fill: INK, text: WHITE } as const;
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
 const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
+import { drawFrequencyColumn, drawPrescriptionObservations } from "./pdfShared";
 
 /** Removes leading numeric prefixes from exercise names (e.g. "4-Agachamento" → "Agachamento"). */
 const cleanExerciseName = (name: string): string =>
@@ -142,27 +144,7 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
   // OBSERVAÇÕES — fixed 5-line manual write area (TOP of page)
   // Rendered between the student header and the warm-up section.
   // ============================================================
-  const OBS_LINE_GAP = 4.2;
-  const OBS_LINES = 4;
-  const obsTitleH = 4;
-  const obsBlockH = obsTitleH + OBS_LINE_GAP * OBS_LINES;
-  const obsBottomGap = 2;
-
-  // Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...INK);
-  doc.text("OBSERVAÇÕES", mainX, y + 2.5);
-
-  // Writing lines (black), evenly spaced — first line sits one gap below title
-  doc.setDrawColor(...INK);
-  doc.setLineWidth(0.15);
-  for (let i = 1; i <= OBS_LINES; i++) {
-    const ly = y + obsTitleH + i * OBS_LINE_GAP;
-    doc.line(mainX, ly, mainX + mainW, ly);
-  }
-
-  y += obsBlockH + obsBottomGap;
+  y = drawPrescriptionObservations(doc, mainX, y, mainW, data.observacoes, 1, 4);
 
   // ============================================================
   // SINGLE-PAGE BUDGET
@@ -587,56 +569,7 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
   const freqBottomY = pageH - margin - footerReserve;
   const safeWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
   const activeT = Math.max(1, Math.min(4, data.treinos.length || 4));
-  const slotCount = safeWeeks * activeT;
-
-  // Column header (red)
-  const freqHeaderH = 10;
-  doc.setFillColor(...RED);
-  doc.rect(freqX, freqTopY, freqColW, freqHeaderH, "F");
-  doc.setTextColor(...WHITE);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("FREQUÊNCIA", freqX + freqColW / 2, freqTopY + 4.2, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(5.8);
-  doc.text(`${safeWeeks} ${safeWeeks === 1 ? "SEMANA" : "SEMANAS"}`, freqX + freqColW / 2, freqTopY + 7.6, { align: "center" });
-
-  // Slots
-  const slotsTop = freqTopY + freqHeaderH + 1;
-  const slotsAvailH = freqBottomY - slotsTop;
-  const slotH = slotsAvailH / slotCount;
-
-  for (let i = 0; i < slotCount; i++) {
-    const sy = slotsTop + i * slotH;
-    const week = Math.floor(i / activeT) + 1;
-    const tNum = (i % activeT) + 1;
-
-    if (week % 2 === 0) {
-      doc.setFillColor(...RED_TINT);
-      doc.rect(freqX, sy, freqColW, slotH, "F");
-    }
-
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.15);
-    doc.rect(freqX, sy, freqColW, slotH);
-
-    if (tNum === 1) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(5.5);
-      doc.setTextColor(...RED);
-      doc.text(`SEM ${week}`, freqX + freqColW - 1.5, sy + 2.2, { align: "right" });
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...INK);
-    doc.text(`T${tNum}`, freqX + 2, sy + slotH / 2 + 1.2);
-
-    doc.setDrawColor(...INK_MUTED);
-    doc.setLineWidth(0.1);
-    const lineY = sy + slotH - 1.5;
-    doc.line(freqX + 7, lineY, freqX + freqColW - 1.5, lineY);
-  }
+  drawFrequencyColumn(doc, freqX, freqColW, freqTopY, freqBottomY, activeT, safeWeeks);
 
   data.treinos.forEach((tr, idx) => {
     doc.setFillColor(...RED);
