@@ -210,3 +210,124 @@ export function drawFrequencyColumn(
     doc.line(freqX + 7, sy + slotH - 1.5, freqX + freqColW - 1.5, sy + slotH - 1.5);
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Tabela de força padrão (modelo do Treino Personalizado):
+// CAT | EXERCÍCIO | <colunas do método>, lista única por treino.
+// Grupos (principais × acessórios) separados só por uma linha
+// grossa, sem sub-cabeçalho de texto.
+// ─────────────────────────────────────────────────────────────
+export interface StrengthCol {
+  header: string;
+  width: number;
+  /** Destaque numérico (negrito, maior). */
+  strong?: boolean;
+  muted?: boolean;
+}
+export interface StrengthRow {
+  cat: string;
+  nome: string;
+  cells: string[];
+}
+
+export function drawStrengthTable(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    w: number;
+    cols: StrengthCol[];
+    /** Cada grupo é uma lista de linhas; entre grupos entra a linha grossa. */
+    groups: StrengthRow[][];
+  },
+): number {
+  const { x, y, w, cols } = opts;
+  const pageW = doc.internal.pageSize.getWidth();
+  const groups = opts.groups.filter((g) => g.length > 0);
+  const rows: StrengthRow[] = [];
+  const groupStart = new Set<number>();
+  groups.forEach((g, gi) => {
+    if (gi > 0) groupStart.add(rows.length);
+    rows.push(...g);
+  });
+
+  const ROW_FONT = 7.2;
+  const EX_FONT = 8.4;
+  const NUM_FONT = 8.4;
+  const HEAD_FONT = 6.2;
+  const ROW_PAD = 1.0;
+  const HEAD_PAD = 0.9;
+  const SIDE = 1.0;
+  const wCat = 11;
+  const wEx = w - wCat - cols.reduce((s, c) => s + c.width, 0);
+
+  const columnStyles: Record<number, Record<string, unknown>> = {
+    0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_FONT },
+    1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_FONT },
+  };
+  cols.forEach((c, i) => {
+    columnStyles[i + 2] = {
+      cellWidth: c.width,
+      halign: "center",
+      ...(c.strong ? { fontStyle: "bold", fontSize: NUM_FONT } : {}),
+      ...(c.muted ? { textColor: INK_SOFT } : {}),
+    };
+  });
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: x, right: pageW - (x + w) },
+    tableWidth: w,
+    theme: "plain",
+    pageBreak: "avoid",
+    rowPageBreak: "avoid",
+    head: [[
+      { content: "CAT", styles: { halign: "left" as const } },
+      { content: "EXERCÍCIO", styles: { halign: "left" as const } },
+      ...cols.map((c) => ({ content: c.header, styles: { halign: "center" as const } })),
+    ]],
+    body: rows.map((r) => [r.cat, r.nome, ...cols.map((_, i) => r.cells[i] ?? "")]),
+    styles: {
+      font: "helvetica",
+      textColor: INK,
+      fontSize: ROW_FONT,
+      valign: "middle",
+      cellPadding: { top: ROW_PAD, bottom: ROW_PAD, left: SIDE, right: SIDE },
+    },
+    headStyles: {
+      fillColor: WHITE,
+      textColor: INK,
+      fontStyle: "bold",
+      fontSize: HEAD_FONT,
+      cellPadding: { top: HEAD_PAD, bottom: HEAD_PAD, left: SIDE, right: SIDE },
+      lineWidth: { bottom: 0.26 } as unknown as number,
+      lineColor: INK_SOFT,
+    },
+    columnStyles,
+    didParseCell: (hd) => {
+      if (hd.section !== "body") return;
+      hd.cell.styles.lineWidth = 0;
+      if (groupStart.has(hd.row.index)) {
+        hd.cell.styles.cellPadding = { top: ROW_PAD + 1.4, bottom: ROW_PAD, left: SIDE, right: SIDE } as unknown as number;
+      }
+    },
+    didDrawCell: (hd) => {
+      if (hd.section !== "body") return;
+      const i = hd.row.index;
+      const x1 = hd.cell.x;
+      const x2 = hd.cell.x + hd.cell.width;
+      const isLastOfGroup = i === rows.length - 1 || groupStart.has(i + 1);
+      if (!isLastOfGroup) {
+        doc.setDrawColor(...RULE);
+        doc.setLineWidth(0.12);
+        doc.line(x1, hd.cell.y + hd.cell.height, x2, hd.cell.y + hd.cell.height);
+      }
+      if (groupStart.has(i)) {
+        doc.setDrawColor(...INK);
+        doc.setLineWidth(0.5);
+        doc.line(x1, hd.cell.y, x2, hd.cell.y);
+      }
+    },
+  });
+  return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+}
