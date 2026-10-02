@@ -299,7 +299,7 @@ export async function exportFoolproofPDF({ student, data, print }: ExportArgs): 
 
   // ── HISTÓRICO POR LEVANTAMENTO (semana, peso e fase) ────────
   data.levantamentos.forEach((lev) => {
-    ensurePage(40);
+    ensurePage(58);
     const alvo = alvoFP(lev);
     y = sectionBar(
       doc,
@@ -327,10 +327,6 @@ export async function exportFoolproofPDF({ student, data, print }: ExportArgs): 
     for (let i = 0; i < emBranco; i++) {
       linhasHist.push([`SEMANA ${linhasHist.length + 1}`, "", "", ""]);
     }
-
-    // Mantém cada histórico inteiro na mesma página e evita continuação sem título.
-    const historyNeeded = 6 + 5 + linhasHist.length * 5 + 3;
-    ensurePage(historyNeeded);
 
     autoTable(doc, {
       startY: y,
