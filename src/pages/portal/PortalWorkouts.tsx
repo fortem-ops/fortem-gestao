@@ -177,7 +177,7 @@ export default function PortalWorkouts() {
     queryFn: async () => {
       const { data } = await supabase
         .from("treinos")
-        .select("id, descricao, versao, semanas, conteudo, status, template_fase")
+        .select("id, aluno_id, descricao, versao, semanas, conteudo, status, template_fase")
         .eq("aluno_id", student!.id)
         .eq("status", "atual")
         .order("created_at", { ascending: false })
