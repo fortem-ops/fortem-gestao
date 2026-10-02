@@ -19,12 +19,87 @@ function addDias(d: string, n: number): string {
   return dt.toISOString().slice(0, 10);
 }
 
+const JANELA_PENDENTE_DIAS = 3;
+/** Palavras genéricas que não identificam beneficiário. */
+const STOP = new Set([
+  "pix", "enviado", "enviada", "recebido", "pagamento", "pagto", "transferencia", "ted", "doc", "boleto",
+  "debito", "credito", "conta", "salario", "ferias", "vale", "transporte", "aluguel", "ltda", "eireli",
+  "servicos", "servico", "comercio", "parcela", "referente", "mensal", "fatura", "cartao", "banco", "inter",
+]);
+export function normTexto(s: string): string {
+  return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+function tokensNome(s: string): string[] {
+  return normTexto(s).split(" ").filter((t) => t.length >= 4 && !/\d/.test(t) && !STOP.has(t));
+}
+/** Mesma ideia do casarFuncionario da folha: ao menos um token de nome (4+ letras) em comum. */
+export function casaPorNome(movDesc: string, despDesc: string): boolean {
+  const tm = new Set(tokensNome(movDesc));
+  return tokensNome(despDesc).some((t) => tm.has(t));
+}
+
+type ResultadoPendente = "baixado" | "multiplos" | "nenhum" | "erro";
+let mapeamentosCache: { padrao_pix: string; despesa_descricao: string }[] | null = null;
+
+async function baixarPendente(sb: any, m: any, registrosUsados: Set<string>): Promise<ResultadoPendente> {
+  const { data, error } = await sb.from("despesas")
+    .select("id, descricao, valor")
+    .eq("status", "pendente").eq("conciliado", false).eq("conta_bancaria", "BANCO INTER")
+    .gte("data_competencia", addDias(m.data_entrada, -JANELA_PENDENTE_DIAS))
+    .lte("data_competencia", addDias(m.data_entrada, JANELA_PENDENTE_DIAS))
+    .limit(500);
+  if (error) { console.error("pendentes", error.message); return "erro"; }
+  const pend = (data ?? []).filter((d: any) => !registrosUsados.has(d.id));
+  if (!pend.length) return "nenhum";
+  const movTexto = `${m.descricao ?? ""} ${m.titulo ?? ""}`;
+
+  // Camada 1: nome
+  let cands = pend.filter((d: any) => casaPorNome(movTexto, d.descricao));
+  if (cands.length > 1) return "multiplos";
+
+  // Camada 2: mapeamento manual
+  if (!cands.length) {
+    if (!mapeamentosCache) {
+      const { data: mp, error: e } = await sb.from("mapeamento_beneficiarios_pix")
+        .select("padrao_pix, despesa_descricao").eq("ativo", true);
+      if (e) { console.error("mapeamento", e.message); return "erro"; }
+      mapeamentosCache = mp ?? [];
+    }
+    const movLow = movTexto.toLowerCase();
+    const ids = new Set<string>();
+    for (const r of mapeamentosCache!) {
+      if (!r.padrao_pix || !r.despesa_descricao || !movLow.includes(r.padrao_pix.toLowerCase())) continue;
+      const alvo = r.despesa_descricao.toLowerCase();
+      pend.filter((d: any) => (d.descricao ?? "").toLowerCase().includes(alvo)).forEach((d: any) => ids.add(d.id));
+    }
+    cands = pend.filter((d: any) => ids.has(d.id));
+    if (cands.length > 1) return "multiplos";
+  }
+  if (!cands.length) return "nenhum";
+
+  const d = cands[0];
+  const valorBanco = Math.round(Number(m.valor) * 100) / 100;
+  const confianca = Math.abs(Number(d.valor) - valorBanco) < 0.005 ? "exata" : "aproximada";
+  const { error: insErr } = await sb.from("conciliacoes_bancarias").insert({
+    movimento_id: m.id, tabela_origem: "despesas", registro_id: d.id, tipo_match: "automatico", confianca,
+  });
+  if (insErr) { console.error("insert vínculo pendente", insErr.message); return "erro"; }
+  const { error: upErr } = await sb.from("despesas").update({
+    status: "pago", data_pagamento: m.data_entrada, valor_pago: valorBanco, conciliado: true,
+  }).eq("id", d.id).eq("status", "pendente");
+  if (upErr) console.error("baixa pendente", upErr.message);
+  registrosUsados.add(d.id);
+  return "baixado";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const secret = Deno.env.get("INTER_EXTRATO_WEBHOOK_SECRET");
   if (!secret || req.headers.get("x-webhook-secret") !== secret) return json({ ok: false, error: "unauthorized" }, 401);
 
+  mapeamentosCache = null;
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
@@ -32,7 +107,7 @@ Deno.serve(async (req) => {
     const movs: any[] = [];
     for (let from = 0; ; from += 1000) {
       const { data, error } = await sb.from("inter_extrato_movimentos")
-        .select("id, data_entrada, tipo_operacao, valor")
+        .select("id, data_entrada, tipo_operacao, valor, descricao, titulo")
         .gte("data_entrada", DATA_INICIO_CONCILIACAO)
         .order("data_entrada").order("id").range(from, from + 999);
       if (error) throw error;
@@ -52,7 +127,7 @@ Deno.serve(async (req) => {
     }
 
     const pendentesMov = movs.filter((m) => !vinculados.has(m.id));
-    const resumo = { processados: 0, conciliados: 0, exatas: 0, aproximadas: 0, pendentes_sem_candidato: 0, pendentes_multiplos: 0, erros: 0 };
+    const resumo = { processados: 0, conciliados: 0, exatas: 0, aproximadas: 0, baixados_automaticamente: 0, pendentes_sem_candidato: 0, pendentes_multiplos: 0, erros: 0 };
 
     for (const m of pendentesMov) {
       if (m.tipo_operacao !== "C" && m.tipo_operacao !== "D") continue;
@@ -72,8 +147,16 @@ Deno.serve(async (req) => {
       if (error) { console.error("busca candidatos", tabela, error.message); resumo.erros++; continue; }
       const lista = (cands ?? []).filter((c: any) => !registrosUsados.has(c.id));
 
-      if (lista.length === 0) { resumo.pendentes_sem_candidato++; continue; }
       if (lista.length > 1) { resumo.pendentes_multiplos++; continue; }
+      if (lista.length === 0) {
+        // Camada nova: baixa automática de despesas PENDENTES (só saídas).
+        if (tabela !== "despesas") { resumo.pendentes_sem_candidato++; continue; }
+        const r = await baixarPendente(sb, m, registrosUsados);
+        if (r === "baixado") { resumo.baixados_automaticamente++; continue; }
+        if (r === "multiplos") { resumo.pendentes_multiplos++; continue; }
+        if (r === "erro") { resumo.erros++; continue; }
+        resumo.pendentes_sem_candidato++; continue;
+      }
 
       const c: any = lista[0];
       const confianca = c[campoData] === m.data_entrada ? "exata" : "aproximada";
