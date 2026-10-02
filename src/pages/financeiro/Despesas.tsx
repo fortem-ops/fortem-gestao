@@ -127,7 +127,7 @@ export default function Despesas() {
       {!canEdit && (
         <Badge variant="secondary">Modo somente leitura — apenas Admin/Coordenador podem editar.</Badge>
       )}
-      <Tabs defaultValue="lancamentos">
+      <Tabs defaultValue={new URLSearchParams(window.location.search).get("aba") === "fornecedores" ? "fornecedores" : "lancamentos"}>
         <TabsList>
           <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
