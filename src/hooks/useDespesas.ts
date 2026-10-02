@@ -220,7 +220,7 @@ export function useCategoriaMutations() {
     onSuccess: inval,
   });
 
-  return { salvarSub, alternarAtivo };
+  return { salvarSub, salvarCentral, alternarAtivo };
 }
 
 export function useFornecedores() {
