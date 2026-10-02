@@ -21,7 +21,13 @@ const dataBR = (iso: string | null) => (iso ? iso.split("-").reverse().join("/")
 
 type LinhaIA = { data: string | null; beneficiario: string; valor: number; sinal: "+" | "-"; parcela_atual: number | null; parcela_total: number | null };
 type Fatura = { emissor: string | null; cartao_final: string | null; vencimento: string | null; valor_total: number | null; mes_referencia: string | null; linhas: LinhaIA[] };
-type Cartao = { id: string; nome: string; identificador_pdf: string | null; dia_vencimento_padrao: number | null; forma_pagamento_padrao: string | null; conta_bancaria: string | null; ativo: boolean };
+type Cartao = { id: string; nome: string; identificador_pdf: string | null; dia_vencimento_padrao: number | null; forma_pagamento_padrao: string | null; conta_bancaria: string | null; ativo: boolean; pagar_automatico_no_vencimento: boolean };
+
+function proximoDiaUtil(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 type Regra = { id: string; padrao: string; categoria_id: string };
 type Linha = LinhaIA & {
   origemId: string; excluida: boolean; categoriaId: string; regra: boolean;
@@ -173,8 +179,9 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
       categoria_id: l.categoriaId,
       descricao: `${l.beneficiario.trim()} (${mesAno})${parc}`,
       valor: Math.round(Number(l.valor) * 100) / 100,
-      tipo: "variavel", status: "pendente", data_competencia: vencimento,
-      forma_pagamento: cartao.forma_pagamento_padrao, conta_bancaria: cartao.conta_bancaria,
+      tipo: "variavel", status: cartao.pagar_automatico_no_vencimento ? "pago" : "pendente", data_competencia: vencimento,
+      data_pagamento: cartao.pagar_automatico_no_vencimento ? proximoDiaUtil(vencimento) : null,
+      forma_pagamento: "CARTÃO DE CRÉDITO", conta_bancaria: cartao.conta_bancaria,
       observacao: `Fatura ${cartao.nome}${fatura?.cartao_final ? ` final ${fatura.cartao_final}` : ""} ${mesAno} · compra em ${dataBR(l.data)}`,
       origem: "automatico", origem_tabela: ORIGEM, origem_id: l.origemId,
       created_by: uid, updated_by: uid,
