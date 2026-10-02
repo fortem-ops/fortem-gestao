@@ -29,6 +29,7 @@ export interface Fornecedor {
   telefone: string | null;
   email: string | null;
   observacao: string | null;
+  chave_pix?: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
