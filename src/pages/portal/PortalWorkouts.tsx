@@ -1773,7 +1773,8 @@ function PortalXFabView({
                     Bloco {bi + 3} · Auxiliares (série alternada)
                   </p>
                   {bloco.map((ex, ei) => (
-                    <div key={ei} className="flex items-center justify-between text-xs gap-2">
+                    <div key={ei}>
+                    <div className="flex items-center justify-between text-xs gap-2">
                       <span className="truncate flex items-center gap-1 min-w-0">
                         <span className="font-semibold shrink-0">{ex.categoria}</span>
                         <span className="text-muted-foreground truncate">
@@ -1788,6 +1789,8 @@ function PortalXFabView({
                       <span className="tabular-nums text-muted-foreground shrink-0">
                         {planoAux ? planoAux.auxiliar : "—"}
                       </span>
+                    </div>
+                    <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio) || ""} className="mt-1" />
                     </div>
                   ))}
                 </div>
@@ -2278,7 +2281,8 @@ function PortalPTTPView({
                   Auxiliares
                 </p>
                 {tr.auxiliares.map((aux, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs gap-2">
+                  <div key={i}>
+                  <div className="flex items-center justify-between text-xs gap-2">
                     <span className="truncate flex items-center gap-1 min-w-0">
                       <span className="font-semibold shrink-0">{aux.categoria}</span>
                       <span className="text-muted-foreground truncate">
@@ -2299,6 +2303,8 @@ function PortalPTTPView({
                       {aux.series}x{aux.reps}
                       {aux.kg ? ` · ${aux.kg} kg` : ""}
                     </span>
+                  </div>
+                  <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(aux.exercicio) || ""} className="mt-1" />
                   </div>
                 ))}
               </div>
@@ -2544,7 +2550,8 @@ function PortalPTTP2View({
                   Auxiliares
                 </p>
                 {tr.auxiliares.map((aux, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs gap-2">
+                  <div key={i}>
+                  <div className="flex items-center justify-between text-xs gap-2">
                     <span className="truncate flex items-center gap-1 min-w-0">
                       <span className="font-semibold shrink-0">{aux.categoria}</span>
                       <span className="text-muted-foreground truncate">
@@ -2565,6 +2572,8 @@ function PortalPTTP2View({
                       {aux.series}x{aux.reps}
                       {aux.kg ? ` · ${aux.kg} kg` : ""}
                     </span>
+                  </div>
+                  <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(aux.exercicio) || ""} className="mt-1" />
                   </div>
                 ))}
               </div>
@@ -2824,7 +2833,8 @@ function PortalFoolproofView({
                   Auxiliares
                 </p>
                 {fpAuxiliaresDoSlot(data, slot).map((aux, k) => (
-                  <div key={k} className="flex items-center justify-between text-xs gap-2">
+                  <div key={k}>
+                  <div className="flex items-center justify-between text-xs gap-2">
                     <span className="truncate flex items-center gap-1 min-w-0">
                       <span className="font-semibold shrink-0">{aux.categoria}</span>
                       <span className="text-muted-foreground truncate">
@@ -2845,6 +2855,8 @@ function PortalFoolproofView({
                       {aux.series}x{aux.reps}
                       {aux.kg ? ` · ${aux.kg} kg` : ""}
                     </span>
+                  </div>
+                  <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(aux.exercicio) || ""} className="mt-1" />
                   </div>
                 ))}
               </div>
@@ -3042,7 +3054,8 @@ function PortalEasyStrengthView({
                   Auxiliares
                 </p>
                 {sessao.auxiliares.map((aux, k) => (
-                  <div key={k} className="flex items-center justify-between text-xs gap-2">
+                  <div key={k}>
+                  <div className="flex items-center justify-between text-xs gap-2">
                     <span className="truncate flex items-center gap-1 min-w-0">
                       <span className="font-semibold shrink-0">{aux.categoria}</span>
                       <span className="text-muted-foreground truncate">
@@ -3063,6 +3076,8 @@ function PortalEasyStrengthView({
                       {aux.series}x{aux.reps}
                       {aux.kg ? ` · ${aux.kg} kg` : ""}
                     </span>
+                  </div>
+                  <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(aux.exercicio) || ""} className="mt-1" />
                   </div>
                 ))}
               </div>
@@ -3284,7 +3299,8 @@ function PortalMileDeepView({
                     Auxiliares
                   </p>
                   {s.auxiliares.map((aux, k) => (
-                    <div key={k} className="flex items-center justify-between text-xs gap-2">
+                    <div key={k}>
+                    <div className="flex items-center justify-between text-xs gap-2">
                       <span className="truncate flex items-center gap-1 min-w-0">
                         <span className="font-semibold shrink-0">{aux.categoria}</span>
                         <span className="text-muted-foreground truncate">
@@ -3305,6 +3321,8 @@ function PortalMileDeepView({
                         {aux.series}x{aux.reps}
                         {aux.kg ? ` · ${aux.kg} kg` : ""}
                       </span>
+                    </div>
+                    <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(aux.exercicio) || ""} className="mt-1" />
                     </div>
                   ))}
                 </div>
