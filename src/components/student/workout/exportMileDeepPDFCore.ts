@@ -22,6 +22,7 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  warmupCategoryColumnStyle,
   drawStrengthTable,
   type StrengthRow,
 } from "./pdfShared";
@@ -155,10 +156,10 @@ export async function exportMileDeepPDF({
 
       const nDias = Math.max(1, dias.length);
       const wNum = 6.4;
-      const wCat = 20;
+      const wCat = 23;
       const wT = 8;
       const wRep = 14;
-      const wCarga = 16;
+      const wCarga = 13;
       const wEx = mainW - (wNum + wCat + wT * nDias + wRep + wCarga);
       const body = items.map((ex: PersonalizadoAquecimentoEx, idx) => {
         const cells = [String(idx + 1), (ex.subcategoria || "").toUpperCase(), cleanName(ex.exercicio) || "—"];
@@ -169,7 +170,13 @@ export async function exportMileDeepPDF({
       });
       const columnStyles: Record<number, Record<string, unknown>> = {
         0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
-        1: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
+        1: warmupCategoryColumnStyle(
+          doc,
+          items.map((ex) => ex.subcategoria),
+          wCat,
+          6.8,
+          1.1,
+        ),
         2: { cellWidth: wEx, fontStyle: "bold", overflow: "ellipsize" },
       };
       dias.forEach((_, i) => { columnStyles[3 + i] = { cellWidth: wT, halign: "center" }; });

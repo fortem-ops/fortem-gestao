@@ -32,6 +32,7 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  warmupCategoryColumnStyle,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -109,23 +110,21 @@ export async function exportM102PDF({
       y = sectionBar(doc, "Aquecimento", undefined, mainX, y, mainW, Math.max(5.2, 6.4 * S));
 
       const wNum = Math.max(5, 6.4 * S);
-      const wCat = Math.max(18, 22 * S);
+      const wCat = Math.max(21, 25 * S);
       const wT = Math.max(6, 8 * S);
       const wRep = Math.max(10, 14 * S);
-      const wKg = Math.max(12, 16 * S);
+      const wKg = Math.max(10, 13 * S);
       const wEx = mainW - (wNum + wCat + wT * 4 + wRep + wKg);
-      const catFont = Math.max(4.6, ROW_FONT - 1.2);
 
       const colStyles: Record<number, Record<string, unknown>> = {
         0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
-        1: {
-          cellWidth: wCat,
-          halign: "center",
-          fontStyle: "bold",
-          textColor: INK_SOFT,
-          overflow: "linebreak",
-          fontSize: catFont,
-        },
+        1: warmupCategoryColumnStyle(
+          doc,
+          gruposAtivos.flatMap((g) => (aq?.[g] ?? []).map((ex) => ex.subcategoria)),
+          wCat,
+          ROW_FONT - 1.2,
+          SIDE_PAD,
+        ),
         2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
       };
       for (let i = 0; i < 4; i++) {

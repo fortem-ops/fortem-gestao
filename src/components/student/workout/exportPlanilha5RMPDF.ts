@@ -28,6 +28,7 @@ import {
   sectionBar,
   drawFrequencyColumn,
   drawPrescriptionObservations,
+  warmupCategoryColumnStyle,
   drawStrengthTable,
   type StrengthCol,
   type StrengthRow,
@@ -104,22 +105,21 @@ export async function exportPlanilha5RMPDF({ student, data, print }: ExportArgs)
 
     const nDias = Math.max(1, dias.length);
     const wNum = 6.4;
-    const wCat = 22;
+    const wCat = 25;
     const wT = 8;
     const wRep = 14;
-    const wCarga = 16;
+    const wCarga = 13;
     const wEx = mainW - (wNum + wCat + wT * nDias + wRep + wCarga);
 
     const colStyles: Record<number, Record<string, unknown>> = {
       0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
-      1: {
-        cellWidth: wCat,
-        halign: "center",
-        fontStyle: "bold",
-        textColor: INK_SOFT,
-        overflow: "linebreak",
-        fontSize: ROW_FONT - 1.2,
-      },
+      1: warmupCategoryColumnStyle(
+        doc,
+        gruposAtivos.flatMap((g) => (aq?.[g] ?? []).map((ex) => ex.subcategoria)),
+        wCat,
+        ROW_FONT - 1.2,
+        SIDE_PAD,
+      ),
       2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
     };
     for (let i = 0; i < nDias; i++) colStyles[3 + i] = { cellWidth: wT, halign: "center" };

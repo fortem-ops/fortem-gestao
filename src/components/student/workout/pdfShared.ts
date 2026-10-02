@@ -20,6 +20,41 @@ export const cleanName = (s?: string | null) =>
   (s ?? "").replace(/^\s*\d+\s*[-–—.)]\s*/, "").trim();
 
 /**
+ * Estilo compartilhado da coluna CAT do aquecimento.
+ * Reduz a fonte até o mínimo legível e, se ainda necessário, usa reticências;
+ * nunca permite que a categoria aumente a altura da linha.
+ */
+export function warmupCategoryColumnStyle(
+  doc: jsPDF,
+  labels: Array<string | null | undefined>,
+  cellWidth: number,
+  preferredFontSize: number,
+  horizontalPadding = 1.1,
+  minFontSize = 5,
+): Record<string, unknown> {
+  const preferred = Math.max(minFontSize, preferredFontSize);
+  const availableWidth = Math.max(1, cellWidth - horizontalPadding * 2);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(preferred);
+  const widest = labels.reduce(
+    (max, label) => Math.max(max, doc.getTextWidth((label ?? "").toUpperCase())),
+    0,
+  );
+  const fitted = widest > availableWidth
+    ? Math.max(minFontSize, preferred * availableWidth / widest)
+    : preferred;
+
+  return {
+    cellWidth,
+    halign: "center",
+    fontStyle: "bold",
+    textColor: INK_SOFT,
+    overflow: "ellipsize",
+    fontSize: fitted,
+  };
+}
+
+/**
  * Cabeçalho compartilhado: logo à esquerda + bloco "ALUNO / nome / subtitle · data" à direita.
  * Retorna o Y logo abaixo da linha vermelha do cabeçalho.
  */
