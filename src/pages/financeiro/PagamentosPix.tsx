@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -25,6 +25,20 @@ type Linha = {
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
 const hojeISO = () => { const n = new Date(); return new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const valorDe = (l: Linha) => Number(l.valor_liquido_previsto ?? l.valor);
+const mesDe = (l: Linha) => l.data_competencia?.slice(0, 7) ?? "9999-99";
+const rotuloMes = (chave: string) => {
+  const [, a, m] = chave.match(/^(\d{4})-(\d{2})$/) ?? [];
+  return m ? `${MESES_PT[Number(m) - 1]} ${a}` : "Sem competência";
+};
+function agruparPorMes(linhas: Linha[]) {
+  const mapa = new Map<string, Linha[]>();
+  for (const l of linhas) { const k = mesDe(l); const g = mapa.get(k); if (g) g.push(l); else mapa.set(k, [l]); }
+  return [...mapa.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([mes, ls]) => ({ mes, linhas: ls, total: ls.reduce((s, l) => s + valorDe(l), 0) }));
+}
 
 export function mascararChave(c: string) {
   const s = c.trim();
@@ -74,8 +88,11 @@ export default function PagamentosPix() {
     };
   }, [linhas]);
 
+  const gruposElegiveis = useMemo(() => agruparPorMes(elegiveis), [elegiveis]);
+  const gruposSemChave = useMemo(() => agruparPorMes([...semChave, ...semFornecedor]), [semChave, semFornecedor]);
+
   const selecionadas = elegiveis.filter((l) => sel.has(l.id));
-  const total = selecionadas.reduce((s, l) => s + Number(l.valor_liquido_previsto ?? l.valor), 0);
+  const total = selecionadas.reduce((s, l) => s + valorDe(l), 0);
   const hoje = hojeISO();
   // Padrão = data de competência (nunca antes de hoje, que o Inter não aceita)
   const dataDe = (l: Linha) => datas[l.id] ?? (l.data_competencia && l.data_competencia >= hoje ? l.data_competencia : hoje);
@@ -116,6 +133,7 @@ export default function PagamentosPix() {
   if (!roles?.isAdmin) return <Navigate to="/" replace />;
 
   const toggle = (id: string, v: boolean) => setSel((s) => { const n = new Set(s); if (v) n.add(id); else n.delete(id); return n; });
+  const toggleMes = (linhas: Linha[], v: boolean) => setSel((s) => { const n = new Set(s); linhas.forEach((l) => (v ? n.add(l.id) : n.delete(l.id))); return n; });
   const todos = elegiveis.length > 0 && selecionadas.length === elegiveis.length;
 
   return (
@@ -153,24 +171,40 @@ export default function PagamentosPix() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {elegiveis.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell><Checkbox checked={sel.has(l.id)} onCheckedChange={(v) => toggle(l.id, !!v)} aria-label={`Selecionar ${l.descricao}`} /></TableCell>
-                  <TableCell>{l.fornecedor?.nome}</TableCell>
-                  <TableCell>
-                    {l.descricao}
-                    {l.pix_status && <Badge className={`ml-2 ${STATUS[l.pix_status]?.cls}`} title={l.pix_erro ?? ""}>{STATUS[l.pix_status]?.label}</Badge>}
-                    {l.pix_erro && <p className="text-xs text-destructive">{l.pix_erro}</p>}
-                  </TableCell>
-                  <TableCell>{dataBR(l.data_competencia)}</TableCell>
-                  <TableCell>
-                    <Input type="date" className="h-8 w-[150px]" min={hoje} value={dataDe(l)} aria-label={`Data de pagamento de ${l.descricao}`}
-                      onChange={(e) => setDatas((m) => ({ ...m, [l.id]: e.target.value }))} />
-                    {dataDe(l) < hoje && <p className="text-xs text-destructive">Data passada</p>}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{mascararChave(l.fornecedor!.chave_pix!)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{brl(Number(l.valor_liquido_previsto ?? l.valor))}</TableCell>
-                </TableRow>
+              {gruposElegiveis.map((g) => (
+                <Fragment key={g.mes}>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={g.linhas.length > 0 && g.linhas.every((l) => sel.has(l.id))}
+                        onCheckedChange={(v) => toggleMes(g.linhas, !!v)}
+                        aria-label={`Selecionar ${rotuloMes(g.mes)}`}
+                      />
+                    </TableCell>
+                    <TableCell colSpan={2} className="font-display text-sm font-semibold">{rotuloMes(g.mes)}</TableCell>
+                    <TableCell colSpan={3} className="text-xs text-muted-foreground">{g.linhas.length} pagamento(s)</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums">{brl(g.total)}</TableCell>
+                  </TableRow>
+                  {g.linhas.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell><Checkbox checked={sel.has(l.id)} onCheckedChange={(v) => toggle(l.id, !!v)} aria-label={`Selecionar ${l.descricao}`} /></TableCell>
+                      <TableCell>{l.fornecedor?.nome}</TableCell>
+                      <TableCell>
+                        {l.descricao}
+                        {l.pix_status && <Badge className={`ml-2 ${STATUS[l.pix_status]?.cls}`} title={l.pix_erro ?? ""}>{STATUS[l.pix_status]?.label}</Badge>}
+                        {l.pix_erro && <p className="text-xs text-destructive">{l.pix_erro}</p>}
+                      </TableCell>
+                      <TableCell>{dataBR(l.data_competencia)}</TableCell>
+                      <TableCell>
+                        <Input type="date" className="h-8 w-[150px]" min={hoje} value={dataDe(l)} aria-label={`Data de pagamento de ${l.descricao}`}
+                          onChange={(e) => setDatas((m) => ({ ...m, [l.id]: e.target.value }))} />
+                        {dataDe(l) < hoje && <p className="text-xs text-destructive">Data passada</p>}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{mascararChave(l.fornecedor!.chave_pix!)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{brl(valorDe(l))}</TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
               ))}
               {!isLoading && elegiveis.length === 0 && (
                 <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma despesa Pix pendente com chave cadastrada.</TableCell></TableRow>
@@ -185,21 +219,31 @@ export default function PagamentosPix() {
           <CardHeader><CardTitle className="text-base">Sem chave Pix cadastrada ({semChave.length + semFornecedor.length})</CardTitle></CardHeader>
           <CardContent>
             <Table>
-              <TableBody>
-                {[...semChave, ...semFornecedor].map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell>{l.fornecedor?.nome ?? <span className="text-muted-foreground">Sem fornecedor vinculado</span>}</TableCell>
-                    <TableCell>{l.descricao}</TableCell>
-                    <TableCell>{dataBR(l.data_competencia)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{brl(Number(l.valor_liquido_previsto ?? l.valor))}</TableCell>
-                    <TableCell className="text-right">
-                      <Link className="text-primary text-sm underline" to="/financeiro/despesas?aba=fornecedores">
-                        {l.fornecedor ? "Cadastrar chave Pix" : "Vincular fornecedor"}
-                      </Link>
-                    </TableCell>
+            <TableBody>
+              {gruposSemChave.map((g) => (
+                <Fragment key={g.mes}>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={2} className="font-display text-sm font-semibold">{rotuloMes(g.mes)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{g.linhas.length} pagamento(s)</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums">{brl(g.total)}</TableCell>
+                    <TableCell />
                   </TableRow>
-                ))}
-              </TableBody>
+                  {g.linhas.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell>{l.fornecedor?.nome ?? <span className="text-muted-foreground">Sem fornecedor vinculado</span>}</TableCell>
+                      <TableCell>{l.descricao}</TableCell>
+                      <TableCell>{dataBR(l.data_competencia)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{brl(valorDe(l))}</TableCell>
+                      <TableCell className="text-right">
+                        <Link className="text-primary text-sm underline" to="/financeiro/despesas?aba=fornecedores">
+                          {l.fornecedor ? "Cadastrar chave Pix" : "Vincular fornecedor"}
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
+              ))}
+            </TableBody>
             </Table>
           </CardContent>
         </Card>
@@ -248,7 +292,7 @@ export default function PagamentosPix() {
                 <ul className="list-disc pl-5">
                   {datasLote.map((d) => {
                     const ls = selecionadas.filter((l) => dataDe(l) === d);
-                    return <li key={d}><strong>{dataBR(d)}</strong> — {ls.length} pagamento(s), {brl(ls.reduce((s, l) => s + Number(l.valor_liquido_previsto ?? l.valor), 0))}</li>;
+                    return <li key={d}><strong>{dataBR(d)}</strong> — {ls.length} pagamento(s), {brl(ls.reduce((s, l) => s + valorDe(l), 0))}</li>;
                   })}
                 </ul>
               </div>
