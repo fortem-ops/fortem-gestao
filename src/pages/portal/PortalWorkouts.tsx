@@ -835,7 +835,8 @@ export default function PortalWorkouts() {
                   </p>
                 </div>
                 {items.map((ex: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0">
+                  <div key={i} className="px-4 py-3 border-b border-border last:border-0">
+                  <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{cleanName(ex.exercicio)}</p>
                       <p className="text-xs text-muted-foreground">
@@ -853,6 +854,8 @@ export default function PortalWorkouts() {
                         <Play className="w-3.5 h-3.5 text-primary" />
                       </a>
                     )}
+                  </div>
+                  <CargaInput alunoId={student?.id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio)} />
                   </div>
                 ))}
               </div>
