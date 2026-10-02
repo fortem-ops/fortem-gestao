@@ -36,14 +36,20 @@ const schema = {
   },
 };
 
-const PROMPT = `Você extrai dados de faturas de cartão de crédito brasileiras (qualquer banco).
-Cabeçalho: emissor (nome do banco), últimos dígitos do cartão, data de vencimento (AAAA-MM-DD), valor total da fatura e mês de referência (MM/AAAA do vencimento).
-Linhas: liste TODAS as transações da fatura atual (seção "Despesas da fatura", "Lançamentos", "Compras" etc.), de todos os cartões/adicionais.
-IGNORE completamente a seção "Próxima fatura"/"Lançamentos futuros"/"Compras parceladas a vencer" — são só prévia de meses seguintes.
-Não inclua totais, subtotais, limites, encargos projetados nem resumo.
-Para cada linha: data da compra (AAAA-MM-DD; se só houver dia/mês, deduza o ano pela fatura), beneficiário (estabelecimento, como está no documento, sem o texto da parcela), valor absoluto (1.234,56 → 1234.56),
-sinal "+" quando for crédito/entrada (pagamento da fatura anterior, estorno, devolução, crédito) e "-" quando for despesa/compra/tarifa/IOF (o padrão).
-Parcela: "Parcela 04 de 09" ou "04/09" → parcela_atual 4, parcela_total 9; senão null.`;
+const PROMPT = `Você extrai dados de faturas de cartão de crédito brasileiras (qualquer banco: Inter, C6 Bank, Nubank, Itaú etc.).
+Cabeçalho: emissor (nome do banco), últimos dígitos do cartão principal, data de vencimento (AAAA-MM-DD), valor total da fatura e mês de referência (MM/AAAA do vencimento).
+Linhas: liste TODAS as transações da fatura atual (seção "Despesas da fatura", "Lançamentos", "Compras", "Transações" etc.), de TODOS os cartões da fatura (principal, virtual e adicionais).
+IGNORE completamente a seção "Próxima fatura"/"Lançamentos futuros"/"Compras parceladas a vencer"/"Próximas faturas" — são só prévia de meses seguintes.
+Não inclua totais, subtotais ("Total do cartão", "Subtotal"), limites, encargos projetados nem resumo.
+
+Faturas com vários cartões (ex.: C6): cada bloco começa com um título do cartão/portador, como "C6 Business Virtual Final 2970 - NICOLAS S" ou "C6 Business Final 1336 - NICOLAS S JANOVIK". Esses títulos NÃO são transações nem beneficiários — nunca crie linha para eles e nunca use o nome do portador como beneficiário. Apenas as transações abaixo de cada título viram linhas.
+
+Para cada linha:
+- data da compra em AAAA-MM-DD. Datas podem vir como "dd/mm", "dd/mm/aaaa" ou "dd mmm" com mês abreviado em português ("12 ago", "03 set", "28 dez"). Sem ano, deduza pelo mês de referência/vencimento da fatura: use o ano do vencimento, exceto quando o mês da compra for posterior ao mês do vencimento (ex.: compra em dez numa fatura que vence em jan/fev) — aí use o ano anterior.
+- beneficiário: estabelecimento como está no documento, sem o texto da parcela e sem o nome do portador.
+- valor absoluto (1.234,56 → 1234.56).
+- sinal: "+" quando for crédito/entrada, "-" quando for despesa/compra/tarifa/IOF/anuidade (o padrão). Muitos bancos (ex.: C6) mostram TODOS os valores positivos, sem sinal: nesse caso decida pelo nome/contexto. Marque "+" para pagamentos de fatura, estornos, devoluções, créditos, cashback e ajustes a favor — ex.: "Pag Fatura Boleto", "PAG FATURA", "Pagamento", "PAGTO DEBITO AUTOMATICO", "Pagamento recebido", "Estorno", "Crédito", "Devolução". Se houver sinal explícito ("+", "-" ou "CR"/"C" ao lado do valor), ele prevalece.
+- parcela: aceite qualquer formato — "Parcela 04 de 09", "(Parcela 4 de 9)", "Parcela 4/5", "04/09", "4 de 5" → parcela_atual e parcela_total; compras à vista → null.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
