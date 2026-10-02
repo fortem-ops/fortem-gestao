@@ -279,7 +279,7 @@ function FornecedorDialog({ fornecedor, categorias, onClose }: {
   const [f, setF] = useState<FornecedorInput>({
     nome: fornecedor?.nome ?? "", tipo_pessoa: fornecedor?.tipo_pessoa ?? "PJ", cpf_cnpj: fornecedor?.cpf_cnpj ?? "",
     categoria_padrao_id: fornecedor?.categoria_padrao_id ?? null, eh_funcionario: fornecedor?.eh_funcionario ?? false,
-    telefone: fornecedor?.telefone ?? "", email: fornecedor?.email ?? "", observacao: fornecedor?.observacao ?? "",
+    telefone: fornecedor?.telefone ?? "", email: fornecedor?.email ?? "", observacao: fornecedor?.observacao ?? "", chave_pix: fornecedor?.chave_pix ?? "",
     ativo: fornecedor?.ativo ?? true,
   });
   const set = <K extends keyof FornecedorInput>(k: K, v: FornecedorInput[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -289,7 +289,7 @@ function FornecedorDialog({ fornecedor, categorias, onClose }: {
     try {
       await salvar.mutateAsync({
         id: fornecedor?.id,
-        input: { ...f, cpf_cnpj: vazioNull(f.cpf_cnpj), telefone: vazioNull(f.telefone), email: vazioNull(f.email), observacao: vazioNull(f.observacao) },
+        input: { ...f, cpf_cnpj: vazioNull(f.cpf_cnpj), telefone: vazioNull(f.telefone), email: vazioNull(f.email), observacao: vazioNull(f.observacao), chave_pix: vazioNull(f.chave_pix ?? null) },
       });
       toast.success(fornecedor ? "Fornecedor atualizado" : "Fornecedor cadastrado");
       onClose();
@@ -316,6 +316,11 @@ function FornecedorDialog({ fornecedor, categorias, onClose }: {
             <div className="space-y-1"><Label>{f.tipo_pessoa === "PF" ? "CPF" : "CNPJ"}</Label><Input value={f.cpf_cnpj ?? ""} onChange={(e) => set("cpf_cnpj", e.target.value)} /></div>
             <div className="space-y-1"><Label>Telefone</Label><Input value={f.telefone ?? ""} onChange={(e) => set("telefone", e.target.value)} /></div>
             <div className="space-y-1"><Label>E-mail</Label><Input type="email" value={f.email ?? ""} onChange={(e) => set("email", e.target.value)} /></div>
+          </div>
+          <div className="space-y-1">
+            <Label>Chave Pix</Label>
+            <Input value={f.chave_pix ?? ""} onChange={(e) => set("chave_pix", e.target.value)} placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
+            <p className="text-xs text-muted-foreground">Usada na tela Pagamentos Pix.</p>
           </div>
           <div className="space-y-1">
             <Label>Categoria padrão</Label>

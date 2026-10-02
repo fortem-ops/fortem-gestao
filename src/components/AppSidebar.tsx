@@ -10,6 +10,7 @@ import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { Send } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   Sidebar,
@@ -398,6 +399,9 @@ export function AppSidebar() {
                 {financeiroItems.map((item) => (
                   <SidebarItem key={item.title} item={item} isActive={isActive} />
                 ))}
+                {isAdmin && (
+                  <SidebarItem item={{ title: "Pagamentos Pix", url: "/financeiro/pagamentos-pix", icon: Send }} isActive={isActive} />
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
