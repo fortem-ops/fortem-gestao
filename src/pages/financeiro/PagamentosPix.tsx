@@ -29,7 +29,7 @@ const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "J
 const valorDe = (l: Linha) => Number(l.valor_liquido_previsto ?? l.valor);
 const mesDe = (l: Linha) => l.data_competencia?.slice(0, 7) ?? "9999-99";
 const rotuloMes = (chave: string) => {
-  const [, m, a] = chave.match(/^(\d{4})-(\d{2})$/) ?? [];
+  const [, a, m] = chave.match(/^(\d{4})-(\d{2})$/) ?? [];
   return m ? `${MESES_PT[Number(m) - 1]} ${a}` : "Sem competência";
 };
 function agruparPorMes(linhas: Linha[]) {
