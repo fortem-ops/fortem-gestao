@@ -30,7 +30,8 @@ import {
   cleanName,
   drawWorkoutHeader,
   sectionBar,
-  drawObservacoes,
+  drawFrequencyColumn,
+  drawPrescriptionObservations,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -82,7 +83,10 @@ export async function exportM102PDF({
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 10;
     const mainX = margin;
-    const mainW = pageW - margin * 2;
+    const gutter = 4;
+    const freqColW = 22;
+    const mainW = pageW - margin * 2 - freqColW - gutter;
+    const freqX = mainX + mainW + gutter;
 
     const S = scale;
     const ROW_FONT = Math.max(5.5, 8 * S);
@@ -95,7 +99,8 @@ export async function exportM102PDF({
     const AQ_LABEL_FONT = Math.max(5.8, 7.8 * S);
 
     let y = drawHeader(doc, student, mainX, mainW, margin);
-    y = drawObservacoes(doc, mainX, y, mainW, S, 3);
+    drawFrequencyColumn(doc, freqX, freqColW, margin, 287, 4, 4);
+    y = drawPrescriptionObservations(doc, mainX, y, mainW, data.observacoes, S, 3);
 
     // ============================================================
     // AQUECIMENTO

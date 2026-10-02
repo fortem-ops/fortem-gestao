@@ -27,7 +27,8 @@ import {
   cleanName,
   drawWorkoutHeader,
   sectionBar,
-  drawObservacoes,
+  drawFrequencyColumn,
+  drawPrescriptionObservations,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -50,68 +51,6 @@ const drawHeader = (
 ) => drawWorkoutHeader(doc, student, mainX, mainW, margin, "TREINO 5-3-1");
 
 
-
-function drawFrequenciaColumn(
-  doc: jsPDF,
-  freqX: number,
-  freqColW: number,
-  freqTopY: number,
-  freqBottomY: number,
-  activeT: number,
-  weeks: number,
-): void {
-  const freqHeaderH = 10;
-  doc.setFillColor(...RED);
-  doc.rect(freqX, freqTopY, freqColW, freqHeaderH, "F");
-  doc.setTextColor(...WHITE);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("FREQUÊNCIA", freqX + freqColW / 2, freqTopY + 4.2, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(5.8);
-  doc.text(
-    `${weeks} ${weeks === 1 ? "SEMANA" : "SEMANAS"}`,
-    freqX + freqColW / 2,
-    freqTopY + 7.6,
-    { align: "center" },
-  );
-
-  const slotCount = weeks * activeT;
-  const slotsTop = freqTopY + freqHeaderH + 1;
-  const slotsAvailH = freqBottomY - slotsTop;
-  const slotH = slotsAvailH / slotCount;
-
-  for (let i = 0; i < slotCount; i++) {
-    const sy = slotsTop + i * slotH;
-    const week = Math.floor(i / activeT) + 1;
-    const tNum = (i % activeT) + 1;
-
-    if (week % 2 === 0) {
-      doc.setFillColor(...RED_TINT);
-      doc.rect(freqX, sy, freqColW, slotH, "F");
-    }
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.15);
-    doc.rect(freqX, sy, freqColW, slotH);
-
-    if (tNum === 1) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(5.5);
-      doc.setTextColor(...RED);
-      doc.text(`SEM ${week}`, freqX + freqColW - 1.5, sy + 2.2, { align: "right" });
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...INK);
-    doc.text(`T${tNum}`, freqX + 2, sy + slotH / 2 + 1.2);
-
-    doc.setDrawColor(...INK_MUTED);
-    doc.setLineWidth(0.1);
-    const lineY = sy + slotH - 1.5;
-    doc.line(freqX + 7, lineY, freqX + freqColW - 1.5, lineY);
-  }
-}
 
 export async function exportWendler531PDF({
   student,
@@ -160,28 +99,12 @@ export async function exportWendler531PDF({
     const FORCA_PAD = Math.max(0.32, 1.1 * S);
 
     let y = drawHeader(doc, student, mainX, mainW, margin);
-    drawFrequenciaColumn(doc, freqX, freqColW, margin, bottomY, freq, 4);
+    drawFrequencyColumn(doc, freqX, freqColW, margin, bottomY, freq, 4);
 
     // ============================================================
     // OBSERVAÇÕES — título + linhas em branco pra anotação manual
     // ============================================================
-    {
-      const OBS_TITLE_FONT = Math.max(6.4, 8.4 * S);
-      const OBS_LINE_GAP = Math.max(3.0, 4.4 * S);
-      const OBS_LINES = 3;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(OBS_TITLE_FONT);
-      doc.setTextColor(...INK);
-      doc.text("OBSERVAÇÕES", mainX, y + OBS_TITLE_FONT * 0.35);
-      let lineY = y + OBS_TITLE_FONT * 0.35 + OBS_LINE_GAP;
-      doc.setDrawColor(...INK_MUTED);
-      doc.setLineWidth(0.15);
-      for (let i = 0; i < OBS_LINES; i++) {
-        doc.line(mainX, lineY, mainX + mainW, lineY);
-        lineY += OBS_LINE_GAP;
-      }
-      y = lineY - OBS_LINE_GAP + Math.max(1.2, 2.0 * S);
-    }
+    y = drawPrescriptionObservations(doc, mainX, y, mainW, data.observacoes, S, 3);
 
 
     // ============================================================

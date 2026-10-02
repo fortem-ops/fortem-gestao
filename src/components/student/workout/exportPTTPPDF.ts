@@ -21,7 +21,8 @@ import {
   cleanName,
   drawWorkoutHeader,
   sectionBar,
-  drawObservacoes,
+  drawFrequencyColumn,
+  drawPrescriptionObservations,
 } from "./pdfShared";
 
 interface ExportArgs {
@@ -39,7 +40,10 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
   const mainX = margin;
-  const mainW = pageW - margin * 2;
+  const gutter = 4;
+  const freqColW = 22;
+  const mainW = pageW - margin * 2 - freqColW - gutter;
+  const freqX = mainX + mainW + gutter;
   const bottomY = pageH - margin;
 
   const ROW_FONT = 8;
@@ -75,16 +79,8 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   const tableMargin = { left: mainX, right: pageW - (mainX + mainW) };
 
   let y = drawWorkoutHeader(doc, student, mainX, mainW, margin, PTTP_LABEL.toUpperCase());
-  y = drawObservacoes(doc, mainX, y, mainW, 1, 2);
-
-  if (data.observacoes?.trim()) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.6);
-    doc.setTextColor(...INK_SOFT);
-    const linhas = doc.splitTextToSize(data.observacoes.trim(), mainW);
-    doc.text(linhas, mainX, y + 2.4);
-    y += 2.4 + linhas.length * 3.2;
-  }
+  drawFrequencyColumn(doc, freqX, freqColW, margin, bottomY, data.frequencia, 4);
+  y = drawPrescriptionObservations(doc, mainX, y, mainW, data.observacoes, 1, 2);
 
   const dias = Array.from({ length: data.frequencia }, (_, i) => `T${i + 1}`);
 
@@ -222,6 +218,10 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
     });
     y += 1;
   }
+
+  // Página 1 concentra identificação, frequência, observações e aquecimento.
+  doc.addPage();
+  y = margin;
 
   // ── TREINOS ─────────────────────────────────────────────────
   const wBloco = 28;

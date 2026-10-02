@@ -14,10 +14,14 @@ import {
   INK_MUTED,
   SURFACE,
   WHITE,
+  RULE,
+  RED_SOFT,
+  CHECK,
   cleanName,
   drawWorkoutHeader,
   sectionBar,
-  drawObservacoes,
+  drawFrequencyColumn,
+  drawPrescriptionObservations,
 } from "./pdfShared";
 
 export interface MileDeepPdfLevantamento {
@@ -70,7 +74,10 @@ export async function exportMileDeepPDF({
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
   const mainX = margin;
-  const mainW = pageW - margin * 2;
+  const gutter = 4;
+  const freqColW = 22;
+  const mainW = pageW - margin * 2 - freqColW - gutter;
+  const freqX = mainX + mainW + gutter;
   const bottomY = pageH - margin;
 
   const commonStyles = {
@@ -100,16 +107,9 @@ export async function exportMileDeepPDF({
   const tableMargin = { left: mainX, right: pageW - (mainX + mainW) };
 
   let y = drawWorkoutHeader(doc, student, mainX, mainW, margin, titulo.toUpperCase());
-  y = drawObservacoes(doc, mainX, y, mainW, 1, 2);
-
-  if (observacoes?.trim()) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.6);
-    doc.setTextColor(...INK_SOFT);
-    const linhas = doc.splitTextToSize(observacoes.trim(), mainW);
-    doc.text(linhas, mainX, y + 2.4);
-    y += 2.4 + linhas.length * 3.2;
-  }
+  const dias = sessoes.map((s) => s.slot);
+  drawFrequencyColumn(doc, freqX, freqColW, margin, bottomY, Math.max(1, dias.length), 4);
+  y = drawPrescriptionObservations(doc, mainX, y, mainW, observacoes, 1, 2);
 
   const ensurePage = (needed: number) => {
     if (y + needed > bottomY) {
@@ -131,6 +131,43 @@ export async function exportMileDeepPDF({
     gruposAtivos.forEach((g) => {
       const items = aquecimento![g] ?? [];
       ensurePage(16);
+      const subbarH = 5.4;
+      const badgeW = 12;
+      doc.setFillColor(...INK);
+      doc.rect(mainX, y, badgeW, subbarH, "F");
+      doc.setFillColor(...WHITE);
+      doc.rect(mainX + badgeW, y, mainW - badgeW, subbarH, "F");
+      doc.setDrawColor(...INK);
+      doc.setLineWidth(0.2);
+      doc.line(mainX, y + subbarH, mainX + mainW, y + subbarH);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...WHITE);
+      doc.text(g, mainX + badgeW / 2, y + subbarH / 2 + 0.9, { align: "center" });
+      doc.setFontSize(7.8);
+      doc.setTextColor(...INK);
+      doc.text(aquecimentoLabel(g), mainX + badgeW + 2, y + subbarH / 2 + 0.9);
+      y += subbarH + 0.3;
+
+      const nDias = Math.max(1, dias.length);
+      const wNum = 6.4;
+      const wCat = 20;
+      const wT = 8;
+      const wRep = 14;
+      const wEx = mainW - (wNum + wCat + wT * nDias + wRep);
+      const body = items.map((ex: PersonalizadoAquecimentoEx, idx) => {
+        const cells = [String(idx + 1), (ex.subcategoria || "").toUpperCase(), cleanName(ex.exercicio) || "—"];
+        dias.forEach((d) => cells.push(ex.dias?.includes(d) ? CHECK : ""));
+        cells.push(String(ex.repeticoes ?? ""));
+        return cells;
+      });
+      const columnStyles: Record<number, Record<string, unknown>> = {
+        0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+        1: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak" },
+        2: { cellWidth: wEx, fontStyle: "bold", overflow: "ellipsize" },
+      };
+      dias.forEach((_, i) => { columnStyles[3 + i] = { cellWidth: wT, halign: "center" }; });
+      columnStyles[3 + nDias] = { cellWidth: wRep, halign: "right", fontStyle: "bold" };
       autoTable(doc, {
         startY: y,
         margin: tableMargin,
@@ -138,29 +175,45 @@ export async function exportMileDeepPDF({
         theme: "plain",
         rowPageBreak: "avoid",
         head: [[
-          { content: aquecimentoLabel(g).toUpperCase(), styles: { halign: "left" as const } },
-          { content: "DIAS", styles: { halign: "center" as const } },
+          { content: "#", styles: { halign: "center" as const } },
+          { content: "CAT", styles: { halign: "left" as const } },
+          { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
+          ...dias.map((d) => ({ content: d, styles: { halign: "center" as const } })),
           { content: "REP.", styles: { halign: "right" as const } },
         ]],
-        body: items.map((ex: PersonalizadoAquecimentoEx) => [
-          cleanName(ex.exercicio) || "—",
-          (ex.dias ?? []).join(" "),
-          String(ex.repeticoes ?? ""),
-        ]),
+        body,
         styles: commonStyles,
         headStyles: commonHeadStyles,
         alternateRowStyles: { fillColor: SURFACE },
-        columnStyles: {
-          0: { cellWidth: mainW - 56 },
-          1: { cellWidth: 32, halign: "center" },
-          2: { cellWidth: 24, halign: "right" },
+        columnStyles,
+        didParseCell: (hd) => {
+          bodyBorders(hd);
+          if (hd.section === "body" && hd.column.index >= 3 && hd.column.index < 3 + nDias && hd.cell.text?.[0] === CHECK) {
+            hd.cell.text = [""];
+          }
         },
-        didParseCell: bodyBorders,
+        didDrawCell: (hd) => {
+          if (hd.section !== "body" || hd.column.index < 3 || hd.column.index >= 3 + nDias) return;
+          const ex = items[hd.row.index];
+          const dia = dias[hd.column.index - 3];
+          if (ex?.dias?.includes(dia)) {
+            doc.setFillColor(...RED_SOFT);
+            doc.circle(hd.cell.x + hd.cell.width / 2, hd.cell.y + hd.cell.height / 2, 0.9, "F");
+          }
+          if (hd.column.index > 3) {
+            doc.setDrawColor(...RULE);
+            doc.setLineWidth(0.12);
+            doc.line(hd.cell.x, hd.cell.y + 0.4, hd.cell.x, hd.cell.y + hd.cell.height - 0.4);
+          }
+        },
       });
       y = lastY(doc) + 1.2;
     });
     y += 1;
   }
+
+  doc.addPage();
+  y = margin;
 
   // ── Sessões ─────────────────────────────────────────────────
   sessoes.forEach((s) => {

@@ -103,6 +103,7 @@ export function emptyPersonalizado(): PersonalizadoConteudo {
 export function flattenPersonalizado(c: PersonalizadoConteudo): {
   aquecimento: WorkoutExercise[];
   treinos: { nome: string; exercicios: WorkoutExercise[] }[];
+  observacoes: string;
 } {
   const aquecimento: WorkoutExercise[] = [];
   let ord = 1;
@@ -174,7 +175,7 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
     return { nome: tr.nome, exercicios };
   });
 
-  return { aquecimento, treinos };
+  return { aquecimento, treinos, observacoes: c.observacoes };
 }
 
 /** Detecta se um conteúdo de `treinos.conteudo` é Personalizado (shape novo). */

@@ -114,6 +114,7 @@ export interface M102Conteudo {
   percentualInicial: 65 | 70;
   rm: M102Rm;
   aquecimento: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+  observacoes?: string;
   treinos: M102TreinoDia[]; // 4 fixos
 }
 
@@ -131,6 +132,7 @@ export function emptyM102(pctInicial: 65 | 70 = 65): M102Conteudo {
     percentualInicial: pctInicial,
     rm: { terra: 0, agachamento: 0, remada: 0, supino: 0 },
     aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
+    observacoes: "",
     treinos: [1, 2, 3, 4].map((n) => ({
       ordem: n as 1 | 2 | 3 | 4,
       acessorios: [],

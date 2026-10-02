@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -630,6 +631,14 @@ export function Prescricao531Editor({
           <div className="text-xs text-muted-foreground self-end">
             Arredondamento automático para múltiplos de <strong>2,5kg</strong>.
             Semana 4 é <strong>deload</strong>.
+          </div>
+          <div className="md:col-span-3">
+            <Label>Observações da prescrição</Label>
+            <Textarea
+              value={data.observacoes ?? ""}
+              onChange={(e) => setData((prev) => ({ ...prev, observacoes: e.target.value }))}
+              rows={3}
+            />
           </div>
         </CardContent>
       </Card>
