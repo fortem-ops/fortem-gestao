@@ -365,7 +365,7 @@ export default function Contratos() {
                 return (
                   <TableRow key={c.id} className={isInad ? 'bg-destructive/5' : ''}>
                     <TableCell className="w-10">
-                      {isInad && (
+                      {isBaixavel && (
                         <Checkbox
                           checked={selecionadas.has(c.id)}
                           onCheckedChange={() => toggleOne(c.id)}
@@ -405,9 +405,9 @@ export default function Contratos() {
       <Dialog open={baixaOpen} onOpenChange={setBaixaOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Dar baixa em lote (retroativa)</DialogTitle>
+            <DialogTitle>Dar baixa em lote</DialogTitle>
             <DialogDescription>
-              As {selecionadasList.length} cobrança(s) selecionada(s) serão marcadas como <strong>pagas</strong> com a data de pagamento retroativa informada abaixo.
+              As {selecionadasList.length} cobrança(s) selecionada(s) serão marcadas como <strong>pagas</strong> com a data de pagamento informada abaixo.
             </DialogDescription>
           </DialogHeader>
 
