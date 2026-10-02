@@ -306,7 +306,9 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   doc.line(mainX + progressW + progressGap / 2, progressTop, mainX + progressW + progressGap / 2, progressBottom);
 
   const instruction = "2 séries de 5 no mesmo peso. Completou as duas? Sobe na próxima sessão. Não completou? O peso recua e a contagem reinicia.";
-  const instructionLines = doc.splitTextToSize(instruction, mainW - 4) as string[];
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.2);
+  const instructionLines = doc.splitTextToSize(instruction, mainW - 8) as string[];
   const instructionH = 8.5 + instructionLines.length * 3.6;
   let instructionY = progressBottom + 3;
   if (instructionY + instructionH > bottomY) {
