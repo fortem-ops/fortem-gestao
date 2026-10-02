@@ -35,7 +35,8 @@ export async function exportMileDeep5RMPDF({
         semana,
         plano: planoMD5(s, semana),
         levantamentos: [
-          { nome: s.levantamento, base: MD_LEV_BASE[s.levantamento].nome, rm: s.rm5 },
+          { nome: s.levantamento, base: MD_LEV_BASE[s.levantamento].nome,
+          categoria: MD_LEV_BASE[s.levantamento].categoria, rm: s.rm5 },
         ],
         auxiliares: s.auxiliares,
         tabela: tabelaMD5(s),

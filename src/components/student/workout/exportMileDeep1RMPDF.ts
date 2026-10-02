@@ -38,6 +38,7 @@ export async function exportMileDeep1RMPDF({
         levantamentos: levantamentosDoParMD1(par).map((l) => ({
           nome: l.levantamento,
           base: MD_LEV_BASE[l.levantamento].nome,
+          categoria: MD_LEV_BASE[l.levantamento].categoria,
           rm: l.rm1,
         })),
         auxiliares: par.auxiliares,
