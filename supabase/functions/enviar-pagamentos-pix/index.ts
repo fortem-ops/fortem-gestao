@@ -47,10 +47,10 @@ Deno.serve(async (req) => {
     }
     const { data: d } = await sup
       .from("despesas")
-      .select("id, descricao, valor, status, forma_pagamento, pix_status, fornecedor:fornecedores(nome, chave_pix)")
+      .select("id, descricao, valor, valor_liquido_previsto, status, forma_pagamento, pix_status, fornecedor:fornecedores(nome, chave_pix)")
       .eq("id", id).maybeSingle();
     const chave = (d as any)?.fornecedor?.chave_pix?.trim();
-    const valor = Number(d?.valor ?? 0);
+    const valor = Number(d?.valor_liquido_previsto ?? d?.valor ?? 0);
     if (!d || d.status !== "pendente" || String(d.forma_pagamento).toUpperCase() !== "PIX" || !chave || !(valor > 0)
         || (d.pix_status && !["ERRO", "REJEITADO"].includes(d.pix_status))) {
       ignorados++;

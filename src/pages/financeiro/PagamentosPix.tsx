@@ -17,7 +17,7 @@ import {
 import { RefreshCw, Send } from "lucide-react";
 
 type Linha = {
-  id: string; descricao: string; valor: number; data_competencia: string | null; status: string;
+  id: string; descricao: string; valor: number; valor_liquido_previsto: number | null; data_competencia: string | null; status: string;
   pix_status: string | null; pix_erro: string | null; pix_codigo_solicitacao: string | null; data_pagamento: string | null; pix_data_agendada: string | null;
   fornecedor: { id: string; nome: string; chave_pix: string | null } | null;
 };
@@ -54,7 +54,7 @@ export default function PagamentosPix() {
     enabled: !!roles?.isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase.from("despesas")
-        .select("id, descricao, valor, data_competencia, status, pix_status, pix_erro, pix_codigo_solicitacao, data_pagamento, pix_data_agendada, fornecedor:fornecedores(id, nome, chave_pix)")
+        .select("id, descricao, valor, valor_liquido_previsto, data_competencia, status, pix_status, pix_erro, pix_codigo_solicitacao, data_pagamento, pix_data_agendada, fornecedor:fornecedores(id, nome, chave_pix)")
         .or("and(status.eq.pendente,forma_pagamento.eq.PIX),pix_status.not.is.null")
         .order("data_competencia", { ascending: true })
         .limit(1000);
@@ -75,7 +75,7 @@ export default function PagamentosPix() {
   }, [linhas]);
 
   const selecionadas = elegiveis.filter((l) => sel.has(l.id));
-  const total = selecionadas.reduce((s, l) => s + Number(l.valor), 0);
+  const total = selecionadas.reduce((s, l) => s + Number(l.valor_liquido_previsto ?? l.valor), 0);
   const hoje = hojeISO();
   // Padrão = data de competência (nunca antes de hoje, que o Inter não aceita)
   const dataDe = (l: Linha) => datas[l.id] ?? (l.data_competencia && l.data_competencia >= hoje ? l.data_competencia : hoje);
@@ -169,7 +169,7 @@ export default function PagamentosPix() {
                     {dataDe(l) < hoje && <p className="text-xs text-destructive">Data passada</p>}
                   </TableCell>
                   <TableCell className="font-mono text-xs">{mascararChave(l.fornecedor!.chave_pix!)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{brl(Number(l.valor))}</TableCell>
+                  <TableCell className="text-right tabular-nums">{brl(Number(l.valor_liquido_previsto ?? l.valor))}</TableCell>
                 </TableRow>
               ))}
               {!isLoading && elegiveis.length === 0 && (
@@ -191,7 +191,7 @@ export default function PagamentosPix() {
                     <TableCell>{l.fornecedor?.nome ?? <span className="text-muted-foreground">Sem fornecedor vinculado</span>}</TableCell>
                     <TableCell>{l.descricao}</TableCell>
                     <TableCell>{dataBR(l.data_competencia)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{brl(Number(l.valor))}</TableCell>
+                    <TableCell className="text-right tabular-nums">{brl(Number(l.valor_liquido_previsto ?? l.valor))}</TableCell>
                     <TableCell className="text-right">
                       <Link className="text-primary text-sm underline" to="/financeiro/despesas?aba=fornecedores">
                         {l.fornecedor ? "Cadastrar chave Pix" : "Vincular fornecedor"}
@@ -222,7 +222,7 @@ export default function PagamentosPix() {
                   <TableCell>{l.descricao}</TableCell>
                   <TableCell><Badge className={STATUS[l.pix_status!]?.cls}>{STATUS[l.pix_status!]?.label ?? l.pix_status}</Badge></TableCell>
                   <TableCell>{l.data_pagamento ? dataBR(l.data_pagamento) : l.pix_data_agendada ? `Agendado ${dataBR(l.pix_data_agendada)}` : "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{brl(Number(l.valor))}</TableCell>
+                  <TableCell className="text-right tabular-nums">{brl(Number(l.valor_liquido_previsto ?? l.valor))}</TableCell>
                 </TableRow>
               ))}
               {!isLoading && acompanhamento.length === 0 && (
@@ -248,7 +248,7 @@ export default function PagamentosPix() {
                 <ul className="list-disc pl-5">
                   {datasLote.map((d) => {
                     const ls = selecionadas.filter((l) => dataDe(l) === d);
-                    return <li key={d}><strong>{dataBR(d)}</strong> — {ls.length} pagamento(s), {brl(ls.reduce((s, l) => s + Number(l.valor), 0))}</li>;
+                    return <li key={d}><strong>{dataBR(d)}</strong> — {ls.length} pagamento(s), {brl(ls.reduce((s, l) => s + Number(l.valor_liquido_previsto ?? l.valor), 0))}</li>;
                   })}
                 </ul>
               </div>
