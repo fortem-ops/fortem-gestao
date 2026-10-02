@@ -352,6 +352,16 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
             }}
           />
         )}
+        {novaCatPara !== null && (
+          <NovaCategoriaDialog
+            centrais={categorias.filter((c) => c.nivel === "central").sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))}
+            onClose={(id) => {
+              const i = novaCatPara;
+              setNovaCatPara(null);
+              if (id && i !== null && linhas?.[i] && !linhas[i].lancada) upd(i, { categoriaId: id, regra: false, erro: undefined });
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
