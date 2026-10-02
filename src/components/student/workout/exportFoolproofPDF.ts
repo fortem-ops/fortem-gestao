@@ -294,7 +294,7 @@ export async function exportFoolproofPDF({ student, data, print }: ExportArgs): 
         { content: "KG", styles: { halign: "center" as const } },
         { content: "CARGA", styles: { halign: "center" as const } },
       ]],
-      body: linhas.length ? linhas : [["—", "Sem exercícios neste dia", "", ""]],
+      body: (linhas.length ? linhas : [["—", "Sem exercícios neste dia", "", ""]]).map((r) => [...r, ""]),
       styles: commonStyles,
       headStyles: commonHeadStyles,
       alternateRowStyles: { fillColor: SURFACE },

@@ -172,7 +172,7 @@ export async function exportM102PDF({
           { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
           ...M102_DIAS_HEADER.map((d) => ({ content: d, styles: { halign: "center" as const } })),
           { content: "REP.", styles: { halign: "right" as const } },
-          { content: "KG", styles: { halign: "right" as const } },
+          { content: "CARGA", styles: { halign: "right" as const } },
         ]];
 
         autoTable(doc, {

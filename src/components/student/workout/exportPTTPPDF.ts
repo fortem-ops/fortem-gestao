@@ -279,7 +279,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
         { content: "KG", styles: { halign: "center" as const } },
         { content: "CARGA", styles: { halign: "center" as const } },
       ]],
-      body: linhas,
+      body: linhas.map((r) => [...r, ""]),
       styles: commonStyles,
       headStyles: commonHeadStyles,
       alternateRowStyles: { fillColor: SURFACE },

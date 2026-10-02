@@ -135,7 +135,7 @@ export async function exportPlanStrongPDF({
       { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
       ...diasHeader.map((d) => ({ content: d, styles: { halign: "center" as const } })),
       { content: "REP.", styles: { halign: "right" as const } },
-      { content: "KG", styles: { halign: "right" as const } },
+      { content: "CARGA", styles: { halign: "right" as const } },
     ]];
 
     gruposAtivos.forEach((g) => {

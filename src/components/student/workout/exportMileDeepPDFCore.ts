@@ -154,11 +154,13 @@ export async function exportMileDeepPDF({
       const wCat = 20;
       const wT = 8;
       const wRep = 14;
-      const wEx = mainW - (wNum + wCat + wT * nDias + wRep);
+      const wCarga = 16;
+      const wEx = mainW - (wNum + wCat + wT * nDias + wRep + wCarga);
       const body = items.map((ex: PersonalizadoAquecimentoEx, idx) => {
         const cells = [String(idx + 1), (ex.subcategoria || "").toUpperCase(), cleanName(ex.exercicio) || "—"];
         dias.forEach((d) => cells.push(ex.dias?.includes(d) ? CHECK : ""));
         cells.push(String(ex.repeticoes ?? ""));
+        cells.push("");
         return cells;
       });
       const columnStyles: Record<number, Record<string, unknown>> = {
@@ -168,6 +170,7 @@ export async function exportMileDeepPDF({
       };
       dias.forEach((_, i) => { columnStyles[3 + i] = { cellWidth: wT, halign: "center" }; });
       columnStyles[3 + nDias] = { cellWidth: wRep, halign: "right", fontStyle: "bold" };
+      columnStyles[4 + nDias] = { cellWidth: wCarga, halign: "center" };
       autoTable(doc, {
         startY: y,
         margin: tableMargin,
@@ -180,6 +183,7 @@ export async function exportMileDeepPDF({
           { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
           ...dias.map((d) => ({ content: d, styles: { halign: "center" as const } })),
           { content: "REP.", styles: { halign: "right" as const } },
+          { content: "CARGA", styles: { halign: "center" as const } },
         ]],
         body,
         styles: commonStyles,

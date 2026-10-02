@@ -273,7 +273,7 @@ export async function exportXFabPDF({
         { content: "KG", styles: { halign: "center" as const } },
         { content: "CARGA", styles: { halign: "center" as const } },
       ]],
-      body,
+      body: body.map((r) => [...r, ""]),
       styles: commonStyles,
       headStyles: commonHeadStyles,
       alternateRowStyles: { fillColor: SURFACE },
