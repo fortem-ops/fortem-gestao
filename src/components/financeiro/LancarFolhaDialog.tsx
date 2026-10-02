@@ -173,16 +173,20 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     const { data: prev, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
     if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
     const { data: u } = await supabase.auth.getUser();
+    // Data futura = pagamento ainda vai acontecer: nasce pendente (sem data_pagamento/valor_pago),
+    // para aparecer na fila de Pagamentos Pix. Hoje ou passado = registro retroativo: nasce paga.
+    const hoje = format(new Date(), "yyyy-MM-dd");
+    const futuro = dataPag > hoje;
     const payload = {
       categoria_id: forn.categoria_padrao_id,
       fornecedor_id: forn.id,
       descricao: `${ferias ? "Salário + Férias" : "Salário"} ${forn.nome} (${rotulo})`,
       valor,
-      valor_pago: valorPago,
-      status: "pago",
+      valor_pago: futuro ? null : valorPago,
+      status: futuro ? "pendente" : "pago",
       tipo: "fixa",
       data_competencia: dataPag,
-      data_pagamento: dataPag,
+      data_pagamento: futuro ? null : dataPag,
       conta_bancaria: "BANCO INTER",
       // Folha é sempre paga via PIX — fixo, sem campo na tela.
       forma_pagamento: "PIX",
