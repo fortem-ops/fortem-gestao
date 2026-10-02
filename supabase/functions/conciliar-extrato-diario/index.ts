@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
   const secret = Deno.env.get("INTER_EXTRATO_WEBHOOK_SECRET");
   if (!secret || req.headers.get("x-webhook-secret") !== secret) return json({ ok: false, error: "unauthorized" }, 401);
 
+  mapeamentosCache = null;
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
