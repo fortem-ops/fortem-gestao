@@ -3324,6 +3324,9 @@ export type Database = {
           origem_tabela: string | null
           parcela_atual: number | null
           parcela_total: number | null
+          pix_codigo_solicitacao: string | null
+          pix_erro: string | null
+          pix_status: string | null
           recorrente: boolean
           status: string
           tipo: string
@@ -3351,6 +3354,9 @@ export type Database = {
           origem_tabela?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
+          pix_codigo_solicitacao?: string | null
+          pix_erro?: string | null
+          pix_status?: string | null
           recorrente?: boolean
           status?: string
           tipo: string
@@ -3378,6 +3384,9 @@ export type Database = {
           origem_tabela?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
+          pix_codigo_solicitacao?: string | null
+          pix_erro?: string | null
+          pix_status?: string | null
           recorrente?: boolean
           status?: string
           tipo?: string
@@ -3702,6 +3711,7 @@ export type Database = {
           ativo: boolean
           cargo_confianca: boolean
           categoria_padrao_id: string | null
+          chave_pix: string | null
           cpf_cnpj: string | null
           created_at: string
           eh_funcionario: boolean
@@ -3718,6 +3728,7 @@ export type Database = {
           ativo?: boolean
           cargo_confianca?: boolean
           categoria_padrao_id?: string | null
+          chave_pix?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           eh_funcionario?: boolean
@@ -3734,6 +3745,7 @@ export type Database = {
           ativo?: boolean
           cargo_confianca?: boolean
           categoria_padrao_id?: string | null
+          chave_pix?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           eh_funcionario?: boolean
