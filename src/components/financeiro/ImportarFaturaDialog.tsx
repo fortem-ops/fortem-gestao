@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useCategoriasDespesa } from "@/hooks/useDespesas";
+import { useCategoriasDespesa, useCategoriaMutations } from "@/hooks/useDespesas";
 import { extrairTextoDocumento, SenhaPdfError } from "@/lib/extrairTextoDocumento";
-import { CONTAS_DESPESA, FORMAS_DESPESA } from "@/types/despesas";
+import { CONTAS_DESPESA, FORMAS_DESPESA, type DespesaCategoria, type DespesaTipo } from "@/types/despesas";
 
 const ORIGEM = "fatura_cartao";
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -60,6 +60,7 @@ export function ImportarFaturaDialog({ onClose }: { onClose: () => void }) {
   const [linhas, setLinhas] = useState<Linha[] | null>(null);
   const [lote, setLote] = useState(false);
   const [novoCartao, setNovoCartao] = useState(false);
+  const [novaCatPara, setNovaCatPara] = useState<number | null>(null);
 
   const { data: categorias = [] } = useCategoriasDespesa(true);
   const cartoesQ = useQuery({
