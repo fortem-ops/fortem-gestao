@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -17,12 +18,13 @@ import { RefreshCw, Send } from "lucide-react";
 
 type Linha = {
   id: string; descricao: string; valor: number; data_competencia: string | null; status: string;
-  pix_status: string | null; pix_erro: string | null; pix_codigo_solicitacao: string | null; data_pagamento: string | null;
+  pix_status: string | null; pix_erro: string | null; pix_codigo_solicitacao: string | null; data_pagamento: string | null; pix_data_agendada: string | null;
   fornecedor: { id: string; nome: string; chave_pix: string | null } | null;
 };
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
+const hojeISO = () => { const n = new Date(); return new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 
 export function mascararChave(c: string) {
   const s = c.trim();
@@ -45,13 +47,14 @@ export default function PagamentosPix() {
   const qc = useQueryClient();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [confirmar, setConfirmar] = useState(false);
+  const [datas, setDatas] = useState<Record<string, string>>({});
 
   const { data: linhas = [], isLoading } = useQuery({
     queryKey: ["pagamentos-pix"],
     enabled: !!roles?.isAdmin,
     queryFn: async () => {
       const { data, error } = await supabase.from("despesas")
-        .select("id, descricao, valor, data_competencia, status, pix_status, pix_erro, pix_codigo_solicitacao, data_pagamento, fornecedor:fornecedores(id, nome, chave_pix)")
+        .select("id, descricao, valor, data_competencia, status, pix_status, pix_erro, pix_codigo_solicitacao, data_pagamento, pix_data_agendada, fornecedor:fornecedores(id, nome, chave_pix)")
         .or("and(status.eq.pendente,forma_pagamento.eq.PIX),pix_status.not.is.null")
         .order("data_competencia", { ascending: true })
         .limit(1000);
@@ -73,16 +76,22 @@ export default function PagamentosPix() {
 
   const selecionadas = elegiveis.filter((l) => sel.has(l.id));
   const total = selecionadas.reduce((s, l) => s + Number(l.valor), 0);
+  const hoje = hojeISO();
+  // Padrão = data de competência (nunca antes de hoje, que o Inter não aceita)
+  const dataDe = (l: Linha) => datas[l.id] ?? (l.data_competencia && l.data_competencia >= hoje ? l.data_competencia : hoje);
+  const datasLote = [...new Set(selecionadas.map(dataDe))].sort();
+  const dataInvalida = selecionadas.some((l) => !dataDe(l) || dataDe(l) < hoje);
 
   const enviar = useMutation({
-    mutationFn: async (ids: string[]) => {
-      const { data, error } = await supabase.functions.invoke("enviar-pagamentos-pix", { body: { despesa_ids: ids } });
+    mutationFn: async (pagamentos: { despesa_id: string; data_pagamento: string }[]) => {
+      const { data, error } = await supabase.functions.invoke("enviar-pagamentos-pix", { body: { pagamentos } });
       if (error) throw error;
       return data as { enviados: number; concluidos: number; erros: number; ignorados: number };
     },
     onSuccess: (r) => {
       toast.success(`${r.enviados} enviado(s)${r.erros ? `, ${r.erros} com erro` : ""}${r.ignorados ? `, ${r.ignorados} ignorado(s)` : ""}. Aprove no app Inter Empresas.`);
       setSel(new Set());
+      setDatas({});
       qc.invalidateQueries({ queryKey: ["pagamentos-pix"] });
       qc.invalidateQueries({ queryKey: ["despesas"] });
     },
@@ -124,7 +133,7 @@ export default function PagamentosPix() {
       <Card className="glass-card">
         <CardHeader className="flex-row items-center gap-2 space-y-0">
           <CardTitle className="text-base">Prontas para enviar ({elegiveis.length})</CardTitle>
-          <Button className="ml-auto" disabled={selecionadas.length === 0 || enviar.isPending} onClick={() => setConfirmar(true)}>
+          <Button className="ml-auto" disabled={selecionadas.length === 0 || dataInvalida || enviar.isPending} onClick={() => setConfirmar(true)}>
             <Send className="h-4 w-4 mr-1" /> Confirmar e Enviar Pagamentos{selecionadas.length ? ` (${selecionadas.length} · ${brl(total)})` : ""}
           </Button>
         </CardHeader>
@@ -138,6 +147,7 @@ export default function PagamentosPix() {
                 <TableHead>Fornecedor / funcionário</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Competência</TableHead>
+                <TableHead>Pagar em</TableHead>
                 <TableHead>Chave Pix</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
@@ -153,12 +163,17 @@ export default function PagamentosPix() {
                     {l.pix_erro && <p className="text-xs text-destructive">{l.pix_erro}</p>}
                   </TableCell>
                   <TableCell>{dataBR(l.data_competencia)}</TableCell>
+                  <TableCell>
+                    <Input type="date" className="h-8 w-[150px]" min={hoje} value={dataDe(l)} aria-label={`Data de pagamento de ${l.descricao}`}
+                      onChange={(e) => setDatas((m) => ({ ...m, [l.id]: e.target.value }))} />
+                    {dataDe(l) < hoje && <p className="text-xs text-destructive">Data passada</p>}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{mascararChave(l.fornecedor!.chave_pix!)}</TableCell>
                   <TableCell className="text-right tabular-nums">{brl(Number(l.valor))}</TableCell>
                 </TableRow>
               ))}
               {!isLoading && elegiveis.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhuma despesa Pix pendente com chave cadastrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma despesa Pix pendente com chave cadastrada.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -197,7 +212,7 @@ export default function PagamentosPix() {
             <TableHeader>
               <TableRow>
                 <TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead><TableHead>Situação</TableHead>
-                <TableHead>Pago em</TableHead><TableHead className="text-right">Valor</TableHead>
+                <TableHead>Pago / agendado em</TableHead><TableHead className="text-right">Valor</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -206,7 +221,7 @@ export default function PagamentosPix() {
                   <TableCell>{l.fornecedor?.nome ?? "—"}</TableCell>
                   <TableCell>{l.descricao}</TableCell>
                   <TableCell><Badge className={STATUS[l.pix_status!]?.cls}>{STATUS[l.pix_status!]?.label ?? l.pix_status}</Badge></TableCell>
-                  <TableCell>{dataBR(l.data_pagamento)}</TableCell>
+                  <TableCell>{l.data_pagamento ? dataBR(l.data_pagamento) : l.pix_data_agendada ? `Agendado ${dataBR(l.pix_data_agendada)}` : "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{brl(Number(l.valor))}</TableCell>
                 </TableRow>
               ))}
@@ -225,10 +240,23 @@ export default function PagamentosPix() {
             <AlertDialogDescription>
               Confirma o envio de {selecionadas.length} pagamento(s) totalizando {brl(total)}? Eles serão enviados ao Banco Inter e precisarão ser aprovados no app Inter Empresas.
             </AlertDialogDescription>
+            {datasLote.length === 1 ? (
+              <p className="text-sm">Data de pagamento: <strong>{dataBR(datasLote[0])}</strong></p>
+            ) : (
+              <div className="text-sm">
+                <p>Datas de pagamento:</p>
+                <ul className="list-disc pl-5">
+                  {datasLote.map((d) => {
+                    const ls = selecionadas.filter((l) => dataDe(l) === d);
+                    return <li key={d}><strong>{dataBR(d)}</strong> — {ls.length} pagamento(s), {brl(ls.reduce((s, l) => s + Number(l.valor), 0))}</li>;
+                  })}
+                </ul>
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={enviar.isPending}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction disabled={enviar.isPending} onClick={(e) => { e.preventDefault(); enviar.mutate(selecionadas.map((l) => l.id)); }}>
+            <AlertDialogAction disabled={enviar.isPending} onClick={(e) => { e.preventDefault(); enviar.mutate(selecionadas.map((l) => ({ despesa_id: l.id, data_pagamento: dataDe(l) }))); }}>
               {enviar.isPending ? "Enviando…" : "Confirmar envio"}
             </AlertDialogAction>
           </AlertDialogFooter>
