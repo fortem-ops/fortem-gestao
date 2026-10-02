@@ -161,30 +161,36 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     p("INSS", vInss, true); p("Vale Transporte", vVt, true); p("Adiantamento Férias", vAdF, true);
     if (vOD) partes.push(`Outros Descontos${outrosDescDesc ? ` (${outrosDescDesc})` : ""}: -${brl(vOD)}`);
     partes.push(`Total Vencimentos: ${brl(totalVenc)}`, `Total Descontos: -${brl(totalDesc)}`, `Líquido: ${brl(liquido)}`);
-    // Trava de duplicidade: um salário por funcionário por competência.
-    const { data: ja, error: eJa } = await supabase.from("despesas").select("id")
+    // Trava de duplicidade: um salário LANÇADO (pago ou com "(mmm/yyyy)") por funcionário por competência.
+    // Previsões recorrentes pendentes não bloqueiam — são aproveitadas abaixo.
+    const rotulo = `${mesAbrev}/${format(comp, "yyyy")}`;
+    const base = () => supabase.from("despesas").select("id")
       .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
-      .eq("data_competencia", dataPag).ilike("descricao", "Salário%").limit(1);
+      .eq("data_competencia", dataPag).ilike("descricao", "Salário%");
+    const { data: ja, error: eJa } = await base().or(`status.eq.pago,descricao.ilike.*(${rotulo})*`).limit(1);
     if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
-    if (ja?.length) return `Já lançado para ${mesAbrev}/${format(comp, "yyyy")}.`;
+    if (ja?.length) return `Já lançado para ${rotulo}.`;
+    const { data: prev, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
+    if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("despesas").insert({
+    const payload = {
       categoria_id: forn.categoria_padrao_id,
       fornecedor_id: forn.id,
-      descricao: `${ferias ? "Salário + Férias" : "Salário"} ${forn.nome} (${mesAbrev}/${format(comp, "yyyy")})`,
+      descricao: `${ferias ? "Salário + Férias" : "Salário"} ${forn.nome} (${rotulo})`,
       valor,
       valor_pago: valorPago,
       status: "pago",
       tipo: "fixa",
-      origem: "manual",
       data_competencia: dataPag,
       data_pagamento: dataPag,
       conta_bancaria: "BANCO INTER",
       // Folha é sempre paga via PIX — fixo, sem campo na tela.
       forma_pagamento: "PIX",
       observacao: partes.join(" | "),
-      created_by: u.user?.id ?? null,
-    } as never);
+    };
+    const { error } = prev?.length
+      ? await supabase.from("despesas").update(payload as never).eq("id", prev[0].id).eq("status", "pendente")
+      : await supabase.from("despesas").insert({ ...payload, origem: "manual", created_by: u.user?.id ?? null } as never);
     if (error) return "Não foi possível lançar a folha: " + error.message;
     return null;
   }
