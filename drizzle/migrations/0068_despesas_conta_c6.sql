@@ -1,0 +1,2 @@
+ALTER TABLE public.despesas DROP CONSTRAINT despesas_conta_bancaria_check;
+ALTER TABLE public.despesas ADD CONSTRAINT despesas_conta_bancaria_check CHECK (conta_bancaria IS NULL OR conta_bancaria = ANY (ARRAY['BANCO INTER'::text, 'ITAÚ'::text, 'C6 BANK'::text]));
