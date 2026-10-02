@@ -5,7 +5,6 @@ import type { Tables } from "@/integrations/supabase/types";
 import type { AquecimentoBloco, PersonalizadoAquecimentoEx } from "./personalizadoTypes";
 import {
   type PTTPConteudo,
-  PTTP_LEV_BASE,
   PTTP_LABEL,
   alvoPTTP,
 } from "@/lib/pttp";
@@ -230,72 +229,47 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
   doc.addPage();
   y = margin;
 
-  // ── TREINOS ─────────────────────────────────────────────────
-  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | SÉRIES/REPS | KG | CARGA.
-  const colsTreino: StrengthCol[] = [
-    { header: "SÉRIES/REPS", width: 30, strong: true },
-    { header: "KG", width: 16, muted: true },
-    { header: "CARGA", width: 16 },
-  ];
+  // ── PROGRESSÃO DOS LEVANTAMENTOS CENTRAIS ───────────────────
+  // As duas tabelas ocupam a página 2 lado a lado e deixam uma área extensa
+  // para registros futuros. A legenda fica inteira no rodapé desta página.
+  const progressGap = 5;
+  const progressW = (mainW - progressGap) / 2;
+  const progressXs = [mainX, mainX + progressW + progressGap];
+  const progressTop = y;
+  const progressRows = 45;
+  const progressFinalYs: number[] = [];
 
-  data.treinos.forEach((tr) => {
-    ensurePage(44);
-    y = sectionBar(doc, `Treino ${tr.ordem}`, `T${tr.ordem}`, mainX, y, mainW, 6.0);
-
-    const principais: StrengthRow[] = [];
-    data.levantamentos.forEach((lev) => {
-      const base = PTTP_LEV_BASE[lev.levantamento];
-      const alvo = alvoPTTP(lev);
-      principais.push({
-        cat: base.categoria,
-        nome: `${lev.levantamento} — ${cleanName(base.nome)}`,
-        cells: [alvo.esquema + (lev.modo === "manutencao" ? " (manut.)" : ""), alvo.peso ? `${alvo.peso}` : "", ""],
-      });
-    });
-    const auxiliares: StrengthRow[] = tr.auxiliares.map((aux) => ({
-      cat: aux.categoria || "",
-      nome: cleanName(aux.exercicio) || "—",
-      cells: [`${aux.series}x${aux.reps}`, aux.kg ?? "", ""],
-    }));
-
-    y = drawStrengthTable(doc, { x: mainX, y, w: mainW, cols: colsTreino, groups: [principais, auxiliares] }) + 2.4;
-  });
-
-  // ── HISTÓRICO POR LEVANTAMENTO CENTRAL (tabela ampla) ───────
-  data.levantamentos.forEach((lev) => {
-    ensurePage(40);
+  data.levantamentos.forEach((lev, levIndex) => {
+    const x = progressXs[levIndex] ?? mainX;
     const alvo = alvoPTTP(lev);
-    y = sectionBar(
-      doc,
-      `${lev.levantamento} — progressão`,
-      `Próxima: ${alvo.esquema} @ ${alvo.peso || "—"} kg`,
-      mainX,
-      y,
-      mainW,
-      6.0,
-    );
+    let tableY = sectionBar(doc, `${lev.levantamento} — progressão`, undefined, x, progressTop, progressW, 6.0);
 
-    const linhasHist: string[][] =
-      lev.historico.length > 0
-        ? lev.historico.map((h, i) => [
-            `TREINO #${i + 1}`,
-            h.data,
-            `${h.peso} kg`,
-            h.sucesso ? "✓" : "✗",
-          ])
-        : [["TREINO #1", "—", `${alvo.peso || "—"} kg`, ""]];
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.2);
+    doc.setTextColor(...INK_SOFT);
+    doc.text(`PRÓXIMA: ${alvo.esquema} @ ${alvo.peso || "—"} KG`, x, tableY + 2.3);
+    tableY += 4.2;
 
-    // Linhas em branco para anotar as próximas sessões à mão.
-    const emBranco = Math.max(0, 8 - linhasHist.length);
-    for (let i = 0; i < emBranco; i++) {
+    const linhasHist: string[][] = lev.historico.map((h, i) => [
+      `TREINO #${i + 1}`,
+      h.data,
+      `${h.peso} kg`,
+      h.sucesso ? "✓" : "✗",
+    ]);
+    if (linhasHist.length === 0) {
+      linhasHist.push(["TREINO #1", "—", `${alvo.peso || "—"} kg`, ""]);
+    }
+    const totalRows = Math.max(progressRows, linhasHist.length);
+    while (linhasHist.length < totalRows) {
       linhasHist.push([`TREINO #${linhasHist.length + 1}`, "", "", ""]);
     }
 
     autoTable(doc, {
-      startY: y,
-      margin: tableMargin,
-      tableWidth: mainW,
+      startY: tableY,
+      margin: { left: x, right: pageW - (x + progressW), bottom: 28 },
+      tableWidth: progressW,
       theme: "plain",
+      pageBreak: "avoid",
       rowPageBreak: "avoid",
       head: [[
         { content: "SESSÃO", styles: { halign: "left" as const } },
@@ -304,29 +278,75 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
         { content: "RESULTADO", styles: { halign: "center" as const } },
       ]],
       body: linhasHist,
-      styles: commonStyles,
-      headStyles: commonHeadStyles,
+      styles: {
+        ...commonStyles,
+        fontSize: 6.7,
+        cellPadding: { top: 0.9, bottom: 0.9, left: 0.8, right: 0.8 },
+      },
+      headStyles: {
+        ...commonHeadStyles,
+        fontSize: 5.8,
+        cellPadding: { top: 0.9, bottom: 0.9, left: 0.7, right: 0.7 },
+      },
       alternateRowStyles: { fillColor: SURFACE },
       columnStyles: {
-        0: { cellWidth: 34, fontStyle: "bold", textColor: INK_SOFT },
-        1: { cellWidth: 34 },
-        2: { cellWidth: 28, halign: "center", fontStyle: "bold" },
-        3: { cellWidth: mainW - 96, halign: "center" },
+        0: { cellWidth: 24, fontStyle: "bold", textColor: INK_SOFT },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 19, halign: "center", fontStyle: "bold" },
+        3: { cellWidth: progressW - 63, halign: "center" },
       },
       didParseCell: bodyBorders,
     });
-    y = lastY(doc) + 2;
+    progressFinalYs.push(lastY(doc));
   });
 
+  const progressBottom = Math.max(...progressFinalYs);
+  doc.setDrawColor(...INK);
+  doc.setLineWidth(0.45);
+  doc.line(mainX + progressW + progressGap / 2, progressTop, mainX + progressW + progressGap / 2, progressBottom);
+
+  const instruction = "2 séries de 5 no mesmo peso. Completou as duas? Sobe na próxima sessão. Não completou? O peso recua e a contagem reinicia.";
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...INK_MUTED);
-  ensurePage(6);
-  doc.text(
-    "Rampa: 2 séries de 5 no mesmo peso. Completou as duas → sobe na próxima sessão. Não completou → o peso recua e a contagem reinicia.",
-    mainX,
-    y + 3,
-  );
+  doc.setFontSize(8.2);
+  const instructionLines = doc.splitTextToSize(instruction, mainW - 8) as string[];
+  const instructionH = 8.5 + instructionLines.length * 3.6;
+  let instructionY = progressBottom + 3;
+  if (instructionY + instructionH > bottomY) {
+    doc.addPage();
+    instructionY = margin;
+  }
+  doc.setFillColor(...SURFACE);
+  doc.rect(mainX, instructionY, mainW, instructionH, "F");
+  doc.setDrawColor(...INK);
+  doc.setLineWidth(0.35);
+  doc.rect(mainX, instructionY, mainW, instructionH);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(...INK);
+  doc.text("REGRA DA RAMPA", mainX + 2, instructionY + 4.2);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.2);
+  doc.text(instructionLines, mainX + 2, instructionY + 8.2);
+
+  // ── TREINOS AUXILIARES ──────────────────────────────────────
+  doc.addPage();
+  y = margin;
+  const colsTreino: StrengthCol[] = [
+    { header: "SÉRIES/REPS", width: 30, strong: true },
+    { header: "KG", width: 16, muted: true },
+    { header: "CARGA", width: 16 },
+  ];
+
+  data.treinos.forEach((tr) => {
+    ensurePage(38);
+    y = sectionBar(doc, `Treino ${tr.ordem}`, `T${tr.ordem}`, mainX, y, mainW, 6.0);
+    const auxiliares: StrengthRow[] = tr.auxiliares.map((aux) => ({
+      cat: aux.categoria || "",
+      nome: cleanName(aux.exercicio) || "—",
+      cells: [`${aux.series}x${aux.reps}`, aux.kg ?? "", ""],
+    }));
+    y = drawStrengthTable(doc, { x: mainX, y, w: mainW, cols: colsTreino, groups: [auxiliares] }) + 2.4;
+  });
 
   const nome = `PTTP-${student.nome.replace(/\s+/g, "-")}.pdf`;
   if (print) {
