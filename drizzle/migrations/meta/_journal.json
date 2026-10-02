@@ -477,6 +477,13 @@
       "when": 1790945768486,
       "tag": "0067_cartoes_fatura_pagar_automatico",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1790948950352,
+      "tag": "0068_despesas_conta_c6",
+      "breakpoints": true
     }
   ]
 }
