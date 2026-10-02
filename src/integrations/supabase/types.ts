@@ -1376,6 +1376,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cartoes_fatura: {
+        Row: {
+          ativo: boolean
+          conta_bancaria: string | null
+          created_at: string
+          dia_vencimento_padrao: number | null
+          forma_pagamento_padrao: string | null
+          id: string
+          identificador_pdf: string | null
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          conta_bancaria?: string | null
+          created_at?: string
+          dia_vencimento_padrao?: number | null
+          forma_pagamento_padrao?: string | null
+          id?: string
+          identificador_pdf?: string | null
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          conta_bancaria?: string | null
+          created_at?: string
+          dia_vencimento_padrao?: number | null
+          forma_pagamento_padrao?: string | null
+          id?: string
+          identificador_pdf?: string | null
+          nome?: string
+        }
+        Relationships: []
+      }
       cartoes_salvos: {
         Row: {
           aluno_id: string
@@ -7452,6 +7485,41 @@ export type Database = {
             columns: ["link_cartao_id"]
             isOneToOne: false
             referencedRelation: "links_cartao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regras_categorizacao_fatura: {
+        Row: {
+          ativo: boolean
+          categoria_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          padrao: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          padrao: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          padrao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regras_categorizacao_fatura_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "despesas_categorias"
             referencedColumns: ["id"]
           },
         ]

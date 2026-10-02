@@ -2,13 +2,27 @@
 
 export const TAMANHO_MAX_BYTES = 15 * 1024 * 1024;
 
-async function extrairPdf(file: File): Promise<string> {
+/** PDF protegido: `incorreta` = a senha informada não confere. */
+export class SenhaPdfError extends Error {
+  constructor(public incorreta: boolean) {
+    super(incorreta ? "Senha incorreta." : "Este PDF está protegido por senha.");
+  }
+}
+
+async function extrairPdf(file: File, senha?: string): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
   const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const buffer = await file.arrayBuffer();
-  const doc = await pdfjs.getDocument({ data: buffer }).promise;
+  let doc;
+  try {
+    doc = await pdfjs.getDocument({ data: buffer, password: senha || undefined }).promise;
+  } catch (e) {
+    const err = e as { name?: string; code?: number };
+    if (err?.name === "PasswordException") throw new SenhaPdfError(err.code === 2);
+    throw e;
+  }
   const paginas: string[] = [];
 
   for (let p = 1; p <= doc.numPages; p++) {
@@ -57,13 +71,13 @@ async function extrairDocx(file: File): Promise<string> {
 }
 
 /** Lê o texto de um arquivo PDF ou DOCX. Lança erro com mensagem amigável. */
-export async function extrairTextoDocumento(file: File): Promise<string> {
+export async function extrairTextoDocumento(file: File, senha?: string): Promise<string> {
   if (file.size > TAMANHO_MAX_BYTES) {
     throw new Error("Arquivo muito grande. O limite é de 15 MB.");
   }
   const nome = file.name.toLowerCase();
   let texto = "";
-  if (nome.endsWith(".pdf")) texto = await extrairPdf(file);
+  if (nome.endsWith(".pdf")) texto = await extrairPdf(file, senha);
   else if (nome.endsWith(".docx")) texto = await extrairDocx(file);
   else throw new Error("Formato não aceito. Envie um arquivo PDF ou Word (.docx).");
 

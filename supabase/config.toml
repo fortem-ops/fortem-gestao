@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.conciliar-extrato-diario]
 verify_jwt = false
+
+[functions.ler-fatura-cartao]
+verify_jwt = false
