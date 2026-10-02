@@ -470,6 +470,13 @@
       "when": 1790903166868,
       "tag": "0066_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1790945768486,
+      "tag": "0067_cartoes_fatura_pagar_automatico",
+      "breakpoints": true
     }
   ]
 }
