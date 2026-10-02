@@ -133,6 +133,7 @@ export default function PagamentosPix() {
   if (!roles?.isAdmin) return <Navigate to="/" replace />;
 
   const toggle = (id: string, v: boolean) => setSel((s) => { const n = new Set(s); if (v) n.add(id); else n.delete(id); return n; });
+  const toggleMes = (linhas: Linha[], v: boolean) => setSel((s) => { const n = new Set(s); linhas.forEach((l) => (v ? n.add(l.id) : n.delete(l.id))); return n; });
   const todos = elegiveis.length > 0 && selecionadas.length === elegiveis.length;
 
   return (
@@ -170,24 +171,40 @@ export default function PagamentosPix() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {elegiveis.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell><Checkbox checked={sel.has(l.id)} onCheckedChange={(v) => toggle(l.id, !!v)} aria-label={`Selecionar ${l.descricao}`} /></TableCell>
-                  <TableCell>{l.fornecedor?.nome}</TableCell>
-                  <TableCell>
-                    {l.descricao}
-                    {l.pix_status && <Badge className={`ml-2 ${STATUS[l.pix_status]?.cls}`} title={l.pix_erro ?? ""}>{STATUS[l.pix_status]?.label}</Badge>}
-                    {l.pix_erro && <p className="text-xs text-destructive">{l.pix_erro}</p>}
-                  </TableCell>
-                  <TableCell>{dataBR(l.data_competencia)}</TableCell>
-                  <TableCell>
-                    <Input type="date" className="h-8 w-[150px]" min={hoje} value={dataDe(l)} aria-label={`Data de pagamento de ${l.descricao}`}
-                      onChange={(e) => setDatas((m) => ({ ...m, [l.id]: e.target.value }))} />
-                    {dataDe(l) < hoje && <p className="text-xs text-destructive">Data passada</p>}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{mascararChave(l.fornecedor!.chave_pix!)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{brl(Number(l.valor_liquido_previsto ?? l.valor))}</TableCell>
-                </TableRow>
+              {gruposElegiveis.map((g) => (
+                <Fragment key={g.mes}>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={g.linhas.length > 0 && g.linhas.every((l) => sel.has(l.id))}
+                        onCheckedChange={(v) => toggleMes(g.linhas, !!v)}
+                        aria-label={`Selecionar ${rotuloMes(g.mes)}`}
+                      />
+                    </TableCell>
+                    <TableCell colSpan={2} className="font-display text-sm font-semibold">{rotuloMes(g.mes)}</TableCell>
+                    <TableCell colSpan={3} className="text-xs text-muted-foreground">{g.linhas.length} pagamento(s)</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums">{brl(g.total)}</TableCell>
+                  </TableRow>
+                  {g.linhas.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell><Checkbox checked={sel.has(l.id)} onCheckedChange={(v) => toggle(l.id, !!v)} aria-label={`Selecionar ${l.descricao}`} /></TableCell>
+                      <TableCell>{l.fornecedor?.nome}</TableCell>
+                      <TableCell>
+                        {l.descricao}
+                        {l.pix_status && <Badge className={`ml-2 ${STATUS[l.pix_status]?.cls}`} title={l.pix_erro ?? ""}>{STATUS[l.pix_status]?.label}</Badge>}
+                        {l.pix_erro && <p className="text-xs text-destructive">{l.pix_erro}</p>}
+                      </TableCell>
+                      <TableCell>{dataBR(l.data_competencia)}</TableCell>
+                      <TableCell>
+                        <Input type="date" className="h-8 w-[150px]" min={hoje} value={dataDe(l)} aria-label={`Data de pagamento de ${l.descricao}`}
+                          onChange={(e) => setDatas((m) => ({ ...m, [l.id]: e.target.value }))} />
+                        {dataDe(l) < hoje && <p className="text-xs text-destructive">Data passada</p>}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{mascararChave(l.fornecedor!.chave_pix!)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{brl(valorDe(l))}</TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
               ))}
               {!isLoading && elegiveis.length === 0 && (
                 <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma despesa Pix pendente com chave cadastrada.</TableCell></TableRow>
@@ -202,21 +219,31 @@ export default function PagamentosPix() {
           <CardHeader><CardTitle className="text-base">Sem chave Pix cadastrada ({semChave.length + semFornecedor.length})</CardTitle></CardHeader>
           <CardContent>
             <Table>
-              <TableBody>
-                {[...semChave, ...semFornecedor].map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell>{l.fornecedor?.nome ?? <span className="text-muted-foreground">Sem fornecedor vinculado</span>}</TableCell>
-                    <TableCell>{l.descricao}</TableCell>
-                    <TableCell>{dataBR(l.data_competencia)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{brl(Number(l.valor_liquido_previsto ?? l.valor))}</TableCell>
-                    <TableCell className="text-right">
-                      <Link className="text-primary text-sm underline" to="/financeiro/despesas?aba=fornecedores">
-                        {l.fornecedor ? "Cadastrar chave Pix" : "Vincular fornecedor"}
-                      </Link>
-                    </TableCell>
+            <TableBody>
+              {gruposSemChave.map((g) => (
+                <Fragment key={g.mes}>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={2} className="font-display text-sm font-semibold">{rotuloMes(g.mes)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{g.linhas.length} pagamento(s)</TableCell>
+                    <TableCell className="text-right text-sm font-semibold tabular-nums">{brl(g.total)}</TableCell>
+                    <TableCell />
                   </TableRow>
-                ))}
-              </TableBody>
+                  {g.linhas.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell>{l.fornecedor?.nome ?? <span className="text-muted-foreground">Sem fornecedor vinculado</span>}</TableCell>
+                      <TableCell>{l.descricao}</TableCell>
+                      <TableCell>{dataBR(l.data_competencia)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{brl(valorDe(l))}</TableCell>
+                      <TableCell className="text-right">
+                        <Link className="text-primary text-sm underline" to="/financeiro/despesas?aba=fornecedores">
+                          {l.fornecedor ? "Cadastrar chave Pix" : "Vincular fornecedor"}
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
+              ))}
+            </TableBody>
             </Table>
           </CardContent>
         </Card>
