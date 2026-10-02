@@ -27,7 +27,7 @@ const dataBR = (d: string | null) => (d ? d.split("-").reverse().join("/") : "â€
 export function mascararChave(c: string) {
   const s = c.trim();
   const dig = s.replace(/\D/g, "");
-  if (/^\d{11}$/.test(dig) && !s.includes("@") && !s.startsWith("+")) return `***.***.**${dig.slice(8, 9)}-${dig.slice(9)}`.replace(/^(.{0,})$/, (m) => m).replace(/\*\*(\d)-/, `*$1-`);
+  if (/^\d{11}$/.test(s.replace(/[.\-\s]/g, "")) && !s.startsWith("+")) return `***.***.**${dig[8]}-${dig.slice(9)}`;
   if (s.includes("@")) { const [u, d] = s.split("@"); return `${u.slice(0, 2)}***@${d}`; }
   return `***${s.slice(-4)}`;
 }
