@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { registrarSessao } from "@/lib/frequenciaTreino";
+import { CargaInput } from "@/components/portal/CargaInput";
 import {
   computeWave as compute531Wave,
   trainingMax as tm531,
@@ -905,7 +906,7 @@ export default function PortalWorkouts() {
                     </div>
                     {/* Campo de carga */}
                     <div className="mt-2.5 flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground font-semibold w-8">KG</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold w-11">CARGA</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -1916,10 +1917,7 @@ function PortalPlanStrongView({
                     </p>
                     <ul className="space-y-1">
                       {items.map((ex, i) => (
-                        <li
-                          key={i}
-                          className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
-                        >
+                        <li key={i} className="text-xs border-l-2 border-primary/40 pl-2">                          <div className="flex justify-between items-center">
                           <span className="truncate flex items-center gap-1">
                             {ex.exercicio || "—"}
                             {ex.video_url && (
@@ -1933,8 +1931,7 @@ function PortalPlanStrongView({
                               </a>
                             )}
                           </span>
-                          <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
-                        </li>
+                          <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>                          </div>                          <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio) || ""} className="mt-1" />                        </li>
                       ))}
                     </ul>
                   </div>
@@ -2148,10 +2145,7 @@ function PortalPTTPView({
                   </p>
                   <ul className="space-y-1">
                     {items.map((ex, i) => (
-                      <li
-                        key={i}
-                        className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
-                      >
+                      <li key={i} className="text-xs border-l-2 border-primary/40 pl-2">                        <div className="flex justify-between items-center">
                         <span className="truncate flex items-center gap-1">
                           {cleanName(ex.exercicio) || "—"}
                           {ex.video_url && (
@@ -2165,8 +2159,7 @@ function PortalPTTPView({
                             </a>
                           )}
                         </span>
-                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
-                      </li>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>                        </div>                        <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio) || ""} className="mt-1" />                      </li>
                     ))}
                   </ul>
                 </div>
@@ -2436,10 +2429,7 @@ function PortalPTTP2View({
                   </p>
                   <ul className="space-y-1">
                     {items.map((ex, i) => (
-                      <li
-                        key={i}
-                        className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
-                      >
+                      <li key={i} className="text-xs border-l-2 border-primary/40 pl-2">                        <div className="flex justify-between items-center">
                         <span className="truncate flex items-center gap-1">
                           {cleanName(ex.exercicio) || "—"}
                           {ex.video_url && (
@@ -2453,8 +2443,7 @@ function PortalPTTP2View({
                             </a>
                           )}
                         </span>
-                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
-                      </li>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>                        </div>                        <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio) || ""} className="mt-1" />                      </li>
                     ))}
                   </ul>
                 </div>
@@ -2705,10 +2694,7 @@ function PortalFoolproofView({
                   </p>
                   <ul className="space-y-1">
                     {items.map((ex, i) => (
-                      <li
-                        key={i}
-                        className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
-                      >
+                      <li key={i} className="text-xs border-l-2 border-primary/40 pl-2">                        <div className="flex justify-between items-center">
                         <span className="truncate flex items-center gap-1">
                           {cleanName(ex.exercicio) || "—"}
                           {ex.video_url && (
@@ -2722,8 +2708,7 @@ function PortalFoolproofView({
                             </a>
                           )}
                         </span>
-                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
-                      </li>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>                        </div>                        <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio) || ""} className="mt-1" />                      </li>
                     ))}
                   </ul>
                 </div>
@@ -2975,10 +2960,7 @@ function PortalEasyStrengthView({
                   </p>
                   <ul className="space-y-1">
                     {items.map((ex, i) => (
-                      <li
-                        key={i}
-                        className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
-                      >
+                      <li key={i} className="text-xs border-l-2 border-primary/40 pl-2">                        <div className="flex justify-between items-center">
                         <span className="truncate flex items-center gap-1">
                           {cleanName(ex.exercicio) || "—"}
                           {ex.video_url && (
@@ -2992,8 +2974,7 @@ function PortalEasyStrengthView({
                             </a>
                           )}
                         </span>
-                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
-                      </li>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>                        </div>                        <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio) || ""} className="mt-1" />                      </li>
                     ))}
                   </ul>
                 </div>
@@ -3214,10 +3195,7 @@ function PortalMileDeepView({
                   </p>
                   <ul className="space-y-1">
                     {items.map((ex, i) => (
-                      <li
-                        key={i}
-                        className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
-                      >
+                      <li key={i} className="text-xs border-l-2 border-primary/40 pl-2">                        <div className="flex justify-between items-center">
                         <span className="truncate flex items-center gap-1">
                           {cleanName(ex.exercicio) || "—"}
                           {ex.video_url && (
@@ -3231,8 +3209,7 @@ function PortalMileDeepView({
                             </a>
                           )}
                         </span>
-                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
-                      </li>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>                        </div>                        <CargaInput alunoId={treino?.aluno_id} treinoId={treino?.id} exercicio={cleanName(ex.exercicio) || ""} className="mt-1" />                      </li>
                     ))}
                   </ul>
                 </div>
