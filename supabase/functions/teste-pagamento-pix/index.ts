@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
   try {
     if (!(await requireAdmin(req))) return jsonResponse({ error: "forbidden" }, 403);
     const body = await req.json().catch(() => ({}));
-    if (body?.confirmar !== "PAGAR_1_REAL") return jsonResponse({ error: "confirmacao_ausente" }, 400);
+    if (body?.confirmar !== "PAGAR_1_REAL" && !body?.consultar) return jsonResponse({ error: "confirmacao_ausente" }, 400);
 
     const certRaw = Deno.env.get("INTER_PAGAMENTO_CERTIFICADO") ?? "";
     const keyRaw = Deno.env.get("INTER_PAGAMENTO_CHAVE_PRIVADA") ?? "";
@@ -85,6 +85,14 @@ Deno.serve(async (req) => {
     }
     const tok = JSON.parse(tokRaw);
 
+    if (body?.consultar) {
+      const r = await fetch(`${origin}/banking/v2/pix/${encodeURIComponent(String(body.consultar))}`, {
+        headers: { Authorization: `Bearer ${tok.access_token}`, "x-conta-corrente": conta },
+        // @ts-ignore
+        client,
+      });
+      return jsonResponse({ etapa: "consulta", http_status: r.status, corpo: await r.text() });
+    }
     // 2) Pagamento Pix
     const idempotencia = crypto.randomUUID();
     const payload = {
