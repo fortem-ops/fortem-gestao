@@ -19,7 +19,7 @@ import { emptyM102 } from "@/lib/m102";
 import { emptyPlanStrong50 } from "@/lib/planStrong";
 import { emptyPlanilha5RM } from "@/lib/planilha5rm";
 import { emptyXFab } from "@/lib/xfab";
-import { emptyPTTP } from "@/lib/pttp";
+import { emptyPTTP, normalizarTreinosPTTP } from "@/lib/pttp";
 import { emptyPTTP2 } from "@/lib/pttp2";
 import { emptyFoolproof } from "@/lib/foolproof";
 import { emptyEasyStrength } from "@/lib/easyStrength";
@@ -77,7 +77,16 @@ describe("PDF visual QA fixtures", () => {
       ["04-planstrong50", () => exportPlanStrongPDF({ student, data: { ...emptyPlanStrong50(6), aquecimento: warmup, observacoes: observations } })],
       ["05-planilha5rm", () => exportPlanilha5RMPDF({ student, data: { ...emptyPlanilha5RM(4), aquecimento: warmup, observacoes: observations } })],
       ["06-xfab", () => exportXFabPDF({ student, data: { ...emptyXFab(), aquecimento: warmup, observacoes: observations } })],
-      ["07-pttp", () => exportPTTPPDF({ student, data: { ...emptyPTTP(), aquecimento: warmup, observacoes: observations } })],
+      ["07-pttp", () => exportPTTPPDF({
+        student,
+        data: {
+          ...emptyPTTP(),
+          frequencia: 4,
+          treinos: normalizarTreinosPTTP(undefined, 4),
+          aquecimento: warmup,
+          observacoes: observations,
+        },
+      })],
       ["08-pttp2", () => exportPTTP2PDF({ student, data: { ...emptyPTTP2(), aquecimento: warmup, observacoes: observations } })],
       ["09-foolproof", () => exportFoolproofPDF({ student, data: { ...emptyFoolproof(5), aquecimento: warmup, observacoes: observations } })],
       ["10-easystrength", () => exportEasyStrengthPDF({ student, data: { ...emptyEasyStrength(3), aquecimento: warmup, observacoes: observations } })],
