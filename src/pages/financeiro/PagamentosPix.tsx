@@ -25,6 +25,20 @@ type Linha = {
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
 const hojeISO = () => { const n = new Date(); return new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const valorDe = (l: Linha) => Number(l.valor_liquido_previsto ?? l.valor);
+const mesDe = (l: Linha) => l.data_competencia?.slice(0, 7) ?? "9999-99";
+const rotuloMes = (chave: string) => {
+  const [, m, a] = chave.match(/^(\d{4})-(\d{2})$/) ?? [];
+  return m ? `${MESES_PT[Number(m) - 1]} ${a}` : "Sem competência";
+};
+function agruparPorMes(linhas: Linha[]) {
+  const mapa = new Map<string, Linha[]>();
+  for (const l of linhas) { const k = mesDe(l); const g = mapa.get(k); if (g) g.push(l); else mapa.set(k, [l]); }
+  return [...mapa.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([mes, ls]) => ({ mes, linhas: ls, total: ls.reduce((s, l) => s + valorDe(l), 0) }));
+}
 
 export function mascararChave(c: string) {
   const s = c.trim();
@@ -74,8 +88,11 @@ export default function PagamentosPix() {
     };
   }, [linhas]);
 
+  const gruposElegiveis = useMemo(() => agruparPorMes(elegiveis), [elegiveis]);
+  const gruposSemChave = useMemo(() => agruparPorMes([...semChave, ...semFornecedor]), [semChave, semFornecedor]);
+
   const selecionadas = elegiveis.filter((l) => sel.has(l.id));
-  const total = selecionadas.reduce((s, l) => s + Number(l.valor_liquido_previsto ?? l.valor), 0);
+  const total = selecionadas.reduce((s, l) => s + valorDe(l), 0);
   const hoje = hojeISO();
   // Padrão = data de competência (nunca antes de hoje, que o Inter não aceita)
   const dataDe = (l: Linha) => datas[l.id] ?? (l.data_competencia && l.data_competencia >= hoje ? l.data_competencia : hoje);
