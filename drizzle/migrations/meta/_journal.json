@@ -484,6 +484,13 @@
       "when": 1790948950352,
       "tag": "0068_despesas_conta_c6",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1790963235290,
+      "tag": "0069_rls_mapeamento_beneficiarios_pix_admin_only",
+      "breakpoints": true
     }
   ]
 }
