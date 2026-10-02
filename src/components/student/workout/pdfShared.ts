@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import type { Tables } from "@/integrations/supabase/types";
 import fortemLogo from "@/assets/fortem-logo-pdf.png";
 
