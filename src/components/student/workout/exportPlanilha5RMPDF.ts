@@ -268,19 +268,19 @@ export async function exportPlanilha5RMPDF({ student, data, print }: ExportArgs)
   });
   y = lastY(doc) + 3;
 
-  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | S1–S4 | CARGA.
-  // Básicos × acessórios separados só por linha grossa.
+  // Lista única por treino (modelo Personalizado): CAT | EXERCÍCIO | S1–S4.
+  // Básicos × acessórios separados só por linha grossa. S1–S4 já são os campos
+  // manuais de carga semanal — sem coluna extra de CARGA na força.
   const colsTreino: StrengthCol[] = [
     { header: "S1", width: 18 },
     { header: "S2", width: 18 },
     { header: "S3", width: 18 },
     { header: "S4", width: 18 },
-    { header: "CARGA", width: 20 },
   ];
   const toRow = (ex: ExercicioPlanilha5RM): StrengthRow => ({
     cat: ex.categoria || "",
     nome: cleanName(ex.exercicio) || "—",
-    cells: [ex.kgSemanas[0] || "", ex.kgSemanas[1] || "", ex.kgSemanas[2] || "", ex.kgSemanas[3] || "", ""],
+    cells: [ex.kgSemanas[0] || "", ex.kgSemanas[1] || "", ex.kgSemanas[2] || "", ex.kgSemanas[3] || ""],
   });
 
   data.treinos.forEach((treino) => {
