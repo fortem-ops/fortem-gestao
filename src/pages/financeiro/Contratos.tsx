@@ -178,12 +178,12 @@ export default function Contratos() {
       return next;
     });
   };
-  const allSelected = vencidasVisiveis.length > 0 && vencidasVisiveis.every((c) => selecionadas.has(c.id));
+  const allSelected = baixaveisVisiveis.length > 0 && baixaveisVisiveis.every((c) => selecionadas.has(c.id));
   const toggleAll = () => {
-    setSelecionadas(allSelected ? new Set() : new Set(vencidasVisiveis.map((c) => c.id)));
+    setSelecionadas(allSelected ? new Set() : new Set(baixaveisVisiveis.map((c) => c.id)));
   };
 
-  const selecionadasList = vencidasVisiveis.filter((c) => selecionadas.has(c.id));
+  const selecionadasList = baixaveisVisiveis.filter((c) => selecionadas.has(c.id));
   const totalSelecionado = selecionadasList.reduce((s, c) => s + Number(c.valor || 0), 0);
 
   const confirmarBaixa = async () => {
@@ -338,8 +338,8 @@ export default function Contratos() {
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={toggleAll}
-                    disabled={vencidasVisiveis.length === 0}
-                    aria-label="Selecionar todas as cobranças vencidas"
+                    disabled={baixaveisVisiveis.length === 0}
+                    aria-label="Selecionar todas as cobranças com vencimento até hoje"
                   />
                 </TableHead>
                 <TableHead>Aluno</TableHead>
@@ -360,6 +360,7 @@ export default function Contratos() {
               ) : filtradas.map((c) => {
                 const contratoStatus = (c.contratos?.status || 'ativo') as ContratoStatus;
                 const isInad = c.status_pagamento === 'vencida';
+                const isBaixavel = baixaveisVisiveis.some((b) => b.id === c.id);
                 const forma = (c.forma_pagamento || c.contratos?.forma_pagamento || '') as keyof typeof FORMA_PAGAMENTO_LABELS;
                 return (
                   <TableRow key={c.id} className={isInad ? 'bg-destructive/5' : ''}>
