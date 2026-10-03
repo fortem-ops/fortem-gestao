@@ -4,6 +4,14 @@ import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
 
+// Aviso inofensivo do navegador (ResizeObserver) — não é erro real; impede falso alarme.
+window.addEventListener("error", (e) => {
+  if (typeof e.message === "string" && e.message.includes("ResizeObserver loop")) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }
+});
+
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <HelmetProvider>
