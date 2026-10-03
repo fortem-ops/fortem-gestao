@@ -167,7 +167,9 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     const base = () => supabase.from("despesas").select("id")
       .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
       .eq("data_competencia", dataPag).ilike("descricao", "Salário%");
-    const { data: ja, error: eJa } = await base().or(`status.eq.pago,descricao.ilike.*(${rotulo})*`).limit(1);
+    // O valor do ilike vai entre aspas: sem elas, os parênteses de "(set/2026)"
+    // quebram a leitura do filtro e a checagem não encontra nada.
+    const { data: ja, error: eJa } = await base().or(`status.eq.pago,descricao.ilike."*(${rotulo})*"`).limit(1);
     if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
     if (ja?.length) return `Já lançado para ${rotulo}.`;
     const { data: prev, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
