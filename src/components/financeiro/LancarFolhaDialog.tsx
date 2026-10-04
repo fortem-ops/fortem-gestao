@@ -505,7 +505,7 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
 
   async function lancarTodos() {
     setLote(true);
-    let ok = 0, pulados = 0, erros = 0;
+    let ok = 0, pulados = 0, erros = 0, iguais = 0, difs = 0;
     for (let i = 0; i < linhas.length; i++) {
       if (linhas[i].lancado || linhas[i].existente?.tipo === "diferente") continue;
       if (linhas[i].pular) { pulados++; continue; }
