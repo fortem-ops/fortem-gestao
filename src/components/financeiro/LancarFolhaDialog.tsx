@@ -467,7 +467,7 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
   );
 }
 
-type EstadoLinha = { fornId: string; match: "ok" | "confirme" | "nao"; pular: boolean; aberto: boolean; lancado: boolean; erro?: string; enviando: boolean };
+type EstadoLinha = { fornId: string; match: "ok" | "confirme" | "nao"; pular: boolean; aberto: boolean; lancado: boolean; erro?: string; enviando: boolean; existente?: Existente };
 
 function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
   registros: RegistroHolerite[]; mesTela: Date; funcionarios: Func[]; onVoltar: () => void; onClose: () => void;
@@ -481,20 +481,25 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
   const [lote, setLote] = useState(false);
   const upd = (i: number, p: Partial<EstadoLinha>) => setLinhas((ls) => ls.map((l, j) => (j === i ? { ...l, ...p } : l)));
 
-  async function lancarUma(i: number): Promise<"ok" | "erro" | "pulado"> {
+  async function lancarUma(i: number, atualizarId?: string): Promise<"ok" | "erro" | "pulado" | "igual" | "diferente"> {
     const l = linhas[i];
     if (l.lancado) return "pulado";
     if (!l.fornId) { upd(i, { erro: "Selecione o funcionário no cadastro.", aberto: true }); return "erro"; }
     upd(i, { enviando: true });
     const form = refs.current[i];
-    const erro = form ? await form.lancar() : "Formulário não carregado.";
-    upd(i, { enviando: false, erro: erro ?? undefined, lancado: !erro, aberto: erro ? true : false });
-    return erro ? "erro" : "ok";
+    const res = form ? await form.lancar(atualizarId ? { atualizarId } : undefined) : "Formulário não carregado.";
+    if (typeof res === "string") { upd(i, { enviando: false, erro: res, aberto: true }); return "erro"; }
+    if (res?.tipo === "igual") { upd(i, { enviando: false, erro: undefined, lancado: true, existente: res, aberto: false }); return "igual"; }
+    if (res?.tipo === "diferente") { upd(i, { enviando: false, erro: undefined, existente: res, aberto: true }); return "diferente"; }
+    upd(i, { enviando: false, erro: undefined, lancado: true, existente: undefined, aberto: false });
+    return "ok";
   }
 
-  async function lancarIndividual(i: number) {
-    const r = await lancarUma(i);
-    if (r === "ok") { toast.success("Salário lançado."); qc.invalidateQueries({ queryKey: ["despesas"] }); }
+  async function lancarIndividual(i: number, atualizarId?: string) {
+    const r = await lancarUma(i, atualizarId);
+    if (r === "ok") { toast.success(atualizarId ? "Lançamento atualizado." : "Salário lançado."); qc.invalidateQueries({ queryKey: ["despesas"] }); }
+    else if (r === "igual") toast.info("Nada a atualizar: os valores são os mesmos já lançados.");
+    else if (r === "diferente") toast.warning("Já existe lançamento com valores diferentes. Confira e clique em Atualizar.");
     else if (r === "erro") toast.error("Não foi possível lançar este funcionário. Veja o aviso na linha.");
   }
 
