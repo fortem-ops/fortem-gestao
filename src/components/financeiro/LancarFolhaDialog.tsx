@@ -507,18 +507,18 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
     setLote(true);
     let ok = 0, pulados = 0, erros = 0;
     for (let i = 0; i < linhas.length; i++) {
-      if (linhas[i].lancado) continue;
+      if (linhas[i].lancado || linhas[i].existente?.tipo === "diferente") continue;
       if (linhas[i].pular) { pulados++; continue; }
       const r = await lancarUma(i);
-      if (r === "ok") ok++; else if (r === "erro") erros++;
+      if (r === "ok") ok++; else if (r === "erro") erros++; else if (r === "igual") iguais++; else if (r === "diferente") difs++;
     }
     setLote(false);
     qc.invalidateQueries({ queryKey: ["despesas"] });
-    const msg = `${ok} lançado(s), ${pulados} pulado(s)${erros ? `, ${erros} com erro` : ""}.`;
-    if (erros) toast.warning(msg + " Confira as linhas marcadas em vermelho."); else toast.success(msg);
+    const msg = `${ok} lançado(s), ${pulados} pulado(s)${iguais ? `, ${iguais} sem alterações` : ""}${difs ? `, ${difs} diferente(s) do lançado` : ""}${erros ? `, ${erros} com erro` : ""}.`;
+    if (erros || difs) toast.warning(msg + " Confira as linhas marcadas."); else toast.success(msg);
   }
 
-  const pendentes = linhas.filter((l) => !l.lancado && !l.pular).length;
+  const pendentes = linhas.filter((l) => !l.lancado && !l.pular && l.existente?.tipo !== "diferente").length;
 
   return (
     <div className="space-y-3">
