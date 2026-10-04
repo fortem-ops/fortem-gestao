@@ -546,7 +546,9 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
                   </div>
                 </div>
                 {r.mapeado?.ferias && <Badge variant="outline">Férias</Badge>}
-                {l.lancado ? <Badge className="bg-success/20 text-success border-success/40" variant="outline">Lançado</Badge>
+                {l.lancado && l.existente?.tipo === "igual" ? <Badge variant="outline">Sem alterações</Badge>
+                  : l.lancado ? <Badge className="bg-success/20 text-success border-success/40" variant="outline">Lançado</Badge>
+                  : l.existente?.tipo === "diferente" ? <Badge variant="outline" className="border-warning/50 text-warning">Diferente do lançado</Badge>
                   : r.erro ? <Badge variant="destructive">Não lido</Badge>
                   : l.match === "ok" ? <Badge variant="outline" className="border-success/40 text-success">Encontrado</Badge>
                   : l.match === "confirme" ? <Badge variant="outline" className="border-warning/50 text-warning">Confirme</Badge>
@@ -556,16 +558,24 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
                 )}
               </div>
               {(l.erro || r.erro) && <p className="px-3 pb-2 text-xs text-destructive">{l.erro || r.erro}</p>}
+              {l.lancado && l.existente?.tipo === "igual" && <p className="px-3 pb-2 text-xs text-muted-foreground">Nada a atualizar: os valores são os mesmos já lançados para {l.existente.rotulo}.</p>}
+              {!l.lancado && l.existente?.tipo === "diferente" && (
+                <div className="px-3 pb-2 text-xs text-warning">
+                  Já existe lançamento para {l.existente.rotulo} com dados diferentes: {l.existente.diffs.join("; ")}.
+                </div>
+              )}
               {!r.erro && (
                 <div className={l.aberto ? "border-t p-3 space-y-3" : "hidden"}>
                   <FolhaForm
                     ref={(h) => { refs.current[i] = h; }}
                     mesTela={mesTela} funcionarios={funcionarios} fornIdInicial={l.fornId} registro={r}
-                    onFornChange={(id) => upd(i, { fornId: id, match: "ok", erro: undefined })}
+                    onFornChange={(id) => upd(i, { fornId: id, match: "ok", erro: undefined, existente: undefined })}
                   />
                   {!l.lancado && (
                     <div className="flex justify-end">
-                      <Button size="sm" onClick={() => lancarIndividual(i)} disabled={l.enviando || lote}>{l.enviando ? "Lançando…" : "Lançar"}</Button>
+                      {l.existente?.tipo === "diferente"
+                        ? <Button size="sm" onClick={() => lancarIndividual(i, l.existente!.id)} disabled={l.enviando || lote}>{l.enviando ? "Atualizando…" : "Atualizar"}</Button>
+                        : <Button size="sm" onClick={() => lancarIndividual(i)} disabled={l.enviando || lote}>{l.enviando ? "Lançando…" : "Lançar"}</Button>}
                     </div>
                   )}
                 </div>
