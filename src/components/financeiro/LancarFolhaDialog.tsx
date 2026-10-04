@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Fornecedor } from "@/types/despesas";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +44,10 @@ export type RegistroHolerite = {
   mapeado?: Mapeado; erro?: string;
 };
 type Func = Fornecedor;
-export type FolhaFormHandle = { lancar: () => Promise<string | null> };
+/** null = gravado; string = erro; objeto = já existe lançamento (igual ou diferente). */
+export type Existente = { tipo: "igual" | "diferente"; id: string; rotulo: string; diffs: string[] };
+export type LancarRes = string | null | Existente;
+export type FolhaFormHandle = { lancar: (opts?: { atualizarId?: string }) => Promise<LancarRes> };
 
 const compDe = (c?: string | null) => { const mc = /^(\d{1,2})\/(\d{4})$/.exec(String(c ?? "")); return mc ? new Date(Number(mc[2]), Number(mc[1]) - 1, 1) : null; };
 
@@ -142,7 +146,7 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registro]);
 
-  async function lancar(): Promise<string | null> {
+  async function lancar(opts?: { atualizarId?: string }): Promise<LancarRes> {
     if (!forn) return "Escolha o funcionário.";
     if (!forn.categoria_padrao_id) return "Este funcionário não tem subcategoria pessoal cadastrada em Fornecedores.";
     if (vHoras <= 0) return "Informe o valor de Horas Normais.";
@@ -368,12 +372,17 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
     }
   }
 
-  async function salvar() {
+  const [confirmar, setConfirmar] = useState<Existente | null>(null);
+
+  async function salvar(atualizarId?: string) {
     setSalvando(true);
-    const erro = await formRef.current?.lancar();
+    const res = await formRef.current?.lancar(atualizarId ? { atualizarId } : undefined);
     setSalvando(false);
-    if (erro) return toast.error(erro);
-    toast.success("Salário lançado.");
+    if (typeof res === "string") return toast.error(res);
+    if (res?.tipo === "igual") return toast.info(`Nada a atualizar: os valores são os mesmos já lançados para ${res.rotulo}.`);
+    if (res?.tipo === "diferente") return setConfirmar(res);
+    toast.success(atualizarId ? "Lançamento atualizado." : "Salário lançado.");
+    setConfirmar(null);
     qc.invalidateQueries({ queryKey: ["despesas"] });
     onClose();
   }
@@ -408,7 +417,27 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
             <DialogFooter>
               <Button variant="ghost" onClick={() => { setRecibo(null); setManual(false); }}>{recibo ? "← Trocar PDF" : "← Voltar"}</Button>
               <Button variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button onClick={salvar} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
+              <Button onClick={() => salvar()} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
+            </DialogFooter>
+            <AlertDialog open={!!confirmar} onOpenChange={(o) => !o && setConfirmar(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Já existe um lançamento para {confirmar?.rotulo}</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-1">
+                      <p>Os dados são diferentes do que está gravado:</p>
+                      <ul className="list-disc pl-5">{confirmar?.diffs.map((d) => <li key={d}>{d}</li>)}</ul>
+                      <p>Deseja atualizar o lançamento existente?</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => confirmar && salvar(confirmar.id)}>Atualizar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <DialogFooter className="hidden">
             </DialogFooter>
           </>
         ) : (
