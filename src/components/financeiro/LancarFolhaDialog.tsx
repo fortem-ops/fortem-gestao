@@ -161,23 +161,10 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     p("INSS", vInss, true); p("Vale Transporte", vVt, true); p("Adiantamento Férias", vAdF, true);
     if (vOD) partes.push(`Outros Descontos${outrosDescDesc ? ` (${outrosDescDesc})` : ""}: -${brl(vOD)}`);
     partes.push(`Total Vencimentos: ${brl(totalVenc)}`, `Total Descontos: -${brl(totalDesc)}`, `Líquido: ${brl(liquido)}`);
-    // Trava de duplicidade: um salário LANÇADO (pago ou com "(mmm/yyyy)") por funcionário por competência.
-    // Previsões recorrentes pendentes não bloqueiam — são aproveitadas abaixo.
     const rotulo = `${mesAbrev}/${format(comp, "yyyy")}`;
-    const base = () => supabase.from("despesas").select("id")
-      .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
-      .eq("data_competencia", dataPag).ilike("descricao", "Salário%");
-    // O valor do ilike vai entre aspas: sem elas, os parênteses de "(set/2026)"
-    // quebram a leitura do filtro e a checagem não encontra nada.
-    const { data: ja, error: eJa } = await base().or(`status.eq.pago,descricao.ilike."*(${rotulo})*"`).limit(1);
-    if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
-    if (ja?.length) return `Já lançado para ${rotulo}.`;
-    const { data: prev, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
-    if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
-    const { data: u } = await supabase.auth.getUser();
+    const hoje = format(new Date(), "yyyy-MM-dd");
     // Data futura = pagamento ainda vai acontecer: nasce pendente (sem data_pagamento/valor_pago),
     // para aparecer na fila de Pagamentos Pix. Hoje ou passado = registro retroativo: nasce paga.
-    const hoje = format(new Date(), "yyyy-MM-dd");
     const futuro = dataPag > hoje;
     const payload = {
       categoria_id: forn.categoria_padrao_id,
@@ -196,7 +183,37 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
       forma_pagamento: "PIX",
       observacao: partes.join(" | "),
     };
-    const { error } = prev?.length
+    if (opts?.atualizarId) {
+      const { error } = await supabase.from("despesas").update(payload as never).eq("id", opts.atualizarId);
+      return error ? "Não foi possível atualizar a folha: " + error.message : null;
+    }
+    // Trava de duplicidade: um salário LANÇADO (pago ou com "(mmm/yyyy)") por funcionário por competência.
+    // Em vez de só bloquear, compara com o gravado: igual → nada a fazer; diferente → pergunta se atualiza.
+    const base = (cols = "id") => supabase.from("despesas").select(cols)
+      .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
+      .eq("data_competencia", dataPag).ilike("descricao", "Salário%");
+    // O valor do ilike vai entre aspas: sem elas, os parênteses de "(set/2026)" quebram o filtro.
+    const { data: jaRaw, error: eJa } = await base("id, valor, valor_liquido_previsto, valor_pago, observacao, conciliado, pix_status")
+      .or(`status.eq.pago,descricao.ilike."*(${rotulo})*"`).limit(1);
+    if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
+    const ja = (jaRaw ?? []) as unknown as { id: string; valor: number; valor_liquido_previsto: number | null; valor_pago: number | null; observacao: string | null; conciliado: boolean; pix_status: string | null }[];
+    if (ja.length) {
+      const e = ja[0];
+      const diffs: string[] = [];
+      const liqAnt = Number(e.valor_liquido_previsto ?? e.valor_pago ?? 0);
+      if (r2(liqAnt) !== r2(valorPago)) diffs.push(`Líquido: ${brl(liqAnt)} → ${brl(valorPago)}`);
+      if (r2(Number(e.valor)) !== r2(valor)) diffs.push(`Valor de categoria: ${brl(Number(e.valor))} → ${brl(valor)}`);
+      if (!diffs.length && (e.observacao ?? "") !== payload.observacao) diffs.push("Detalhamento da folha");
+      if (!diffs.length) return { tipo: "igual", id: e.id, rotulo, diffs };
+      if (e.conciliado || e.pix_status === "AGUARDANDO_APROVACAO" || e.pix_status === "CONCLUIDO")
+        return `Já lançado para ${rotulo} com valores diferentes, mas não pode ser alterado: ${e.conciliado ? "já está conciliado" : "o Pix já foi enviado ao Inter"}.`;
+      return { tipo: "diferente", id: e.id, rotulo, diffs };
+    }
+    const { data: prevRaw, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
+    if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
+    const prev = (prevRaw ?? []) as unknown as { id: string }[];
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = prev.length
       ? await supabase.from("despesas").update(payload as never).eq("id", prev[0].id).eq("status", "pendente")
       : await supabase.from("despesas").insert({ ...payload, origem: "manual", created_by: u.user?.id ?? null } as never);
     if (error) return "Não foi possível lançar a folha: " + error.message;
