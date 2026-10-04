@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Fornecedor } from "@/types/despesas";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +44,10 @@ export type RegistroHolerite = {
   mapeado?: Mapeado; erro?: string;
 };
 type Func = Fornecedor;
-export type FolhaFormHandle = { lancar: () => Promise<string | null> };
+/** null = gravado; string = erro; objeto = já existe lançamento (igual ou diferente). */
+export type Existente = { tipo: "igual" | "diferente"; id: string; rotulo: string; diffs: string[] };
+export type LancarRes = string | null | Existente;
+export type FolhaFormHandle = { lancar: (opts?: { atualizarId?: string }) => Promise<LancarRes> };
 
 const compDe = (c?: string | null) => { const mc = /^(\d{1,2})\/(\d{4})$/.exec(String(c ?? "")); return mc ? new Date(Number(mc[2]), Number(mc[1]) - 1, 1) : null; };
 
@@ -142,7 +146,7 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registro]);
 
-  async function lancar(): Promise<string | null> {
+  async function lancar(opts?: { atualizarId?: string }): Promise<LancarRes> {
     if (!forn) return "Escolha o funcionário.";
     if (!forn.categoria_padrao_id) return "Este funcionário não tem subcategoria pessoal cadastrada em Fornecedores.";
     if (vHoras <= 0) return "Informe o valor de Horas Normais.";
@@ -161,23 +165,10 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     p("INSS", vInss, true); p("Vale Transporte", vVt, true); p("Adiantamento Férias", vAdF, true);
     if (vOD) partes.push(`Outros Descontos${outrosDescDesc ? ` (${outrosDescDesc})` : ""}: -${brl(vOD)}`);
     partes.push(`Total Vencimentos: ${brl(totalVenc)}`, `Total Descontos: -${brl(totalDesc)}`, `Líquido: ${brl(liquido)}`);
-    // Trava de duplicidade: um salário LANÇADO (pago ou com "(mmm/yyyy)") por funcionário por competência.
-    // Previsões recorrentes pendentes não bloqueiam — são aproveitadas abaixo.
     const rotulo = `${mesAbrev}/${format(comp, "yyyy")}`;
-    const base = () => supabase.from("despesas").select("id")
-      .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
-      .eq("data_competencia", dataPag).ilike("descricao", "Salário%");
-    // O valor do ilike vai entre aspas: sem elas, os parênteses de "(set/2026)"
-    // quebram a leitura do filtro e a checagem não encontra nada.
-    const { data: ja, error: eJa } = await base().or(`status.eq.pago,descricao.ilike."*(${rotulo})*"`).limit(1);
-    if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
-    if (ja?.length) return `Já lançado para ${rotulo}.`;
-    const { data: prev, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
-    if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
-    const { data: u } = await supabase.auth.getUser();
+    const hoje = format(new Date(), "yyyy-MM-dd");
     // Data futura = pagamento ainda vai acontecer: nasce pendente (sem data_pagamento/valor_pago),
     // para aparecer na fila de Pagamentos Pix. Hoje ou passado = registro retroativo: nasce paga.
-    const hoje = format(new Date(), "yyyy-MM-dd");
     const futuro = dataPag > hoje;
     const payload = {
       categoria_id: forn.categoria_padrao_id,
@@ -196,7 +187,37 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
       forma_pagamento: "PIX",
       observacao: partes.join(" | "),
     };
-    const { error } = prev?.length
+    if (opts?.atualizarId) {
+      const { error } = await supabase.from("despesas").update(payload as never).eq("id", opts.atualizarId);
+      return error ? "Não foi possível atualizar a folha: " + error.message : null;
+    }
+    // Trava de duplicidade: um salário LANÇADO (pago ou com "(mmm/yyyy)") por funcionário por competência.
+    // Em vez de só bloquear, compara com o gravado: igual → nada a fazer; diferente → pergunta se atualiza.
+    const base = (cols = "id") => supabase.from("despesas").select(cols)
+      .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
+      .eq("data_competencia", dataPag).ilike("descricao", "Salário%");
+    // O valor do ilike vai entre aspas: sem elas, os parênteses de "(set/2026)" quebram o filtro.
+    const { data: jaRaw, error: eJa } = await base("id, valor, valor_liquido_previsto, valor_pago, observacao, conciliado, pix_status")
+      .or(`status.eq.pago,descricao.ilike."*(${rotulo})*"`).limit(1);
+    if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
+    const ja = (jaRaw ?? []) as unknown as { id: string; valor: number; valor_liquido_previsto: number | null; valor_pago: number | null; observacao: string | null; conciliado: boolean; pix_status: string | null }[];
+    if (ja.length) {
+      const e = ja[0];
+      const diffs: string[] = [];
+      const liqAnt = Number(e.valor_liquido_previsto ?? e.valor_pago ?? 0);
+      if (r2(liqAnt) !== r2(valorPago)) diffs.push(`Líquido: ${brl(liqAnt)} → ${brl(valorPago)}`);
+      if (r2(Number(e.valor)) !== r2(valor)) diffs.push(`Valor de categoria: ${brl(Number(e.valor))} → ${brl(valor)}`);
+      if (!diffs.length && (e.observacao ?? "") !== payload.observacao) diffs.push("Detalhamento da folha");
+      if (!diffs.length) return { tipo: "igual", id: e.id, rotulo, diffs };
+      if (e.conciliado || e.pix_status === "AGUARDANDO_APROVACAO" || e.pix_status === "CONCLUIDO")
+        return `Já lançado para ${rotulo} com valores diferentes, mas não pode ser alterado: ${e.conciliado ? "já está conciliado" : "o Pix já foi enviado ao Inter"}.`;
+      return { tipo: "diferente", id: e.id, rotulo, diffs };
+    }
+    const { data: prevRaw, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
+    if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
+    const prev = (prevRaw ?? []) as unknown as { id: string }[];
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = prev.length
       ? await supabase.from("despesas").update(payload as never).eq("id", prev[0].id).eq("status", "pendente")
       : await supabase.from("despesas").insert({ ...payload, origem: "manual", created_by: u.user?.id ?? null } as never);
     if (error) return "Não foi possível lançar a folha: " + error.message;
@@ -351,12 +372,17 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
     }
   }
 
-  async function salvar() {
+  const [confirmar, setConfirmar] = useState<Existente | null>(null);
+
+  async function salvar(atualizarId?: string) {
     setSalvando(true);
-    const erro = await formRef.current?.lancar();
+    const res = await formRef.current?.lancar(atualizarId ? { atualizarId } : undefined);
     setSalvando(false);
-    if (erro) return toast.error(erro);
-    toast.success("Salário lançado.");
+    if (typeof res === "string") return toast.error(res);
+    if (res?.tipo === "igual") return toast.info(`Nada a atualizar: os valores são os mesmos já lançados para ${res.rotulo}.`);
+    if (res?.tipo === "diferente") return setConfirmar(res);
+    toast.success(atualizarId ? "Lançamento atualizado." : "Salário lançado.");
+    setConfirmar(null);
     qc.invalidateQueries({ queryKey: ["despesas"] });
     onClose();
   }
@@ -391,7 +417,27 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
             <DialogFooter>
               <Button variant="ghost" onClick={() => { setRecibo(null); setManual(false); }}>{recibo ? "← Trocar PDF" : "← Voltar"}</Button>
               <Button variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button onClick={salvar} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
+              <Button onClick={() => salvar()} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
+            </DialogFooter>
+            <AlertDialog open={!!confirmar} onOpenChange={(o) => !o && setConfirmar(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Já existe um lançamento para {confirmar?.rotulo}</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-1">
+                      <p>Os dados são diferentes do que está gravado:</p>
+                      <ul className="list-disc pl-5">{confirmar?.diffs.map((d) => <li key={d}>{d}</li>)}</ul>
+                      <p>Deseja atualizar o lançamento existente?</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => confirmar && salvar(confirmar.id)}>Atualizar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <DialogFooter className="hidden">
             </DialogFooter>
           </>
         ) : (
@@ -421,7 +467,7 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
   );
 }
 
-type EstadoLinha = { fornId: string; match: "ok" | "confirme" | "nao"; pular: boolean; aberto: boolean; lancado: boolean; erro?: string; enviando: boolean };
+type EstadoLinha = { fornId: string; match: "ok" | "confirme" | "nao"; pular: boolean; aberto: boolean; lancado: boolean; erro?: string; enviando: boolean; existente?: Existente };
 
 function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
   registros: RegistroHolerite[]; mesTela: Date; funcionarios: Func[]; onVoltar: () => void; onClose: () => void;
@@ -435,39 +481,44 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
   const [lote, setLote] = useState(false);
   const upd = (i: number, p: Partial<EstadoLinha>) => setLinhas((ls) => ls.map((l, j) => (j === i ? { ...l, ...p } : l)));
 
-  async function lancarUma(i: number): Promise<"ok" | "erro" | "pulado"> {
+  async function lancarUma(i: number, atualizarId?: string): Promise<"ok" | "erro" | "pulado" | "igual" | "diferente"> {
     const l = linhas[i];
     if (l.lancado) return "pulado";
     if (!l.fornId) { upd(i, { erro: "Selecione o funcionário no cadastro.", aberto: true }); return "erro"; }
     upd(i, { enviando: true });
     const form = refs.current[i];
-    const erro = form ? await form.lancar() : "Formulário não carregado.";
-    upd(i, { enviando: false, erro: erro ?? undefined, lancado: !erro, aberto: erro ? true : false });
-    return erro ? "erro" : "ok";
+    const res = form ? await form.lancar(atualizarId ? { atualizarId } : undefined) : "Formulário não carregado.";
+    if (typeof res === "string") { upd(i, { enviando: false, erro: res, aberto: true }); return "erro"; }
+    if (res?.tipo === "igual") { upd(i, { enviando: false, erro: undefined, lancado: true, existente: res, aberto: false }); return "igual"; }
+    if (res?.tipo === "diferente") { upd(i, { enviando: false, erro: undefined, existente: res, aberto: true }); return "diferente"; }
+    upd(i, { enviando: false, erro: undefined, lancado: true, existente: undefined, aberto: false });
+    return "ok";
   }
 
-  async function lancarIndividual(i: number) {
-    const r = await lancarUma(i);
-    if (r === "ok") { toast.success("Salário lançado."); qc.invalidateQueries({ queryKey: ["despesas"] }); }
+  async function lancarIndividual(i: number, atualizarId?: string) {
+    const r = await lancarUma(i, atualizarId);
+    if (r === "ok") { toast.success(atualizarId ? "Lançamento atualizado." : "Salário lançado."); qc.invalidateQueries({ queryKey: ["despesas"] }); }
+    else if (r === "igual") toast.info("Nada a atualizar: os valores são os mesmos já lançados.");
+    else if (r === "diferente") toast.warning("Já existe lançamento com valores diferentes. Confira e clique em Atualizar.");
     else if (r === "erro") toast.error("Não foi possível lançar este funcionário. Veja o aviso na linha.");
   }
 
   async function lancarTodos() {
     setLote(true);
-    let ok = 0, pulados = 0, erros = 0;
+    let ok = 0, pulados = 0, erros = 0, iguais = 0, difs = 0;
     for (let i = 0; i < linhas.length; i++) {
-      if (linhas[i].lancado) continue;
+      if (linhas[i].lancado || linhas[i].existente?.tipo === "diferente") continue;
       if (linhas[i].pular) { pulados++; continue; }
       const r = await lancarUma(i);
-      if (r === "ok") ok++; else if (r === "erro") erros++;
+      if (r === "ok") ok++; else if (r === "erro") erros++; else if (r === "igual") iguais++; else if (r === "diferente") difs++;
     }
     setLote(false);
     qc.invalidateQueries({ queryKey: ["despesas"] });
-    const msg = `${ok} lançado(s), ${pulados} pulado(s)${erros ? `, ${erros} com erro` : ""}.`;
-    if (erros) toast.warning(msg + " Confira as linhas marcadas em vermelho."); else toast.success(msg);
+    const msg = `${ok} lançado(s), ${pulados} pulado(s)${iguais ? `, ${iguais} sem alterações` : ""}${difs ? `, ${difs} diferente(s) do lançado` : ""}${erros ? `, ${erros} com erro` : ""}.`;
+    if (erros || difs) toast.warning(msg + " Confira as linhas marcadas."); else toast.success(msg);
   }
 
-  const pendentes = linhas.filter((l) => !l.lancado && !l.pular).length;
+  const pendentes = linhas.filter((l) => !l.lancado && !l.pular && l.existente?.tipo !== "diferente").length;
 
   return (
     <div className="space-y-3">
@@ -495,7 +546,9 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
                   </div>
                 </div>
                 {r.mapeado?.ferias && <Badge variant="outline">Férias</Badge>}
-                {l.lancado ? <Badge className="bg-success/20 text-success border-success/40" variant="outline">Lançado</Badge>
+                {l.lancado && l.existente?.tipo === "igual" ? <Badge variant="outline">Sem alterações</Badge>
+                  : l.lancado ? <Badge className="bg-success/20 text-success border-success/40" variant="outline">Lançado</Badge>
+                  : l.existente?.tipo === "diferente" ? <Badge variant="outline" className="border-warning/50 text-warning">Diferente do lançado</Badge>
                   : r.erro ? <Badge variant="destructive">Não lido</Badge>
                   : l.match === "ok" ? <Badge variant="outline" className="border-success/40 text-success">Encontrado</Badge>
                   : l.match === "confirme" ? <Badge variant="outline" className="border-warning/50 text-warning">Confirme</Badge>
@@ -505,16 +558,24 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
                 )}
               </div>
               {(l.erro || r.erro) && <p className="px-3 pb-2 text-xs text-destructive">{l.erro || r.erro}</p>}
+              {l.lancado && l.existente?.tipo === "igual" && <p className="px-3 pb-2 text-xs text-muted-foreground">Nada a atualizar: os valores são os mesmos já lançados para {l.existente.rotulo}.</p>}
+              {!l.lancado && l.existente?.tipo === "diferente" && (
+                <div className="px-3 pb-2 text-xs text-warning">
+                  Já existe lançamento para {l.existente.rotulo} com dados diferentes: {l.existente.diffs.join("; ")}.
+                </div>
+              )}
               {!r.erro && (
                 <div className={l.aberto ? "border-t p-3 space-y-3" : "hidden"}>
                   <FolhaForm
                     ref={(h) => { refs.current[i] = h; }}
                     mesTela={mesTela} funcionarios={funcionarios} fornIdInicial={l.fornId} registro={r}
-                    onFornChange={(id) => upd(i, { fornId: id, match: "ok", erro: undefined })}
+                    onFornChange={(id) => upd(i, { fornId: id, match: "ok", erro: undefined, existente: undefined })}
                   />
                   {!l.lancado && (
                     <div className="flex justify-end">
-                      <Button size="sm" onClick={() => lancarIndividual(i)} disabled={l.enviando || lote}>{l.enviando ? "Lançando…" : "Lançar"}</Button>
+                      {l.existente?.tipo === "diferente"
+                        ? <Button size="sm" onClick={() => lancarIndividual(i, l.existente!.id)} disabled={l.enviando || lote}>{l.enviando ? "Atualizando…" : "Atualizar"}</Button>
+                        : <Button size="sm" onClick={() => lancarIndividual(i)} disabled={l.enviando || lote}>{l.enviando ? "Lançando…" : "Lançar"}</Button>}
                     </div>
                   )}
                 </div>
