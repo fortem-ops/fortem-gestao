@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
           : (d as any).pix_data_agendada ?? hoje();
         await sup.from("despesas").update({
           status: "pago", pix_status: "CONCLUIDO", data_pagamento: data,
-          valor_pago: Number(r.data?.transacaoPix?.valor ?? d.valor_liquido_previsto ?? d.valor), conciliado: true, pix_erro: null,
+          // O valor enviado foi exatamente despesa.valor — sem caça a valor "real" na resposta do Inter.
+          valor_pago: Number(d.valor), conciliado: true, pix_erro: null,
         }).eq("id", d.id).eq("pix_status", "AGUARDANDO_APROVACAO");
         concluidos++;
       } else if (REJEITADO.has(st)) {
