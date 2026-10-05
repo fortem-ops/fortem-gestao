@@ -69,3 +69,6 @@ verify_jwt = false
 
 [functions.ler-fatura-cartao]
 verify_jwt = false
+
+[functions.rede-webhook]
+verify_jwt = false
