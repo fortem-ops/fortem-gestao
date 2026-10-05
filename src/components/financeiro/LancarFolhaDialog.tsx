@@ -151,9 +151,8 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     if (!forn.categoria_padrao_id) return "Este funcionário não tem subcategoria pessoal cadastrada em Fornecedores.";
     if (vHoras <= 0) return "Informe o valor de Horas Normais.";
     if ([vGrat, vCom, vDsr, vInss, vVt, vHF, vMF, vTerco, vAdF, vOV, vOD].some((x) => x < 0)) return "Valores não podem ser negativos.";
-    const valor = r2(vHoras + vGrat + vHF + vMF + vTerco + vOV);
-    // valor_pago = líquido completo (Total de Vencimentos − Total de Descontos),
-    // batendo com o PIX/extrato. Comissão e DSR entram aqui, não em despesa separada.
+    // valor da despesa = líquido completo (Total de Vencimentos − Total de Descontos, com Comissão/DSR):
+    // é o que efetivamente sai via PIX/extrato. Sem valor bruto de categoria separado.
     const valorPago = liquido;
     if (valorPago < 0) return "Os descontos são maiores que o salário.";
     const mesAbrev = format(comp, "MMM", { locale: ptBR }).replace(".", "");
