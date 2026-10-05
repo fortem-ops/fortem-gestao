@@ -57,7 +57,7 @@ serve(async (req) => {
     req.headers.get("x-rede-event-id") ??
     req.headers.get("x-event-id") ??
     body?.eventId ??
-    `${tid ?? "sem-tid"}-${returnCodeBody ?? "sem-rc"}-${crypto.randomUUID()}`;
+    `${tid ?? "sem-tid"}-${returnCodeBody ?? "sem-rc"}`;
 
   // ── 4. Gravação do evento ──────────────────────────────────
   const { error: insertErr } = await supabase
