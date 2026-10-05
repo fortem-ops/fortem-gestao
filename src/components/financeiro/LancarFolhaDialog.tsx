@@ -204,7 +204,7 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
       const diffs: string[] = [];
       const liqAnt = Number(e.valor_liquido_previsto ?? e.valor_pago ?? 0);
       if (r2(liqAnt) !== r2(valorPago)) diffs.push(`Líquido: ${brl(liqAnt)} → ${brl(valorPago)}`);
-      if (r2(Number(e.valor)) !== r2(valor)) diffs.push(`Valor de categoria: ${brl(Number(e.valor))} → ${brl(valor)}`);
+      if (r2(Number(e.valor)) !== r2(valorPago)) diffs.push(`Valor: ${brl(Number(e.valor))} → ${brl(valorPago)}`);
       if (!diffs.length && (e.observacao ?? "") !== payload.observacao) diffs.push("Detalhamento da folha");
       if (!diffs.length) return { tipo: "igual", id: e.id, rotulo, diffs };
       if (e.conciliado || e.pix_status === "AGUARDANDO_APROVACAO" || e.pix_status === "CONCLUIDO")
