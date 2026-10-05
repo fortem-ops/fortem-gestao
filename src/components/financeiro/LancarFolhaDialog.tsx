@@ -173,9 +173,8 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
       categoria_id: forn.categoria_padrao_id,
       fornecedor_id: forn.id,
       descricao: `${ferias ? "Salário + Férias" : "Salário"} ${forn.nome} (${rotulo})`,
-      valor,
+      valor: valorPago,
       valor_pago: futuro ? null : valorPago,
-      // Líquido a enviar (com Comissão/DSR), gravado sempre — usado pela fila de Pagamentos Pix.
       valor_liquido_previsto: valorPago,
       status: futuro ? "pendente" : "pago",
       tipo: "fixa",
