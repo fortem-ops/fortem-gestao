@@ -151,9 +151,8 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     if (!forn.categoria_padrao_id) return "Este funcionário não tem subcategoria pessoal cadastrada em Fornecedores.";
     if (vHoras <= 0) return "Informe o valor de Horas Normais.";
     if ([vGrat, vCom, vDsr, vInss, vVt, vHF, vMF, vTerco, vAdF, vOV, vOD].some((x) => x < 0)) return "Valores não podem ser negativos.";
-    const valor = r2(vHoras + vGrat + vHF + vMF + vTerco + vOV);
-    // valor_pago = líquido completo (Total de Vencimentos − Total de Descontos),
-    // batendo com o PIX/extrato. Comissão e DSR entram aqui, não em despesa separada.
+    // valor da despesa = líquido completo (Total de Vencimentos − Total de Descontos, com Comissão/DSR):
+    // é o que efetivamente sai via PIX/extrato. Sem valor bruto de categoria separado.
     const valorPago = liquido;
     if (valorPago < 0) return "Os descontos são maiores que o salário.";
     const mesAbrev = format(comp, "MMM", { locale: ptBR }).replace(".", "");
@@ -174,9 +173,8 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
       categoria_id: forn.categoria_padrao_id,
       fornecedor_id: forn.id,
       descricao: `${ferias ? "Salário + Férias" : "Salário"} ${forn.nome} (${rotulo})`,
-      valor,
+      valor: valorPago,
       valor_pago: futuro ? null : valorPago,
-      // Líquido a enviar (com Comissão/DSR), gravado sempre — usado pela fila de Pagamentos Pix.
       valor_liquido_previsto: valorPago,
       status: futuro ? "pendente" : "pago",
       tipo: "fixa",
@@ -206,7 +204,7 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
       const diffs: string[] = [];
       const liqAnt = Number(e.valor_liquido_previsto ?? e.valor_pago ?? 0);
       if (r2(liqAnt) !== r2(valorPago)) diffs.push(`Líquido: ${brl(liqAnt)} → ${brl(valorPago)}`);
-      if (r2(Number(e.valor)) !== r2(valor)) diffs.push(`Valor de categoria: ${brl(Number(e.valor))} → ${brl(valor)}`);
+      if (r2(Number(e.valor)) !== r2(valorPago)) diffs.push(`Valor: ${brl(Number(e.valor))} → ${brl(valorPago)}`);
       if (!diffs.length && (e.observacao ?? "") !== payload.observacao) diffs.push("Detalhamento da folha");
       if (!diffs.length) return { tipo: "igual", id: e.id, rotulo, diffs };
       if (e.conciliado || e.pix_status === "AGUARDANDO_APROVACAO" || e.pix_status === "CONCLUIDO")

@@ -85,8 +85,9 @@ async function baixarPendente(sb: any, m: any, registrosUsados: Set<string>): Pr
     movimento_id: m.id, tabela_origem: "despesas", registro_id: d.id, tipo_match: "automatico", confianca,
   });
   if (insErr) { console.error("insert vínculo pendente", insErr.message); return "erro"; }
+  // valor_pago = valor da despesa (o que foi projetado/enviado), não o valor do movimento.
   const { error: upErr } = await sb.from("despesas").update({
-    status: "pago", data_pagamento: m.data_entrada, valor_pago: valorBanco, conciliado: true,
+    status: "pago", data_pagamento: m.data_entrada, valor_pago: Number(d.valor), conciliado: true,
   }).eq("id", d.id).eq("status", "pendente");
   if (upErr) console.error("baixa pendente", upErr.message);
   registrosUsados.add(d.id);
