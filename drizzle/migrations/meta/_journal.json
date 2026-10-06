@@ -512,6 +512,13 @@
       "when": 1790968459675,
       "tag": "0072_despesas_valor_liquido_previsto",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1791285811751,
+      "tag": "0073_create_festa_confirmacoes",
+      "breakpoints": true
     }
   ]
 }
