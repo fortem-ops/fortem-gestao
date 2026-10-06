@@ -519,6 +519,13 @@
       "when": 1791285811751,
       "tag": "0073_create_festa_confirmacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1791285955235,
+      "tag": "0074_harden_festa_acompanhantes_validation",
+      "breakpoints": true
     }
   ]
 }

@@ -68,8 +68,9 @@ export default function Festa10Anos() {
     if (!parsed.success) {
       const next: FieldErrors = {};
       parsed.error.issues.forEach((issue) => {
-        const key = issue.path[0] as keyof FieldErrors;
-        if (key === "website") return;
+        const rawKey = issue.path[0];
+        if (rawKey === "website") return;
+        const key = rawKey as keyof FieldErrors;
         if (!next[key]) next[key] = issue.message;
       });
       setErrors(next);
