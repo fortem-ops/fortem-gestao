@@ -150,14 +150,36 @@ serve(async (req) => {
   // ── Vínculo pelo tid (identificador confiável). ─────────────
   // O `authorization.reference` devolvido pela Rede vem truncado (20 chars)
   // e não é um uuid válido — nunca usá-lo como id de venda.
-  const { data: pagamento } = await supabase
+  // Um mesmo tid pode ter várias linhas (cobrança original + requisição de estorno),
+  // então buscamos TODAS as linhas e resolvemos o vínculo a partir delas.
+  const { data: pagamentos, error: pagErr } = await supabase
     .from("pagamentos_rede")
-    .select("id, venda_id, pedido_id")
-    .eq("tid", tid)
-    .maybeSingle();
+    .select("id, venda_id, pedido_id, cobranca_id")
+    .eq("tid", tid);
 
-  const vendaId = pagamento?.venda_id ?? null;
-  const pedidoId = pagamento?.pedido_id ?? null;
+  if (pagErr) {
+    console.error("[rede-webhook] erro ao buscar pagamentos do tid:", pagErr.message);
+  }
+
+  const linhas = pagamentos ?? [];
+  const vendaId = linhas.find((l: any) => l.venda_id)?.venda_id ?? null;
+  const pedidoId = linhas.find((l: any) => l.pedido_id)?.pedido_id ?? null;
+  const cobrancaId = linhas.find((l: any) => l.cobranca_id)?.cobranca_id ?? null;
+  const pagamentoIds = linhas.map((l: any) => l.id);
+
+  // Payload padrão de TODOS os system_logs desta função.
+  const logPayload = {
+    tid,
+    pagamento_ids: pagamentoIds,
+    venda_id: vendaId,
+    pedido_id: pedidoId,
+    cobranca_id: cobrancaId,
+    total_transacao: totalTransacao,
+    total_estornado: totalEstornado,
+    authorization_status: authorization.status,
+    reference_rede: authorization.reference,
+    refunds,
+  };
 
   if (caminho === "total") {
     if (vendaId) {
@@ -166,26 +188,43 @@ serve(async (req) => {
         .update({ status_pagamento: "estornado" })
         .eq("id", vendaId);
       if (error) console.error("[rede-webhook] erro ao atualizar venda:", error.message);
+    } else if (cobrancaId) {
+      // cobrancas.status só aceita pago/pendente/atrasado/cancelado — não existe
+      // "estornado", e "cancelado" seria decisão de negócio. Não alteramos a tabela.
+      try {
+        await supabase.from("system_logs").insert({
+          modulo: "rede-webhook",
+          acao: "estorno_cobranca_recorrencia",
+          mensagem: `Estorno total na transação ${tid} referente à cobrança de recorrência ${cobrancaId} — status da cobrança NÃO foi alterado, requer decisão manual`,
+          payload: logPayload,
+        });
+      } catch (e) {
+        console.error(
+          "[rede-webhook] falha ao gravar system_logs (estorno_cobranca_recorrencia):",
+          String(e)
+        );
+      }
+    } else if (pedidoId) {
+      try {
+        await supabase.from("system_logs").insert({
+          modulo: "rede-webhook",
+          acao: "estorno_pedido_loja",
+          mensagem: `Estorno total na transação ${tid} referente ao pedido ${pedidoId} — requer conferência manual`,
+          payload: logPayload,
+        });
+      } catch (e) {
+        console.error("[rede-webhook] falha ao gravar system_logs (estorno_pedido_loja):", String(e));
+      }
     } else {
       try {
         await supabase.from("system_logs").insert({
           modulo: "rede-webhook",
-          acao: "estorno_sem_venda_vinculada",
-          mensagem: `Estorno total na transação ${tid} sem venda vinculada (pedido_id: ${pedidoId ?? "nenhum"}) — conferir manualmente`,
-          payload: {
-            tid,
-            pagamento_id: pagamento?.id ?? null,
-            venda_id: vendaId,
-            pedido_id: pedidoId,
-            total_transacao: totalTransacao,
-            total_estornado: totalEstornado,
-            authorization_status: authorization.status,
-            reference_rede: authorization.reference,
-            refunds,
-          },
+          acao: "estorno_sem_vinculo",
+          mensagem: `Estorno total na transação ${tid} sem vínculo em pagamentos_rede — conferir manualmente`,
+          payload: logPayload,
         });
       } catch (e) {
-        console.error("[rede-webhook] falha ao gravar system_logs (estorno_sem_venda_vinculada):", String(e));
+        console.error("[rede-webhook] falha ao gravar system_logs (estorno_sem_vinculo):", String(e));
       }
     }
     // Nunca rebaixar um refunded existente: só marca quem ainda não está refunded.
@@ -200,16 +239,7 @@ serve(async (req) => {
         modulo: "rede-webhook",
         acao: "estorno_parcial",
         mensagem: `Estorno parcial na transação ${tid}: ${totalEstornado} de ${totalTransacao}`,
-        payload: {
-          tid,
-          venda_id: vendaId,
-          pedido_id: pedidoId,
-          reference_rede: authorization.reference,
-          total_transacao: totalTransacao,
-          total_estornado: totalEstornado,
-          authorization_status: authorization.status,
-          refunds,
-        },
+        payload: logPayload,
       });
     } catch (e) {
       console.error("[rede-webhook] falha ao gravar system_logs (estorno_parcial):", String(e));
@@ -220,16 +250,7 @@ serve(async (req) => {
         modulo: "rede-webhook",
         acao: "estorno_sem_efeito",
         mensagem: `Notificação de estorno sem efeito na transação ${tid}: ${totalEstornado} de ${totalTransacao}`,
-        payload: {
-          tid,
-          venda_id: vendaId,
-          pedido_id: pedidoId,
-          reference_rede: authorization.reference,
-          total_transacao: totalTransacao,
-          total_estornado: totalEstornado,
-          authorization_status: authorization.status,
-          refunds,
-        },
+        payload: logPayload,
       });
     } catch (e) {
       console.error("[rede-webhook] falha ao gravar system_logs (estorno_sem_efeito):", String(e));
@@ -243,6 +264,7 @@ serve(async (req) => {
     totalEstornado,
     vendaId,
     pedidoId,
+    cobrancaId,
     caminho,
   });
 
