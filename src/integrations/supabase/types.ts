@@ -3613,6 +3613,39 @@ export type Database = {
         }
         Relationships: []
       }
+      festa_confirmacoes: {
+        Row: {
+          acompanhantes: Json
+          criado_em: string
+          email: string | null
+          id: string
+          nome: string
+          total_pessoas: number
+          vinculo: string
+          whatsapp: string
+        }
+        Insert: {
+          acompanhantes?: Json
+          criado_em?: string
+          email?: string | null
+          id?: string
+          nome: string
+          total_pessoas: number
+          vinculo: string
+          whatsapp: string
+        }
+        Update: {
+          acompanhantes?: Json
+          criado_em?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          total_pessoas?: number
+          vinculo?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       forca_amostras_fortem: {
         Row: {
           created_at: string
@@ -9562,6 +9595,7 @@ export type Database = {
     Functions: {
       aluno_user_id: { Args: { p_aluno_id: string }; Returns: string }
       ativar_treinos_agendados: { Args: never; Returns: undefined }
+      festa_acompanhantes_validos: { Args: { valor: Json }; Returns: boolean }
       fn_acordo_intervalo_vigente: {
         Args: { _data: string; _usuario: string }
         Returns: Database["public"]["Enums"]["tipo_acordo_intervalo"]
@@ -9857,6 +9891,17 @@ export type Database = {
       fn_feriados_nacionais: {
         Args: { p_fim: string; p_ini: string }
         Returns: string[]
+      }
+      fn_festa_confirmar: {
+        Args: {
+          p_acompanhantes: Json
+          p_email: string
+          p_nome: string
+          p_total_pessoas: number
+          p_vinculo: string
+          p_whatsapp: string
+        }
+        Returns: string
       }
       fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }

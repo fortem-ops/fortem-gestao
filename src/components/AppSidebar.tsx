@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert, TrendingUp, Receipt, HandCoins } from "lucide-react";
+import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert, TrendingUp, Receipt, HandCoins, PartyPopper } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
@@ -84,6 +84,7 @@ const cadastrosAdminItems = [
 /* ─── Comercial ─── */
 const comercialItems = [
   { title: "Inscrições Corrida", url: "/corrida/inscricoes", icon: Flag },
+  { title: "Festa 10 anos", url: "/festa-10-anos/confirmacoes", icon: PartyPopper },
 ];
 
 const comercialAdminItems = [
