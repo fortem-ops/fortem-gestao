@@ -526,6 +526,13 @@
       "when": 1791285955235,
       "tag": "0074_harden_festa_acompanhantes_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1791286018449,
+      "tag": "0075_restrict_festa_delete_to_admin",
+      "breakpoints": true
     }
   ]
 }
