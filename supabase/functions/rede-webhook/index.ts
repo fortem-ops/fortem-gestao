@@ -140,18 +140,53 @@ serve(async (req) => {
   const estornoTotal =
     cancelada || (totalEstornado > 0 && totalTransacao > 0 && totalEstornado >= totalTransacao);
   const estornoParcial = totalEstornado > 0 && !estornoTotal;
-  const vendaId = authorization.reference;
 
-  let caminho: "total" | "parcial" | "sem_efeito";
+  const caminho: "total" | "parcial" | "sem_efeito" = estornoTotal
+    ? "total"
+    : estornoParcial
+      ? "parcial"
+      : "sem_efeito";
 
-  if (estornoTotal) {
-    caminho = "total";
+  // ── Vínculo pelo tid (identificador confiável). ─────────────
+  // O `authorization.reference` devolvido pela Rede vem truncado (20 chars)
+  // e não é um uuid válido — nunca usá-lo como id de venda.
+  const { data: pagamento } = await supabase
+    .from("pagamentos_rede")
+    .select("id, venda_id, pedido_id")
+    .eq("tid", tid)
+    .maybeSingle();
+
+  const vendaId = pagamento?.venda_id ?? null;
+  const pedidoId = pagamento?.pedido_id ?? null;
+
+  if (caminho === "total") {
     if (vendaId) {
       const { error } = await supabase
         .from("vendas")
         .update({ status_pagamento: "estornado" })
         .eq("id", vendaId);
       if (error) console.error("[rede-webhook] erro ao atualizar venda:", error.message);
+    } else {
+      try {
+        await supabase.from("system_logs").insert({
+          modulo: "rede-webhook",
+          acao: "estorno_sem_venda_vinculada",
+          mensagem: `Estorno total na transação ${tid} sem venda vinculada (pedido_id: ${pedidoId ?? "nenhum"}) — conferir manualmente`,
+          payload: {
+            tid,
+            pagamento_id: pagamento?.id ?? null,
+            venda_id: vendaId,
+            pedido_id: pedidoId,
+            total_transacao: totalTransacao,
+            total_estornado: totalEstornado,
+            authorization_status: authorization.status,
+            reference_rede: authorization.reference,
+            refunds,
+          },
+        });
+      } catch (e) {
+        console.error("[rede-webhook] falha ao gravar system_logs (estorno_sem_venda_vinculada):", String(e));
+      }
     }
     // Nunca rebaixar um refunded existente: só marca quem ainda não está refunded.
     await supabase
@@ -159,8 +194,7 @@ serve(async (req) => {
       .update({ status: "refunded" })
       .eq("tid", tid)
       .neq("status", "refunded");
-  } else if (estornoParcial) {
-    caminho = "parcial";
+  } else if (caminho === "parcial") {
     try {
       await supabase.from("system_logs").insert({
         modulo: "rede-webhook",
@@ -169,6 +203,8 @@ serve(async (req) => {
         payload: {
           tid,
           venda_id: vendaId,
+          pedido_id: pedidoId,
+          reference_rede: authorization.reference,
           total_transacao: totalTransacao,
           total_estornado: totalEstornado,
           authorization_status: authorization.status,
@@ -179,7 +215,6 @@ serve(async (req) => {
       console.error("[rede-webhook] falha ao gravar system_logs (estorno_parcial):", String(e));
     }
   } else {
-    caminho = "sem_efeito";
     try {
       await supabase.from("system_logs").insert({
         modulo: "rede-webhook",
@@ -188,6 +223,8 @@ serve(async (req) => {
         payload: {
           tid,
           venda_id: vendaId,
+          pedido_id: pedidoId,
+          reference_rede: authorization.reference,
           total_transacao: totalTransacao,
           total_estornado: totalEstornado,
           authorization_status: authorization.status,
@@ -204,6 +241,8 @@ serve(async (req) => {
     authorizationStatus: authorization.status,
     totalTransacao,
     totalEstornado,
+    vendaId,
+    pedidoId,
     caminho,
   });
 
