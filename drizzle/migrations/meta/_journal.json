@@ -540,6 +540,13 @@
       "when": 1791286047725,
       "tag": "0076_align_festa_staff_delete_and_anon_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1791286141987,
+      "tag": "0077_add_safe_festa_confirmation_rpc",
+      "breakpoints": true
     }
   ]
 }

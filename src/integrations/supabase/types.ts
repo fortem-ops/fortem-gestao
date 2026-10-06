@@ -9892,6 +9892,17 @@ export type Database = {
         Args: { p_fim: string; p_ini: string }
         Returns: string[]
       }
+      fn_festa_confirmar: {
+        Args: {
+          p_acompanhantes: Json
+          p_email: string
+          p_nome: string
+          p_total_pessoas: number
+          p_vinculo: string
+          p_whatsapp: string
+        }
+        Returns: string
+      }
       fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }
       fn_fin_somar_dias_uteis: {
