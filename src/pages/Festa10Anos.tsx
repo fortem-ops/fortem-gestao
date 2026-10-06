@@ -80,22 +80,22 @@ export default function Festa10Anos() {
 
     setSubmitting(true);
     const acompanhantes = parsed.data.acompanhantes.map((nome) => nome.trim());
-    const { error } = await supabase.from("festa_confirmacoes").insert({
-      nome: parsed.data.nome.trim(),
-      whatsapp: toInternationalPhone(parsed.data.whatsapp),
-      email: parsed.data.email.trim() || null,
-      vinculo: parsed.data.vinculo,
-      acompanhantes,
-      total_pessoas: 1 + acompanhantes.length,
+    const { data, error } = await supabase.rpc("fn_festa_confirmar", {
+      p_nome: parsed.data.nome.trim(),
+      p_whatsapp: toInternationalPhone(parsed.data.whatsapp),
+      p_email: parsed.data.email.trim(),
+      p_vinculo: parsed.data.vinculo,
+      p_acompanhantes: acompanhantes,
+      p_total_pessoas: 1 + acompanhantes.length,
     });
     setSubmitting(false);
 
-    if (!error) {
+    if (!error && data === "confirmada") {
       setConfirmed(1 + acompanhantes.length);
       setForm(initialForm);
       return;
     }
-    if (error.code === "23505") {
+    if (!error && data === "duplicada") {
       setAlreadyConfirmed(true);
       return;
     }
