@@ -217,6 +217,47 @@
     backdrop-filter: none;
   }
 
+  /* Landing pública FORTEM 10 anos — tema premium isolado. */
+  [data-festa="10anos"] {
+    --background: 220 21% 7%;
+    --foreground: 0 0% 96%;
+    --card: 220 17% 10%;
+    --card-foreground: 0 0% 96%;
+    --popover: 220 17% 10%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 0 72% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 16%;
+    --secondary-foreground: 0 0% 94%;
+    --muted: 220 12% 18%;
+    --muted-foreground: 220 8% 65%;
+    --accent: 220 14% 18%;
+    --accent-foreground: 0 0% 96%;
+    --border: 220 12% 22%;
+    --input: 220 12% 25%;
+    --ring: 0 72% 54%;
+    --radius: 0.25rem;
+    color-scheme: dark;
+    font-family: 'Manrope', sans-serif;
+  }
+  [data-festa="10anos"] h1,
+  [data-festa="10anos"] h2,
+  [data-festa="10anos"] h3,
+  [data-festa="10anos"] .font-display {
+    font-family: 'Archivo', sans-serif;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-festa="10anos"] *,
+    [data-festa="10anos"] *::before,
+    [data-festa="10anos"] *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   /* Tabelas do FuncionalV2Viewer no portal — melhor contraste */
   [data-portal="true"] .portal-avaliacao-viewer .glass-card {
     background: hsl(0 0% 15%) !important;

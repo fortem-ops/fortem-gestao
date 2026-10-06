@@ -94,6 +94,8 @@ const OAuthConsent = lazyWithReload(() => import("./pages/OAuthConsent"));
 const StoreIndex = lazyWithReload(() => import("./pages/store/StoreIndex"));
 const StoreProductDetail = lazyWithReload(() => import("./pages/store/StoreProductDetail"));
 const StoreCart = lazyWithReload(() => import("./pages/store/StoreCart"));
+const Festa10Anos = lazyWithReload(() => import("./pages/Festa10Anos"));
+const FestaConfirmacoes = lazyWithReload(() => import("./pages/FestaConfirmacoes"));
 
 // Portal do Aluno
 const PortalLogin = lazyWithReload(() => import("./pages/portal/PortalLogin"));
@@ -175,6 +177,7 @@ const App = () => (
             <Route path="/store" element={<Suspense fallback={<RouteFallback />}><StoreIndex /></Suspense>} />
             <Route path="/store/carrinho" element={<Suspense fallback={<RouteFallback />}><StoreCart /></Suspense>} />
             <Route path="/store/:produtoId" element={<Suspense fallback={<RouteFallback />}><StoreProductDetail /></Suspense>} />
+             <Route path="/10anos" element={<Suspense fallback={<RouteFallback />}><Festa10Anos /></Suspense>} />
 
             <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<RouteFallback />}><OAuthConsent /></Suspense>} />
 
@@ -609,6 +612,14 @@ const App = () => (
                   </Suspense>
                 }
               />
+               <Route
+                 path="/festa-10-anos/confirmacoes"
+                 element={
+                   <Suspense fallback={<RouteFallback />}>
+                     <FestaConfirmacoes />
+                   </Suspense>
+                 }
+               />
               <Route
                 path="/configuracoes/whatsapp"
                 element={<Navigate to="/whatsapp" replace />}
