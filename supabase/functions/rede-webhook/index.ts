@@ -35,9 +35,9 @@ serve(async (req) => {
   );
 
   // ── 2. Autenticação de origem ──────────────────────────────
-  const expectedToken = Deno.env.get("REDE_WEBHOOK_TOKEN") ?? "";
+  const expectedToken = Deno.env.get("REDE_TX_WEBHOOK_TOKEN") ?? "";
   if (!expectedToken) {
-    console.error("[rede-webhook] REDE_WEBHOOK_TOKEN não configurado — recusando (fail closed)");
+    console.error("[rede-webhook] REDE_TX_WEBHOOK_TOKEN não configurado — recusando (fail closed)");
     return new Response(JSON.stringify({ error: "webhook não configurado" }), { status: 500, headers });
   }
 
