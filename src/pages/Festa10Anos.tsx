@@ -113,7 +113,7 @@ export default function Festa10Anos() {
         </header>
         <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center py-16 sm:py-20">
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7 }} className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">{config.hero.selo}</motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} className="mt-5 font-display text-[clamp(4.5rem,21vw,13rem)] font-black leading-[0.78] text-foreground">{config.dataCurta}</motion.h1>
+          <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} className="mt-5 font-display text-[3.45rem] font-black leading-[0.78] text-foreground sm:text-8xl lg:text-[10rem] xl:text-[12rem]">{config.dataCurta}</motion.h1>
           <div className="mt-10 max-w-2xl border-l-2 border-primary pl-5 sm:mt-14 sm:pl-7">
             <p className="font-display text-xl font-semibold uppercase tracking-[0.08em] sm:text-3xl">{config.hero.titulo}</p>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">{config.hero.texto}</p>

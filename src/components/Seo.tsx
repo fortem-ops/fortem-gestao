@@ -31,6 +31,7 @@ export function Seo({ title, description, path, noIndex, jsonLd }: SeoProps) {
       <meta property="og:type" content="website" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
+      <meta name="twitter:card" content="summary" />
       {jsonLd && (
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       )}
