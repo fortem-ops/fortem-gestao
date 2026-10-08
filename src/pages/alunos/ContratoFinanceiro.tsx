@@ -86,6 +86,10 @@ const fmtDate = (d: string | null) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—";
 
 const STATUS_ATIVOS = ["ativo", "inadimplente", "suspenso"] as const;
+const STATUS_COB: Record<string, string> = {
+  pago: "Pago", pendente: "Pendente", atrasado: "Atrasado",
+  cancelado: "Cancelado", estornado: "Estornado", isento: "Isento",
+};
 
 export default function ContratoFinanceiro({ alunoId }: Props) {
   const qc = useQueryClient();
@@ -101,6 +105,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const podeCancelar = !!(roles?.isAdmin || roles?.isCoordAdmin);
 
   const [rescContrato, setRescContrato] = useState<Contrato | null>(null);
+  const [posCancelamento, setPosCancelamento] = useState<{ multa: any | null } | null>(null);
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaCobranca, setBaixaCobranca] = useState<any | null>(null);
   const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
@@ -151,7 +156,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   );
   const historicoIds = historico.map((c) => c.id);
 
-  // Mensalidades ainda em aberto em contratos encerrados/cancelados (permite dar baixa).
+  // Todas as cobranças dos contratos encerrados/cancelados (pagas, canceladas, em aberto e multa).
   const { data: cobrancasHistorico = [] } = useQuery({
     queryKey: ["cobrancas-historico", alunoId, historicoIds.join(",")],
     enabled: historicoIds.length > 0,
@@ -160,8 +165,22 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .from("cobrancas")
         .select("*")
         .in("contrato_id", historicoIds)
-        .in("status", ["pendente", "atrasado", "estornado"])
         .order("data_vencimento", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  // Mensalidades pagas de todos os contratos (fallback quando não há venda registrada).
+  const { data: pagasContratos = [] } = useQuery({
+    queryKey: ["cobrancas-historico", alunoId, "pagas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cobrancas")
+        .select("id, numero_ciclo, valor, data_vencimento, data_pagamento, descricao")
+        .eq("aluno_id", alunoId)
+        .eq("status", "pago")
+        .order("data_vencimento", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -207,6 +226,12 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       ? "Solicitação do aluno"
       : `Cancelamento agendado para ${payload.dataCancelamento}`;
 
+    const falhar = (etapa: string, err: any) => {
+      toast({ title: `Erro ao cancelar (${etapa})`, description: err?.message ?? String(err), variant: "destructive" });
+      qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["cobrancas-historico", alunoId] });
+    };
+
     const { error } = await supabase
       .from("contratos")
       .update({
@@ -216,32 +241,29 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         data_fim: payload.dataCancelamento,
       })
       .eq("id", alvo.id);
-    if (error) {
-      toast({ title: "Erro ao cancelar", description: error.message, variant: "destructive" });
-      return;
-    }
+    if (error) return falhar("contrato", error);
 
     // Cancela cobranças pendentes posteriores à data efetiva
-    await supabase
+    const { error: eCob } = await supabase
       .from("cobrancas")
       .update({ status: "cancelado" })
       .eq("contrato_id", alvo.id)
       .eq("status", "pendente")
       .gt("data_vencimento", payload.dataCancelamento);
+    if (eCob) return falhar("cobranças futuras", eCob);
 
-    // Suspende ciclos ativos somente se imediato
     if (isImediato) {
-      await supabase
+      const { error: eCic } = await supabase
         .from("ciclos_credito")
         .update({ status: "cancelado" })
         .eq("contrato_id", alvo.id)
         .eq("status", "ativo");
+      if (eCic) return falhar("créditos", eCic);
     }
 
-    // Espelha APENAS no plano vinculado a este contrato (nunca nos demais
-    // planos ativos do aluno — isso derrubava contratos paralelos).
+    // Espelha APENAS no plano vinculado a este contrato.
     if (alvo.plano_id) {
-      await supabase
+      const { error: ePl } = await supabase
         .from("planos")
         .update({
           renovacao_automatica: false,
@@ -249,36 +271,30 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           ativo: isImediato ? false : true,
         } as any)
         .eq("id", alvo.plano_id);
+      if (ePl) return falhar("plano", ePl);
     }
 
-
-    // Tratamento da multa
+    // Tratamento da multa (numero_ciclo 999 = cobrança fora do ciclo)
+    let multa: any = null;
     if (payload.valorMulta > 0) {
-      const numero = 999; // marcador de movimento extra-ciclo
-      if (payload.tratamento === "estorno") {
-        await supabase.from("cobrancas").insert({
+      const estorno = payload.tratamento === "estorno";
+      const { data, error: eMulta } = await supabase
+        .from("cobrancas")
+        .insert({
           contrato_id: alvo.id,
           aluno_id: alunoId,
-          numero_ciclo: numero,
-          valor: -Math.abs(payload.valorMulta),
-          data_vencimento: hoje,
-          data_pagamento: hoje,
-          status: "pago",
-          forma_pagamento: alvo.forma_pagamento,
-          meio_registro: "estorno_cancelamento",
-        } as any);
-      } else {
-        await supabase.from("cobrancas").insert({
-          contrato_id: alvo.id,
-          aluno_id: alunoId,
-          numero_ciclo: numero,
+          numero_ciclo: 999,
           valor: Math.abs(payload.valorMulta),
-          data_vencimento: payload.vencimentoMulta ?? hoje,
+          data_vencimento: estorno ? hoje : (payload.vencimentoMulta ?? hoje),
           status: "pendente",
           forma_pagamento: alvo.forma_pagamento,
-          meio_registro: "multa_cancelamento",
-        } as any);
-      }
+          meio_registro: "manual_admin",
+          descricao: estorno ? "Saldo de cancelamento" : "Multa de cancelamento",
+        } as any)
+        .select()
+        .single();
+      if (eMulta) return falhar("multa — o contrato foi cancelado, mas a cobrança da multa não foi criada", eMulta);
+      multa = data;
     }
 
     toast({
@@ -287,8 +303,10 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         ? "Cobranças futuras e créditos foram suspensos."
         : `Efetivação em ${new Date(payload.dataCancelamento + "T00:00:00").toLocaleDateString("pt-BR")}.`,
     });
+    setPosCancelamento({ multa });
     qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
     qc.invalidateQueries({ queryKey: ["cobrancas-contrato", alvo.id] });
+    qc.invalidateQueries({ queryKey: ["cobrancas-historico", alunoId] });
     qc.invalidateQueries({ queryKey: ["ciclo-ativo", alvo.id] });
     qc.invalidateQueries({ queryKey: ["plano-aluno", alunoId] });
     qc.invalidateQueries({ queryKey: ["plano", alunoId] });
@@ -412,6 +430,37 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Sem contrato ativo</AlertTitle>
           <AlertDescription>Este aluno não possui contrato em vigência.</AlertDescription>
+        </Alert>
+      )}
+
+      {posCancelamento && (
+        <Alert className="border-orange-500/40">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Próximos passos do cancelamento</AlertTitle>
+          <AlertDescription className="space-y-2">
+            {posCancelamento.multa ? (
+              <>
+                <p>
+                  Multa de <strong>{fmt(Number(posCancelamento.multa.valor))}</strong> gerada como cobrança pendente,
+                  vencimento em <strong>{fmtDate(posCancelamento.multa.data_vencimento)}</strong>. Nada foi cobrado no cartão.
+                </p>
+                <p>Envie o valor ao aluno (Pix, link ou maquininha) e registre o pagamento quando receber.</p>
+                <div className="flex gap-2">
+                  {podeCancelar && (
+                    <Button size="sm" onClick={() => pedirBaixa(posCancelamento.multa)}>
+                      <CheckCircle className="h-4 w-4 mr-1" /> Registrar pagamento da multa
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => setPosCancelamento(null)}>Fechar</Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <p>Contrato cancelado sem multa a cobrar. Cobranças futuras foram canceladas.</p>
+                <Button size="sm" variant="ghost" onClick={() => setPosCancelamento(null)}>Fechar</Button>
+              </div>
+            )}
+          </AlertDescription>
         </Alert>
       )}
 
