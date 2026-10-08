@@ -428,7 +428,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             {historico.map((c) => {
               const venda = c.plano_id ? vendaPorPlano.get(c.plano_id) : undefined;
               const valores = calcularValoresContrato(c, venda);
-              const abertas = cobrancasHistorico.filter((cb) => cb.contrato_id === c.id);
+              const todas = cobrancasHistorico.filter((cb) => cb.contrato_id === c.id);
+              const abertas = todas.filter((cb) => ["pendente", "atrasado", "estornado"].includes(cb.status));
+              const multaAberta = abertas.some((cb) => cb.numero_ciclo === 999);
               return (
               <Card key={c.id} className="p-3 text-sm space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -440,9 +442,12 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                     <span className="text-muted-foreground">
                       {fmtDate(c.data_inicio)} → {fmtDate(c.data_fim)}
                     </span>
-                    {abertas.length > 0 && (
+                    {multaAberta && (
+                      <Badge variant="outline" className="border-destructive text-destructive">Multa pendente</Badge>
+                    )}
+                    {abertas.length > 0 && !multaAberta && (
                       <Badge variant="outline" className="border-destructive text-destructive">
-                        {abertas.length} mensalidade(s) em aberto
+                        {abertas.length} cobrança(s) em aberto
                       </Badge>
                     )}
                   </div>
@@ -450,15 +455,19 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                     {valores.recorrente ? `${fmt(valores.parcela)}/mês` : `${fmt(valores.total)} total`}
                   </span>
                 </div>
-                {abertas.length > 0 && (
+                {todas.length > 0 && (
                   <ul className="space-y-1 border-t pt-2">
-                    {abertas.map((cb) => (
+                    {todas.map((cb) => {
+                      const aberta = ["pendente", "atrasado", "estornado"].includes(cb.status);
+                      return (
                       <li key={cb.id} className="flex flex-wrap items-center justify-between gap-2">
-                        <span>
-                          Venc. {fmtDate(cb.data_vencimento)} · {fmt(Number(cb.valor))} ·{" "}
-                          {cb.status === "atrasado" ? "Atrasado" : cb.status === "estornado" ? "Estornado" : "Pendente"}
+                        <span className={cb.status === "cancelado" ? "text-muted-foreground line-through" : ""}>
+                          {cb.numero_ciclo === 999 ? (cb.descricao ?? "Multa de cancelamento") : `Mensalidade ${cb.numero_ciclo}`}
+                          {" · "}Venc. {fmtDate(cb.data_vencimento)} · {fmt(Number(cb.valor))} ·{" "}
+                          {STATUS_COB[cb.status] ?? cb.status}
+                          {cb.status === "pago" && cb.data_pagamento ? ` em ${fmtDate(cb.data_pagamento)}` : ""}
                         </span>
-                        {podeCancelar && (
+                        {podeCancelar && aberta && (
                           <div className="flex items-center gap-1.5">
                             <Button
                               variant="outline"
@@ -481,7 +490,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                           </div>
                         )}
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 )}
               </Card>
@@ -494,11 +504,32 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       {/* Histórico de Pagamentos (vendas) */}
       <Card className="p-5">
         <h3 className="font-medium mb-3">Histórico de Pagamentos</h3>
+        {vendasPlano.length === 0 && pagasContratos.length > 0 && (
+          <div className="mb-4 space-y-1 text-sm">
+            <p className="text-xs text-muted-foreground mb-2">
+              Mensalidades pagas (contrato sem venda registrada no sistema)
+            </p>
+            {pagasContratos.map((cb) => (
+              <div key={cb.id} className="flex justify-between border-b py-1">
+                <span>
+                  {cb.numero_ciclo === 999 ? (cb.descricao ?? "Multa de cancelamento") : `Mensalidade ${cb.numero_ciclo}`}
+                  {" · "}pago em {fmtDate(cb.data_pagamento ?? cb.data_vencimento)}
+                </span>
+                <span className="font-medium">{fmt(Number(cb.valor))}</span>
+              </div>
+            ))}
+            <div className="flex justify-between pt-1 font-medium">
+              <span>Total pago</span>
+              <span>{fmt(pagasContratos.reduce((s, cb) => s + Number(cb.valor), 0))}</span>
+            </div>
+          </div>
+        )}
         <HistoricoVendas alunoId={alunoId} />
         <div className="mt-6">
           <ComprasLoja alunoId={alunoId} />
         </div>
       </Card>
+
 
       {/* Dialog de rescisão */}
       {rescContrato && (
