@@ -1,40 +1,27 @@
-# Plano: convite público FORTEM 10 anos
+# Cancelamento da Olivia: multa e histórico de pagamentos
 
-## Objetivo
-Criar a experiência pública em `/10anos` e a lista interna de confirmações, sem alterar fluxos existentes do sistema.
+## O que encontrei
 
-## Página pública
-- Adicionar a rota pública com carregamento sob demanda, fora do login e do layout interno.
-- Criar uma página mobile-first, escura, minimalista e alinhada à identidade FORTEM, com logo existente, tipografia atual e animações discretas que respeitam redução de movimento.
-- Montar as seções na ordem solicitada: abertura, história, festa, confirmação e rodapé.
-- Centralizar data, local, horário, atrações, Instagram, textos e os seis marcos de exemplo em `src/config/festa10anos.ts`.
-- Usar seis imagens neutras locais como placeholders, declaradas no mesmo arquivo de configuração e com dimensões/lazy-loading.
-- Aplicar metadados específicos para título, descrição, canonical e compartilhamento social.
+- Contrato anual Start Plus, cartão recorrência, R$ 399/mês, início 24/02/2026, cancelado hoje (08/10).
+- Pela regra atual, ela está no 8º mês: multa de 15% sobre 4 mensalidades restantes (R$ 1.596) = **R$ 239,40** (+ serviços usados, se houver).
+- **A cobrança da multa não foi criada.** O sistema não confere se a gravação deu certo, então qualquer falha passa em silêncio e a tela mostra "Contrato cancelado" mesmo assim. A causa exata da falha ainda não está confirmada (pode ter sido valor zerado na tela ou recusa do banco); confirmo antes de corrigir.
+- **Os pagamentos existem**: 7 mensalidades pagas (fev a set). Mas:
+  - Ela não tem nenhuma venda registrada (contrato antigo, anterior às vendas), e o quadro "Histórico de Pagamentos" só lê vendas — por isso aparece vazio.
+  - Depois de cancelado, o contrato vai para "Histórico de contratos" (recolhido), que só lista mensalidades **em aberto** — as pagas somem da tela.
 
-## Confirmação de presença
-- Criar formulário acessível com nome, WhatsApp brasileiro, e-mail opcional, vínculo e até três acompanhantes removíveis.
-- Validar no navegador com Zod, normalizar o WhatsApp para somente dígitos e incluir honeypot invisível.
-- Enviar somente os campos permitidos para o banco, com estado de carregamento e mensagens em português.
-- Tratar WhatsApp já cadastrado sem consultar ou expor dados: exibir apenas a mensagem amigável solicitada.
-- Após sucesso, substituir o formulário pelo agradecimento e total de pessoas confirmadas.
+## O que muda
 
-## Banco e segurança
-- Criar `festa_confirmacoes` com tipos, defaults, índice único de WhatsApp e limites estruturais para nome, WhatsApp, e-mail, vínculo, acompanhantes e total de pessoas.
-- Dar ao público somente permissão de inserção e uma política de INSERT com validação integral da linha; nenhuma leitura, alteração ou exclusão anônima.
-- Permitir leitura a staff autenticado e exclusão apenas ao nível administrativo/CRM já adotado pelo projeto, usando as funções de papel existentes.
-- Conceder apenas os privilégios necessários, com RLS ativa desde a criação.
+1. **Depois de confirmar o cancelamento**, aparece um resumo com os próximos passos: valor da multa, vencimento, e botões "Gerar link de pagamento" / "Registrar pagamento" da multa. Se algo falhar ao gravar, aparece erro claro (e não "cancelado com sucesso").
+2. **Contrato cancelado no histórico** passa a mostrar todas as mensalidades (pagas, canceladas, em aberto) e a multa, com destaque quando houver multa pendente.
+3. **Histórico de Pagamentos**: quando o aluno não tem venda registrada, mostra as mensalidades pagas dos contratos, para não parecer que nunca houve pagamento.
 
-## Tela interna
-- Adicionar `/festa-10-anos/confirmacoes` dentro do layout protegido.
-- Mostrar totais de confirmações e pessoas, busca por nome, tabela com os campos pedidos, exportação CSV e exclusão com confirmação.
-- Adicionar “Festa 10 anos” discretamente no grupo Comercial, visível para coordenadores e administradores, como a área administrativa/CRM atual.
+## Correção pontual da Olivia (após aprovação)
 
-## Integração e validação
-- Registrar as duas páginas no roteamento sem tocar nas demais rotas.
-- Atualizar a decisão estrutural do projeto para documentar que o conteúdo editável da festa fica isolado no arquivo de configuração.
-- Validar compilação, segurança da tabela e os fluxos essenciais em desktop e celular: envio público, duplicidade sem vazamento, consulta interna, busca, CSV e exclusão confirmada.
+- Confirmar o valor da multa (R$ 239,40 + serviços, conforme o cálculo do sistema) e criar a cobrança pendente, vencimento em 7 dias. Nada é cobrado no cartão automaticamente.
 
-## Premissas
-- “Quem já enxerga a área administrativa/CRM” corresponde a coordenadores e administradores (`isCoordAdmin`).
-- A leitura interna será para staff; a exclusão seguirá o nível coordenador/admin exibido no menu, evitando ampliar privilégios de professores.
-- O Instagram será preenchido com o perfil já existente no projeto; se nenhum perfil estiver registrado, ficará editável no arquivo de configuração sem inventar um endereço.
+## Detalhes técnicos
+
+- `ContratoFinanceiro.handleCancelar`: checar `error` de cada update/insert (cobrancas, ciclos, planos, multa), abortar com toast destrutivo; reproduzir o insert da multa para confirmar a causa (RLS/constraint de `cobrancas` com `numero_ciclo=999`); invalidar `cobrancas-historico`.
+- Novo estado pós-cancelamento com card de próximos passos (reaproveita GerarLinkPagamento / dialog de baixa existente).
+- `cobrancasHistorico`: buscar todos os status; card do histórico lista pagas + multa (`meio_registro='multa_cancelamento'`).
+- `HistoricoVendas`: fallback com cobranças pagas dos contratos quando não houver vendas.
