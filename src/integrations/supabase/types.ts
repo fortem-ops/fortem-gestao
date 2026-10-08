@@ -2322,6 +2322,7 @@ export type Database = {
           created_at: string
           data_pagamento: string | null
           data_vencimento: string
+          descricao: string | null
           forma_pagamento: string
           gateway: string | null
           id: string
@@ -2343,6 +2344,7 @@ export type Database = {
           created_at?: string
           data_pagamento?: string | null
           data_vencimento: string
+          descricao?: string | null
           forma_pagamento: string
           gateway?: string | null
           id?: string
@@ -2364,6 +2366,7 @@ export type Database = {
           created_at?: string
           data_pagamento?: string | null
           data_vencimento?: string
+          descricao?: string | null
           forma_pagamento?: string
           gateway?: string | null
           id?: string

@@ -547,6 +547,13 @@
       "when": 1791286141987,
       "tag": "0077_add_safe_festa_confirmation_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1791469992037,
+      "tag": "0078_cobrancas_descricao",
+      "breakpoints": true
     }
   ]
 }
