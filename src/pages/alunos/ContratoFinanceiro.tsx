@@ -171,6 +171,11 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     },
   });
 
+  // Multas de cancelamento ainda em aberto (numero_ciclo 999 = cobrança fora do ciclo).
+  const multasAbertas = cobrancasHistorico.filter(
+    (cb) => cb.numero_ciclo === 999 && cb.status === "pendente",
+  );
+
   // Mensalidades pagas de todos os contratos (fallback quando não há venda registrada).
   const { data: pagasContratos = [] } = useQuery({
     queryKey: ["cobrancas-historico", alunoId, "pagas"],
@@ -430,6 +435,29 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Sem contrato ativo</AlertTitle>
           <AlertDescription>Este aluno não possui contrato em vigência.</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Multa de cancelamento em aberto: aviso permanente até a baixa */}
+      {multasAbertas.length > 0 && (
+        <Alert className="border-orange-500/40">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Multa de cancelamento pendente</AlertTitle>
+          <AlertDescription className="space-y-3">
+            {multasAbertas.map((m) => (
+              <div key={m.id} className="flex flex-wrap items-center justify-between gap-2">
+                <p>
+                  Multa de <strong>{fmt(Number(m.valor))}</strong>, vencimento em{" "}
+                  <strong>{fmtDate(m.data_vencimento)}</strong>. Nada foi cobrado no cartão.
+                </p>
+                {podeCancelar && (
+                  <Button size="sm" onClick={() => pedirBaixa(m)}>
+                    <CheckCircle className="h-4 w-4 mr-1" /> Dar baixa na multa
+                  </Button>
+                )}
+              </div>
+            ))}
+          </AlertDescription>
         </Alert>
       )}
 
