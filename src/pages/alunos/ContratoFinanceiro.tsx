@@ -438,6 +438,29 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         </Alert>
       )}
 
+      {/* Multa de cancelamento em aberto: aviso permanente até a baixa */}
+      {multasAbertas.length > 0 && (
+        <Alert className="border-orange-500/40">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Multa de cancelamento pendente</AlertTitle>
+          <AlertDescription className="space-y-3">
+            {multasAbertas.map((m) => (
+              <div key={m.id} className="flex flex-wrap items-center justify-between gap-2">
+                <p>
+                  Multa de <strong>{fmt(Number(m.valor))}</strong>, vencimento em{" "}
+                  <strong>{fmtDate(m.data_vencimento)}</strong>. Nada foi cobrado no cartão.
+                </p>
+                {podeCancelar && (
+                  <Button size="sm" onClick={() => pedirBaixa(m)}>
+                    <CheckCircle className="h-4 w-4 mr-1" /> Dar baixa na multa
+                  </Button>
+                )}
+              </div>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {posCancelamento && (
         <Alert className="border-orange-500/40">
           <AlertTriangle className="h-4 w-4" />
