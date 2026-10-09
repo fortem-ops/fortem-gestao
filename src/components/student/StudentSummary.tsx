@@ -192,7 +192,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("planos")
-        .select("id, data_inicio")
+        .select("id, data_inicio, ativo")
         .eq("aluno_id", student.id)
         .order("data_inicio", { ascending: true })
         .limit(1)
@@ -313,6 +313,11 @@ export function StudentSummary({ student }: { student: Aluno }) {
 
   async function saveAlunoDesde(date: Date) {
     if (!primeiroPlano?.id) return;
+    // Proteção: nunca alterar o início de um plano em vigor (mudaria a vigência e o status do aluno).
+    if ((primeiroPlano as any).ativo) {
+      toast.error("O plano mais antigo ainda está em vigor — altere a data de início pela aba Plano.");
+      return;
+    }
     const dataInicio = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const { error } = await supabase.from("planos").update({ data_inicio: dataInicio } as any).eq("id", primeiroPlano.id);
     if (error) {
