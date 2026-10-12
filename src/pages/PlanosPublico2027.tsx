@@ -142,7 +142,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
 
   return (
     <div data-planos2027="true" className="min-h-screen bg-background text-foreground">
-      <Seo title="Planos FORTEM — monte o seu plano" description="Escolha frequência, plano e acompanhamento e veja o valor exato do seu plano FORTEM." />
+      <Seo path="/planos" title="Planos FORTEM — monte o seu plano" description="Escolha frequência, plano e acompanhamento e veja o valor exato do seu plano FORTEM." />
       {catalogo.previa && (
         <div className="bg-primary text-primary-foreground text-center text-xs font-semibold tracking-wider uppercase py-2 px-4">
           Prévia — itens ainda não estão à venda
