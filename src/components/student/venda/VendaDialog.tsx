@@ -24,6 +24,7 @@ import { PaymentFields } from "./PaymentFields";
 import { TipoCobrancaSection } from "./TipoCobrancaSection";
 import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
 import { ServicosPlanoStep } from "./ServicosPlanoStep";
+import { Venda2027Steps } from "./Venda2027Steps";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
@@ -117,6 +118,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const qc = useQueryClient();
   const { data: roles } = useUserRoles();
   const isCoordAdmin = !!roles?.isCoordAdmin;
+  const isAdmin = !!roles?.isAdmin;
+  const [modo2027, setModo2027] = useState(false);
+  useEffect(() => { if (!open) setModo2027(false); }, [open]);
 
   const [tab, setTab] = useState<"planos" | "servicos">("planos");
 
@@ -691,7 +695,18 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+        {isAdmin && (
+          <div className="flex justify-end">
+            <Button type="button" variant={modo2027 ? "default" : "outline"} size="sm" onClick={() => setModo2027((v) => !v)}>
+              {modo2027 ? "Voltar para planos atuais" : "Vender plano 2027"}
+            </Button>
+          </div>
+        )}
+        {isAdmin && modo2027 && (
+          <Venda2027Steps alunoId={alunoId} temPlanoAtivo={!!planoVigente} onDone={() => onOpenChange(false)} />
+        )}
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className={cn(isAdmin && modo2027 && "hidden")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="planos">Planos</TabsTrigger>
             <TabsTrigger value="servicos">Serviços</TabsTrigger>

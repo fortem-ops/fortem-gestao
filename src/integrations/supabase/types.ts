@@ -2317,6 +2317,7 @@ export type Database = {
       cobrancas: {
         Row: {
           aluno_id: string
+          composicao: Json | null
           comprovante_url: string | null
           contrato_id: string
           created_at: string
@@ -2339,6 +2340,7 @@ export type Database = {
         }
         Insert: {
           aluno_id: string
+          composicao?: Json | null
           comprovante_url?: string | null
           contrato_id: string
           created_at?: string
@@ -2361,6 +2363,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string
+          composicao?: Json | null
           comprovante_url?: string | null
           contrato_id?: string
           created_at?: string
@@ -10619,6 +10622,8 @@ export type Database = {
       }
       fn_validar_link_cartao: { Args: { p_token: string }; Returns: Json }
       fn_validar_link_contrato: { Args: { p_token: string }; Returns: Json }
+      fn_venda_2027_criar: { Args: { p: Json }; Returns: Json }
+      fn_venda_servicos_2027_criar: { Args: { p: Json }; Returns: Json }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       get_webhook_secret: { Args: never; Returns: string }
       has_role: {
