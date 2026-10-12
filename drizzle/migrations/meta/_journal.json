@@ -645,6 +645,13 @@
       "when": 1791842317023,
       "tag": "0091_golive_2027_preparacao",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1791844651315,
+      "tag": "0092_public_planos_prototipo_corrida_periodos",
+      "breakpoints": true
     }
   ]
 }
