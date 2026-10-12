@@ -269,12 +269,40 @@ Deno.serve(async (req) => {
       geradas++;
     }
 
+    // ===== Planos 2027 (caminho separado; o bloco legado acima não muda) =====
+    // Start 2027: renova ciclo a ciclo via fn_renovar_start_2027.
+    // Depois: fn_creditos_mensais_2027 libera créditos do ciclo (Start) e a Bota do Pro.
+    const planos2027: any = { renovados: [], pulados: [], erros: [], creditos: null };
+    try {
+      const { data: start2027, error: s27Err } = await supabase
+        .from("planos")
+        .select("id, planos_catalogo!inner(familia)")
+        .eq("ativo", true)
+        .eq("renovacao_automatica", true)
+        .eq("planos_catalogo.familia", "start_2027")
+        .lte("proxima_renovacao", today);
+      if (s27Err) planos2027.erros.push({ etapa: "listar_start_2027", motivo: s27Err.message });
+      for (const p of start2027 || []) {
+        const { data: r, error: rErr } = await supabase.rpc("fn_renovar_start_2027", { p_plano: p.id, p_data: today });
+        if (rErr) planos2027.erros.push({ plano_id: p.id, motivo: rErr.message });
+        else if ((r as any)?.pulado) planos2027.pulados.push(r);
+        else planos2027.renovados.push(r);
+      }
+      const { data: cr, error: crErr } = await supabase.rpc("fn_creditos_mensais_2027", { p_data: today });
+      if (crErr) planos2027.erros.push({ etapa: "creditos_mensais_2027", motivo: crErr.message });
+      else planos2027.creditos = cr;
+    } catch (e27) {
+      console.error("planos 2027 erro:", e27);
+      planos2027.erros.push({ etapa: "planos_2027", motivo: String(e27) });
+    }
+
     return new Response(
       JSON.stringify({
         ok: true,
         planos_processados: planos?.length ?? 0,
         vendas_geradas: geradas,
         erros,
+        planos_2027: planos2027,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

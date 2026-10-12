@@ -31,10 +31,10 @@ describe("calcularVenda2027 — catálogo completo", () => {
   it("tem os 20 itens", () => expect(ITENS).toHaveLength(20));
 
   for (const item of ITENS.filter((i) => i.modalidade_cobranca === "recorrencia_mensal")) {
-    it(`${item.codigo}: 12 cobranças de mensal + taxa`, () => {
+    it(`${item.codigo}: Start 1 cobrança por ciclo; Power/Pro 12 cobranças de mensal + taxa`, () => {
       const r = calcularVenda2027({ item, forma: "recorrencia" });
       const esperado = Number(item.valor) + (item.familia === "start_2027" ? 0 : 24.9);
-      expect(r.plano.parcelas).toHaveLength(12);
+      expect(r.plano.parcelas).toHaveLength(item.familia === "start_2027" ? 1 : 12);
       r.plano.parcelas.forEach((p) => expect(p.valor).toBeCloseTo(esperado, 2));
       expect(r.servicosAvulsos).toBeNull();
     });
@@ -64,6 +64,18 @@ describe("calcularVenda2027 — valores combinados", () => {
   it("Start 1x: 399 sem taxa", () => {
     const r = calcularVenda2027({ item: item("start_2027_1x_mensal"), forma: "recorrencia" });
     expect(r.plano.parcelas[0].valor).toBe(399);
+  });
+
+  it("Start 2x: só a 1ª mensalidade do ciclo (sem fidelidade, sem 12 cobranças)", () => {
+    const r = calcularVenda2027({ item: item("start_2027_2x_mensal"), forma: "recorrencia" });
+    expect(r.plano.parcelas).toEqual([{ numero: 1, valor: 499, plano: 499, servicos: 0 }]);
+    expect(r.totalPlano).toBe(499);
+  });
+
+  it("Pro 3x recorrência: continua com 12 cobranças de 623,90", () => {
+    const r = calcularVenda2027({ item: item("pro_2027_3x_mensal"), forma: "recorrencia" });
+    expect(r.plano.parcelas).toHaveLength(12);
+    expect(r.totalPlano).toBe(7486.8);
   });
 
   it("Power 1x anual + Nutri 4 em 12x: parcela = (3948 + 1620)/12 = 464", () => {
