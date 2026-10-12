@@ -55,6 +55,10 @@ export const PAGAMENTO_PUBLICO = {
   pixDescricao: "Pagamento único no Pix, sem desconto.",
   startDescricao: "No cartão de crédito. Sem fidelidade e sem adicional.",
   consultas: "Pagamento das consultas",
+  consultasComPlano: (parcelas: string) => `Com o plano em 12x, as consultas entram nas mesmas parcelas${parcelas ? `: ${parcelas} junto com a mensalidade.` : "."}`,
+  recorrenciaDescricao: (taxa: string) => `No cartão de crédito. Adicional de ${taxa} na mensalidade.`,
+  cartaoConsultas: "Cartão de crédito em até 6x",
+  recorrenciaCartao: "Recorrência mensal no cartão",
   consultasExplicacao: "Com recorrência ou Pix à vista, as consultas podem ser pagas em até 6x no cartão de crédito ou no Pix à vista.",
   corridaExplicacao: "Mensal é cobrado todo mês, em recorrência no cartão; semestral, em até 6x no cartão ou Pix à vista; anual, em até 12x no cartão ou Pix à vista.",
   corrida: {
