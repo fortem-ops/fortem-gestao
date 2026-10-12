@@ -7398,6 +7398,87 @@ export type Database = {
         }
         Relationships: []
       }
+      propostas_planos_2027: {
+        Row: {
+          aluno_id: string | null
+          configuracao: Json
+          corrida: boolean
+          corrida_valor_mensal: number | null
+          cpf_ultimos3: string | null
+          created_at: string
+          email: string
+          familia: string
+          forma_plano: string
+          forma_servicos: string | null
+          frequencia: string
+          id: string
+          lead_erro: string | null
+          nome: string
+          origem: string
+          parcelas_plano: number
+          parcelas_servicos: number | null
+          plano_codigo: string
+          previa: boolean
+          servicos_codigos: string[]
+          status: string
+          updated_at: string
+          valor_total_centavos: number
+          whatsapp: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          configuracao?: Json
+          corrida?: boolean
+          corrida_valor_mensal?: number | null
+          cpf_ultimos3?: string | null
+          created_at?: string
+          email: string
+          familia: string
+          forma_plano: string
+          forma_servicos?: string | null
+          frequencia: string
+          id?: string
+          lead_erro?: string | null
+          nome: string
+          origem?: string
+          parcelas_plano?: number
+          parcelas_servicos?: number | null
+          plano_codigo: string
+          previa?: boolean
+          servicos_codigos?: string[]
+          status?: string
+          updated_at?: string
+          valor_total_centavos: number
+          whatsapp: string
+        }
+        Update: {
+          aluno_id?: string | null
+          configuracao?: Json
+          corrida?: boolean
+          corrida_valor_mensal?: number | null
+          cpf_ultimos3?: string | null
+          created_at?: string
+          email?: string
+          familia?: string
+          forma_plano?: string
+          forma_servicos?: string | null
+          frequencia?: string
+          id?: string
+          lead_erro?: string | null
+          nome?: string
+          origem?: string
+          parcelas_plano?: number
+          parcelas_servicos?: number | null
+          plano_codigo?: string
+          previa?: boolean
+          servicos_codigos?: string[]
+          status?: string
+          updated_at?: string
+          valor_total_centavos?: number
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       prospect_anamnese: {
         Row: {
           aluno_id: string
@@ -7593,6 +7674,24 @@ export type Database = {
           email_login?: string
           id?: string
           janela_min?: number
+        }
+        Relationships: []
+      }
+      rate_limit_propostas_planos: {
+        Row: {
+          chave: string
+          contagem: number
+          janela: string
+        }
+        Insert: {
+          chave: string
+          contagem?: number
+          janela: string
+        }
+        Update: {
+          chave?: string
+          contagem?: number
+          janela?: string
         }
         Relationships: []
       }
@@ -10409,6 +10508,7 @@ export type Database = {
           tipo: string
         }[]
       }
+      fn_planos_publico_2027: { Args: { p_previa?: boolean }; Returns: Json }
       fn_ponto_ajustar_jornada: {
         Args: {
           _campo: string
@@ -10543,6 +10643,7 @@ export type Database = {
         }
         Returns: number
       }
+      fn_proposta_plano_2027_criar: { Args: { p: Json }; Returns: Json }
       fn_proxima_renovacao_from: {
         Args: { _data_inicio: string }
         Returns: string
