@@ -13,4 +13,4 @@
 - [ ] Planos 2027 — Fase 3B–3F (aguarda pedido): venda 2027 na tela, rotina mensal de créditos, baixa em lote, relatórios/repasse, teste Pix Automático
 - [ ] Planos 2027 — Fase 2 (aguarda pedido): telas de venda, rotina mensal de créditos, reposição, bota de compressão, /planos com Design System Fortem
 
-- [ ] 3B.1 Start 2027 mensal com renovação + 3C rotina mensal de créditos (tolerância 3 dias)
+- [x] 3B.1 Start 2027 mensal com renovação + 3C rotina mensal de créditos (tolerância 3 dias)
