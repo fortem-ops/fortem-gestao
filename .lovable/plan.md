@@ -112,3 +112,73 @@ select txid, status, valor from pix_cobrancas order by created_at desc limit 5;
 ## 10. Decisões tomadas
 
 1. Créditos liberados na venda. 2. Crédito mensal/bota só com mensalidade paga + tolerância configurável. 3. Teste Pix em produção com R$ 1, na 3F, sob pedido. 4. Taxa 24,90 somada ao valor do catálogo; contratos 2027 de recorrência já mostram `%VALOR_MENSAL%` = valor + taxa ("já incluída a taxa"), coerente — nada a corrigir. 5. 12 cobranças criadas de uma vez.
+
+---
+
+# Fase 3B — concluída (registro)
+
+Decisões do dono aplicadas: só admin vende 2027; ciclo mensal = dia da venda até a véspera do mesmo dia do mês seguinte; Power/Pro sempre 12 meses (itens `_mensal` são só o preço da recorrência); recorrência Power/Pro = 12 cobranças de preço + R$ 24,90; 1º vencimento na venda ou data escolhida; Pro = 2 Avaliações Funcionais (1º e 6º mês) criadas na venda; Nutri 4 = 4 Nutrição + 2 Composição Corporal; brindes não gravados na venda; vendas de teste com `origem='teste_2027'`, nunca apagadas sem pedido.
+
+Migrations:
+- 0085_venda_2027: `cobrancas.composicao`, `fn_venda_2027_criar(jsonb)` (admin), early-return 2027 em `fn_processar_venda` (legado provado igual por diff e simulação com rollback).
+- 0086_venda_servicos_2027: `fn_venda_servicos_2027_criar(jsonb)` (só serviços, sem contrato).
+- 0087_venda_2027_fix_af_meses: leitura de `avaliacoes_funcionais_meses` (int[]).
+Também: `renovar-planos-mensais` ignora `catalogo_id` preenchido; UI `Venda2027Steps` no VendaDialog (admin).
+
+Cenários executados (todos `teste_2027`): Start 2x recorrência; Power 1x anual 12x + Nutri 4 + Reab 4 (12 x 514); Pro 3x recorrência + Nutri 8 em 6x (12 x 623,90 + 6 x 400); Pro Livre Pix (1 x 8.388); Avaliação avulsa (venda 200). Erro encontrado depois: Start 2x saiu com 12 cobranças e vigência 12 meses — corrigido na 3B.1 abaixo.
+
+# Fase 3B.1 — Correção do Start 2027
+
+## Como o Start legado funciona hoje (lido no código e no banco)
+- 21 planos Start ativos: contrato `vigencia_tipo = mensal`, **1 cobrança por contrato**, `renovacao_automatica = true`, `proxima_renovacao = data_fim`.
+- Cron `renovar-planos-mensais-daily` (03:00, ativo) chama `renovar-planos-mensais`: busca planos ativos com renovação automática e `proxima_renovacao <= hoje`; pula se houver plano mais novo da mesma atividade, se o 1º ciclo não terminou ou se já houve renovação nas últimas 20h; **desativa o plano atual** e insere uma **nova venda** (`origem = renovacao_automatica`, data = `proxima_renovacao`). O gatilho `fn_processar_venda` cria o novo plano, o novo contrato mensal, a cobrança do ciclo e os créditos do ciclo.
+- Ou seja: cada ciclo = 1 venda + 1 plano + 1 contrato + 1 cobrança + créditos. Créditos do novo ciclo saem sem conferir pagamento.
+- (Start+ legado é anual com até 12 cobranças — não é o modelo do Start 2027.)
+
+## Correção proposta (mesmo desenho, caminho 2027 separado)
+a) Venda Start 2027 (`fn_venda_2027_criar`, ramo `familia = start_2027`): cria 1 cobrança (o 1º ciclo), contrato e plano `vigencia_tipo = mensal`, `data_fim = fim do ciclo + 1 dia` (mesmo dia do mês seguinte), `renovacao_automatica = true`, `proxima_renovacao = data_fim`, sem fidelidade, créditos do 1º ciclo (4/8/12 ou ilimitado, `competencia` = início, validade = véspera). Power/Pro sem mudança.
+b) Renovação: nova função SQL `fn_renovar_start_2027(plano_id, data_ref)` (idempotente) chamada por um ramo novo em `renovar-planos-mensais`, só para planos com `catalogo_id` de `familia = start_2027`. O ramo legado (`catalogo_id is null`) continua byte a byte igual. A função segue o desenho legado: encerra o plano/contrato do ciclo, cria venda `origem = renovacao_automatica` com `catalogo_id` 2027, novo plano + contrato mensal + 1 cobrança (usando `fn_venda_2027_criar` internamente com flag de renovação, sem checagem de admin) — **mas os créditos do novo ciclo só nascem se a cobrança do ciclo estiver paga**, com tolerância (ver 3C).
+c) Legado intocado: filtro por `catalogo_id`; prova repetindo diff da função e simulação com rollback de uma renovação Start legada antes/depois.
+
+# Fase 3C — Rotina mensal de créditos (descrição, não implementar)
+
+Parâmetro: `sistema_config.chave = 'creditos_2027_tolerancia_dias'` (padrão 3).
+
+Nova função `fn_creditos_mensais_2027(data_ref date)`, rodada diariamente (pelo mesmo cron, depois da renovação), idempotente pelo índice único (origem_id, atividade, competencia) com `ON CONFLICT DO NOTHING`:
+1. Start 2027 — para cada plano ativo cujo ciclo vigente ainda não tem crédito de Treino: libera 4/8/12 (ou ilimitado) se a cobrança do ciclo está paga, ou se `hoje <= vencimento + tolerância` (liberação provisória). Se passar da tolerância sem pagamento, não libera e grava `system_logs`. Paga depois, libera na próxima rodada (validade = fim do ciclo, não estende).
+2. Bota do Pro 2027 — ciclos de 1 mês a partir de `data_inicio`, 12 ciclos: 4 créditos por ciclo, `competencia` = início, validade = véspera do ciclo seguinte. Sem acúmulo (sobra vence com o ciclo).
+   - Pro em recorrência: mesma regra de cobrança do ciclo (`numero_ciclo` = índice do ciclo) paga ou dentro da tolerância.
+   - Pro em 12x/Pix à vista: libera sem condição de pagamento.
+3. Nunca toca créditos com `competencia` nula nem planos legados.
+
+## Cenários de aceite (3B.1 + 3C)
+1. Start 2x vendido 25/10: 1 cobrança 25/10, Treino 8 válido até 24/11, renovação em 25/11.
+2. Renovação 25/11 com cobrança de outubro paga: novo contrato/cobrança 25/11, Treino 8 (comp. 25/11, validade 24/12); sobra de outubro não soma.
+3. Renovação com mensalidade em aberto: cobrança do novo ciclo criada; crédito liberado até venc.+tolerância; depois disso, sem crédito e com log.
+4. Rodar a rotina 2x no mesmo dia: nenhum crédito duplicado.
+5. Pro 3x recorrência: bota 4 no ciclo 2 só com cobrança 2 paga/tolerância; Pro Livre Pix: bota 4 todo ciclo sem condição; nada após o 12º ciclo.
+6. Start legado: renovação idêntica à atual (simulação antes/depois).
+
+## Consultas de conferência
+```sql
+-- 1 cobrança por contrato Start 2027
+select k.id, count(c.id) from contratos k join planos_catalogo pc on pc.id=k.catalogo_id
+left join cobrancas c on c.contrato_id=k.id where pc.familia='start_2027' group by 1;
+-- créditos mensais sem duplicidade
+select origem_id, atividade, competencia, count(*) from creditos_aluno
+where competencia is not null group by 1,2,3 having count(*)>1;
+-- bota por ciclo
+select origem_id, competencia, quantidade_inicial, data_validade from creditos_aluno
+where atividade='Bota de compressão' order by 1,2;
+-- legado sem créditos com competência
+select count(*) from creditos_aluno cr join planos p on p.id=cr.origem_id
+where p.catalogo_id is null and cr.competencia is not null;
+```
+
+## Dados de teste da 3B (Start 2x)
+Nada é apagado sem pedido. Proposta: depois da correção, (1) marcar a venda de teste antiga como `cancelado` e suas 11 cobranças futuras como `cancelada`, com observação "teste 3B substituído" — só com sua autorização; (2) vender de novo um Start 2x de teste pelo fluxo corrigido em outro aluno de teste (ou o mesmo, após o cancelamento). Alternativa sem escrita: deixar a venda antiga como está e só criar a nova.
+
+## Perguntas em aberto
+1. Tolerância padrão: 3 dias está bom?
+2. Start: o crédito provisório durante a tolerância é aceitável, ou só libera com pagamento?
+3. Venda de teste Start antiga: cancelar (opção 1) ou deixar como está?
