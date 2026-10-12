@@ -271,7 +271,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data } = await (supabase as any).from("planos_catalogo").select("*").eq("ativo", true).order("valor");
       // Aba de planos atuais: só itens legados vendáveis hoje; os 2027 vendem em "Planos 2027".
-      return filtrarLegadoVendavel(data || [], format(new Date(), "yyyy-MM-dd"));
+      return filtrarLegadoVendavel<any>(data || [], format(new Date(), "yyyy-MM-dd"));
     },
     enabled: open,
   });
@@ -280,7 +280,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     queryKey: ["servicos-catalogo-ativos"],
     queryFn: async () => {
       const { data } = await (supabase as any).from("servicos_catalogo").select("*").eq("ativo", true).order("nome");
-      return filtrarLegadoVendavel(data || [], format(new Date(), "yyyy-MM-dd"));
+      return filtrarLegadoVendavel<any>(data || [], format(new Date(), "yyyy-MM-dd"));
     },
     enabled: open,
   });
