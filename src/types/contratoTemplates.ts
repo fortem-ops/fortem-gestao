@@ -53,7 +53,6 @@ export const MERGE_FIELDS_EXEMPLO: Record<string, string> = {
   ANO: String(HOJE.getFullYear()),
   DATA_HOJE: `${pad(HOJE.getDate())}/${pad(HOJE.getMonth() + 1)}/${HOJE.getFullYear()}`,
   CIDADE: 'Porto Alegre',
-  VALOR_MENSAL: 'R$ 623,90',
   TAXA_RECORRENCIA: 'R$ 24,90',
   LICENCA_DIAS: '20',
   BENEFICIOS_PLANO: '<ul><li>2 avaliações funcionais (1º e 6º mês)</li><li>20 dias de licença</li></ul>',
