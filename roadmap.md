@@ -7,5 +7,6 @@
 - [x] Encaminhar lembretes para Avaliações e descrever somente as partes realmente pendentes
 - [x] Tela inicial do Lançar Folha: upload primeiro, formulário manual como opção secundária
 - [x] Planos 2027 — Fase 1: catálogo versionado, serviços, créditos mensais/reposição, brindes, Clube (itens inativos)
-- [ ] Planos 2027 — go-live: ativar itens 2027 e aplicar vendavel_ate nos antigos (aguarda pedido do usuário)
+- [x] Planos 2027 — Fase 2 contratos: 5 templates 2027 (inativos) + escolha por catálogo
+- [ ] Planos 2027 — go-live (inclui ligar os 5 contratos 2027 e revisão jurídica): ativar itens 2027 e aplicar vendavel_ate nos antigos (aguarda pedido do usuário)
 - [ ] Planos 2027 — Fase 2 (aguarda pedido): telas de venda, rotina mensal de créditos, reposição, bota de compressão, /planos com Design System Fortem
