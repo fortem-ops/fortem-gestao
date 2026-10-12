@@ -44,8 +44,37 @@ function brl(v: number | string | null | undefined) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function tokenIgual(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a);
+  const eb = new TextEncoder().encode(b);
+  let diff = ea.length ^ eb.length;
+  const n = Math.max(ea.length, eb.length);
+  for (let i = 0; i < n; i++) diff |= (ea[i] ?? 0) ^ (eb[i] ?? 0);
+  return diff === 0;
+}
+
+// Exige ?token=<PIX_WEBHOOK_SECRET> na URL cadastrada no Inter. Sem token válido: 401, nada é processado.
+async function autorizarWebhook(req: Request): Promise<Response | null> {
+  const esperado = Deno.env.get("PIX_WEBHOOK_SECRET") ?? "";
+  const recebido = new URL(req.url).searchParams.get("token") ?? "";
+  if (esperado.length >= 16 && recebido.length > 0 && tokenIgual(recebido, esperado)) return null;
+  try {
+    await admin().from("system_logs").insert({
+      modulo: "pix-webhook",
+      acao: "requisicao_rejeitada",
+      mensagem: !esperado ? "PIX_WEBHOOK_SECRET não configurado" : recebido ? "Token inválido" : "Token ausente",
+      payload: { metodo: req.method, ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null },
+    });
+  } catch (e) {
+    console.error("pix-webhook: falha ao registrar rejeição", String(e));
+  }
+  return jsonResponse({ error: "Unauthorized" }, 401);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const negado = await autorizarWebhook(req);
+  if (negado) return negado;
   if (req.method !== "POST") return jsonResponse({ ok: true });
 
   try {
