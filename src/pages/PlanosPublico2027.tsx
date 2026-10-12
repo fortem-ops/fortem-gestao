@@ -471,7 +471,6 @@ function Resumo({ familia, freq, item, resumo, servicos, corrida, corridaValor }
       ) : (
         <dl className="mt-4 space-y-3 text-sm">
           <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Plano</dt><dd>{brl(resumo.totalPlano)}</dd></div>
-          <div className="text-xs text-muted-foreground -mt-2">{descreverParcelas(resumo.plano.parcelas)}{item.familia === "start_2027" ? " por mês, renovação mensal" : ""}</div>
           {servicos.map((s) => (
             <div key={s.codigo} className="flex justify-between gap-4"><dt className="text-muted-foreground">{s.nome.replace(/\s*\(2027\)\s*/, "")}</dt><dd>{brl(Number(s.valor))}</dd></div>
           ))}
@@ -482,6 +481,10 @@ function Resumo({ familia, freq, item, resumo, servicos, corrida, corridaValor }
           <div className="flex justify-between gap-4 border-t border-border pt-3 font-display text-lg font-bold">
             <dt>Total</dt><dd>{brl(resumo.totalGeral)}</dd>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {item.familia === "start_2027" ? "Plano: " : servicos.length > 0 && !resumo.servicosAvulsos ? "Plano e acompanhamento: " : "Plano: "}
+            {descreverParcelas(resumo.plano.parcelas)}{item.familia === "start_2027" ? " por mês, renovação mensal sem fidelidade" : ""}
+          </p>
           {corrida && corridaValor !== null && (
             <p className="text-xs text-muted-foreground">Grupo de corrida: {brl(corridaValor)} por mês, à parte.</p>
           )}
