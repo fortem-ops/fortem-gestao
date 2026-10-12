@@ -196,3 +196,9 @@ export function genTxid(): string {
 export function onlyDigits(s: string | null | undefined): string {
   return String(s ?? "").replace(/\D/g, "");
 }
+
+/** Somente leitura: obtém um token novo e devolve só os escopos concedidos (nunca o token). */
+export async function consultarEscoposInter(): Promise<{ escopos: string | null; expires_in: number | null }> {
+  const tok = await fetchNewToken();
+  return { escopos: tok.scope ?? null, expires_in: tok.expires_in ?? null };
+}
