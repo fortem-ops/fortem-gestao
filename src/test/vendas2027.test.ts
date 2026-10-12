@@ -130,3 +130,38 @@ describe("calcularVenda2027 — bloqueios", () => {
       calcularVenda2027({ item: m, forma: "recorrencia", servicos: [SERVICOS[0]], formaServicos: "cartao_parcelado", parcelasServicos: 7 }),
     ).toThrow());
 });
+
+import { itemVendavel2027, fimCicloMensal } from "@/lib/vendas2027";
+
+describe("itemVendavel2027", () => {
+  it("item desligado não vende para aluno comum", () =>
+    expect(itemVendavel2027({ ativo: false, vendavel_desde: "2026-10-13" }, "2026-10-20", false)).toBe(false));
+  it("item desligado vende para aluno de teste", () =>
+    expect(itemVendavel2027({ ativo: false, vendavel_desde: "2026-10-13" }, "2026-10-12", true)).toBe(true));
+  it("item ligado antes de vendavel_desde não vende", () =>
+    expect(itemVendavel2027({ ativo: true, vendavel_desde: "2026-10-13" }, "2026-10-12", false)).toBe(false));
+  it("item ligado na janela vende", () =>
+    expect(itemVendavel2027({ ativo: true, vendavel_desde: "2026-10-13" }, "2026-10-13", false)).toBe(true));
+  it("item após vendavel_ate não vende", () =>
+    expect(itemVendavel2027({ ativo: true, vendavel_ate: "2026-12-31" }, "2027-01-01", false)).toBe(false));
+});
+
+describe("fimCicloMensal", () => {
+  it("25/10 -> 24/11", () => expect(fimCicloMensal("2026-10-25")).toBe("2026-11-24"));
+  it("12/10 -> 11/11", () => expect(fimCicloMensal("2026-10-12")).toBe("2026-11-11"));
+});
+
+import { calcularServicos2027 } from "@/lib/vendas2027";
+
+describe("calcularServicos2027", () => {
+  it("Avaliação avulsa no Pix: 1 x 200", () => {
+    const r = calcularServicos2027([{ codigo: "comp_corporal_avulsa_2027", valor: 200 }], "pix_vista");
+    expect(r.parcelas).toEqual([{ numero: 1, valor: 200, plano: 0, servicos: 200 }]);
+  });
+  it("Nutri 4 em 6x: 5 x 270 e última 270", () => {
+    const r = calcularServicos2027([{ codigo: "nutri_4_comp_2_2027", valor: 1620 }], "cartao_parcelado", 6);
+    expect(r.parcelas.map((p) => p.valor)).toEqual([270, 270, 270, 270, 270, 270]);
+  });
+  it("no máximo 6x", () =>
+    expect(() => calcularServicos2027([{ codigo: "x", valor: 100 }], "cartao_parcelado", 7)).toThrow());
+});

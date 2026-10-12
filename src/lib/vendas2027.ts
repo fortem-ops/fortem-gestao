@@ -138,3 +138,39 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
     totalGeral: fromCents(totalPlanoC + servicosC),
   };
 }
+
+export type Vendavel2027 = {
+  ativo?: boolean | null;
+  vendavel_desde?: string | null;
+  vendavel_ate?: string | null;
+};
+
+/** Item 2027 pode ser vendido hoje? Aluno de teste vê também itens ainda desligados. */
+export function itemVendavel2027(item: Vendavel2027, hoje: string, alunoDeTeste: boolean): boolean {
+  if (alunoDeTeste) return true;
+  if (!item.ativo) return false;
+  if (item.vendavel_desde && item.vendavel_desde > hoje) return false;
+  if (item.vendavel_ate && item.vendavel_ate < hoje) return false;
+  return true;
+}
+
+/** Fim do ciclo mensal: do dia da venda até o dia anterior ao mesmo dia do mês seguinte. */
+export function fimCicloMensal(inicio: string): string {
+  const [y, m, d] = inicio.split("-").map(Number);
+  const prox = new Date(Date.UTC(y, m, d));
+  if (prox.getUTCMonth() !== (m % 12)) prox.setUTCDate(0); // ex.: 31/01 -> 28/02
+  prox.setUTCDate(prox.getUTCDate() - 1);
+  return prox.toISOString().slice(0, 10);
+}
+
+/** Venda só de serviços 2027: até 6x no cartão ou Pix à vista, sem desconto. */
+export function calcularServicos2027(
+  servicos: Servico2027[],
+  forma: FormaServicos2027,
+  parcelas = 1,
+): Cobranca2027 {
+  const totalC = servicos.reduce((s, x) => s + toCents(x.valor), 0);
+  if (totalC <= 0) throw new Error("Escolha ao menos um serviço");
+  const n = forma === "pix_vista" ? 1 : inteiroEntre(parcelas, 1, MAX_PARCELAS_SERVICOS_2027, "Parcelas dos serviços");
+  return { forma, total: fromCents(totalC), parcelas: montarParcelas(0, totalC, n) };
+}

@@ -51,6 +51,8 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .eq("ativo", true)
       .eq("renovacao_automatica", true)
+      // Planos 2027 (catalogo_id preenchido) já nascem com as 12 cobranças; não renovam por aqui.
+      .is("catalogo_id", null)
       .lte("proxima_renovacao", today);
 
     if (error) throw error;
