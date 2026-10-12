@@ -10012,6 +10012,7 @@ export type Database = {
         Args: { _tipo_servico: string }
         Returns: string
       }
+      fn_creditos_mensais_2027: { Args: { p_data?: string }; Returns: Json }
       fn_criar_contrato_recorrencia:
         | {
             Args: {
@@ -10554,6 +10555,10 @@ export type Database = {
           p_subcategoria: string
         }
         Returns: undefined
+      }
+      fn_renovar_start_2027: {
+        Args: { p_data?: string; p_plano: string }
+        Returns: Json
       }
       fn_resolver_prof_avaliacao: {
         Args: { _aluno_id: string; _avaliador: string; _data: string }

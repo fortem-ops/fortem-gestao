@@ -109,16 +109,18 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
     };
   }
 
-  // Recorrência mensal: valor do catálogo + taxa (Start sem taxa), 12 cobranças iguais
+  // Recorrência mensal: Power/Pro = 12 cobranças de catálogo + taxa;
+  // Start = 1 cobrança por ciclo (sem taxa, renova mês a mês até o cancelamento).
   const taxaC = ehStart ? 0 : toCents(item.taxa_recorrencia);
   const mensalC = valorC + taxaC;
-  const parcelasPlano: Parcela2027[] = Array.from({ length: MESES_RECORRENCIA_2027 }, (_, i) => ({
+  const nCobrancas = ehStart ? 1 : MESES_RECORRENCIA_2027;
+  const parcelasPlano: Parcela2027[] = Array.from({ length: nCobrancas }, (_, i) => ({
     numero: i + 1,
     valor: fromCents(mensalC),
     plano: fromCents(mensalC),
     servicos: 0,
   }));
-  const totalPlanoC = mensalC * MESES_RECORRENCIA_2027;
+  const totalPlanoC = mensalC * nCobrancas;
 
   let servicosAvulsos: Cobranca2027 | null = null;
   if (servicosC > 0) {

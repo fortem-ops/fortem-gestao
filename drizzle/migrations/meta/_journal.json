@@ -617,6 +617,20 @@
       "when": 1791829775608,
       "tag": "0087_venda_2027_fix_af_meses",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1791830604553,
+      "tag": "0088_start_2027_mensal_creditos_mensais",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1791830816473,
+      "tag": "0089_creditos_mensais_2027_bota_ciclo",
+      "breakpoints": true
     }
   ]
 }

@@ -182,3 +182,9 @@ Nada é apagado sem pedido. Proposta: depois da correção, (1) marcar a venda d
 1. Tolerância padrão: 3 dias está bom?
 2. Start: o crédito provisório durante a tolerância é aceitável, ou só libera com pagamento?
 3. Venda de teste Start antiga: cancelar (opção 1) ou deixar como está?
+
+## 3B.1 + 3C — executadas (12/10/2026)
+- Respostas do dono: tolerância 3 dias (`sistema_config.creditos_2027_tolerancia_dias`); crédito provisório aceito e nunca revogado automaticamente, só aviso em `system_logs` (modulo `creditos_2027`); venda de teste Start antiga intocada, nova venda de teste criada.
+- Migrations: 0088 (Start 2027 = 1 cobrança/ciclo + `fn_renovar_start_2027` + `fn_creditos_mensais_2027`), 0089 (Bota: encerra o crédito do ciclo anterior antes do novo, por causa do índice de um crédito ativo por venda).
+- `renovar-planos-mensais`: bloco 2027 só acrescentado depois do legado; mesmo cron diário.
+- Ciclos passados não são liberados retroativamente: a rotina só libera o ciclo vigente.
