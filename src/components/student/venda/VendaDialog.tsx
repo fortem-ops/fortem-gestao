@@ -637,6 +637,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
             planoNome: planoSelecionado.nome,
             tipoCobranca: tipoCobranca!,
             valorFinal: totaisPlano!.total,
+            catalogoId: planoSelecionado.id,
           });
         }
       }

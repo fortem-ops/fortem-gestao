@@ -1,4 +1,4 @@
-export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'corrida_sem_plano' | 'gympass' | 'wellhub' | 'totalpass' | 'outro';
+export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'corrida_sem_plano' | 'gympass' | 'wellhub' | 'totalpass' | 'start_2027' | 'power_2027' | 'pro_2027' | 'outro';
 export type VigenciaTipo = 'mensal' | 'anual';
 export type FormaPagamento = 'cartao_recorrencia' | 'cartao_parcelado' | 'pix_automatico' | 'boleto' | 'maquina_debito' | 'maquina_credito' | 'dinheiro' | 'plataforma_agregadora';
 export type ContratoStatus = 'ativo' | 'suspenso' | 'cancelado' | 'inadimplente' | 'encerrado';

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { ehPlanoVersionado, formaTemplate, montarVariaveis2027 } from "./contratos2027";
 
 const TEMPLATE_MAP: Record<string, Record<string, string>> = {
   'start': {
@@ -42,6 +43,10 @@ function resolverTemplateId(planoNome: string, tipoCobranca: string): string | n
 }
 
 function preencherVariaveis(conteudo: string, vars: Record<string, string>): string {
+  const ACEITE = ['ASSINATURA', 'ACEITE', 'DATA_ACEITE', 'FORMATO_ACEITE', 'IP_ACEITE'];
+  for (const [k, v] of Object.entries(vars)) {
+    if (!ACEITE.includes(k)) conteudo = conteudo.split(`%${k}%`).join(v ?? '');
+  }
   return conteudo
     .replace(/%NOME%/g, vars.NOME ?? '')
     .replace(/%DATA_NASCIMENTO%/g, vars.DATA_NASCIMENTO ?? '')
@@ -74,6 +79,8 @@ export async function gerarDocumentoContrato(params: {
   planoNome: string;
   tipoCobranca: string;
   valorFinal: number;
+  /** id do item em planos_catalogo; itens versionados (2027+) usam template próprio */
+  catalogoId?: string | null;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const { data: aluno, error: alunoErr } = await (supabase as any)
@@ -97,15 +104,48 @@ export async function gerarDocumentoContrato(params: {
       console.error('[contratosDocumentos] fn_reveal_cpf falhou:', revealErr);
     }
 
-    const templateId = resolverTemplateId(params.planoNome, params.tipoCobranca);
-    if (!templateId) return { success: true };
+    // Planos versionados (2027+): template pela família do catálogo + forma de cobrança.
+    // Legado (versao nula): segue o mapa fixo por nome, sem mudança.
+    let catalogoId = params.catalogoId ?? null;
+    if (!catalogoId) {
+      const { data: ct } = await (supabase as any)
+        .from('contratos').select('catalogo_id').eq('id', params.contratoId).maybeSingle();
+      catalogoId = ct?.catalogo_id ?? null;
+    }
+    let item: any = null;
+    if (catalogoId) {
+      const { data } = await (supabase as any)
+        .from('planos_catalogo').select('*').eq('id', catalogoId).maybeSingle();
+      item = data;
+    }
+    const versionado = ehPlanoVersionado(item);
 
-    const { data: template, error: tmplErr } = await (supabase as any)
-      .from('contrato_templates')
-      .select('id, conteudo, versao, nome')
-      .eq('id', templateId)
-      .single();
-    if (tmplErr || !template) return { success: false, error: 'Template não encontrado' };
+    let template: any = null;
+    let templateId: string | null = null;
+    if (versionado) {
+      const { data, error } = await (supabase as any)
+        .from('contrato_templates')
+        .select('id, conteudo, versao, nome')
+        .eq('plano_tipo', item.familia)
+        .eq('forma_pagamento', formaTemplate(params.tipoCobranca))
+        .eq('ativo', true)
+        .maybeSingle();
+      if (error || !data) {
+        return { success: false, error: `Nenhum contrato ativo para ${item.nome_exibicao ?? item.nome} (${params.tipoCobranca})` };
+      }
+      template = data;
+      templateId = data.id;
+    } else {
+      templateId = resolverTemplateId(params.planoNome, params.tipoCobranca);
+      if (!templateId) return { success: true };
+      const { data, error: tmplErr } = await (supabase as any)
+        .from('contrato_templates')
+        .select('id, conteudo, versao, nome')
+        .eq('id', templateId)
+        .single();
+      if (tmplErr || !data) return { success: false, error: 'Template não encontrado' };
+      template = data;
+    }
 
     const { data: existente } = await (supabase as any)
       .from('contratos_documentos')
@@ -205,6 +245,12 @@ export async function gerarDocumentoContrato(params: {
       vars.PLANO_BASE_VINCULADO = planoBase
         ? (PLANO_BASE_LABEL[planoBase] ?? planoBase)
         : 'nenhum (Corrida - Sem Plano)';
+    }
+
+    if (versionado) {
+      const { data: servicos } = await (supabase as any)
+        .from('servicos_catalogo').select('nome, valor').eq('versao', item.versao);
+      Object.assign(vars, montarVariaveis2027(item, servicos ?? []));
     }
 
     const conteudoGerado = preencherVariaveis(template.conteudo, vars);

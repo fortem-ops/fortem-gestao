@@ -23,7 +23,7 @@ export interface RegulamentoInternoVersao {
   updated_at: string;
 }
 
-export const PLANOS_ORDEM: PlanoTipo[] = ['start', 'start_plus', 'power', 'pro', 'max', 'corrida', 'corrida_sem_plano', 'gympass', 'wellhub', 'totalpass'];
+export const PLANOS_ORDEM: PlanoTipo[] = ['start', 'start_plus', 'power', 'pro', 'max', 'corrida', 'corrida_sem_plano', 'gympass', 'wellhub', 'totalpass', 'start_2027', 'power_2027', 'pro_2027'];
 
 const HOJE = new Date();
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -53,6 +53,12 @@ export const MERGE_FIELDS_EXEMPLO: Record<string, string> = {
   ANO: String(HOJE.getFullYear()),
   DATA_HOJE: `${pad(HOJE.getDate())}/${pad(HOJE.getMonth() + 1)}/${HOJE.getFullYear()}`,
   CIDADE: 'Porto Alegre',
+  VALOR_MENSAL: 'R$ 623,90',
+  TAXA_RECORRENCIA: 'R$ 24,90',
+  LICENCA_DIAS: '20',
+  BENEFICIOS_PLANO: '<ul><li>2 avaliações funcionais (1º e 6º mês)</li><li>20 dias de licença</li></ul>',
+  TABELA_SERVICOS: '<ul><li>Nutrição - 8 consultas: R$ 2.400,00</li></ul>',
+  CLAUSULA_REPOSICAO: '<h2>DA REPOSIÇÃO DE CRÉDITOS</h2><p>Cláusula 15ª-A – exemplo.</p>',
   ESTADO: 'RS',
 };
 
