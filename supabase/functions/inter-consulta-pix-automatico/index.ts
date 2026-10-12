@@ -3,10 +3,19 @@ import { jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, cons
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  const auth = await requireAdminOrCoord(req);
-  if ("error" in auth) return auth.error;
-  const { data: isA } = await admin().rpc("is_admin", { _user_id: auth.userId });
-  if (!isA) return jsonResponse({ error: "Forbidden" }, 403);
+  // Acesso: admin logado, ou chamada interna do banco com o segredo interno (mesmo padrão das rotinas agendadas).
+  const segredo = req.headers.get("x-webhook-secret");
+  let interno = false;
+  if (segredo) {
+    const { data } = await admin().rpc("get_webhook_secret");
+    interno = typeof data === "string" && data.length > 0 && data === segredo;
+  }
+  if (!interno) {
+    const auth = await requireAdminOrCoord(req);
+    if ("error" in auth) return auth.error;
+    const { data: isA } = await admin().rpc("is_admin", { _user_id: auth.userId });
+    if (!isA) return jsonResponse({ error: "Forbidden" }, 403);
+  }
 
   const fim = new Date();
   const ini = new Date(fim.getTime() - 3 * 24 * 3600 * 1000);
