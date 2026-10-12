@@ -59,7 +59,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   const [erros, setErros] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
-  const formas = formasPermitidas(familia);
+  const formas = formasPermitidas(familia).slice().sort((a, b) => ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(a) - ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(b));
   const formaEfetiva = formas.includes(forma) ? forma : formas[0];
   const item = encontrarItem(catalogo, familia, freq, formaEfetiva);
   const ref = itemReferencia(catalogo, familia, freq);
@@ -157,8 +157,8 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
         {!cadastro && <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur"><div className="px-4 pt-3 pb-4 space-y-2"><div className="flex justify-between gap-3 text-xs"><span>{nome} · {frequencia}</span><Button variant="link" className="h-auto p-0 rounded-none text-xs" onClick={() => setDetalhes(true)}>Detalhes ›</Button></div><div className="flex items-center gap-2">{passo > 0 && <Button variant="outline" size="icon" className="rounded-none shrink-0" aria-label="Voltar" onClick={() => ir(passo - 1)}><ArrowLeft /></Button>}<div className="min-w-0 flex-1"><p className="font-bold text-sm">{passo === 4 && primeira ? formaEfetiva === "cartao_parcelado" ? `${parcelas}x ${brl(primeira.plano)}` : formaEfetiva === "recorrencia" ? `${brl(primeira.plano)} /mês` : brl(primeira.plano) : `${brl(vitrine ?? 0)} /mês`}</p>{passo === 3 && <p className="text-xs text-muted-foreground">Consultas {brl(totalConsultas)}</p>}{passo === 4 && totalConsultas > 0 && <p className="text-xs text-muted-foreground">Consultas {resumo?.servicosAvulsos ? descreverParcelas(resumo.servicosAvulsos.parcelas) : `${parcelas}x ${brl(consultasParcela)}`}</p>}</div><Button disabled={!ref} className="rounded-none h-auto py-3 px-3 text-xs font-bold uppercase whitespace-normal max-w-[155px]" onClick={() => passo === 4 ? abrirCadastro() : ir(passo + 1)}>{passo === 4 ? T.detalhes.continuar : "Continuar"}</Button></div>{passo === 2 && familia !== "start_2027" && <p className="text-xs text-muted-foreground">Plano anual em até 12x no cartão</p>}</div></div>}
       </>}
     </main>
-    <Dialog open={detalhes} onOpenChange={setDetalhes}><DialogContent data-planos2027="true" className="rounded-none sm:rounded-none max-w-xl"><DialogTitle className="font-display uppercase font-bold pr-7">{T.detalhes.titulo}</DialogTitle><DialogDescription className="sr-only">Resumo do plano, serviços adicionais e pagamento</DialogDescription>{detalhesConteudo}</DialogContent></Dialog>
-    <Dialog open={ajuda} onOpenChange={setAjuda}><DialogContent data-planos2027="true" className="rounded-none sm:rounded-none"><DialogTitle>O que é isso?</DialogTitle><DialogDescription className="text-sm leading-relaxed">{T.vantagens.ajuda.replace("O que é isso? ", "")}</DialogDescription></DialogContent></Dialog>
+    <Dialog open={detalhes} onOpenChange={setDetalhes}><DialogContent data-planos2027="true" className="rounded-none sm:rounded-none max-w-xl text-foreground"><DialogTitle className="font-display uppercase font-bold pr-7">{T.detalhes.titulo}</DialogTitle><DialogDescription className="sr-only">Resumo do plano, serviços adicionais e pagamento</DialogDescription>{detalhesConteudo}</DialogContent></Dialog>
+    <Dialog open={ajuda} onOpenChange={setAjuda}><DialogContent data-planos2027="true" className="rounded-none sm:rounded-none text-foreground"><DialogTitle>O que é isso?</DialogTitle><DialogDescription className="text-sm leading-relaxed">{T.vantagens.ajuda.replace("O que é isso? ", "")}</DialogDescription></DialogContent></Dialog>
   </div>;
 }
 function Campo({ id, label, erro, children }: { id: string; label: string; erro?: string; children: ReactNode }) {

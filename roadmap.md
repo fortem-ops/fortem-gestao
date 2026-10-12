@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Correção Fase 4: protótipo público fiel nos cinco passos, detalhes, resumo desktop e corrida do catálogo; testes e verificação sem ativação
+- [x] Correção Fase 4: cinco passos, detalhes, resumo desktop e corrida por período; testes de cálculo e fluxo visual em 390px/1280px sem ativação
+- [ ] Correção Fase 4: validar envio e leitura da proposta real de prévia (aguarda sessão de administrador; email do solicitante sem conta de acesso)
 
 - [x] Aceites Tecnofit: simulação do cruzamento por nome
 - [x] Aceites Tecnofit: gravados em contratos_documentos com origem Tecnofit

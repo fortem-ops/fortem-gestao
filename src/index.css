@@ -279,6 +279,7 @@
     display: block; width: 100%; border: 1px solid hsl(var(--input)); background: hsl(var(--card));
     padding: 0.75rem; font-size: 1rem; color: hsl(var(--foreground)); border-radius: 0;
   }
+  [data-planos2027="true"] .font-display { font-family: 'Archivo', sans-serif; letter-spacing: 0; }
   [data-planos2027="true"] .campo:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 0; }
 
   /* Tabelas do FuncionalV2Viewer no portal — melhor contraste */
