@@ -54,7 +54,7 @@ export function PropostasSite2027() {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <span className="font-semibold">{(p.valor_total_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-            <a href={waMeLink(p.whatsapp)} target="_blank" rel="noreferrer" className="text-sm text-primary underline">WhatsApp</a>
+            <a href={waMeLink(p.whatsapp, `Olá ${p.nome.split(" ")[0]}, aqui é da FORTEM sobre o plano que você montou no site.`) ?? undefined} target="_blank" rel="noreferrer" className="text-sm text-primary underline">WhatsApp</a>
           </div>
         </div>
       ))}
