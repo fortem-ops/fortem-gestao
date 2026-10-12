@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  formasPermitidas, encontrarItem, calcularResumo, valorCorrida, descreverParcelas,
+   formasPermitidas, encontrarItem, calcularResumo, valorCorrida, descreverParcelas, menorPrecoFrequencia, opcoesCorrida, permiteReposicaoPublica,
   type PlanoPublico, type ServicoPublico, type Familia2027, type Frequencia2027,
 } from "@/lib/planosPublico2027";
 
@@ -25,6 +25,33 @@ const nutri4: ServicoPublico = { codigo: "nutri_4_comp_2_2027", nome: "", ativid
 const reab8: ServicoPublico = { codigo: "reab_8_2027", nome: "", atividade: "Reabilitação", quantidade_sessoes: 8, valor: 1200 };
 
 describe("planos públicos 2027", () => {
+  it("frequência 2x mostra o menor preço do catálogo, Power R$429", () => {
+    expect(menorPrecoFrequencia({ planos }, "2x")).toBe(429);
+  });
+  it("Power 2x + Nutri 4 + Fisio 4 resulta em 12 cobranças de 614 e total 7368", () => {
+    const item = encontrarItem({ planos }, "power_2027", "2x", "cartao_parcelado");
+    if (!item) throw new Error("Missing fixture");
+    const fisio4 = { ...reab8, codigo: "reab_4_2027", quantidade_sessoes: 4, valor: 600 };
+    const r = calcularResumo({ item, servicos: [nutri4, fisio4], forma: "cartao_parcelado", parcelas: 12, formaServicos: "pix_vista", parcelasServicos: 1 });
+    expect(r.totalGeral).toBe(7368);
+    expect(r.plano.parcelas).toHaveLength(12);
+    expect(r.plano.parcelas[0]).toEqual({ numero: 1, valor: 614, plano: 429, servicos: 185 });
+  });
+  it("Pix do plano mantém consultas à parte em 6x sem desconto", () => {
+    const item = encontrarItem({ planos }, "power_2027", "2x", "pix_vista");
+    if (!item) throw new Error("Missing fixture");
+    const r = calcularResumo({ item, servicos: [nutri4], forma: "pix_vista", parcelas: 1, formaServicos: "cartao_parcelado", parcelasServicos: 6 });
+    expect(r.plano.total).toBe(5148);
+    expect(r.servicosAvulsos?.parcelas.map((p) => p.valor)).toEqual([270,270,270,270,270,270]);
+    expect(r.totalGeral).toBe(6768);
+  });
+  it("corrida Start usa 170 mensal, 960 semestral e 1920 anual do catálogo", () => {
+    const corrida = [{nome:"Corrida - Start",valor:1920,periodo_meses:12 as const},{nome:"Corrida - Pro",valor:150,periodo_meses:1 as const},{nome:"Corrida - Start",valor:170,periodo_meses:1 as const},{nome:"Corrida - Start",valor:960,periodo_meses:6 as const}];
+    expect(opcoesCorrida({corrida}, "start_2027").map((p) => [p.periodo_meses,p.valor])).toEqual([[1,170],[6,960],[12,1920]]);
+  });
+  it("Pro Livre não oferece reposição de 50%", () => {
+    expect(permiteReposicaoPublica({familia:"pro_2027",frequencia:"livre",reposicao_saldo_pct:50})).toBe(false);
+  });
   it("Start só aceita recorrência mensal", () => {
     expect(formasPermitidas("start_2027")).toEqual(["recorrencia"]);
   });
