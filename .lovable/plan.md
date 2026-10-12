@@ -1,173 +1,214 @@
 # Novos planos 2027 — Fase 1: catálogo e modelo de dados
 
-Só planejamento. Nada é executado até você aprovar. Contratos, planos e créditos que já existem não mudam: tudo é feito por acréscimo.
+Somente planejamento. Tudo é feito por acréscimo. Contratos, planos, créditos e licenças que já existem não são alterados.
 
 ## 1. O que existe hoje (conferido no banco)
 
-- `planos_catalogo`: os itens se identificam só pelo `nome` ("Start", "Power", "Pro", "Start+", "Max"), junto com `frequencia` (1x/2x/3x/livre), `periodo_meses`, `quantidade_creditos`, `ilimitado`, `valor`, `atividade` e `plano_base_requerido`. Não há código interno, versão nem regras (fidelidade, licença, brindes).
-- `planos` (plano do aluno): `tipo` guarda o **nome em texto** ("Pro", "Power"...), sem referência ao item do catálogo.
-- `contratos.plano_tipo` tem uma regra que só aceita `start, start_plus, power, pro, max, corrida, gympass, wellhub, totalpass, outro`.
-- `servicos_catalogo`: nome, atividade, quantidade de sessões e valor. Não guarda custo de repasse, validade nem composição (exemplo: consultas + avaliação no mesmo pacote).
-- `creditos_aluno`: atividades em uso são Treino, Nutrição, Reabilitação e Avaliação Funcional. Já tem `data_validade`, `ilimitado` e `origem_tipo` (plano/serviço).
-- `aluno_licencas`: licenças do tipo plano ou médica. Os limites (10/15/20/30 dias) estão fixos no código (`src/lib/licencas.ts`) e são escolhidos pelo nome do plano.
-- `clube_recompensas`: tem `custo_start`, `custo_start_plus`, `custo_power`, `custo_pro`, `custo_max` e `custo_agregador`. O nível do Clube (`fn_clube_nivel_por_plano`) é decidido procurando "max", "pro" ou "power" dentro do nome do plano.
-- `treino_horarios_fixos` já existe (serve para "fixar horários").
-- `loja_promocao_brinde` é uma promoção da loja e não serve para os brindes do plano.
+- **Catálogo de planos (`planos_catalogo`):** cada item é identificado só pelo `nome` (Start, Start+, Power, Pro, Max). Também tem `frequencia`, `periodo_meses`, `quantidade_creditos`, `ilimitado`, `valor`, `atividade` e `plano_base_requerido`. Não existe código interno, versão, regras de fidelidade/licença/brindes nem data de venda.
+- **Plano do aluno (`planos`):** `tipo` guarda o nome em texto, sem referência ao catálogo.
+- **Contratos:** `contratos.plano_tipo` tem uma regra que só aceita `start, start_plus, power, pro, max, corrida, gympass, wellhub, totalpass, outro`.
+- **Catálogo de serviços (`servicos_catalogo`):** guarda nome, atividade, sessões e valor. Não tem custo de repasse, validade nem composição.
+- **Créditos (`creditos_aluno`):** atividades em uso são Treino, Nutrição, Reabilitação e Avaliação Funcional (texto livre). Já existem `data_validade`, `ilimitado` e `origem_tipo`.
+- **Licenças (`aluno_licencas`):** os limites estão fixos em `src/lib/licencas.ts` e são escolhidos pelo nome do plano.
+- **Clube, nível do aluno:** `fn_clube_nivel_por_plano` procura no nome do plano principal: "max" → platina, "pro" → diamante, "power" → ouro. Qualquer outro plano → prata; agregadores e sem plano → bronze. O portal mostra nível, rótulo e tema por `src/lib/clube.ts` (Bronze/Prata/Ouro/Diamante/Platina).
+- **Clube, custo do resgate:** `fn_clube_resgatar` pega o **plano ativo mais recente** e procura no nome: max → `custo_max`, pro → `custo_pro`, power → `custo_power`, start+ → `custo_start_plus`, demais → `custo_start`. `planos_elegiveis` também compara pelo nome.
+- **Horário fixo:** a tabela `treino_horarios_fixos` já existe.
 
-**Risco principal:** como tudo hoje se apoia no nome, um "Pro" de 2027 seria tratado como o Pro antigo (licença, serviços bônus, Clube, renovação automática). A solução é ter um código interno estável em cada item.
+**Risco principal:** como tudo depende do nome, um "Pro 2027" seria tratado como o Pro antigo. A solução é cada item ter um código estável e cada plano vendido apontar para o item do catálogo.
 
-## 2. Como separar as versões sem afetar os planos antigos
+## 2. Versionamento e janela de venda
 
-- Novas colunas em `planos_catalogo`, todas opcionais ou com valor padrão:
-  - `codigo` (text, único quando preenchido): por exemplo `start_2027_2x_mensal`.
-  - `familia`: start_2027, power_2027 ou pro_2027.
-  - `versao`: 2027.
-  - `nome_exibicao`: Start, Power ou Pro.
-  - `modalidade_cobranca`: recorrencia_mensal ou anual.
-  - `taxa_recorrencia` (numeric).
-  - `fidelidade_meses`.
-  - `licenca_dias`.
-  - `avaliacoes_funcionais_meses` (int[]): por exemplo `{1}` ou `{1,6}`.
-  - `permite_fixar_horario` (boolean).
-  - `bota_compressao_mes` (int).
-  - `nivel_clube`: start, power ou pro.
-  - `reposicao_saldo_pct` (int, padrão 0).
-  - `brindes` (jsonb).
-  - `vendavel_ate` / `vendavel_desde` (date).
-- Os itens antigos ficam com `versao` vazia e todos os campos novos vazios. Nada no comportamento deles muda.
-- Novas colunas opcionais em `planos`: `catalogo_id` e `plano_codigo`. Elas só são preenchidas nas vendas de 2027. `planos.tipo` continua recebendo o nome mostrado ao aluno, para as telas atuais seguirem funcionando.
-- `contratos.plano_tipo`: a regra passa a aceitar também `start_2027`, `power_2027` e `pro_2027`. É só um acréscimo, com `NOT VALID` desnecessário porque as linhas atuais já cumprem a regra. Também entra uma coluna opcional `contratos.catalogo_id`.
-- Proteção: uma trigger impede mudar `codigo`, `familia` e `versao` de um item do catálogo que já tenha plano vendido.
+Novas colunas em `planos_catalogo`, todas opcionais ou com valor padrão neutro:
 
-## 3. Linhas a cadastrar (seed)
+| Coluna | Conteúdo |
+|---|---|
+| `codigo` | Único quando preenchido. Ex.: `pro_2027_3x_anual` |
+| `familia` | start_2027 / power_2027 / pro_2027 |
+| `versao` | 2027 |
+| `nome_exibicao` | Start, Power ou Pro |
+| `modalidade_cobranca` | recorrencia_mensal ou anual |
+| `liberacao_creditos` | `mensal` ou `total_na_compra` |
+| `taxa_recorrencia` | Valor numérico |
+| `fidelidade_meses` | Número de meses |
+| `licenca_dias` | Número de dias |
+| `avaliacoes_funcionais_meses` | Lista de meses, ex.: `{1,6}` |
+| `permite_fixar_horario` | Sim/não |
+| `bota_compressao_mes` | Sessões por mês |
+| `nivel_clube` | Nível do Clube Fortem |
+| `reposicao_saldo_pct` | Percentual, padrão 0 |
+| `brindes` | Lista de brindes |
+| `vendavel_desde` / `vendavel_ate` | Datas da janela de venda |
 
-São 3 famílias × 4 frequências × 2 períodos (mensal e anual), menos o anual do Start. O Start é só recorrência mensal, então ficam **20 itens**.
+**Janela de venda (resposta 6):**
+- Um item só pode ser vendido se estiver `ativo` e se hoje estiver entre `vendavel_desde` (ou sem data) e `vendavel_ate` (ou sem data).
+- Itens 2027: `vendavel_desde = 2026-10-13`.
+- Itens antigos de treino (Start, Start+, Power, Pro, Max): recebem só `vendavel_ate = 2026-10-12`. Como não mudam `ativo` nem qualquer outro campo, quem já tem esses planos continua igual: renovação, telas, relatórios e Clube não mudam.
+- Corrida, VIP e agregadores ficam fora dessa data.
+
+**Outras colunas:**
+- `planos`: novas colunas opcionais `catalogo_id` e `plano_codigo`, preenchidas só nas vendas 2027. `tipo` continua com o nome mostrado ao aluno.
+- `contratos.plano_tipo`: a regra passa a aceitar também `start_2027`, `power_2027` e `pro_2027`, só como acréscimo. Entra também uma coluna opcional `catalogo_id`.
+- Uma trigger impede alterar `codigo`, `familia`, `versao` e `liberacao_creditos` de um item que já tenha plano vendido.
+
+## 3. Seed — 20 itens de plano
+
+O Start é só mensal: 4 itens. Power e Pro têm mensal e anual: 8 cada.
 
 | Família | 1x | 2x | 3x | Livre | Mensal | Anual (×12) | Fidelidade | Licença | Taxa recorrência |
 |---|---|---|---|---|---|---|---|---|---|
 | Start | 399 | 499 | 599 | 699 | sim | não | 0 | 0 | 0 |
-| Power | 329 | 429 | 529 | 629 | sim | sim | 12 | 10 | 24,90 (mensal) |
-| Pro | 399 | 499 | 599 | 699 | sim | sim | 12 | 20 | 24,90 (mensal) |
+| Power | 329 | 429 | 529 | 629 | sim | sim | 12 | 10 | 24,90 só no mensal |
+| Pro | 399 | 499 | 599 | 699 | sim | sim | 12 | 20 | 24,90 só no mensal |
 
-- **Créditos de treino:** no anual são 52, 104 ou 156; no Livre, `ilimitado = true`. No mensal, a pergunta 1 decide entre 4, 8 ou 12 por mês, ou o total anual liberado de uma vez.
-- **Power:** avaliações funcionais `{1}`, brindes `[camiseta]`, nível Clube power, reposição 0.
-- **Pro:** avaliações funcionais `{1,6}`, `permite_fixar_horario = true`, bota de compressão 4 por mês, brindes `[camiseta, garrafinha]`, nível Clube pro. Reposição de 50% nas frequências 1x/2x/3x e 0 no Livre.
-- **Start:** nível Clube start, sem benefícios extras.
-- Os itens antigos do catálogo não são desativados nesta fase (fica para quando vocês decidirem, veja a pergunta 6).
+**Créditos de treino (resposta 1):**
+- **Start:** `liberacao_creditos = mensal`, com 4, 8 ou 12 por mês. No Livre, `ilimitado`.
+- **Power e Pro, mensal e anual:** `liberacao_creditos = total_na_compra`, com 52, 104 ou 156. No Livre, `ilimitado`. A validade vai até o fim do período do plano.
+- `quantidade_creditos` guarda o valor por mês no Start e o total no Power e no Pro.
 
-## 4. Serviços e nova atividade
+**Benefícios por plano:**
+- **Power:** avaliações `{1}`, brindes `[camiseta]`, reposição de 50% (exceto no Livre, que fica com 0), nível ouro.
+- **Pro:** avaliações `{1,6}`, `permite_fixar_horario`, bota de compressão 4 por mês, brindes `[camiseta, garrafinha]`, reposição de 50% (exceto no Livre, que fica com 0), nível diamante.
+- **Start:** sem benefícios extras, reposição 0, nível prata.
 
-Novas colunas em `servicos_catalogo`:
-- `codigo`, `versao`;
-- `custo_repasse_unitario` (jsonb por atividade, por exemplo `{"Nutrição":200,"Avaliação Composição Corporal":100}`);
-- `validade_meses` (padrão vazio; 12 nos itens de 2027);
-- `sobrevive_cancelamento` (boolean);
-- `composicao` (jsonb com a lista de atividade e quantidade);
-- `gera_pendencia_comissao` (boolean, padrão true).
+A reposição no Power vem do texto "reposição de 50% do saldo" e precisa de confirmação (seção 11).
 
-Itens novos:
-- Nutrição 4 consultas + 2 Avaliações de Composição Corporal: R$ 1.620. Composição: Nutrição 4 e Composição Corporal 2.
-- Nutrição 8 consultas (avaliação inclusa): R$ 2.400. A composição depende da pergunta 3.
-- Reabilitação 4 sessões: R$ 600, repasse de 80 por sessão.
-- Reabilitação 8 sessões: R$ 1.200, repasse de 80 por sessão.
-- Avaliação Física de Composição Corporal avulsa: R$ 200, repasse de 100, `gera_pendencia_comissao = false`.
+## 4. Serviços e novas atividades
 
-Nova atividade "Avaliação Composição Corporal":
-- Ela é texto livre em `creditos_aluno.atividade`, `agenda_servicos.atividade` e `consumo_servicos.tipo_servico`, então não precisa de novo tipo no banco.
-- Precisa ser incluída nas listas do código e nas funções de débito e estorno de crédito (`fn_creditos_atividade_de_servico`). Isso fica para a fase 2.
+**Novas colunas em `servicos_catalogo`:**
+- `codigo` e `versao`;
+- `custo_repasse_unitario`: valor por atividade (jsonb);
+- `validade_meses`;
+- `sobrevive_cancelamento`;
+- `composicao`: lista de atividade e quantidade (jsonb);
+- `gera_pendencia_comissao`, com padrão true.
 
-O Grupo de Corrida não muda.
+**Seed — 5 serviços**, todos com validade de 12 meses e que continuam valendo depois do cancelamento do plano (resposta 8):
 
-Os custos de repasse ficam só nas telas internas. Nada voltado ao aluno mostra repasse ou comissão.
+| Serviço | Valor | Composição | Repasse |
+|---|---|---|---|
+| Nutrição 4 + 2 Avaliações de Composição Corporal | 1.620 | Nutrição 4, Composição Corporal 2 | 4×200 + 2×100 = 1.000 |
+| Nutrição 8 consultas | 2.400 | Nutrição 8 | 8×200 = 1.600 |
+| Reabilitação 4 sessões | 600 | Reabilitação 4 | 4×80 = 320 |
+| Reabilitação 8 sessões | 1.200 | Reabilitação 8 | 8×80 = 640 |
+| Avaliação Física de Composição Corporal (avulsa) | 200 | Composição Corporal 1 | 100, sem pendência de comissão |
 
-## 5. Reposição de 50% do saldo
+**Novas atividades, em texto livre e sem novo tipo no banco:**
+- **"Avaliação Composição Corporal".**
+- **"Bota de Compressão" (resposta 4):** agendável no portal em Agendamentos > Serviços > "Bota de compressão". A tela e a agenda ficam para a Fase 2.
 
-- Nova tabela `creditos_transferencias`. Ela registra:
-  - o crédito de origem e o crédito de destino;
-  - o aluno;
-  - o saldo que restava, o percentual aplicado e a quantidade transferida, com `ceil(saldo × pct / 100)`;
-  - a regra usada, a data e quem transferiu (ou se foi automático);
-  - um campo único `(credito_origem_id)` para a mesma transferência nunca acontecer duas vezes.
-- Nova coluna `creditos_aluno.reposicao_pct` (cópia da regra do plano no momento da venda). Ela não é calculada de novo depois.
-- A transferência acontece quando o crédito vence e existe um novo plano em vigor. O crédito novo segue a validade do plano novo. Vira um movimento `ajuste` nos dois lados, de saída e de entrada.
-- O Livre fica de fora porque não tem saldo. Os créditos antigos ficam com `reposicao_pct` vazio e nunca recebem transferência.
-- A execução (rotina diária ou feita na hora da renovação) fica para a fase 2. Nesta fase entra só a estrutura.
+O Grupo de Corrida não muda. O repasse aparece só nas telas internas e nunca é mostrado ao aluno.
 
-## 6. Licença, brindes e avaliações
+## 5. Créditos que renovam por mês (Start e bota do Pro)
 
-- **Licença:** o limite passa a vir de `licenca_dias` do catálogo, buscado por `planos.catalogo_id`. Sem `catalogo_id`, vale a tabela antiga do código. A licença médica continua como é hoje.
-- **Brindes:** nova tabela `plano_brindes_entregas`, com plano, aluno, item, quem entregou e data. Ela controla a entrega, sem estoque nesta fase.
-- **Avaliações funcionais do Pro:** créditos de Avaliação Funcional liberados na venda, com a quantidade de `avaliacoes_funcionais_meses`. O agendamento no 6º mês vira uma tarefa na fase 2.
-- **Bota de compressão:** proposta de nova atividade "Bota de Compressão", com crédito de 4 por mês (veja a pergunta 4).
+- O crédito ganha a nova coluna `competencia` (primeiro dia do mês, opcional). Um índice único em `(origem_id, atividade, competencia)` evita criar o mesmo crédito duas vezes.
+- **Todo mês, dentro da vigência do plano:**
+  - Cria um crédito com `quantidade_inicial` = 4/8/12 (treino do Start) ou 4 (bota do Pro) e `data_validade` = último dia do mês ou fim do plano, o que vier primeiro.
+  - O crédito do mês anterior **não passa saldo adiante** e simplesmente vence. Não existe acúmulo.
+- A criação acontece na compra (1º mês) e depois em uma rotina diária que só cria o mês corrente para planos ativos com `liberacao_creditos = mensal` ou `bota_compressao_mes > 0`.
+- A rotina para no fim da vigência e quando o plano é cancelado.
+- Ela só olha planos com `catalogo_id` de 2027. Planos antigos nunca são tocados.
+- O código da rotina fica para a Fase 2. Na Fase 1 entram apenas a coluna e o índice.
 
-## 7. Clube Fortem
+## 6. Reposição de 50% (só treino)
 
-- `fn_clube_nivel_por_plano`: incluir **antes** da busca pelo nome uma checagem de `planos.plano_codigo` ou da família do catálogo:
-  - start_2027 → prata;
-  - power_2027 → ouro;
-  - pro_2027 → diamante.
-- Sem isso, um Start de 2027 já cai em prata e um Pro em diamante pelo nome, mas não há garantia.
-- Custo das recompensas: start_2027 usa `custo_start`, power_2027 usa `custo_power` e pro_2027 usa `custo_pro`. O ajuste é na função ou tela que escolhe a coluna de custo, também pela família. `custo_start_plus` e `custo_max` continuam só para os planos antigos.
+- Nova coluna `creditos_aluno.reposicao_pct`. É uma cópia da regra no momento da venda e é preenchida **apenas** em créditos de atividade Treino com crédito total de Power ou Pro (não Livre).
+- Nutrição, Reabilitação, Avaliações e Bota ficam sempre com 0 (resposta 5). Uma regra no banco garante que `reposicao_pct > 0` só existe quando `atividade = 'Treino'`.
+- **Nova tabela `creditos_transferencias`:**
+  - crédito de origem, crédito de destino, aluno;
+  - saldo restante, percentual e `quantidade = ceil(saldo × pct / 100)`;
+  - data, quem fez e se foi automático;
+  - única por crédito de origem, para nunca repetir.
+- O crédito de destino segue a validade do novo plano. Os movimentos são `ajuste` de saída e de entrada.
+- Créditos antigos ficam com `reposicao_pct` vazio e nunca entram nessa regra. A execução fica para a Fase 2.
 
-## 8. Migrations (ordem)
+## 7. Licença, brindes e avaliações
 
-1. `catalogo_versionamento`: colunas novas em `planos_catalogo`, `planos` e `contratos`, a regra ampliada de `plano_tipo` e a trigger de proteção.
-2. `servicos_catalogo_2027`: colunas novas em `servicos_catalogo`.
-3. `creditos_reposicao`: `creditos_aluno.reposicao_pct`, a tabela `creditos_transferencias` com permissões, RLS e políticas (coordenador/admin escreve; staff e o próprio aluno leem).
-4. `plano_brindes_entregas`: tabela, permissões, RLS e políticas.
-5. Ajuste em `fn_clube_nivel_por_plano`.
+- **Licença:** o limite vem de `licenca_dias` do catálogo, por `planos.catalogo_id`. Sem `catalogo_id`, vale a tabela antiga. A licença médica continua como é hoje.
+- **Brindes:** nova tabela `plano_brindes_entregas` (plano, aluno, item, entregue por, data).
+- **Avaliações funcionais:** créditos de Avaliação Funcional liberados na compra: 1 no Power, 2 no Pro. O lembrete do 6º mês fica para a Fase 2.
 
-Os 20 itens de plano e os 5 de serviço são cadastrados depois, como dados e fora das migrations, com os itens inativos até a liberação.
+## 8. Clube Fortem (resposta 7)
 
-## 9. Impacto nos contratos atuais
+Mapeamento proposto, usando os níveis que já existem no portal:
 
-- Nenhum UPDATE ou DELETE em `contratos`, `planos`, `creditos_aluno`, `alunos` ou `aluno_licencas`.
-- Todas as colunas novas aceitam vazio ou têm valor padrão neutro, então o comportamento antigo continua.
-- A checagem pelo nome continua existindo como plano B para os registros antigos.
+| Família | Nível | Custo do resgate |
+|---|---|---|
+| start_2027 | prata | `custo_start` |
+| power_2027 | ouro | `custo_power` |
+| pro_2027 | diamante | `custo_pro` (o mais baixo) |
 
-## 10. Riscos
+- Em `fn_clube_nivel_por_plano` e `fn_clube_resgatar`, antes da busca pelo nome, verificar `planos.plano_codigo` ou `catalogo.nivel_clube`. Sem isso, o resultado continua igual ao atual.
+- `fn_clube_resgatar` passa a usar o **plano principal ativo** (o mesmo de `fn_clube_nivel_por_plano`), e não o mais recente. Assim nível e custo nunca se contradizem, por exemplo quando o aluno tem plano de corrida mais novo.
+- `planos_elegiveis` passa a aceitar também `start_2027`, `power_2027` e `pro_2027`.
+- Platina continua reservado ao Max antigo.
 
-- Códigos que comparam o nome (`licencas.ts`, `vendas-servicos.ts`, `planTipo.ts` com "start" como renovação automática, `LABEL_PLANO`, relatórios por `plano_tipo`) podem tratar o Start/Power/Pro de 2027 como os antigos se a fase 2 não usar `catalogo_id`. O Start de 2027 seria marcado como renovação automática, e isso está correto. O Pro de 2027 receberia os serviços bônus do Pro antigo, e isso está errado.
-- Relatórios de vendas agrupados por nome misturariam as versões. É preciso agrupar por `familia` ou `versao`.
-- Renovação mensal (`renovar-planos-mensais`): precisa respeitar a fidelidade de 12 meses do Power e Pro mensais, para não tratar como Start sem fidelidade.
-- Multa de rescisão: `calcRescisao` usa `vigencia_tipo = mensal` como "sem multa", mas o Power e o Pro mensais têm fidelidade. É preciso olhar `fidelidade_meses`.
-- Crédito que continua válido depois do cancelamento: as rotinas que desativam créditos no cancelamento precisam poupar os créditos de serviço de 2027.
+## 9. Migrations (ordem)
 
-## 11. Consultas para conferir depois
+1. `catalogo_versionamento`: colunas em `planos_catalogo`, `planos` e `contratos`; regra de `plano_tipo` ampliada; trigger de proteção.
+2. `servicos_catalogo_2027`: colunas em `servicos_catalogo`.
+3. `creditos_2027`: `competencia`, índice único, `reposicao_pct` com a regra "só Treino", tabela `creditos_transferencias` com permissões e RLS (coordenador/admin escreve; staff e o próprio aluno leem).
+4. `plano_brindes_entregas`: tabela, permissões e RLS.
+5. `clube_mapeamento_2027`: ajustes nas duas funções do Clube.
+
+**Dados, fora das migrations:**
+- 20 planos + 5 serviços com `vendavel_desde = 2026-10-13`.
+- `vendavel_ate = 2026-10-12` nos itens antigos de treino.
+
+## 10. Impacto nos dados atuais e riscos
+
+- Nenhum UPDATE ou DELETE em `contratos`, `planos`, `creditos_aluno`, `alunos` ou `aluno_licencas`. A única escrita em itens antigos do catálogo é `vendavel_ate`.
+- **Riscos para a Fase 2:**
+  - As telas de venda precisam respeitar a janela de venda.
+  - Códigos que comparam nome (`licencas.ts`, `vendas-servicos.ts`, `planTipo.ts`, `calcRescisao`, relatórios) precisam usar `catalogo_id`. Senão o Pro 2027 recebe os bônus do Pro antigo, e Power/Pro mensais com fidelidade seriam tratados como "sem multa".
+  - As rotinas de cancelamento não podem desativar créditos de serviço 2027.
+- **Datas:** se a configuração atrasar, basta ajustar as datas. O deploy precisa terminar até 12/10, senão no dia 13 nada fica vendável. Combinar `vendavel_ate` antigo com a data real de publicação.
+
+## 11. Consultas de conferência
 
 ```sql
--- 20 planos 2027, preços e anual = mensal x 12
-select familia, frequencia, periodo_meses, valor, taxa_recorrencia, fidelidade_meses, licenca_dias, reposicao_saldo_pct
+-- 20 planos 2027 e configuração
+select familia, frequencia, periodo_meses, valor, liberacao_creditos, quantidade_creditos, ilimitado,
+       taxa_recorrencia, fidelidade_meses, licenca_dias, reposicao_saldo_pct, nivel_clube, vendavel_desde
 from planos_catalogo where versao = 2027 order by familia, frequencia, periodo_meses;
 
-select a.familia, a.frequencia from planos_catalogo a
-join planos_catalogo m on m.familia=a.familia and m.frequencia=a.frequencia and m.periodo_meses=1
-where a.versao=2027 and a.periodo_meses=12 and a.valor <> m.valor*12;   -- esperado: 0 linhas
+-- anual = mensal x 12 (esperado 0)
+select a.codigo from planos_catalogo a join planos_catalogo m
+  on m.familia=a.familia and m.frequencia=a.frequencia and m.periodo_meses=1
+where a.versao=2027 and a.periodo_meses=12 and a.valor <> m.valor*12;
 
--- Start sem anual; Pro Livre sem reposição
-select count(*) from planos_catalogo where familia='start_2027' and periodo_meses=12;  -- 0
-select count(*) from planos_catalogo where familia='pro_2027' and frequencia='livre' and reposicao_saldo_pct<>0; -- 0
+-- regras (cada uma esperado 0)
+select count(*) from planos_catalogo where familia='start_2027' and (periodo_meses<>1 or taxa_recorrencia<>0 or liberacao_creditos<>'mensal');
+select count(*) from planos_catalogo where familia in ('power_2027','pro_2027') and periodo_meses=12 and taxa_recorrencia<>0;
+select count(*) from planos_catalogo where familia in ('power_2027','pro_2027') and periodo_meses=1 and taxa_recorrencia<>24.90;
+select count(*) from planos_catalogo where versao=2027 and frequencia='livre' and (reposicao_saldo_pct<>0 or not ilimitado);
+select count(*) from planos_catalogo where familia in ('power_2027','pro_2027') and frequencia<>'livre'
+  and quantidade_creditos <> case frequencia when '1x' then 52 when '2x' then 104 else 156 end;
 
--- Planos antigos intocados
-select count(*) from planos_catalogo where versao is null and (codigo is not null or licenca_dias is not null); -- 0
-select count(*) from planos where catalogo_id is not null and created_at < '<data da migration>'; -- 0
-select count(*) from contratos where updated_at >= '<data da migration>' and plano_tipo not like '%_2027'; -- comparar com o movimento normal
+-- janela de venda: o que está vendável hoje
+select nome, codigo, vendavel_desde, vendavel_ate from planos_catalogo
+where ativo and (vendavel_desde is null or vendavel_desde<=current_date) and (vendavel_ate is null or vendavel_ate>=current_date);
 
--- Serviços 2027
+-- legado intocado (esperado 0)
+select count(*) from planos_catalogo where versao is null and (codigo is not null or licenca_dias is not null or reposicao_saldo_pct<>0);
+select count(*) from planos where catalogo_id is not null and created_at < '2026-10-13';
+select count(*) from creditos_aluno where reposicao_pct is not null and created_at < '2026-10-13';
+
+-- serviços 2027
 select nome, valor, validade_meses, sobrevive_cancelamento, composicao, custo_repasse_unitario, gera_pendencia_comissao
 from servicos_catalogo where versao = 2027;
 
--- Transferências nunca duplicadas e arredondadas para cima
-select * from creditos_transferencias where quantidade_transferida <> ceil(saldo_origem*percentual/100.0);
+-- reposição só em Treino e arredondada para cima (esperado 0)
+select count(*) from creditos_aluno where coalesce(reposicao_pct,0)>0 and atividade<>'Treino';
+select count(*) from creditos_transferencias where quantidade <> ceil(saldo_origem*percentual/100.0);
+
+-- créditos mensais sem duplicar e sem acúmulo (esperado 0)
+select origem_id, atividade, competencia, count(*) from creditos_aluno where competencia is not null group by 1,2,3 having count(*)>1;
+select count(*) from creditos_aluno where competencia is not null and data_validade > (competencia + interval '1 month - 1 day')::date;
 ```
 
-## 12. Perguntas em aberto
+## 12. Pendências antes de executar
 
-1. Créditos de treino no plano **mensal** 2027: liberar 4, 8 ou 12 por mês, ou 52/104/156 de uma vez com validade de 12 meses?
-2. A taxa de R$ 24,90 vale também para o Start, que é só recorrência? O pedido cita apenas Power e Pro.
-3. "Nutrição 8 consultas (avaliação inclusa)": são quantas Avaliações de Composição Corporal (1 ou 2)? E qual é o repasse do pacote de 8?
-4. A bota de compressão do Pro vira crédito agendável na agenda ou é só controle manual? E as 4 por mês acumulam de um mês para outro?
-5. "Reposição de 50%" vale também para os créditos de serviço (Nutrição e Reabilitação) ou só para os de treino? E se o aluno não renovar, o saldo some?
-6. Quando desativar a venda dos itens antigos (Start+, Max, Power/Pro atuais)? Na data de início de 2027?
-7. "Mais vantagens no Clube" para o Pro é só o `custo_pro` menor, ou também um nível diferente (diamante)?
-8. Os créditos do serviço continuam válidos se o plano for cancelado. Isso vale também para serviço comprado fora de pacote, como a avaliação avulsa?
+Nada técnico impede a Fase 1. Faltam só duas confirmações rápidas:
+
+1. A reposição de 50% vale também para o **Power**, ou só para o Pro? O pedido original cita a reposição só na lista do Pro.
+2. Datas: `vendavel_ate = 12/10/2026` nos antigos e `vendavel_desde = 13/10/2026` nos 2027. Quer manter, ou alinhar com o horário real da publicação?
