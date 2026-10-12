@@ -27,26 +27,24 @@ Aceite (contrato/:token) -> só registra assinatura; não ativa nada
 2. Valores calculados por uma função pura nova `calcularVenda2027` (testada):
    - Start: mensal = valor do item; sem taxa; serviços à parte (até 6x cartão ou PIX à vista).
    - Power/Pro 12x: total = anual + serviços; PIX à vista = total sem desconto; cartão até 12x, parcela = (anual + serviços)/12.
-   - Power/Pro recorrência: mensal = valor do item (24,90 já incluído no valor cobrado); serviços em venda separada.
-3. Grava venda + contrato com `status = pendente` e `catalogo_id`; gera link de contrato (Fase 2) e, se for o caso, link de pagamento.
+   - Power/Pro recorrência: cobrança mensal = valor do catálogo + 24,90 (ex.: Power 2x = 453,90); 12 cobranças criadas de uma vez; serviços em venda separada.
+3. Grava venda + contrato (ativo na venda, como hoje) e `catalogo_id`; gera link de contrato (Fase 2) e, se for o caso, link de pagamento.
 4. Aceite do contrato.
 5. Pagamento aprovado (1a mensalidade, PIX à vista, ou cartão autorizado) ou baixa manual da 1a parcela.
-6. Ativação: contrato `ativo`, plano ativo, créditos liberados.
+6. Plano e créditos já ativos desde a venda; o pagamento só dá baixa.
 
 Legado continua exatamente no caminho atual.
 
 ## 3. Liberação de créditos
 
-Proposta: liberar **no pagamento confirmado da 1a parcela/à vista** (ou baixa manual dela), não na criação nem no aceite.
-- Riscos de liberar na criação (como hoje): aluno agenda e usa sem pagar; estorno de crédito difícil.
-- Riscos de liberar no pagamento: atraso entre venda e uso quando a baixa é manual — mitigado com botão "Liberar agora" (coordenador/admin, registrado em auditoria).
-- Inadimplência depois da ativação: créditos já liberados ficam; parcelas seguem devidas (contrato).
+Decidido: créditos do plano e dos serviços liberados **na venda** (como hoje), sem esperar o pagamento. Venda pendente fica visível (status_pagamento) para rastrear quem não pagou. Legado sem mudança.
+- Risco aceito: aluno usa créditos sem pagar; mitigação = lista de vendas 2027 pendentes.
 
 Rotina mensal (só descrita, implementar na 3C):
 - Diária, idempotente pelo índice único (origem_id, atividade, competencia).
 - Start: para cada plano 2027 ativo com `liberacao_creditos = mensal`, criar crédito Treino da competência (4/8/12) com validade no fim da competência; o anterior expira sem acúmulo. Livre: crédito ilimitado.
 - Pro: crédito "Bota de compressão" 4/mês, mesma regra, só dentro da vigência.
-- Só gera se a mensalidade da competência estiver paga ou dentro da tolerância (decisão aberta, pergunta 2).
+- Decidido: só gera se a mensalidade da competência estiver paga, com tolerância curta de dias configurável.
 
 ## 4. Parcelas 12x com serviços
 
@@ -60,7 +58,6 @@ Rotina mensal (só descrita, implementar na 3C):
 Existe: baixa por cobrança em `ContratoFinanceiro.tsx` com forma e data, propagando para a venda (`baixaVenda.ts`); aviso de multa pendente.
 Falta:
 - Lista "Mensalidades a receber" (todas as recorrências em aberto do mês) com baixa em lote (`propagarBaixaEmLote` existe mas não tem tela).
-- Na baixa da 1a mensalidade 2027, disparar a ativação (item 3).
 - Filtro por recorrência cartão/PIX Automático.
 
 ## 6. Relatórios, comissionamento e previsibilidade
@@ -85,12 +82,12 @@ Passo a passo (só com seu pedido, cada passo confirmado):
 
 ## 8. Fases menores
 
-- 3A: cálculo de valores 2027 + testes (sem banco).
+- 3A: FEITO — `src/lib/vendas2027.ts` (`calcularVenda2027`) + `src/test/vendas2027.test.ts`.
 - 3B: venda 2027 no VendaDialog (serviços do catálogo, contrato pendente, links) + composição das parcelas.
-- 3C: ativação no pagamento/baixa + liberação de créditos + rotina mensal Start/bota.
+- 3C: rotina mensal Start/bota (só com mensalidade paga + tolerância).
 - 3D: baixa em lote das mensalidades + rescisão 2027.
 - 3E: relatórios por familia/versao, repasse de serviços, previsibilidade.
-- 3F: teste PIX Automático e correção do webhook -> `cobrancas`; habilitar opção.
+- 3F (só com pedido): teste PIX Automático e correção do webhook -> `cobrancas`; habilitar opção.
 
 ## 9. Consultas de conferência
 
@@ -112,10 +109,6 @@ select id_rec, status, valor_minimo from pix_recorrencias;
 select txid, status, valor from pix_cobrancas order by created_at desc limit 5;
 ```
 
-## 10. Perguntas em aberto
+## 10. Decisões tomadas
 
-1. Créditos liberados no pagamento da 1a parcela (proposta) ou na criação da venda como hoje?
-2. Crédito mensal do Start/bota: liberar só se a mensalidade da competência estiver paga?
-3. A taxa de 24,90 já está somada no `valor` do item 2027 ou deve ser somada na cobrança? (o catálogo guarda as duas colunas; confirmar antes da 3A)
-4. Recorrência 2027 sem cartão salvo nem Pix: baixa manual por mensalidade — gerar as 12 cobranças de uma vez (como hoje) ou uma por mês?
-5. Teste Pix: em produção com a integração atual (não há sandbox) — de acordo?
+1. Créditos liberados na venda. 2. Crédito mensal/bota só com mensalidade paga + tolerância configurável. 3. Teste Pix em produção com R$ 1, na 3F, sob pedido. 4. Taxa 24,90 somada ao valor do catálogo; contratos 2027 de recorrência já mostram `%VALOR_MENSAL%` = valor + taxa ("já incluída a taxa"), coerente — nada a corrigir. 5. 12 cobranças criadas de uma vez.
