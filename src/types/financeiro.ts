@@ -143,7 +143,8 @@ export const PLANO_LABELS: Record<PlanoTipo, string> = {
   start: 'Start', start_plus: 'Start+', power: 'Power',
   pro: 'Pro', max: 'Max', corrida: 'Grupo de Corrida',
   corrida_sem_plano: 'Grupo de Corrida (Sem Plano)',
-  gympass: 'Gympass', wellhub: 'Wellhub', totalpass: 'Totalpass', outro: 'Outro',
+  gympass: 'Gympass', wellhub: 'Wellhub', totalpass: 'Totalpass',
+  start_2027: 'Start', power_2027: 'Power', pro_2027: 'Pro', outro: 'Outro',
 };
 
 export const FORMA_PAGAMENTO_LABELS: Record<FormaPagamento, string> = {
