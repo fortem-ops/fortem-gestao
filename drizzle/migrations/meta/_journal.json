@@ -568,6 +568,20 @@
       "when": 1791823648211,
       "tag": "0080_catalogo_versionamento",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1791823673151,
+      "tag": "0081_servicos_catalogo_2027",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1791823702908,
+      "tag": "0082_creditos_2027",
+      "breakpoints": true
     }
   ]
 }

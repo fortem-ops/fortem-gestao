@@ -3218,6 +3218,7 @@ export type Database = {
           aluno_id: string
           atividade: string
           ativo: boolean
+          competencia: string | null
           created_at: string
           data_validade: string | null
           id: string
@@ -3226,12 +3227,14 @@ export type Database = {
           origem_tipo: Database["public"]["Enums"]["venda_tipo"]
           quantidade_inicial: number
           quantidade_usada: number
+          reposicao_pct: number | null
           updated_at: string
         }
         Insert: {
           aluno_id: string
           atividade: string
           ativo?: boolean
+          competencia?: string | null
           created_at?: string
           data_validade?: string | null
           id?: string
@@ -3240,12 +3243,14 @@ export type Database = {
           origem_tipo: Database["public"]["Enums"]["venda_tipo"]
           quantidade_inicial?: number
           quantidade_usada?: number
+          reposicao_pct?: number | null
           updated_at?: string
         }
         Update: {
           aluno_id?: string
           atividade?: string
           ativo?: boolean
+          competencia?: string | null
           created_at?: string
           data_validade?: string | null
           id?: string
@@ -3254,6 +3259,7 @@ export type Database = {
           origem_tipo?: Database["public"]["Enums"]["venda_tipo"]
           quantidade_inicial?: number
           quantidade_usada?: number
+          reposicao_pct?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -3312,6 +3318,74 @@ export type Database = {
             foreignKeyName: "creditos_movimentos_credito_id_fkey"
             columns: ["credito_id"]
             isOneToOne: false
+            referencedRelation: "creditos_aluno"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creditos_transferencias: {
+        Row: {
+          aluno_id: string
+          automatico: boolean
+          created_at: string
+          credito_destino_id: string
+          credito_origem_id: string
+          id: string
+          percentual: number
+          quantidade: number
+          registrado_por: string | null
+          saldo_origem: number
+        }
+        Insert: {
+          aluno_id: string
+          automatico?: boolean
+          created_at?: string
+          credito_destino_id: string
+          credito_origem_id: string
+          id?: string
+          percentual: number
+          quantidade: number
+          registrado_por?: string | null
+          saldo_origem: number
+        }
+        Update: {
+          aluno_id?: string
+          automatico?: boolean
+          created_at?: string
+          credito_destino_id?: string
+          credito_origem_id?: string
+          id?: string
+          percentual?: number
+          quantidade?: number
+          registrado_por?: string | null
+          saldo_origem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creditos_transferencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creditos_transferencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "creditos_transferencias_credito_destino_id_fkey"
+            columns: ["credito_destino_id"]
+            isOneToOne: false
+            referencedRelation: "creditos_aluno"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creditos_transferencias_credito_origem_id_fkey"
+            columns: ["credito_origem_id"]
+            isOneToOne: true
             referencedRelation: "creditos_aluno"
             referencedColumns: ["id"]
           },
@@ -7814,32 +7888,59 @@ export type Database = {
         Row: {
           atividade: string
           ativo: boolean
+          codigo: string | null
+          composicao: Json | null
           created_at: string
+          custo_repasse_unitario: Json | null
+          gera_pendencia_comissao: boolean
           id: string
           nome: string
           quantidade_sessoes: number
+          sobrevive_cancelamento: boolean
           updated_at: string
+          validade_meses: number | null
           valor: number
+          vendavel_ate: string | null
+          vendavel_desde: string | null
+          versao: number | null
         }
         Insert: {
           atividade: string
           ativo?: boolean
+          codigo?: string | null
+          composicao?: Json | null
           created_at?: string
+          custo_repasse_unitario?: Json | null
+          gera_pendencia_comissao?: boolean
           id?: string
           nome: string
           quantidade_sessoes?: number
+          sobrevive_cancelamento?: boolean
           updated_at?: string
+          validade_meses?: number | null
           valor?: number
+          vendavel_ate?: string | null
+          vendavel_desde?: string | null
+          versao?: number | null
         }
         Update: {
           atividade?: string
           ativo?: boolean
+          codigo?: string | null
+          composicao?: Json | null
           created_at?: string
+          custo_repasse_unitario?: Json | null
+          gera_pendencia_comissao?: boolean
           id?: string
           nome?: string
           quantidade_sessoes?: number
+          sobrevive_cancelamento?: boolean
           updated_at?: string
+          validade_meses?: number | null
           valor?: number
+          vendavel_ate?: string | null
+          vendavel_desde?: string | null
+          versao?: number | null
         }
         Relationships: []
       }
