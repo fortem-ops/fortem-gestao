@@ -7,3 +7,4 @@
 - Pix agendado: a data escolhida fica em `despesas.pix_data_agendada`; `data_pagamento` só é preenchida na baixa, com a data confirmada pelo Inter. Por quê: despesa pendente com data_pagamento parece paga em outras telas.
 - Valor a enviar por Pix = `despesas.valor_liquido_previsto ?? valor`; na folha `valor` JÁ É o líquido (com Comissão/DSR) e `valor_liquido_previsto` repete o mesmo valor por compatibilidade. `valor_pago` só nasce na baixa (Pix: sempre = `despesa.valor`, sem extrair valor "real" do Inter/extrato).
 - O conteúdo editorial da festa de 10 anos fica centralizado em `src/config/festa10anos.ts`; por quê: permitir trocar data, local, horário, atrações e marcos sem alterar componentes.
+- Planos versionados: comportamento de planos novos vem das colunas do `planos_catalogo` via `planos.catalogo_id`/`contratos.catalogo_id`; itens com `versao` nula seguem a lógica antiga por nome. Por quê: lançar novas versões sem afetar alunos e contratos existentes.
