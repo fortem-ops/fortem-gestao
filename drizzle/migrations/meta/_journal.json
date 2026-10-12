@@ -561,6 +561,41 @@
       "when": 1791560460668,
       "tag": "0079_proxima_renovacao_igual_data_fim_mensal",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1791823648211,
+      "tag": "0080_catalogo_versionamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1791823673151,
+      "tag": "0081_servicos_catalogo_2027",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1791823702908,
+      "tag": "0082_creditos_2027",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1791823763889,
+      "tag": "0083_plano_brindes_entregas",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1791823781589,
+      "tag": "0084_clube_mapeamento_2027",
+      "breakpoints": true
     }
   ]
 }
