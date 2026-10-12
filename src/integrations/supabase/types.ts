@@ -6025,6 +6025,68 @@ export type Database = {
           },
         ]
       }
+      plano_brindes_entregas: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          entregue_em: string
+          entregue_por: string | null
+          id: string
+          item: string
+          observacoes: string | null
+          plano_id: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          entregue_em?: string
+          entregue_por?: string | null
+          id?: string
+          item: string
+          observacoes?: string | null
+          plano_id: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          entregue_em?: string
+          entregue_por?: string | null
+          id?: string
+          item?: string
+          observacoes?: string | null
+          plano_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_brindes_entregas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_brindes_entregas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "plano_brindes_entregas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_brindes_entregas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           aluno_id: string

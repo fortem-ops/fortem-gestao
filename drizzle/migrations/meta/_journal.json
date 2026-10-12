@@ -582,6 +582,20 @@
       "when": 1791823702908,
       "tag": "0082_creditos_2027",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1791823763889,
+      "tag": "0083_plano_brindes_entregas",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1791823781589,
+      "tag": "0084_clube_mapeamento_2027",
+      "breakpoints": true
     }
   ]
 }
