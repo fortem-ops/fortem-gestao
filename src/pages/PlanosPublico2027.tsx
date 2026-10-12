@@ -446,7 +446,7 @@ function Comparativo({ catalogo, freq, familia, onEscolher }: { catalogo: Catalo
                   <td key={i} className={cn("p-3 text-center", familia === FAMILIAS[i] && "bg-primary/5")}>
                     {v === true ? <Check className="mx-auto h-4 w-4 text-primary" aria-label="Incluso" /> :
                       v === false ? <Minus className="mx-auto h-4 w-4 text-muted-foreground" aria-label="Não incluso" /> :
-                      <span className="capitalize-first">{v}</span>}
+                      <span>{v}</span>}
                   </td>
                 );
               })}
