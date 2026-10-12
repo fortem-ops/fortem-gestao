@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatBRL, type Frequencia } from "@/lib/vendas";
+import { filtrarLegadoVendavel } from "@/lib/vendas2027";
+import { useAuth } from "@/contexts/AuthContext";
 import { calcularTotaisVenda, type TipoCobranca } from "@/lib/vendas-calc";
 import { cn } from "@/lib/utils";
 import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
@@ -119,6 +121,18 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const { data: roles } = useUserRoles();
   const isCoordAdmin = !!roles?.isCoordAdmin;
   const isAdmin = !!roles?.isAdmin;
+  const { user: userAtual } = useAuth();
+  const { data: isProfessor = false } = useQuery({
+    queryKey: ["venda-is-professor", userAtual?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("has_role", { _user_id: userAtual!.id, _role: "professor" });
+      return !!data;
+    },
+    enabled: !!userAtual && open,
+    staleTime: 5 * 60_000,
+  });
+  // Venda 2027: admin, coordenador e professor (consultores) — mesma regra de fn_venda_2027_criar.
+  const podeVender2027 = isCoordAdmin || isProfessor;
   const [modo2027, setModo2027] = useState(false);
   useEffect(() => { if (!open) setModo2027(false); }, [open]);
 
@@ -256,7 +270,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     queryKey: ["planos-catalogo-ativos"],
     queryFn: async () => {
       const { data } = await (supabase as any).from("planos_catalogo").select("*").eq("ativo", true).order("valor");
-      return data || [];
+      // Aba de planos atuais: só itens legados vendáveis hoje; os 2027 vendem em "Planos 2027".
+      return filtrarLegadoVendavel<any>(data || [], format(new Date(), "yyyy-MM-dd"));
     },
     enabled: open,
   });
@@ -265,7 +280,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     queryKey: ["servicos-catalogo-ativos"],
     queryFn: async () => {
       const { data } = await (supabase as any).from("servicos_catalogo").select("*").eq("ativo", true).order("nome");
-      return data || [];
+      return filtrarLegadoVendavel<any>(data || [], format(new Date(), "yyyy-MM-dd"));
     },
     enabled: open,
   });
@@ -695,18 +710,21 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           </DialogTitle>
         </DialogHeader>
 
-        {isAdmin && (
-          <div className="flex justify-end">
-            <Button type="button" variant={modo2027 ? "default" : "outline"} size="sm" onClick={() => setModo2027((v) => !v)}>
-              {modo2027 ? "Voltar para planos atuais" : "Vender plano 2027"}
+        {podeVender2027 && (
+          <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Catálogo">
+            <Button type="button" variant={!modo2027 ? "default" : "outline"} size="sm" onClick={() => setModo2027(false)}>
+              Planos atuais
+            </Button>
+            <Button type="button" variant={modo2027 ? "default" : "outline"} size="sm" onClick={() => setModo2027(true)}>
+              Planos 2027
             </Button>
           </div>
         )}
-        {isAdmin && modo2027 && (
+        {podeVender2027 && modo2027 && (
           <Venda2027Steps alunoId={alunoId} temPlanoAtivo={!!planoVigente} onDone={() => onOpenChange(false)} />
         )}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className={cn(isAdmin && modo2027 && "hidden")}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className={cn(podeVender2027 && modo2027 && "hidden")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="planos">Planos</TabsTrigger>
             <TabsTrigger value="servicos">Serviços</TabsTrigger>

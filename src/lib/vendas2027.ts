@@ -176,3 +176,13 @@ export function calcularServicos2027(
   const n = forma === "pix_vista" ? 1 : inteiroEntre(parcelas, 1, MAX_PARCELAS_SERVICOS_2027, "Parcelas dos serviços");
   return { forma, total: fromCents(totalC), parcelas: montarParcelas(0, totalC, n) };
 }
+
+/** Item do catálogo (legado ou 2027) pode aparecer para venda hoje? Respeita ativo e vendavel_desde/ate. */
+export function itemCatalogoVendavelHoje(item: Vendavel2027, hoje: string): boolean {
+  return itemVendavel2027(item, hoje, false);
+}
+
+/** Planos atuais (legado, sem versão) que podem ser vendidos hoje no VendaDialog. */
+export function filtrarLegadoVendavel<T extends Vendavel2027 & { versao?: number | null }>(itens: T[], hoje: string): T[] {
+  return itens.filter((i) => (i.versao ?? null) === null && itemCatalogoVendavelHoje(i, hoje));
+}

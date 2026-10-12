@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      _golive_2027_backup: {
+        Row: {
+          ativo: boolean | null
+          capturado_em: string
+          conteudo: string | null
+          id: number
+          registro_id: string
+          tabela: string
+          vendavel_ate: string | null
+          vendavel_desde: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          capturado_em?: string
+          conteudo?: string | null
+          id?: number
+          registro_id: string
+          tabela: string
+          vendavel_ate?: string | null
+          vendavel_desde?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          capturado_em?: string
+          conteudo?: string | null
+          id?: number
+          registro_id?: string
+          tabela?: string
+          vendavel_ate?: string | null
+          vendavel_desde?: string | null
+        }
+        Relationships: []
+      }
+      _golive_2027_contagens: {
+        Row: {
+          capturado_em: string
+          id: number
+          metrica: string
+          rotulo: string
+          valor: string | null
+        }
+        Insert: {
+          capturado_em?: string
+          id?: number
+          metrica: string
+          rotulo: string
+          valor?: string | null
+        }
+        Update: {
+          capturado_em?: string
+          id?: number
+          metrica?: string
+          rotulo?: string
+          valor?: string | null
+        }
+        Relationships: []
+      }
       adquirentes_config: {
         Row: {
           adquirente: string
@@ -10288,6 +10345,9 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      fn_golive_2027_ativar: { Args: { p_data_inicio: string }; Returns: Json }
+      fn_golive_2027_reverter: { Args: never; Returns: Json }
+      fn_golive_2027_snapshot: { Args: { p_rotulo: string }; Returns: number }
       fn_inserir_inscricao_prova: {
         Args: {
           p_aceite_inscricao: boolean

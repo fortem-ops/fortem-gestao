@@ -177,3 +177,17 @@ describe("calcularServicos2027", () => {
   it("no máximo 6x", () =>
     expect(() => calcularServicos2027([{ codigo: "x", valor: 100 }], "cartao_parcelado", 7)).toThrow());
 });
+
+import { filtrarLegadoVendavel } from "@/lib/vendas2027";
+describe("filtrarLegadoVendavel (VendaDialog, planos atuais)", () => {
+  const itens = [
+    { id: "a", versao: null, ativo: true, vendavel_ate: null },
+    { id: "b", versao: null, ativo: true, vendavel_ate: "2026-10-12" },
+    { id: "c", versao: 2027, ativo: true, vendavel_desde: "2026-10-13" },
+    { id: "d", versao: null, ativo: false },
+  ];
+  it("legado sem vendavel_ate continua à venda", () =>
+    expect(filtrarLegadoVendavel(itens, "2026-10-13").map((i) => i.id)).toEqual(["a"]));
+  it("legado vende até o dia de vendavel_ate", () =>
+    expect(filtrarLegadoVendavel(itens, "2026-10-12").map((i) => i.id)).toEqual(["a", "b"]));
+});
