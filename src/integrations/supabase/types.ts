@@ -2753,6 +2753,7 @@ export type Database = {
         Row: {
           aluno_id: string
           cartao_token_id: string | null
+          catalogo_id: string | null
           created_at: string
           creditos_total: number | null
           criado_por: string | null
@@ -2783,6 +2784,7 @@ export type Database = {
         Insert: {
           aluno_id: string
           cartao_token_id?: string | null
+          catalogo_id?: string | null
           created_at?: string
           creditos_total?: number | null
           criado_por?: string | null
@@ -2813,6 +2815,7 @@ export type Database = {
         Update: {
           aluno_id?: string
           cartao_token_id?: string | null
+          catalogo_id?: string | null
           created_at?: string
           creditos_total?: number | null
           criado_por?: string | null
@@ -2860,6 +2863,13 @@ export type Database = {
             columns: ["cartao_token_id"]
             isOneToOne: false
             referencedRelation: "cartoes_salvos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "planos_catalogo"
             referencedColumns: ["id"]
           },
           {
@@ -5947,6 +5957,7 @@ export type Database = {
           atividade: string
           ativo: boolean
           cartao_token_id: string | null
+          catalogo_id: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string
@@ -5956,6 +5967,7 @@ export type Database = {
           id: string
           observacoes: string | null
           parcelas_padrao: number
+          plano_codigo: string | null
           proxima_renovacao: string | null
           renovacao_automatica: boolean
           servicos: string[] | null
@@ -5968,6 +5980,7 @@ export type Database = {
           atividade?: string
           ativo?: boolean
           cartao_token_id?: string | null
+          catalogo_id?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio: string
@@ -5977,6 +5990,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           parcelas_padrao?: number
+          plano_codigo?: string | null
           proxima_renovacao?: string | null
           renovacao_automatica?: boolean
           servicos?: string[] | null
@@ -5989,6 +6003,7 @@ export type Database = {
           atividade?: string
           ativo?: boolean
           cartao_token_id?: string | null
+          catalogo_id?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
@@ -5998,6 +6013,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           parcelas_padrao?: number
+          plano_codigo?: string | null
           proxima_renovacao?: string | null
           renovacao_automatica?: boolean
           servicos?: string[] | null
@@ -6027,53 +6043,111 @@ export type Database = {
             referencedRelation: "cartoes_salvos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "planos_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "planos_catalogo"
+            referencedColumns: ["id"]
+          },
         ]
       }
       planos_catalogo: {
         Row: {
           atividade: string
           ativo: boolean
+          avaliacoes_funcionais_meses: number[] | null
+          bota_compressao_mes: number
+          brindes: Json | null
+          codigo: string | null
           cor: string | null
           created_at: string
+          familia: string | null
+          fidelidade_meses: number
           frequencia: Database["public"]["Enums"]["plano_frequencia"]
           id: string
           ilimitado: boolean
+          liberacao_creditos: string | null
+          licenca_dias: number | null
+          modalidade_cobranca: string | null
+          nivel_clube: string | null
           nome: string
+          nome_exibicao: string | null
           periodo_meses: number
+          permite_fixar_horario: boolean
           plano_base_requerido: string | null
           quantidade_creditos: number | null
+          reposicao_saldo_pct: number
+          taxa_recorrencia: number
           updated_at: string
           valor: number
+          vendavel_ate: string | null
+          vendavel_desde: string | null
+          versao: number | null
         }
         Insert: {
           atividade?: string
           ativo?: boolean
+          avaliacoes_funcionais_meses?: number[] | null
+          bota_compressao_mes?: number
+          brindes?: Json | null
+          codigo?: string | null
           cor?: string | null
           created_at?: string
+          familia?: string | null
+          fidelidade_meses?: number
           frequencia?: Database["public"]["Enums"]["plano_frequencia"]
           id?: string
           ilimitado?: boolean
+          liberacao_creditos?: string | null
+          licenca_dias?: number | null
+          modalidade_cobranca?: string | null
+          nivel_clube?: string | null
           nome: string
+          nome_exibicao?: string | null
           periodo_meses?: number
+          permite_fixar_horario?: boolean
           plano_base_requerido?: string | null
           quantidade_creditos?: number | null
+          reposicao_saldo_pct?: number
+          taxa_recorrencia?: number
           updated_at?: string
           valor?: number
+          vendavel_ate?: string | null
+          vendavel_desde?: string | null
+          versao?: number | null
         }
         Update: {
           atividade?: string
           ativo?: boolean
+          avaliacoes_funcionais_meses?: number[] | null
+          bota_compressao_mes?: number
+          brindes?: Json | null
+          codigo?: string | null
           cor?: string | null
           created_at?: string
+          familia?: string | null
+          fidelidade_meses?: number
           frequencia?: Database["public"]["Enums"]["plano_frequencia"]
           id?: string
           ilimitado?: boolean
+          liberacao_creditos?: string | null
+          licenca_dias?: number | null
+          modalidade_cobranca?: string | null
+          nivel_clube?: string | null
           nome?: string
+          nome_exibicao?: string | null
           periodo_meses?: number
+          permite_fixar_horario?: boolean
           plano_base_requerido?: string | null
           quantidade_creditos?: number | null
+          reposicao_saldo_pct?: number
+          taxa_recorrencia?: number
           updated_at?: string
           valor?: number
+          vendavel_ate?: string | null
+          vendavel_desde?: string | null
+          versao?: number | null
         }
         Relationships: []
       }
@@ -10129,6 +10203,7 @@ export type Database = {
           atividade: string
           ativo: boolean
           cartao_token_id: string | null
+          catalogo_id: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string
@@ -10138,6 +10213,7 @@ export type Database = {
           id: string
           observacoes: string | null
           parcelas_padrao: number
+          plano_codigo: string | null
           proxima_renovacao: string | null
           renovacao_automatica: boolean
           servicos: string[] | null
