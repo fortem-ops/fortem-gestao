@@ -37,6 +37,9 @@ export type CatalogoPublico = {
   corrida: { nome: string; valor: number }[];
 };
 
+/** WhatsApp de atendimento (mesmo número da página anterior de planos). */
+export const WHATSAPP_FORTEM = "5135199451";
+
 export const FAMILIAS: Familia2027[] = ["start_2027", "power_2027", "pro_2027"];
 export const FREQUENCIAS: Frequencia2027[] = ["1x", "2x", "3x", "livre"];
 

@@ -87,7 +87,6 @@ const RelatoriosCRM = lazyWithReload(() => import("./pages/relatorios/CRM"));
 const RelatoriosEquipe = lazyWithReload(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazyWithReload(() => import("./pages/WhatsApp"));
 const Corrida = lazyWithReload(() => import("./pages/Corrida"));
-const Planos = lazyWithReload(() => import("./pages/Planos"));
 const PlanosRota = lazyWithReload(() => import("./pages/PlanosRota"));
 const Privacidade = lazyWithReload(() => import("./pages/Privacidade"));
 const TermoAptidaoUsoImagem = lazyWithReload(() => import("./pages/TermoAptidaoUsoImagem"));
@@ -173,7 +172,6 @@ const App = () => (
 
 
             <Route path="/planos" element={<Suspense fallback={<RouteFallback />}><PlanosRota /></Suspense>} />
-            <Route path="/planos-atual" element={<Suspense fallback={<RouteFallback />}><Planos /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
             <Route path="/termos/aptidao-fisica-uso-imagem" element={<Suspense fallback={<RouteFallback />}><TermoAptidaoUsoImagem /></Suspense>} />
             <Route path="/store" element={<Suspense fallback={<RouteFallback />}><StoreIndex /></Suspense>} />
