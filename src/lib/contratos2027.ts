@@ -84,11 +84,12 @@ export function montarTabelaServicos(servicos: ServicoTabela[]): string {
 export function montarClausulaReposicao(item: CatalogoPlano2027): string {
   const pct = Number(item.reposicao_saldo_pct ?? 0);
   if (pct <= 0 || ehLivre(item)) return "";
+  const pctTxt = pct === 50 ? "50% (cinquenta por cento)" : `${pct}%`;
   return (
     `<h2>DA REPOSIÇÃO DE CRÉDITOS</h2>\n` +
-    `<p><strong>Cláusula 15ª-A</strong> – Ao final da vigência deste contrato, ${pct}% (cinquenta por cento) do saldo de créditos de treino não utilizados, arredondado para cima, será transferido ao novo plano contratado pelo ALUNO, para uso conforme a vigência deste novo plano.</p>\n` +
+    `<p><strong>Cláusula 15ª-A</strong> – Ao final da vigência deste contrato, ${pctTxt} do saldo de créditos de treino não utilizados, arredondado para cima, será transferido ao novo plano contratado pelo ALUNO, para uso conforme a vigência deste novo plano.</p>\n` +
     `<p>Parágrafo único – A reposição vale somente para créditos de treino, não se aplicando a créditos de nutrição, reabilitação ou avaliações.</p>\n\n`
-  ).replace(`${pct}% (cinquenta por cento)`, pct === 50 ? "50% (cinquenta por cento)" : `${pct}%`);
+  );
 }
 
 export function montarVariaveis2027(
