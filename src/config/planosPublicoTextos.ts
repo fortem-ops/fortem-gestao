@@ -1,0 +1,76 @@
+/** Conteúdo aprovado da página pública; não altera termos ou contratos internos. */
+export const TEXTOS_PLANOS = {
+  passos: ["Frequência", "Vantagens", "Turbine", "Acompanhamento", "Pagamento"],
+  frequencia: {
+    titulo: "Quantas vezes por semana você quer treinar?",
+    subtitulo: "Valores a partir do plano Power. Na próxima etapa você escolhe as vantagens.",
+    limite: "Máximo de 4 alunos por treinador, em qualquer frequência.",
+    anual: "Pague o plano anual no cartão de crédito em até 12x.",
+  },
+  vantagens: {
+    titulo: "Escolha as vantagens do seu plano",
+    subtitulo: (freq: string) => `Valores para ${freq}. O Start é mensal, sem fidelidade; Power e Pro têm fidelidade de 12 meses.`,
+    start: ["Plano mensal em recorrência", "Sem fidelidade"],
+    power: ["Fidelidade de 12 meses", "10 dias de trancamento do plano", "1 avaliação funcional (1º mês)", "Brinde: camiseta FORTEM"],
+    pro: ["Fidelidade de 12 meses", "20 dias de trancamento do plano", "2 avaliações funcionais (1º e 6º mês)", "Possibilidade de fixar horários", "Sessões de bota de compressão pneumática", "Brinde: camiseta FORTEM e garrafinha", "Mais vantagens no Clube Fortem"],
+    reposicao: "Reposição de até 50% dos créditos ao fim do plano",
+    ajuda: "O que é isso? Ao término da vigência do plano, se ainda houver créditos, você consegue repor até 50% deles.",
+  },
+  turbine: {
+    titulo: "Turbine o seu plano",
+    subtitulo: "Nutrição, Fisioterapia e Corrida com profissionais que acompanham você de perto, do primeiro treino ao objetivo alcançado. Escolha o acompanhamento que faz sentido para o seu momento.",
+  },
+  profissionais: [
+    { area: "Nutrição", papel: "Nutricionista", nome: "Jéssica Elkfury", especialidades: [
+      { titulo: "Emagrecimento e hipertrofia", texto: "Foco na redução de gordura e na preservação da massa magra, com um plano nutricional personalizado e baseado em evidências. A abordagem é leve e real, considerando rotina, preferências e comportamento alimentar para alcançar resultados duradouros e saudáveis." },
+      { titulo: "Nutrição esportiva", texto: "Estratégias nutricionais para potencializar o desempenho esportivo, otimizar a recuperação pós-treino, melhorar a composição corporal e ampliar os níveis de energia, força e resistência." },
+    ] },
+    { area: "Fisioterapia", papel: "Fisioterapeuta", nome: "Júlia Assis Brasil", especialidades: [
+      { titulo: "Terapias manuais", texto: "Acompanhamento e tratamento de dores, queixas e desconfortos musculares, bem como prevenção de lesões." },
+      { titulo: "Reabilitação funcional", texto: "Acompanhamento próximo, focado no tratamento de lesões e nos ganhos de força muscular e de tendões." },
+    ] },
+    { area: "Grupo de corrida", papel: "Professora · Grupo de corrida", nome: "Yasmim Ávila", especialidades: [
+      { titulo: "", texto: "Respeitando a individualidade de cada aluno e o seu atual momento, o acompanhamento é próximo nos treinos, com feedbacks e instruções para evoluir no esporte com segurança." },
+    ] },
+  ],
+  acompanhamento: {
+    titulo: "Escolha o seu acompanhamento",
+    subtitulo: "Pacotes de consultas e Grupo de corrida, cobrados à parte do plano. Você também pode seguir sem nenhum serviço.",
+    nutricaoNota: "Em todas as consultas são realizadas a averiguação de medidas antropométricas e da composição corporal e os ajustes no plano alimentar. As avaliações físicas incluem somente a avaliação de composição corporal, sem ajuste do plano alimentar.",
+    fisioNota: "Em todas as consultas o atendimento é individualizado, 1 a 1, com acompanhamento personalizado.",
+  },
+  detalhes: {
+    titulo: "Detalhes da compra", adicionais: "Serviços adicionais", consultas: "Total das consultas", pagamento: "Pagamento",
+    continuar: "Continuar para o cadastro",
+  },
+} as const;
+
+export const PAGAMENTO_PUBLICO = {
+  titulo: "Como você quer pagar?",
+  subtitulo: (plano: string, freq: string) => `Formas de pagamento do plano ${plano}, ${freq}.`,
+  cartao_parcelado: "Cartão de crédito em até 12x",
+  recorrencia: "Recorrência mensal",
+  pix_vista: "Pix à vista",
+  semAdicional: "Sem adicional.",
+  pixDescricao: "Pagamento único no Pix, sem desconto.",
+  startDescricao: "No cartão de crédito. Sem fidelidade e sem adicional.",
+  consultas: "Pagamento das consultas",
+  consultasComPlano: (parcelas: string) => `Com o plano em 12x, as consultas entram nas mesmas parcelas${parcelas ? `: ${parcelas} junto com a mensalidade.` : "."}`,
+  recorrenciaDescricao: (taxa: string) => `No cartão de crédito. Adicional de ${taxa} na mensalidade.`,
+  cartaoConsultas: "Cartão de crédito em até 6x",
+  recorrenciaCartao: "Recorrência mensal no cartão",
+  consultasExplicacao: "Com recorrência ou Pix à vista, as consultas podem ser pagas em até 6x no cartão de crédito ou no Pix à vista.",
+  corridaExplicacao: "Mensal é cobrado todo mês, em recorrência no cartão; semestral, em até 6x no cartão ou Pix à vista; anual, em até 12x no cartão ou Pix à vista.",
+  corrida: {
+    1: "Cobrado todo mês em recorrência no cartão",
+    6: "Total em até 6x no cartão ou Pix à vista",
+    12: "Total em até 12x no cartão ou Pix à vista",
+  },
+} as const;
+
+export const PACOTES_PUBLICOS: Record<string, { area: string; titulo: string; nota?: string }> = {
+  nutri_4_comp_2_2027: { area: "Nutrição", titulo: "4 consultas + 2 avaliações físicas" },
+  nutri_8_2027: { area: "Nutrição", titulo: "8 consultas", nota: "Avaliação incluída em todas as consultas" },
+  reab_4_2027: { area: "Fisioterapia", titulo: "4 consultas" },
+  reab_8_2027: { area: "Fisioterapia", titulo: "8 consultas" },
+};

@@ -2,7 +2,7 @@
  * Regras da página pública /planos (2027). Todos os valores vêm do catálogo
  * (fn_planos_publico_2027) e os totais só de calcularVenda2027.
  */
-import { calcularVenda2027, type ResultadoVenda2027, type FormaServicos2027 } from "./vendas2027";
+import { calcularVenda2027, calcularServicos2027, type ResultadoVenda2027, type FormaServicos2027 } from "./vendas2027";
 
 export type Familia2027 = "start_2027" | "power_2027" | "pro_2027";
 export type Frequencia2027 = "1x" | "2x" | "3x" | "livre";
@@ -28,13 +28,15 @@ export type PlanoPublico = {
 };
 
 export type ServicoPublico = { codigo: string; nome: string; atividade: string; quantidade_sessoes: number; valor: number };
+export type PeriodoCorrida = 1 | 6 | 12;
+export type CorridaPublica = { nome: string; valor: number; periodo_meses?: PeriodoCorrida; valor_cheio?: number | null };
 
 export type CatalogoPublico = {
   previa: boolean;
   disponivel: boolean;
   planos: PlanoPublico[];
   servicos: ServicoPublico[];
-  corrida: { nome: string; valor: number }[];
+  corrida: CorridaPublica[];
 };
 
 /** WhatsApp de atendimento (mesmo número da página anterior de planos). */
@@ -79,8 +81,22 @@ export function precoMensalVitrine(cat: Pick<CatalogoPublico, "planos">, familia
 
 export function valorCorrida(cat: Pick<CatalogoPublico, "corrida">, familia: Familia2027): number | null {
   const alvo = `Corrida - ${NOME_FAMILIA[familia]}`;
-  const c = cat.corrida.find((x) => x.nome === alvo);
+  const c = cat.corrida.find((x) => x.nome === alvo && (x.periodo_meses ?? 1) === 1);
   return c ? Number(c.valor) : null;
+}
+
+export function opcoesCorrida(cat: Pick<CatalogoPublico, "corrida">, familia: Familia2027): CorridaPublica[] {
+  return cat.corrida.filter((c) => c.nome === `Corrida - ${NOME_FAMILIA[familia]}`)
+    .sort((a, b) => (a.periodo_meses ?? 1) - (b.periodo_meses ?? 1));
+}
+
+export function menorPrecoFrequencia(cat: Pick<CatalogoPublico, "planos">, freq: Frequencia2027): number | null {
+  const valores = FAMILIAS.map((f) => precoMensalVitrine(cat, f, freq)).filter((v): v is number => v !== null);
+  return valores.length ? Math.min(...valores) : null;
+}
+
+export function permiteReposicaoPublica(item: Pick<PlanoPublico, "familia" | "frequencia" | "reposicao_saldo_pct">): boolean {
+  return item.familia === "pro_2027" && item.frequencia !== "livre" && item.reposicao_saldo_pct > 0;
 }
 
 export type EscolhaPublica = {
@@ -93,14 +109,18 @@ export type EscolhaPublica = {
 };
 
 export function calcularResumo(e: EscolhaPublica): ResultadoVenda2027 {
-  return calcularVenda2027({
+  const separarPix = e.forma === "pix_vista" && e.servicos.length > 0;
+  const resultado = calcularVenda2027({
     item: e.item,
-    servicos: e.servicos.map((s) => ({ codigo: s.codigo, valor: s.valor })),
+    servicos: separarPix ? [] : e.servicos.map((s) => ({ codigo: s.codigo, valor: s.valor })),
     forma: e.forma,
     parcelas: e.forma === "cartao_parcelado" ? e.parcelas : 1,
     formaServicos: e.formaServicos,
     parcelasServicos: e.formaServicos === "cartao_parcelado" ? e.parcelasServicos : 1,
   });
+  if (!separarPix) return resultado;
+  const consultas = calcularServicos2027(e.servicos, e.formaServicos, e.parcelasServicos);
+  return { ...resultado, servicosAvulsos: consultas, totalServicos: consultas.total, totalGeral: resultado.totalPlano + consultas.total };
 }
 
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
