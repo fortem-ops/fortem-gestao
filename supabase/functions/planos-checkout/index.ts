@@ -255,7 +255,8 @@ Deno.serve(async (req) => {
       if (Object.keys(r).some((k) => JSON.stringify(r[k]) !== JSON.stringify(e.revisao?.[k])))
         throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
       const sim = await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId);
-      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: pagamentoReservado(r, sim === true), aceite_id: e.aceite_id });
+      const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
+      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real }, aceite_id: e.aceite_id });
     }
     if (acao === "cartao_combinar") {
       // Cartão real não ligado: sem tentativa e sem "falhou"; avisa a equipe uma vez por proposta.
