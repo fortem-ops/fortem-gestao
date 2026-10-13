@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     const sup = admin();
     const { data: rec } = await sup
       .from("pix_recorrencias")
-      .select("aluno_id, id_rec")
+      .select("aluno_id, id_rec, data_inicio")
       .eq("id_rec", idRec)
       .maybeSingle();
     if (!rec) return jsonResponse({ error: "Recorrência não encontrada" }, 404);
@@ -30,7 +30,12 @@ Deno.serve(async (req) => {
 
     const payload = {
       idRec,
-      calendario: { dataExpiracaoSolicitacao: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString() },
+      calendario: { dataExpiracaoSolicitacao: (() => {
+        // Expira em 7 dias ou antes do início da recorrência (00:00 de Brasília), o que vier primeiro.
+        const seteDias = Date.now() + 7 * 24 * 3600 * 1000;
+        const inicio = rec.data_inicio ? new Date(`${rec.data_inicio}T02:59:00Z`).getTime() : seteDias;
+        return new Date(Math.min(seteDias, inicio)).toISOString().replace(/\.\d{3}Z$/, "Z");
+      })() },
       destinatario: { cpf, nome: aluno.nome },
     };
 

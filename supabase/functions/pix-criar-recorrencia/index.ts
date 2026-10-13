@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     if ("error" in auth) return auth.error;
 
     const body = await req.json().catch(() => null);
-    const { aluno_id, valor_minimo, data_inicio, data_fim } = body ?? {};
+    const { aluno_id, valor_minimo, data_inicio, data_fim, objeto, teste } = body ?? {};
     if (!aluno_id || valor_minimo == null || !data_inicio) {
       return jsonResponse({ error: "aluno_id, valor_minimo e data_inicio são obrigatórios" }, 400);
     }
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     const payload: any = {
       vinculo: {
-        objeto: "Plano mensal FORTEM",
+        objeto: typeof objeto === "string" && objeto.trim() ? objeto.trim().slice(0, 140) : "Plano mensal FORTEM",
         contrato: aluno_id.replace(/-/g, "").substring(0, 35),
         devedor: { cpf, nome: aluno.nome },
       },
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         data_inicio,
         data_fim: data_fim ?? null,
         politica_retentativa: "PERMITE_3R_7D",
-        raw_response: data,
+        raw_response: teste ? { ...data, _marcador: "teste_3F" } : data,
       })
       .select()
       .single();
