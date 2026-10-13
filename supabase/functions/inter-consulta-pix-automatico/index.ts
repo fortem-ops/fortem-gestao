@@ -18,8 +18,10 @@ Deno.serve(async (req) => {
   }
 
   let modo = new URL(req.url).searchParams.get("modo");
-  if (!modo && req.method === "POST") { try { modo = (await req.clone().json())?.modo ?? null; } catch { /* sem corpo */ } }
-  if (modo === "descobrir_escopos") return jsonResponse(await descobrir());
+  let corpo: any = {};
+  if (req.method === "POST") { try { corpo = (await req.clone().json()) ?? {}; } catch { /* sem corpo */ } }
+  modo = modo ?? corpo.modo ?? null;
+  if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
   const ini = new Date(fim.getTime() - 3 * 24 * 3600 * 1000);
@@ -76,11 +78,14 @@ function resumir(status: number, data: any) {
   return r;
 }
 
-async function descobrir() {
+async function descobrir(corpo: any) {
   const info = await infoDiagnostico();
   const escopos: Record<string, unknown> = {};
-  const aceitos: string[] = [];
-  for (const sc of CANDIDATOS) {
+  const aceitos: string[] = Array.isArray(corpo.consultar_com) ? corpo.consultar_com : [];
+  const testar: string[] = Array.isArray(corpo.consultar_com) ? [] : (Array.isArray(corpo.escopos) ? corpo.escopos.filter((x: string) => CANDIDATOS.includes(x)) : CANDIDATOS);
+  const pausa = Math.min(Number(corpo.pausa_ms ?? 15000), 30000);
+  for (const [i, sc] of testar.entries()) {
+    if (i > 0) await new Promise((r) => setTimeout(r, pausa));
     try {
       const t = await tokenDiagnostico(sc);
       escopos[sc] = t.ok ? { aceito: true, concedido: t.scope } : { aceito: false, status: t.status, erro: t.erro };
