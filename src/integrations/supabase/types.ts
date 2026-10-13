@@ -10285,6 +10285,120 @@ export type Database = {
         Args: { p_aluno_id: string; p_janela: number; p_limite: number }
         Returns: boolean
       }
+      fn_checkout_2027_aceitar: {
+        Args: {
+          p: Json
+          p_chave: string
+          p_ip: string
+          p_proposta_id: string
+          p_user_agent: string
+        }
+        Returns: Json
+      }
+      fn_checkout_2027_calcular: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_contrato_gerar: {
+        Args: { p: Json; p_chave: string; p_ip: string; p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_estado: {
+        Args: { p_chave: string; p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_hash: { Args: { p: string }; Returns: string }
+      fn_checkout_2027_iniciar: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_liberado: {
+        Args: { p_proposta_id: string }
+        Returns: boolean
+      }
+      fn_checkout_2027_revisar: {
+        Args: { p_chave: string; p_ip: string; p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_sessao: {
+        Args: { p_chave: string; p_proposta_id: string }
+        Returns: {
+          aceite_id: string | null
+          aluno_id: string | null
+          aluno_suspeito_id: string | null
+          chave_sessao_hash: string | null
+          configuracao: Json
+          contratante: Json | null
+          corrida: boolean
+          corrida_valor_mensal: number | null
+          cpf_cifrado: string | null
+          cpf_hash: string | null
+          cpf_ultimos3: string | null
+          created_at: string
+          email: string
+          etapa_atualizada_em: string | null
+          etapa_checkout: string | null
+          expira_em: string | null
+          familia: string
+          forma_plano: string
+          forma_servicos: string | null
+          frequencia: string
+          id: string
+          lead_erro: string | null
+          nome: string
+          origem: string
+          parcelas_plano: number
+          parcelas_servicos: number | null
+          plano_codigo: string
+          previa: boolean
+          revisao: Json | null
+          servicos_codigos: string[]
+          status: string
+          status_real: string | null
+          tipo_identificacao: string
+          updated_at: string
+          valor_total_centavos: number
+          verificacao_id: string | null
+          verificacao_vinculo: string
+          vinculo_por_telefone: boolean
+          whatsapp: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "propostas_planos_2027"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fn_checkout_2027_template: {
+        Args: {
+          p_familia: string
+          p_forma_plano: string
+          p_proposta_id: string
+        }
+        Returns: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          criado_por: string | null
+          forma_pagamento: string
+          id: string
+          nome: string
+          plano_tipo: string
+          updated_at: string
+          versao: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contrato_templates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fn_checkout_2027_teste: {
+        Args: { p_proposta_id: string }
+        Returns: boolean
+      }
       fn_clube_adicionar_pontos: {
         Args: {
           p_acao: string
