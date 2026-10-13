@@ -203,17 +203,30 @@ export async function consultarEscoposInter(): Promise<{ escopos: string | null;
   return { escopos: tok.scope ?? null, expires_in: tok.expires_in ?? null };
 }
 
-/** Somente leitura/diagnóstico: token com escopos específicos, sem gravar em cache e sem log do token. */
-export async function tokenDiagnostico(scope: string): Promise<{ ok: boolean; status: number; token?: string; scope?: string; erro?: string }> {
-  const clientId = Deno.env.get("INTER_CLIENT_ID") ?? "";
-  const clientSecret = Deno.env.get("INTER_CLIENT_SECRET") ?? "";
-  const body = new URLSearchParams({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials", scope });
+/** Diagnóstico: conjunto de credenciais (INTER_* ou INTER_COB_*). Sem cache e sem log de token. */
+export type CredDiag = "inter" | "cob";
+const _diagClients: Record<string, any> = {};
+function envDiag(cred: CredDiag, nome: string) {
+  return Deno.env.get(cred === "cob" ? `INTER_COB_${nome}` : `INTER_${nome}`) ?? "";
+}
+function clientDiag(cred: CredDiag): any {
+  if (cred === "inter") return getHttpClient();
+  if (_diagClients[cred]) return _diagClients[cred];
+  const cert = normalizePem(envDiag(cred, "CERT_PEM"), "CERT");
+  const key = normalizePem(envDiag(cred, "KEY_PEM"), "KEY");
+  // @ts-ignore unstable
+  _diagClients[cred] = Deno.createHttpClient({ cert, key });
+  return _diagClients[cred];
+}
+
+export async function tokenDiagnostico(scope: string, cred: CredDiag = "inter"): Promise<{ ok: boolean; status: number; token?: string; scope?: string; erro?: string }> {
+  const body = new URLSearchParams({ client_id: envDiag(cred, "CLIENT_ID"), client_secret: envDiag(cred, "CLIENT_SECRET"), grant_type: "client_credentials", scope });
   const res = await fetch(`${new URL(BASE_URL).origin}/oauth/v2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
     // @ts-ignore unstable client option
-    client: getHttpClient(),
+    client: clientDiag(cred),
   });
   const text = await res.text();
   if (!res.ok) return { ok: false, status: res.status, erro: text.slice(0, 200) };
@@ -221,14 +234,13 @@ export async function tokenDiagnostico(scope: string): Promise<{ ok: boolean; st
   return { ok: true, status: res.status, token: p.access_token, scope: p.scope };
 }
 
-/** GET com token fornecido (diagnóstico). conta=false omite x-conta-corrente. */
-export async function getDiagnostico(path: string, token: string, conta = true): Promise<{ status: number; data: any }> {
+export async function getDiagnostico(path: string, token: string, conta = true, cred: CredDiag = "inter"): Promise<{ status: number; data: any }> {
   const headers: Record<string, string> = { Authorization: `Bearer ${token}`, Accept: "application/json" };
   if (conta) headers["x-conta-corrente"] = CONTA;
   const res = await fetch(`${new URL(BASE_URL).origin}${path}`, {
     method: "GET", headers,
     // @ts-ignore unstable client option
-    client: getHttpClient(),
+    client: clientDiag(cred),
   });
   const raw = await res.text();
   let data: any = raw;
@@ -236,17 +248,17 @@ export async function getDiagnostico(path: string, token: string, conta = true):
   return { status: res.status, data };
 }
 
-/** Metadados não sensíveis do ambiente Inter. */
-export async function infoDiagnostico() {
-  const id = Deno.env.get("INTER_CLIENT_ID") ?? "";
+export async function infoDiagnostico(cred: CredDiag = "inter") {
+  const id = envDiag(cred, "CLIENT_ID");
   const conta = onlyDigits(CONTA);
   let cert: Record<string, unknown> = {};
   try {
     const { X509Certificate } = await import("node:crypto");
-    const x = new X509Certificate(normalizePem(Deno.env.get("INTER_CERT_PEM") ?? "", "CERT"));
-    cert = { subject: x.subject, issuer: x.issuer, validFrom: x.validFrom, validTo: x.validTo };
+    const x = new X509Certificate(normalizePem(envDiag(cred, "CERT_PEM"), "CERT"));
+    cert = { subject: x.subject, validFrom: x.validFrom, validTo: x.validTo };
   } catch (e) { cert = { erro: String((e as Error)?.message ?? e).slice(0, 120) }; }
   return {
+    credencial: cred,
     client_id_prefixo: id.substring(0, 8),
     host: BASE_URL ? new URL(BASE_URL).host : null,
     conta_vs_41075951: conta === "41075951" ? "igual" : "diferente",
