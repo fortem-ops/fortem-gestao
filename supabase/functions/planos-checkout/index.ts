@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
   const acao = body?.acao;
   const propostaId = typeof body?.proposta_id === "string" && UUID.test(body.proposta_id) ? body.proposta_id : "";
   const chave = typeof body?.chave_sessao === "string" && CHAVE.test(body.chave_sessao) ? body.chave_sessao : "";
-  if (!propostaId) return json(400, { error: "Sessão inválida. Recomece a compra" });
+  if (!propostaId) return json(200, { erro: "Sessão inválida. Recomece a compra" });
 
   try {
     if (ip && !(await rpc("fn_planos_limite", { p_chave: `ckf:i:${ip}`, p_limite: 120 }, propostaId)))
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     if (acao === "iniciar") {
       return json(200, await rpc("fn_checkout_2027_iniciar", { p_proposta_id: propostaId }, propostaId));
     }
-    if (!chave) return json(400, { error: "Sessão inválida. Recomece a compra" });
+    if (!chave) return json(200, { erro: "Sessão inválida. Recomece a compra" });
 
     if (acao === "estado") {
       return json(200, await rpc("fn_checkout_2027_estado", { p_proposta_id: propostaId, p_chave: chave }, propostaId));
@@ -130,7 +130,8 @@ Deno.serve(async (req) => {
     }
     return json(400, { error: "acao_invalida" });
   } catch (e) {
-    if (e instanceof Neutro) return json(422, { error: e.message });
+    // Recusa esperada (neutra): 200 com "erro", para o navegador tratar sem acusar falha da função.
+    if (e instanceof Neutro) return json(200, { erro: e.message });
     return json(500, { error: "Não foi possível continuar agora. Tente novamente em instantes" });
   }
 });

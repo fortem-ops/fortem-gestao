@@ -25,6 +25,7 @@ export async function checkout<T = any>(acao: string, corpo: Record<string, unkn
     try { const j = await (error as any).context?.json?.(); if (typeof j?.error === "string") msg = j.error; } catch { /* genérica */ }
     throw new ErroCheckout(msg);
   }
+  if (data && typeof (data as any).erro === "string") throw new ErroCheckout((data as any).erro);
   return data as T;
 }
 
