@@ -1,6 +1,10 @@
 # Roadmap
 
 - [x] Checkout /planos — 2D-2: Pagamento reservado e Confirmação; 48 testes, prévia móvel/desktop, retomada e recusa anônima verificadas; contagens preservadas.
+- [x] Pagamentos P0+P1+P2 em simulação (Pix à vista, cartão 12x)
+- [ ] P3 webhook do Pix (aguarda aprovação)
+- [ ] P4 marcar paga, notificação e e-mail (aguarda aprovação; rascunho do e-mail antes)
+- [ ] Cartão real: tokenização ligada à proposta (aguarda aprovação)
 
 - [x] Checkout /planos — Fase 0: contagens de referência (só leitura)
 - [x] Checkout /planos — Fase 1: identificação por celular ou CPF + código por e-mail + Turnstile desligado por chave
