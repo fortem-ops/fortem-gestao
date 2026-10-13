@@ -1,6 +1,6 @@
 // Consulta ao Inter (Pix Automático). Modos de escrita só com confirmação explícita; teste_3f_criar é temporário e só interno.
 import { criarRecorrencia, solicitarConfirmacao, mascararCpf } from "../_shared/pix-rec.ts";
-import { onlyDigits, jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
+import { genTxid, onlyDigits, jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -37,6 +37,11 @@ Deno.serve(async (req) => {
   if (modo === "teste_3f_qr") {
     if (!interno || corpo.confirmar !== "TESTE_3F_QR") return jsonResponse({ error: "Forbidden" }, 403);
     return jsonResponse(await teste3fQr());
+  }
+  // TEMPORÁRIO (teste 3F): UMA cobrança de R$ 1,00 com parâmetros fixos; recusa se já existir cobrança da idRec.
+  if (modo === "teste_3f_cobr") {
+    if (!interno || corpo.confirmar !== "TESTE_3F_COBR") return jsonResponse({ error: "Forbidden" }, 403);
+    return jsonResponse(await teste3fCobr());
   }
   // Leitura de uma recorrência de teste; com atualizar=true grava status interno conforme o GET (conferência manual).
   if (modo === "conferir_rec_3f") {
@@ -302,5 +307,42 @@ async function conferirRec3f(atualizar: boolean) {
     await sup.from("system_logs").insert({ modulo: "pix-automatico-teste-3f", acao: "conferencia_manual", mensagem: `Status atualizado por conferência manual (GET Inter: ${d.status})`, payload: { idRec: REC_3F_QR, antes: antes?.status, depois: mapa[d.status] } });
     out.banco = { antes: antes?.status, depois: mapa[d.status] };
   }
+  return mascararCpf(out);
+}
+
+// Parâmetros fixos aprovados pelo dono (vencimento hoje, ciente da regra de D+2). Uma tentativa, sem variações.
+async function teste3fCobr() {
+  const sup = admin();
+  const log = (acao: string, payload: unknown) => sup.from("system_logs").insert({ modulo: "pix-automatico-teste-3f", acao, mensagem: acao, payload: mascararCpf(payload) });
+  const idRec = REC_3F_QR, venc = "2026-10-13", valor = 1, info = "Teste Pix Automatico FORTEM";
+  const { count } = await sup.from("pix_cobrancas").select("id", { count: "exact", head: true }).eq("id_rec", idRec);
+  if ((count ?? 0) > 0) { await log("cobr_recusado_ja_existe", { count }); return { ok: false, erro: "Já existe cobrança para essa idRec; nada enviado." }; }
+  const { data: rec } = await sup.from("pix_recorrencias").select("aluno_id, status").eq("id_rec", idRec).maybeSingle();
+  if (!rec || rec.status !== "AUTORIZADA" || rec.aluno_id !== TESTE_3F.aluno_id) return { ok: false, erro: "Recorrência de teste não está AUTORIZADA para o aluno de teste." };
+  const { data: aluno } = await sup.from("alunos").select("nome").eq("id", rec.aluno_id).maybeSingle();
+  const { data: cpfRev } = await sup.rpc("fn_reveal_cpf_service", { p_aluno_id: rec.aluno_id });
+  const cpf = onlyDigits(cpfRev);
+  if (cpf.length !== 11 || !aluno) return { ok: false, erro: "Aluno de teste sem nome/CPF." };
+  const txid = genTxid();
+  const conta = Deno.env.get("INTER_CONTA_CORRENTE") ?? "";
+  const payload: any = {
+    idRec, infoAdicional: info, ajusteDiaUtil: false,
+    calendario: { dataDeVencimento: venc },
+    valor: { original: valor.toFixed(2) },
+    devedor: { cpf, nome: aluno.nome },
+    ...(conta ? { recebedor: { conta, tipoConta: "CORRENTE", agencia: "0001" } } : {}),
+  };
+  const r = await interFetch(`/pix/v2/cobr/${txid}`, { method: "PUT", json: payload });
+  const ok = r.status < 300;
+  const out: any = { http: r.status, txid, vencimento: venc, statusInter: r.data?.status ?? null, erro: ok ? undefined : (r.data ?? r.raw) };
+  await log(ok ? "cobr_criada" : "cobr_recusada", out);
+  const { data: banco, error } = await sup.from("pix_cobrancas").insert({
+    id_rec: idRec, aluno_id: rec.aluno_id, txid, valor, data_vencimento: venc,
+    status: ok ? (r.data?.status ?? "CRIADA") : "REJEITADA",
+    descricao: info, motivo_rejeicao: ok ? null : JSON.stringify(mascararCpf(r.data ?? r.raw)).slice(0, 500),
+    raw_response: { ...(ok ? r.data : { erro: mascararCpf(r.data ?? r.raw), http: r.status }), _marcador: "teste_3F" },
+  }).select("txid, status, data_vencimento, motivo_rejeicao").single();
+  out.banco = banco ?? { erro: error?.message };
+  if (ok) out.inter = { calendario: r.data?.calendario ?? null, atualizacao: r.data?.atualizacao ?? null };
   return mascararCpf(out);
 }
