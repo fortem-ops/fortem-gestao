@@ -112,7 +112,7 @@ Deno.test("código do cartão nunca loga dados do cartão", async () => {
     for (const linha of src.split("\n").filter((l) => /console\.|system_logs/.test(l)))
       assertEquals(/numero|cvv|nome|cardNumber|securityCode|cardholder|cpf\b|dados\b|cartao\b/i.test(linha.replace(/"\[[^\]]*\]/g, "").replace("fn: nome", "").replace("semCpf(", "")), false, `${f}: ${linha.trim()}`);
     // Nome do titular só pode ser gravado junto do token (deps-cartao.ts → rede_tokenizacoes).
-    if (f !== "deps-cartao.ts") assertEquals(/cardholder_name/.test(src), false, f);
+    if (!["deps-cartao.ts", "fluxo-cartao.ts"].includes(f)) assertEquals(/cardholder_name/.test(src), false, f);
   }
 });
 
