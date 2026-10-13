@@ -103,7 +103,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
     const id = (data as unknown as { id?: string }).id;
     if (catalogo.previa && id) {
       try {
-        const r = await checkout<{ chave_sessao: string; etapa: string }>("iniciar", { proposta_id: id });
+        const r = await checkout<{ chave_sessao: string; etapa: string }>("iniciar", { proposta_id: id, previa: true });
         const s = { proposta_id: id, chave_sessao: r.chave_sessao };
         salvarSessao(s); setContato({ nome: dados.nome, email: dados.email }); setEtapaSessao(r.etapa); setSessao(s);
         window.scrollTo({ top: 0 });

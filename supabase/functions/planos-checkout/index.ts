@@ -85,6 +85,14 @@ Deno.serve(async (req) => {
       throw new Neutro("Muitas tentativas. Tente novamente mais tarde");
 
     if (acao === "iniciar") {
+      // Prévia: admin logado marca a proposta como teste. O papel é conferido no servidor.
+      const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+      if (body?.previa === true && token) {
+        const { data: u } = await admin.auth.getUser(token);
+        if (u?.user?.id) {
+          await admin.rpc("fn_checkout_2027_marcar_teste_admin", { p_proposta_id: propostaId, p_user_id: u.user.id });
+        }
+      }
       return json(200, await rpc("fn_checkout_2027_iniciar", { p_proposta_id: propostaId }, propostaId));
     }
     if (!chave) return json(200, { erro: "Sessão inválida. Recomece a compra" });
