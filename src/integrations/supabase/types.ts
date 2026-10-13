@@ -2985,11 +2985,15 @@ export type Database = {
           created_at: string
           data_aceite: string | null
           formato_aceite: string | null
+          hash_texto: string | null
           id: string
           ip_aceite: string | null
+          origem: string | null
+          proposta_id: string | null
           regulamento_versao: number
           template_id: string | null
           template_versao: number
+          user_agent: string | null
           variaveis_utilizadas: Json
         }
         Insert: {
@@ -3001,11 +3005,15 @@ export type Database = {
           created_at?: string
           data_aceite?: string | null
           formato_aceite?: string | null
+          hash_texto?: string | null
           id?: string
           ip_aceite?: string | null
+          origem?: string | null
+          proposta_id?: string | null
           regulamento_versao: number
           template_id?: string | null
           template_versao: number
+          user_agent?: string | null
           variaveis_utilizadas?: Json
         }
         Update: {
@@ -3017,11 +3025,15 @@ export type Database = {
           created_at?: string
           data_aceite?: string | null
           formato_aceite?: string | null
+          hash_texto?: string | null
           id?: string
           ip_aceite?: string | null
+          origem?: string | null
+          proposta_id?: string | null
           regulamento_versao?: number
           template_id?: string | null
           template_versao?: number
+          user_agent?: string | null
           variaveis_utilizadas?: Json
         }
         Relationships: [
@@ -7521,16 +7533,96 @@ export type Database = {
         }
         Relationships: []
       }
+      propostas_2027_aceites: {
+        Row: {
+          aceito_em: string
+          conteudo_html: string
+          created_at: string
+          hash_texto: string
+          id: string
+          invalidado_em: string | null
+          ip: string | null
+          motivo_invalidacao: string | null
+          origem: string
+          proposta_id: string
+          regulamento_versao: number
+          template_id: string
+          template_versao: number
+          user_agent: string | null
+          valor_total_centavos: number
+          variaveis: Json
+        }
+        Insert: {
+          aceito_em?: string
+          conteudo_html: string
+          created_at?: string
+          hash_texto: string
+          id?: string
+          invalidado_em?: string | null
+          ip?: string | null
+          motivo_invalidacao?: string | null
+          origem?: string
+          proposta_id: string
+          regulamento_versao: number
+          template_id: string
+          template_versao: number
+          user_agent?: string | null
+          valor_total_centavos: number
+          variaveis?: Json
+        }
+        Update: {
+          aceito_em?: string
+          conteudo_html?: string
+          created_at?: string
+          hash_texto?: string
+          id?: string
+          invalidado_em?: string | null
+          ip?: string | null
+          motivo_invalidacao?: string | null
+          origem?: string
+          proposta_id?: string
+          regulamento_versao?: number
+          template_id?: string
+          template_versao?: number
+          user_agent?: string | null
+          valor_total_centavos?: number
+          variaveis?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_2027_aceites_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_planos_2027"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_2027_aceites_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       propostas_planos_2027: {
         Row: {
+          aceite_id: string | null
           aluno_id: string | null
           aluno_suspeito_id: string | null
+          chave_sessao_hash: string | null
           configuracao: Json
+          contratante: Json | null
           corrida: boolean
           corrida_valor_mensal: number | null
+          cpf_cifrado: string | null
+          cpf_hash: string | null
           cpf_ultimos3: string | null
           created_at: string
           email: string
+          etapa_atualizada_em: string | null
+          etapa_checkout: string | null
+          expira_em: string | null
           familia: string
           forma_plano: string
           forma_servicos: string | null
@@ -7543,6 +7635,7 @@ export type Database = {
           parcelas_servicos: number | null
           plano_codigo: string
           previa: boolean
+          revisao: Json | null
           servicos_codigos: string[]
           status: string
           status_real: string | null
@@ -7555,14 +7648,22 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          aceite_id?: string | null
           aluno_id?: string | null
           aluno_suspeito_id?: string | null
+          chave_sessao_hash?: string | null
           configuracao?: Json
+          contratante?: Json | null
           corrida?: boolean
           corrida_valor_mensal?: number | null
+          cpf_cifrado?: string | null
+          cpf_hash?: string | null
           cpf_ultimos3?: string | null
           created_at?: string
           email: string
+          etapa_atualizada_em?: string | null
+          etapa_checkout?: string | null
+          expira_em?: string | null
           familia: string
           forma_plano: string
           forma_servicos?: string | null
@@ -7575,6 +7676,7 @@ export type Database = {
           parcelas_servicos?: number | null
           plano_codigo: string
           previa?: boolean
+          revisao?: Json | null
           servicos_codigos?: string[]
           status?: string
           status_real?: string | null
@@ -7587,14 +7689,22 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          aceite_id?: string | null
           aluno_id?: string | null
           aluno_suspeito_id?: string | null
+          chave_sessao_hash?: string | null
           configuracao?: Json
+          contratante?: Json | null
           corrida?: boolean
           corrida_valor_mensal?: number | null
+          cpf_cifrado?: string | null
+          cpf_hash?: string | null
           cpf_ultimos3?: string | null
           created_at?: string
           email?: string
+          etapa_atualizada_em?: string | null
+          etapa_checkout?: string | null
+          expira_em?: string | null
           familia?: string
           forma_plano?: string
           forma_servicos?: string | null
@@ -7607,6 +7717,7 @@ export type Database = {
           parcelas_servicos?: number | null
           plano_codigo?: string
           previa?: boolean
+          revisao?: Json | null
           servicos_codigos?: string[]
           status?: string
           status_real?: string | null

@@ -687,6 +687,13 @@
       "when": 1791896468550,
       "tag": "0097_planos_identificacao_cpf_codigo_email",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1791899434058,
+      "tag": "0098_checkout_2027_estrutura",
+      "breakpoints": true
     }
   ]
 }
