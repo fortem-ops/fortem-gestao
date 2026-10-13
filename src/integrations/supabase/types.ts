@@ -6454,6 +6454,27 @@ export type Database = {
         }
         Relationships: []
       }
+      planos_turnstile_passes: {
+        Row: {
+          consumido_em: string | null
+          criado_em: string
+          expira_em: string
+          id: string
+        }
+        Insert: {
+          consumido_em?: string | null
+          criado_em?: string
+          expira_em?: string
+          id?: string
+        }
+        Update: {
+          consumido_em?: string | null
+          criado_em?: string
+          expira_em?: string
+          id?: string
+        }
+        Relationships: []
+      }
       planos_verificacoes: {
         Row: {
           aluno_id: string
@@ -7700,6 +7721,7 @@ export type Database = {
           id: string
           lead_erro: string | null
           nome: string
+          notificacao_cartao_combinar_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
           pagamento_ref: string | null
@@ -7751,6 +7773,7 @@ export type Database = {
           id?: string
           lead_erro?: string | null
           nome: string
+          notificacao_cartao_combinar_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
           pagamento_ref?: string | null
@@ -7802,6 +7825,7 @@ export type Database = {
           id?: string
           lead_erro?: string | null
           nome?: string
+          notificacao_cartao_combinar_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
           pagamento_ref?: string | null
@@ -10402,6 +10426,14 @@ export type Database = {
         Args: { p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_cartao_combinar: {
+        Args: { p_chave: string; p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_cartao_simulado: {
+        Args: { p_proposta_id: string }
+        Returns: boolean
+      }
       fn_checkout_2027_contrato_gerar: {
         Args: { p: Json; p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
@@ -10504,6 +10536,7 @@ export type Database = {
           id: string
           lead_erro: string | null
           nome: string
+          notificacao_cartao_combinar_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
           pagamento_ref: string | null
