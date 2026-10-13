@@ -7619,6 +7619,7 @@ export type Database = {
           cpf_hash: string | null
           cpf_ultimos3: string | null
           created_at: string
+          criado_por: string | null
           email: string
           etapa_atualizada_em: string | null
           etapa_checkout: string | null
@@ -7639,6 +7640,7 @@ export type Database = {
           servicos_codigos: string[]
           status: string
           status_real: string | null
+          teste_admin: boolean
           tipo_identificacao: string
           updated_at: string
           valor_total_centavos: number
@@ -7660,6 +7662,7 @@ export type Database = {
           cpf_hash?: string | null
           cpf_ultimos3?: string | null
           created_at?: string
+          criado_por?: string | null
           email: string
           etapa_atualizada_em?: string | null
           etapa_checkout?: string | null
@@ -7680,6 +7683,7 @@ export type Database = {
           servicos_codigos?: string[]
           status?: string
           status_real?: string | null
+          teste_admin?: boolean
           tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos: number
@@ -7701,6 +7705,7 @@ export type Database = {
           cpf_hash?: string | null
           cpf_ultimos3?: string | null
           created_at?: string
+          criado_por?: string | null
           email?: string
           etapa_atualizada_em?: string | null
           etapa_checkout?: string | null
@@ -7721,6 +7726,7 @@ export type Database = {
           servicos_codigos?: string[]
           status?: string
           status_real?: string | null
+          teste_admin?: boolean
           tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos?: number
@@ -10320,6 +10326,10 @@ export type Database = {
         Args: { p_proposta_id: string }
         Returns: boolean
       }
+      fn_checkout_2027_marcar_teste_admin: {
+        Args: { p_proposta_id: string; p_user_id: string }
+        Returns: boolean
+      }
       fn_checkout_2027_revisar: {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
@@ -10339,6 +10349,7 @@ export type Database = {
           cpf_hash: string | null
           cpf_ultimos3: string | null
           created_at: string
+          criado_por: string | null
           email: string
           etapa_atualizada_em: string | null
           etapa_checkout: string | null
@@ -10359,6 +10370,7 @@ export type Database = {
           servicos_codigos: string[]
           status: string
           status_real: string | null
+          teste_admin: boolean
           tipo_identificacao: string
           updated_at: string
           valor_total_centavos: number

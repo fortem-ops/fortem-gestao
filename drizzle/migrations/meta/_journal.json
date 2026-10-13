@@ -708,6 +708,13 @@
       "when": 1791900332108,
       "tag": "0100_checkout_2027_suspeito_alterar",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1791901568262,
+      "tag": "0101_checkout_2027_teste_admin",
+      "breakpoints": true
     }
   ]
 }
