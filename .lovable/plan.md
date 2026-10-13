@@ -1,87 +1,77 @@
-# Fase 4G — Go-live dos planos 2027
+# Fase 3F — Pix Automático por QR Code (caminho B)
 
-## Estado verificado antes do plano
-- `planos_catalogo.vendavel_desde/vendavel_ate` e `servicos_catalogo.vendavel_*` são **date**, não timestamptz. A regra atual (`itemVendavel2027` e `fn_planos_publico_2027`) é: vende se `vendavel_desde <= hoje` e `vendavel_ate >= hoje`, com "hoje" no fuso de São Paulo. Por isso:
-  - 2027: `vendavel_desde = '2026-10-13'` (passam a vender a partir de 13/10 às 00:00 BRT).
-  - Legado: `vendavel_ate = '2026-10-12'` (último dia de venda 12/10). Usar 13/10 deixaria o legado vendendo durante o dia 13 inteiro.
-- 5 templates 2027 (versao 1, inativos). Menções a "PIX Automático": Start recorrência 1, Power recorrência 2, Pro recorrência 2; os dois de 12x/Pix à vista têm 0. Nenhum dos 5 menciona boleto.
-- Pontos de venda que listam planos:
-  - `VendaDialog` (aba atual): busca `planos_catalogo` e `servicos_catalogo` só por `ativo = true`. **Não respeita `vendavel_ate` e não exclui itens versionados.** Ao ativar os 2027, eles apareceriam também na aba legada e o legado continuaria listado.
-  - `Venda2027Steps` (botão "Vender plano 2027", só admin): respeita `ativo/vendavel_*` via `itemVendavel2027`.
-  - `/planos-atual` (página legada): preços fixos em `src/data/planosPricing.ts`, não lê o catálogo, e continuaria mostrando os preços antigos.
-  - `CorridaConfigurator` e `corrida-criar-pedido`: só corrida, intocados.
-  - `renovar-planos-mensais`, `rede-cobrar-*`, `venda-pos-aprovacao`, `contratosDocumentos`: leem o catálogo por id ou por `ativo` para renovar e cobrar. Como `ativo` do legado não muda, seguem iguais.
-- O ramo legado de renovação já ignora itens versionados.
+Nada é executado antes do OK do dono. Cobrança máxima: R$ 1,00. Nada é apagado. Cron do cartão segue desligado.
 
-## Passo 1 — Backup (snapshot)
-Uma migration cria `public._golive_2027_backup` (tabela, coluna, id, ativo, vendavel_desde, vendavel_ate, conteudo, capturado_em), com RLS ligada, só admin lendo e sem acesso anon. Em seguida, via run_sql:
-- copia os 20 planos 2027 + 27 planos legados de treinamento (`versao is null and atividade <> 'corrida'`) + 5 serviços 2027 + 5 templates 2027 (incluindo o `conteudo` original);
-- grava as contagens de referência numa tabela `_golive_2027_contagens`: planos de alunos por `ativo`, contratos por status, cobranças pendentes, créditos ativos, crons ativos (renovação ligada, cartão desligado).
+## 1) Qual jornada usar
 
-## Passo 2 — Contratos
-Substituição só nos 3 templates de recorrência:
+O Banco Central define quatro formas de o aluno autorizar o Pix Automático. As que usam QR Code são:
+
+| Jornada | O que o QR faz | Cobra no ato? |
+|---|---|---|
+| 2 | Só autoriza a recorrência | Não. A primeira cobrança sai depois, pelo ciclo |
+| 3 | Paga a primeira mensalidade e autoriza as próximas (QR composto: cobrança imediata + recorrência) | Sim, cobra o valor da cobrança imediata |
+| 4 | Igual à 3, mas a primeira cobrança é com vencimento | Sim, na data de vencimento |
+
+**Recomendação para o teste de R$ 1,00: Jornada 2 (só autoriza).**
+- É a mais simples: não precisa de cobrança imediata, nem de vincular um txid, nem de dar baixa.
+- O dono lê o QR, vê "Teste Pix Automatico FORTEM", R$ 1,00 mensal de 14/10 a 14/11, e autoriza. Nesse momento não sai nenhum dinheiro.
+- O R$ 1,00 só é cobrado na parte B do teste (cobr), depois do seu OK com o status AUTORIZADA.
+
+**Para o produto (/planos, mensal com valor fixo): Jornada 3.** O aluno paga a primeira mensalidade e autoriza as próximas com um único QR, como em um checkout comum. Ela fica para uma etapa futura e não entra neste teste.
+
+## 2) A recorrência já criada pode ser reaproveitada?
+
+- Ela está como CRIADA (idRec `RR0041696820261013GHAjHW1tmv3`), sem location e sem solicitação válida.
+- Pela especificação do Banco Central, uma recorrência CRIADA aceita revisão (PATCH /rec/{idRec}) para incluir `loc`. **Isso não está confirmado para o Inter.** A documentação pública do Inter não deixa claro.
+- Plano em duas etapas, sem loop:
+  - **A (preferida):** criar o location e tentar vincular à recorrência existente uma única vez. Se o Inter aceitar, ela é reaproveitada e nada é recriado.
+  - **B (se o vínculo for recusado):** só com o seu OK, cancelar a recorrência atual com o motivo "teste 3F" (o registro continua no banco como CANCELADA) e criar uma nova já com o `loc`.
+- **Datas, se for recriar:** a data de início precisa ser futura e, em geral, no mínimo D+1. Sugestão: início em **15/10/2026** e fim em **15/11/2026**, ou o dia seguinte ao do teste. Uma nova recorrência de teste exige liberar a trava do modo de teste, que hoje recusa quando o aluno já tem recorrência. A liberação aceita apenas o caso "existente CANCELADA com marca teste_3F".
+
+## 3) Endpoints, campos e QR
 
 ```text
-Start recorrência §1º
-- "...cobrança recorrente automática por cartão de crédito ou PIX Automático, conforme escolha do ALUNO no momento da contratação"
-+ "...cobrança recorrente automática por cartão de crédito"
-
-Power e Pro recorrência — cláusula do valor §1º
-- "...recorrente mensal automática por cartão de crédito ou PIX Automático, conforme a forma de pagamento cadastrada pelo ALUNO, não se caracterizando..."
-+ "...recorrente mensal automática por cartão de crédito, não se caracterizando..."
-
-Power e Pro recorrência — rescisão §1º
-- "...de forma recorrente mensal por cartão de crédito ou PIX Automático, a rescisão antecipada..."
-+ "...de forma recorrente mensal por cartão de crédito, a rescisão antecipada..."
+1. POST /pix/v2/locrec                      -> { id (locrec), location, ... }
+2a. PATCH /pix/v2/rec/{idRec}  { "loc": <id locrec> }     (reaproveitar)
+2b. POST  /pix/v2/rec  { vinculo, calendario, valor, politicaRetentativa, "loc": <id> }  (recriar)
+3. GET /pix/v2/rec/{idRec}                  -> traz o QR/copia-e-cola da jornada 2
+   (campo esperado: dadosQR.pixCopiaECola / dadosQR.jornada; nome exato a confirmar na 1ª resposta)
 ```
+- Os dados da recorrência continuam iguais aos da criada: vinculo.objeto "Teste Pix Automatico FORTEM", devedor com o CPF de NICOLAS TESTE (mascarado nos relatórios), MENSAL, valorMinimoRecebedor "1.00", PERMITE_3R_7D.
+- O "copia e cola" vai para você em texto e também como imagem de QR gerada no sistema (sem serviço externo). Você mostra ao dono.
+- **No app do banco:** Pix > Ler QR Code (ou Pix Copia e Cola). Aparece a tela de **autorização do Pix Automático**, com recebedor, valor, periodicidade e período, e o dono toca em Autorizar. Na Jornada 2, **não sai nenhum valor**.
 
-O trecho da escolha do aluno no Start precisa de ajuste gramatical na frase: o texto final exato será mostrado antes/depois na execução. Após a troca, verificar 0 ocorrências de "pix autom" e de "boleto" nos 5 templates e então `ativo = true` nos 5. Templates legados não são tocados.
+## 4) Avisos (webhooks) esperados
 
-## Passo 3 — Ativar 2027
-`ativo = true`, `vendavel_desde = '2026-10-13'` (já gravado), `vendavel_ate = null` nos 20 planos e 5 serviços 2027. Com isso `/planos` passa sozinha para a página nova.
+- **Recorrência:** status AUTORIZADA (ou REJEITADA/CANCELADA). O pix-webhook já trata essas três situações e atualiza `pix_recorrencias.status`. Os avisos de recorrência e cobrança já estão cadastrados no Inter com o token.
+- **Parte B futura (cobr):** COBR_AGENDADA, COBR_LIQUIDADA, COBR_REJEITADA, COBR_CANCELADA. O pix-webhook já trata todas, procurando em `pix_cobrancas` pelo txid.
+- **Jornada 3, futura:** a primeira mensalidade chega como um Pix comum (pelo txid da cobrança imediata). Hoje, um txid que não está em `pix_cobrancas` é apenas registrado e ignorado. A jornada 3 vai exigir gravar essa cobrança imediata antes de mostrar o QR.
+- **Conferência manual:** depois que o dono autorizar, faço também um GET /rec/{idRec} (só leitura) para confirmar o status, caso o aviso demore.
 
-## Passo 4 — Legado
-- `vendavel_ate = '2026-10-12'` nos 27 planos legados de treinamento, mantendo `ativo = true`. Corrida não muda.
-- Correção mínima no `VendaDialog`, aba atual: listar só itens com `versao is null` que estejam vendáveis hoje (`vendavel_ate` nulo ou >= hoje). Resultado: após o go-live a aba atual mostra só corrida e serviços legados ainda vendáveis; planos 2027 só no "Vender plano 2027". Ponto ainda em aberto: os serviços legados (pergunta 2).
-- A página `/planos-atual` passa a redirecionar para `/planos` quando houver itens 2027 vendáveis, para não exibir preços antigos (pergunta 3).
-- Sem mudança em funções de banco legadas (`fn_processar_venda` segue aceitando qualquer plano por id; a trava é na tela). Opcional: trava no servidor (pergunta 4).
+## 5) Efeito no produto (/planos) — etapa futura, não executada agora
 
-## Passo 5 — Garantias antes/depois
-Rodar as mesmas consultas do backup depois da execução e comparar linha a linha:
-- planos de alunos por `ativo` e por `catalogo_id`; contratos por status; cobranças pendentes (quantidade e soma); créditos ativos;
-- crons: renovação diária ativa, cobrança do cartão inativa (leitura via função existente, sem alterar);
-- nenhum `updated_at` de `contratos`, `planos`, `cobrancas` alterado durante a janela;
-- simulação em transação com rollback da renovação legada de um plano mensal legado (mesmo snapshot antes/depois).
+- Na etapa de pagamento, quem escolher Pix recorrente veria o QR e o botão "Copiar código Pix". O aviso diria que ao pagar a primeira mensalidade o aluno autoriza as próximas, sem pedir conta nem banco.
+- Status ao vivo na tela (aguardando, autorizado), atualizado pelos avisos.
+- Exige: recorrência e cobrança imediata criadas no servidor no fim da proposta, baixa da primeira mensalidade e textos centralizados. Pix Automático continua fora da página até um go-live próprio.
 
-## Passo 6 — Reversão em um comando
-Função `fn_golive_2027_reverter()` (admin-only, criada na migration do backup) que, numa única transação, restaura `ativo`, `vendavel_desde`, `vendavel_ate` e `conteudo` de todos os ids do backup. Uso: `select public.fn_golive_2027_reverter();`. A correção do `VendaDialog` continua correta mesmo após a reversão, porque só filtra por datas.
+## 6) Riscos e reversão
 
-## Passo 7 — Verificação pós-execução
-- 2027 ativos: 20 planos / 5 serviços / 5 templates; 0 menções a Pix Automático e boleto.
-- Legado: 27 com `vendavel_ate = '2026-10-12'` e `ativo = true`; 21 de corrida sem mudança.
-- Anon: `fn_planos_publico_2027(false)` devolve 20 planos e 4 pacotes sem `custo_repasse`/`custo_pro`; leitura direta de `planos_catalogo` (não corrida) e de `servicos_catalogo` continua vazia.
-- `/planos` sem login mostra a página nova; envio público cria proposta, lead e aviso (com um teste marcado "TESTE GOLIVE" no aluno de teste).
-- Venda de teste 2027 pelo `fn_venda_2027_criar` no aluno NICOLAS TESTE com `origem='teste_2027'`, sem cobrar cartão; contrato gerado pelo template 2027 ativo e sem Pix Automático.
-- VendaDialog (Playwright, admin): aba atual sem planos de treinamento legados nem 2027; "Vender plano 2027" lista os 20.
-- Testes unitários passando, incluindo novo teste do filtro de vendáveis do VendaDialog.
+- **PATCH com `loc` recusado pelo Inter:** paro e peço o seu OK para cancelar e recriar.
+- **QR exibido sem recorrência válida:** ao autorizar, o banco mostraria erro, sem nenhum valor envolvido.
+- **Autorização concedida:** reversível. A recorrência pode ser cancelada (motivo "teste 3F") pelo Inter ou pelo próprio dono no app. Nenhum dado é apagado.
+- **Cobrança:** a Jornada 2 não gera nenhuma. A cobr de R$ 1,00 fica só para a parte B, com OK separado.
+- **Limite do Inter:** uma chamada por etapa, sem repetição automática. Os tokens ficam em cache.
+- **Alterações no sistema:** um modo interno e temporário, com parâmetros fixos, igual ao teste_3f_criar, registrado em system_logs. As funções admin continuam só para admin. Loja/Corrida, Pix comum e crons ficam inalterados.
 
-## Riscos
-- Venda 2027 é só admin (`fn_venda_2027_criar` e botão). Coordenadores/consultores ficam sem poder vender planos de treinamento após o go-live (pergunta 1).
-- Alunos legados que tentarem comprar novamente o mesmo plano antigo deixam de conseguir pela tela (esperado).
-- Contratos 2027 sem revisão jurídica final.
-- Reabilitação 2027 sem validação clínica dos pacotes.
-- Grupo de corrida: catálogo R$ 170/160/150 por mês vs R$ 180 do protótipo; segue o catálogo.
-- Renovação de Start legado continua criando ciclos antigos (correto, não é venda nova).
+## Execução após o OK
 
-## Perguntas para o dono
-1. Liberar a venda 2027 também para coordenadores, ou manter só admin no início?
-2. Serviços legados ativos (avulsos atuais) continuam vendáveis ou recebem `vendavel_ate` também?
-3. `/planos-atual` redireciona para `/planos` após o go-live (proposta) ou continua acessível com os preços antigos?
-4. Adicionar trava no servidor para impedir venda de plano legado com `vendavel_ate` vencido (pequena checagem no início do `fn_processar_venda`, com prova de rollback do legado)?
-5. Revisão jurídica dos 5 contratos e validação da Reabilitação já feitas, ou o go-live espera?
+1. Modo interno `teste_3f_qr` (confirmação "TESTE_3F_QR"): POST /locrec, depois PATCH /rec com `loc` (uma vez), depois GET /rec, devolvendo o status HTTP de cada chamada, o idRec e o copia e cola, com erros brutos e CPF mascarado.
+2. Gravar o loc e o copia e cola no registro de teste (dentro de raw_response, sem migração).
+3. Entregar o QR ao dono e aguardar a autorização.
+4. Confirmar AUTORIZADA pelo aviso e pelo GET. Depois disso, parar e aguardar o OK para a parte B (cobr de R$ 1,00).
 
-## Detalhes técnicos
-- Migration: `_golive_2027_backup`, `_golive_2027_contagens`, `fn_golive_2027_reverter` (SECURITY DEFINER, `is_admin`), grants só service_role/authenticated com RLS admin.
-- Dados (run_sql, nesta ordem): backup e contagens; `UPDATE contrato_templates` com `replace` exato dos 5 trechos; checagem; ativar templates; ativar 2027; `vendavel_ate` no legado.
-- Código: `VendaDialog.tsx` (filtro `versao is null` e `vendavel_ate`), `PlanosRota.tsx`/`App.tsx` (redirecionar `/planos-atual`), teste unitário do filtro.
-- Sem mudança em crons, edge functions, corrida, contratos e planos existentes.
+## Perguntas em aberto
+
+1. Para o teste, você confirma a Jornada 2 (só autoriza, sem cobrar no ato)? Ou prefere já a Jornada 3, que cobra R$ 1,00 na leitura do QR e exige gravar uma cobrança imediata?
+2. Se o Inter recusar o vínculo do `loc` na recorrência existente, já está autorizado cancelar ("teste 3F") e recriar com início em 15/10/2026 e fim em 15/11/2026? Ou prefere que eu pare e pergunte?
+3. O pedido de confirmação que falhou (solicrec) não deixou nenhum registro no Inter. Posso ignorá-lo?
