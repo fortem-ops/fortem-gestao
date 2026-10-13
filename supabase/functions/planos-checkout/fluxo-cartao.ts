@@ -96,7 +96,8 @@ async function avancarToken(deps: Deps, t: TentativaCartao, nome: string | null,
   if (idade(t.created_at, agora) > PRAZO_COBRAR_MS) { await deps.db.resultado(t.id, "expirado", "cliente_ausente"); return true; }
   nome = nome ?? reg.cardholder_name;
   if (!nome) { await deps.db.resultado(t.id, "recusado", "sem_titular"); return true; }
-  const val = dados ? { mes: dados.mes, ano: dados.ano } : validadeToken(reg.token_expiration);
+  // Sempre a validade guardada no token; a digitada só entra se o token vier sem validade.
+  const val = validadeToken(reg.token_expiration) ?? (dados ? { mes: dados.mes, ano: dados.ano } : null);
   if (!val) { await deps.db.resultado(t.id, "recusado", "validade_ilegivel"); return true; }
   if (!(await deps.db.travarCobranca(t.id))) return true; // outra requisição já está cobrando
   const r = await deps.rede.cobrar({

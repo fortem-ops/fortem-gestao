@@ -28,10 +28,10 @@ Deno.test("sanitizarRaw não guarda número, CVV nem nome", () => {
   assertEquals(s.includes(NUM) || s.includes(NOME) || s.includes("423564") || /\d{13,19}/.test(s), false);
 });
 
-function cenario(opts: { token: ("pendente" | "ativo" | "recusado")[]; transacao?: { http: number; rc: string | null; erro?: boolean } }) {
-  const gravado: string[] = []; const chamadas: string[] = [];
+function cenario(opts: { token: ("pendente" | "ativo" | "recusado")[]; transacao?: { http: number; rc: string | null; erro?: boolean }; expiracao?: string | null }) {
+  const gravado: string[] = []; const chamadas: string[] = []; const cobrancas: { mes: string; ano: string }[] = [];
   let t: TentativaCartao = { id: "11111111-2222-3333-4444-555555555555", proposta_id: "p1", status: "processando", motivo: "token_pendente", valor_centavos: 120000, parcelas: 12, simulado: false, tokenizacao_id: null, consultado_em: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-  let tok = { tokenization_id: "tok1", status: "pending", token_code: null as string | null, token_expiration: "12/2030", cardholder_name: null as string | null };
+  let tok = { tokenization_id: "tok1", status: "pending", token_code: null as string | null, token_expiration: "expiracao" in opts ? (opts.expiracao ?? null) : "12/2030", cardholder_name: null as string | null };
   let i = 0;
   const log = (x: unknown) => gravado.push(JSON.stringify(x));
   const deps: Deps = {
@@ -42,7 +42,7 @@ function cenario(opts: { token: ("pendente" | "ativo" | "recusado")[]; transacao
         chamadas.push("consultar"); const e = opts.token[Math.min(i++, opts.token.length - 1)];
         return { httpStatus: 200, erroRede: false, parsed: { tokenizationStatus: e === "pendente" ? "Pending" : "Active", brand: { name: "Visa", tokenStatus: e === "recusado" ? "Failed" : "Active" }, last4: "5682", token: e === "ativo" ? { code: "TKN" } : undefined } };
       },
-      cobrar: async (x) => { chamadas.push("cobrar:" + x.nome + ":" + x.parcelas); const tr = opts.transacao ?? { http: 200, rc: "00" }; return { etapa: "transacao", httpStatus: tr.http, erroRede: !!tr.erro, parsed: tr.erro ? null : { returnCode: tr.rc, tid: "TID123456", nsu: "N1", cardNumber: NUM } }; },
+      cobrar: async (x) => { chamadas.push("cobrar:" + x.nome + ":" + x.parcelas); cobrancas.push({ mes: x.mes, ano: x.ano }); const tr = opts.transacao ?? { http: 200, rc: "00" }; return { etapa: "transacao", httpStatus: tr.http, erroRede: !!tr.erro, parsed: tr.erro ? null : { returnCode: tr.rc, tid: "TID123456", nsu: "N1", cardNumber: NUM } }; },
       consultarPorReferencia: async () => { chamadas.push("referencia"); return { httpStatus: 404, parsed: null, erroRede: false }; },
     },
     db: {
@@ -56,7 +56,7 @@ function cenario(opts: { token: ("pendente" | "ativo" | "recusado")[]; transacao
       liquidar: async (_id, a) => { log(a); t = { ...t, status: "aprovado", motivo: null }; },
     },
   };
-  return { deps, get t() { return t; }, gravado, chamadas };
+  return { deps, get t() { return t; }, gravado, chamadas, cobrancas };
 }
 
 Deno.test("token ativa → cobra na mesma requisição, com nome só em memória", async () => {
@@ -66,6 +66,26 @@ Deno.test("token ativa → cobra na mesma requisição, com nome só em memória
   assertEquals(c.chamadas.filter((x) => x.startsWith("cobrar")), ["cobrar:" + NOME + ":12"]);
   const tudo = c.gravado.join("|");
   assertEquals(tudo.includes(NOME) || tudo.includes(NUM) || tudo.includes(CVV + '"') || /\d{13,19}/.test(tudo), false);
+});
+Deno.test("cobrança usa a validade do token, não a digitada", async () => {
+  const c = cenario({ token: ["ativo"], expiracao: "09/2029" });
+  await iniciarCartaoReal(c.deps, c.t, dados); // digitado 12/2030, token 09/2029
+  assertEquals(c.t.status, "aprovado");
+  assertEquals(c.cobrancas, [{ mes: "09", ano: "2029" }]);
+});
+Deno.test("token sem validade → cai na validade digitada", async () => {
+  const c = cenario({ token: ["ativo"], expiracao: null });
+  await iniciarCartaoReal(c.deps, c.t, dados);
+  assertEquals(c.t.status, "aprovado");
+  assertEquals(c.cobrancas, [{ mes: "12", ano: "2030" }]);
+});
+Deno.test("polling também cobra com a validade do token", async () => {
+  const c = cenario({ token: ["pendente", "pendente", "pendente", "ativo"], expiracao: "03/2028" });
+  await iniciarCartaoReal(c.deps, c.t, dados);
+  assertEquals(c.t.status, "processando");
+  await acompanharCartaoReal(c.deps, c.t);
+  assertEquals(c.t.status, "aprovado");
+  assertEquals(c.cobrancas, [{ mes: "03", ano: "2028" }]);
 });
 Deno.test("token recusado → recusado, nunca cobra", async () => {
   const c = cenario({ token: ["recusado"] });
