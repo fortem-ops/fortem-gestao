@@ -3,7 +3,7 @@ export const TEXTOS_PLANOS = {
   passos: ["Frequência", "Vantagens", "Turbine", "Acompanhamento", "Pagamento"],
   frequencia: {
     titulo: "Quantas vezes por semana você quer treinar?",
-    subtitulo: "Valores a partir do plano Power. Na próxima etapa você escolhe as vantagens.",
+    subtitulo: "",
     limite: "Máximo de 4 alunos por treinador, em qualquer frequência.",
     anual: "Pague o plano anual no cartão de crédito em até 12x.",
   },
@@ -43,6 +43,16 @@ export const TEXTOS_PLANOS = {
     titulo: "Detalhes da compra", adicionais: "Serviços adicionais", consultas: "Total das consultas", pagamento: "Pagamento",
     continuar: "Continuar para o cadastro",
   },
+  identificacao: {
+    titulo: "Identificação",
+    tipos: { novo: "Novo aluno", aluno: "Aluno", ex_aluno: "Ex-aluno" },
+    buscar: "Buscar cadastro",
+    naoEncontrado: "Não encontramos o seu cadastro, preencha seus dados",
+    confirmacao: (nome: string) => `Encontramos o cadastro de ${nome}. Está correto?`,
+    sim: "Sim, é meu", nao: "Não sou eu",
+    email: "Complete seu e-mail", confirmado: "Cadastro confirmado · vínculo não verificado",
+  },
+  resumoAnual: (valor: string) => `${valor} em até 12x no cartão de crédito`,
 } as const;
 
 export const PAGAMENTO_PUBLICO = {
@@ -60,6 +70,11 @@ export const PAGAMENTO_PUBLICO = {
   cartaoConsultas: "Cartão de crédito em até 6x",
   recorrenciaCartao: "Recorrência mensal no cartão",
   consultasExplicacao: "Com recorrência ou Pix à vista, as consultas podem ser pagas em até 6x no cartão de crédito ou no Pix à vista.",
+  consultasPlano: "Com os planos Power e Pro, as consultas entram nas mesmas parcelas, em até 12x. Com recorrência, Pix à vista ou plano Start, as consultas podem ser pagas em até 6x no cartão de crédito ou no Pix à vista.",
+  consultasStart: "Com o plano Start, as consultas podem ser pagas em até 6x no cartão de crédito ou no Pix à vista.",
+  toggleTitulo: "Prefere manter o limite do seu cartão livre?",
+  toggleDescricao: (taxa: string) => `Ative a recorrência mensal por apenas +${taxa}/mês e pague de forma mensal no cartão, sem que o valor total do plano seja debitado de uma vez no seu limite.`,
+  toggleNota: "Uma forma mais confortável e flexível de manter seu plano ativo.",
   corridaExplicacao: "Mensal é cobrado todo mês, em recorrência no cartão; semestral, em até 6x no cartão ou Pix à vista; anual, em até 12x no cartão ou Pix à vista.",
   corrida: {
     1: "Cobrado todo mês em recorrência no cartão",

@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Rodada 2 /planos: identificação segura por telefone, cartões selecionáveis, parcelas e interruptor de recorrência; 75 testes e fluxo visual 390px/1280px sem ativação
+- [ ] Rodada 2: envio real vinculado ao NICOLAS TESTE (bloqueadores: telefone compartilhado por 6 cadastros e ausência de sessão admin autorizada)
+
 - [x] Correção Fase 4: cinco passos, detalhes, resumo desktop e corrida por período; testes de cálculo e fluxo visual em 390px/1280px sem ativação
 - [ ] Correção Fase 4: validar envio e leitura da proposta real de prévia (aguarda sessão de administrador; email do solicitante sem conta de acesso)
 

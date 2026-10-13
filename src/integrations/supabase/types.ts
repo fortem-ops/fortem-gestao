@@ -7478,8 +7478,12 @@ export type Database = {
           previa: boolean
           servicos_codigos: string[]
           status: string
+          status_real: string | null
+          tipo_identificacao: string
           updated_at: string
           valor_total_centavos: number
+          verificacao_vinculo: string
+          vinculo_por_telefone: boolean
           whatsapp: string
         }
         Insert: {
@@ -7504,8 +7508,12 @@ export type Database = {
           previa?: boolean
           servicos_codigos?: string[]
           status?: string
+          status_real?: string | null
+          tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos: number
+          verificacao_vinculo?: string
+          vinculo_por_telefone?: boolean
           whatsapp: string
         }
         Update: {
@@ -7530,8 +7538,12 @@ export type Database = {
           previa?: boolean
           servicos_codigos?: string[]
           status?: string
+          status_real?: string | null
+          tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos?: number
+          verificacao_vinculo?: string
+          vinculo_por_telefone?: boolean
           whatsapp?: string
         }
         Relationships: []
@@ -10568,6 +10580,11 @@ export type Database = {
           tipo: string
         }[]
       }
+      fn_planos_identificar_telefone: {
+        Args: { p_telefone: string }
+        Returns: Json
+      }
+      fn_planos_normalizar_telefone: { Args: { t: string }; Returns: string }
       fn_planos_publico_2027: { Args: { p_previa?: boolean }; Returns: Json }
       fn_ponto_ajustar_jornada: {
         Args: {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-   formasPermitidas, encontrarItem, calcularResumo, valorCorrida, descreverParcelas, menorPrecoFrequencia, opcoesCorrida, permiteReposicaoPublica,
+   pagamentoComRecorrencia, parcelasPacotePublico, formasPermitidas, encontrarItem, calcularResumo, valorCorrida, descreverParcelas, menorPrecoFrequencia, opcoesCorrida, permiteReposicaoPublica,
   type PlanoPublico, type ServicoPublico, type Familia2027, type Frequencia2027,
 } from "@/lib/planosPublico2027";
 
@@ -25,6 +25,26 @@ const nutri4: ServicoPublico = { codigo: "nutri_4_comp_2_2027", nome: "", ativid
 const reab8: ServicoPublico = { codigo: "reab_8_2027", nome: "", atividade: "Reabilitação", quantidade_sessoes: 8, valor: 1200 };
 
 describe("planos públicos 2027", () => {
+  it("interruptor mantém Start recorrente e alterna Power/Pro sem Pix recorrente", () => {
+    expect(pagamentoComRecorrencia("start_2027", false, "pix_vista")).toBe("recorrencia");
+    for (const f of ["power_2027", "pro_2027"] as const) {
+      expect(pagamentoComRecorrencia(f, true, "pix_vista")).toBe("recorrencia");
+      expect(pagamentoComRecorrencia(f, false, "recorrencia")).toBe("cartao_parcelado");
+      expect(pagamentoComRecorrencia(f, false, "pix_vista")).toBe("pix_vista");
+    }
+  });
+  it("pacote Nutri 1620 mostra Start 6x270 e Power/Pro 12x135", () => {
+    expect(parcelasPacotePublico(nutri4, "start_2027").map(p => p.valor)).toEqual(Array(6).fill(270));
+    for (const f of ["power_2027", "pro_2027"] as const) expect(parcelasPacotePublico(nutri4, f).map(p => p.valor)).toEqual(Array(12).fill(135));
+  });
+  it.each(["power_2027", "pro_2027"] as const)("%s recorrência mantém 12 cobranças e consultas separadas em 6x", (familia) => {
+    const item = encontrarItem({ planos }, familia, "2x", "recorrencia");
+    if (!item) throw new Error("Missing fixture");
+    const r = calcularResumo({ item, servicos: [nutri4], forma: "recorrencia", parcelas: 12, formaServicos: "cartao_parcelado", parcelasServicos: 6 });
+    expect(r.plano.parcelas).toHaveLength(12);
+    expect(r.plano.parcelas[0].valor).toBe(familia === "power_2027" ? 453.9 : 523.9);
+    expect(r.servicosAvulsos?.parcelas.map(p => p.valor)).toEqual(Array(6).fill(270));
+  });
   it("frequência 2x mostra o menor preço do catálogo, Power R$429", () => {
     expect(menorPrecoFrequencia({ planos }, "2x")).toBe(429);
   });
