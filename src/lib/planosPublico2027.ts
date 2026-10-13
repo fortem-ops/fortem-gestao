@@ -56,6 +56,18 @@ export function formasPermitidas(familia: Familia2027): FormaPublica[] {
   return familia === "start_2027" ? ["recorrencia"] : ["cartao_parcelado", "pix_vista", "recorrencia"];
 }
 
+export function pagamentoComRecorrencia(familia: Familia2027, ligado: boolean, anterior: FormaPublica): FormaPublica {
+  if (familia === "start_2027" || ligado) return "recorrencia";
+  return anterior === "pix_vista" ? "pix_vista" : "cartao_parcelado";
+}
+
+/** A vitrine de Power/Pro antecipa consultas nas parcelas do plano anual. */
+export function parcelasPacotePublico(servico: ServicoPublico, familia: Familia2027) {
+  if (familia === "start_2027") return calcularServicos2027([servico], "cartao_parcelado", 6).parcelas;
+  // Usa a divisão da venda anual (o calculador avulso limita consultas a 6x).
+  return calcularVenda2027({ item: { codigo: "vitrine", familia, modalidade_cobranca: "anual", valor: servico.valor }, forma: "cartao_parcelado", parcelas: 12 }).plano.parcelas;
+}
+
 export function encontrarItem(
   cat: Pick<CatalogoPublico, "planos">,
   familia: Familia2027,
