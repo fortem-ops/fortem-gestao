@@ -81,7 +81,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
         corrida: !!corridaEscolhida, corrida_periodo_meses: corridaEscolhida?.periodo_meses ?? 1,
       } });
       setEtapaSessao("identificada"); setAlterando(false); setDetalhes(false); window.scrollTo({ top: 0 });
-    } catch (e) { setErros({ geral: (e as Error).message }); }
+    } catch (e) { setErros({ geral: (e as Error).message }); setDetalhes(true); }
     setEnviando(false);
   }
   const abrirCadastro = () => { if (sessao && alterando) { void salvarAlteracao(); return; } setDetalhes(false); setPasso(4); setCadastro(true); window.scrollTo({ top: 0, behavior: "instant" }); };
