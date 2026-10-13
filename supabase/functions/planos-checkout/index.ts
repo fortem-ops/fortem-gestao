@@ -86,14 +86,37 @@ Deno.serve(async (req) => {
 
     if (acao === "iniciar") {
       // Prévia: admin logado marca a proposta como teste. O papel é conferido no servidor.
-      const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-      if (body?.previa === true && token) {
-        const { data: u } = await admin.auth.getUser(token);
-        if (u?.user?.id) {
-          await admin.rpc("fn_checkout_2027_marcar_teste_admin", { p_proposta_id: propostaId, p_user_id: u.user.id });
+      let diag: Record<string, unknown> | null = null;
+      if (body?.previa === true) {
+        const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+        const ehAnon = !token || token === Deno.env.get("SUPABASE_ANON_KEY");
+        diag = { proposta: propostaId, token_recebido: !ehAnon, getuser_ok: false, admin: false, marcou: false, erro_marcacao: null };
+        let uid: string | null = null;
+        if (!ehAnon) {
+          const { data: u } = await admin.auth.getUser(token);
+          uid = u?.user?.id ?? null;
+          diag.getuser_ok = !!uid;
         }
+        if (uid) {
+          const { data: adm } = await admin.rpc("is_admin", { _user_id: uid });
+          diag.admin = adm === true;
+          if (adm === true) {
+            const { data: m, error: em } = await admin.rpc("fn_checkout_2027_marcar_teste_admin", { p_proposta_id: propostaId, p_user_id: uid });
+            diag.marcou = m === true;
+            if (em) diag.erro_marcacao = (em.message ?? "").slice(0, 200);
+          }
+        }
+        await admin.from("system_logs").insert({ modulo: "planos-checkout", acao: "diagnostico_previa", mensagem: diag.marcou ? "marcada" : "não marcada", payload: diag, user_id: uid });
       }
-      return json(200, await rpc("fn_checkout_2027_iniciar", { p_proposta_id: propostaId }, propostaId));
+      try {
+        return json(200, await rpc("fn_checkout_2027_iniciar", { p_proposta_id: propostaId }, propostaId));
+      } catch (e) {
+        if (diag && e instanceof Neutro) {
+          const motivo = !diag.token_recebido ? "sessão de admin não enviada" : !diag.getuser_ok ? "sessão de admin não aceita" : !diag.admin ? "conta sem papel de admin" : !diag.marcou ? "proposta não pôde ser marcada como teste" : "outro motivo";
+          return json(200, { erro: e.message, diagnostico: motivo });
+        }
+        throw e;
+      }
     }
     if (!chave) return json(200, { erro: "Sessão inválida. Recomece a compra" });
 
