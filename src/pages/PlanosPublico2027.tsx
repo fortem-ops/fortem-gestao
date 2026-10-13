@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Switch } from "@/components/ui/switch";
 import { CadastroContratante2027, type DadosContratante } from "@/components/planos/CadastroContratante2027";
 import { CheckoutSite2027 } from "@/components/planos/CheckoutSite2027";
-import { checkout, ErroCheckout, lerSessao, limparSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
+import { checkout, ErroCheckout, iniciarCheckoutPublico, restaurarSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
 import { Check, ArrowLeft, CircleHelp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
