@@ -177,7 +177,8 @@ async function registrarWebhooks() {
   }
   const registro: Record<string, unknown> = {};
   for (const [n, p] of alvos) {
-    const r = await interFetch(p, { method: "PUT", json: { webhookUrl: destino } });
+    if ((antes[n] as any)?.url && String(Deno.env.get("SUPABASE_URL")) && (antes[n] as any).url.includes("?token=")) { registro[n] = { status: "ja_registrado" }; continue; }
+    const r = await interFetch(p, { method: "PUT", json: { webhookUrl: destino }, headers: { Accept: "*/*" } });
     registro[n] = { status: r.status, erro: r.status >= 400 ? (r.data?.title ?? r.data?.detail ?? String(r.raw).slice(0, 200)) : null };
     if (r.status >= 400) break; // para na ordem pedida
     await new Promise((x) => setTimeout(x, 1500));
