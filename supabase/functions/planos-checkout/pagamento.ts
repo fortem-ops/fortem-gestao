@@ -42,12 +42,12 @@ export function cobrancaValida(cob: { status: string; created_at: string } | nul
 }
 
 /** Consultas da tela (polling) têm cota própria: por proposta e IP generoso; o resto segue 120/h por IP. */
-export const ACOES_CONSULTA = new Set(["status_pagamento", "estado"]);
+export const ACOES_CONSULTA = new Set(["status_pagamento", "estado", "status_cartao"]);
 export function chavesLimite(acao: unknown, ip: string, propostaId: string): { chave: string; limite: number }[] {
   if (typeof acao === "string" && ACOES_CONSULTA.has(acao)) {
     return [{ chave: `ckc:p:${propostaId}`, limite: 600 }, ...(ip ? [{ chave: `ckc:i:${ip}`, limite: 20000 }] : [])];
   }
-  if (acao === "pagar_cartao" && ip) return [{ chave: `ckf:i:${ip}`, limite: 120 }, { chave: `ckcard:i:${ip}`, limite: 10 }];
+  if ((acao === "pagar_cartao" || acao === "tokenizar_cartao") && ip) return [{ chave: `ckf:i:${ip}`, limite: 120 }, { chave: `ckcard:i:${ip}`, limite: 10 }];
   return ip ? [{ chave: `ckf:i:${ip}`, limite: 120 }] : [];
 }
 
@@ -56,5 +56,13 @@ export async function gravarComRetentativa(gravar: () => Promise<{ error: unknow
   for (let i = 0; i < 2; i++) {
     try { const { error } = await gravar(); if (!error) return true; } catch { /* tenta de novo */ }
   }
+  return false;
+}
+
+/** Espelha fn_checkout_2027_cartao_elegivel: plano no cartão até 12x com consultas juntas (ou sem), ou consultas sozinhas até 6x. */
+export function cartaoRealElegivel(c: Record<string, any>): boolean {
+  if (c?.forma_plano === "cartao_parcelado")
+    return Number(c.parcelas_plano) >= 1 && Number(c.parcelas_plano) <= 12 && (!Number(c.servicos_centavos) || c.forma_servicos == null);
+  if (c?.forma_plano == null) return c?.forma_servicos === "cartao_parcelado" && Number(c.parcelas_servicos) >= 1 && Number(c.parcelas_servicos) <= 6;
   return false;
 }

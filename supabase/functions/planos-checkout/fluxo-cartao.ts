@@ -1,8 +1,8 @@
 // Fluxo do cartão real do /planos (tokenização Rede → criptograma → transação).
 // Dependências injetadas: em teste a Rede é falsa; em produção só roda com fn_checkout_2027_cartao_real = true.
-// Número, CVV e nome do titular vivem só em memória nesta requisição: nunca vão para banco nem log.
-// A transação com token exige o nome do titular (cardholderName, igual à Loja), então a cobrança
-// só sai numa requisição que recebeu o nome do navegador (pagar_cartao ou status_pagamento com cartao_nome).
+// Número, CVV e CPF só em memória: nunca vão para banco nem log. O nome do titular (exigido pela
+// transação com token, como na Loja) fica só em rede_tokenizacoes.cardholder_name, nunca em tentativas,
+// logs, raw ou respostas ao navegador.
 import {
   INTERVALO_CONSULTA_MS, PRAZO_COBRANDO_MS, PRAZO_COBRAR_MS, PRAZO_TOKEN_MS,
   mapearConsulta, mapearTransacao, mascararTid, referencia, sanitizarRaw, validadeToken, type DadosCartao,
@@ -25,8 +25,8 @@ export type Deps = {
   db: {
     tentativa(id: string): Promise<TentativaCartao | null>;
     /** Liga o token à tentativa (linha nova em rede_tokenizacoes: proposta_id, aluno_id nulo, sem nome). */
-    registrarToken(t: TentativaCartao, tokenizationId: string): Promise<boolean>;
-    token(tokenizacaoId: string): Promise<{ tokenization_id: string; status: string; token_code: string | null; token_expiration: string | null } | null>;
+    registrarToken(t: TentativaCartao, tokenizationId: string, nome: string): Promise<boolean>;
+    token(tokenizacaoId: string): Promise<{ tokenization_id: string; status: string; token_code: string | null; token_expiration: string | null; cardholder_name: string | null } | null>;
     aplicarConsulta(tokenizationId: string, consulta: any): Promise<void>;
     marcar(id: string, campos: Record<string, unknown>): Promise<void>;
     /** Reserva atômica para cobrar: só um chamador passa (status processando e motivo != cobrando). */
@@ -46,7 +46,7 @@ const idade = (iso: string, agora: number) => agora - Date.parse(iso);
 export async function iniciarCartaoReal(deps: Deps, t: TentativaCartao, dados: DadosCartao) {
   const tok = await deps.rede.tokenizar(dados);
   if (!tok.ok || !tok.tokenizationId) { await deps.db.resultado(t.id, "recusado", "token_recusado"); return; }
-  if (!(await deps.db.registrarToken(t, tok.tokenizationId))) { await deps.db.resultado(t.id, "recusado", "token_registro_falhou"); return; }
+  if (!(await deps.db.registrarToken(t, tok.tokenizationId, dados.nome))) { await deps.db.resultado(t.id, "recusado", "token_registro_falhou"); return; }
   const esperar = deps.esperar ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   for (let i = 0; i < (deps.tentativasConsultaToken ?? 4); i++) {
     if (i > 0) await esperar(3000);
@@ -57,8 +57,8 @@ export async function iniciarCartaoReal(deps: Deps, t: TentativaCartao, dados: D
   }
 }
 
-/** Polling da tela. `nome` só existe se o navegador reenviou (memória da aba). */
-export async function acompanharCartaoReal(deps: Deps, t: TentativaCartao, nome: string | null) {
+/** Polling da tela. O nome vem do token guardado. */
+export async function acompanharCartaoReal(deps: Deps, t: TentativaCartao) {
   const agora = (deps.agora ?? Date.now)();
   if (t.status === "desconhecido") return conciliar(deps, t, agora);
   if (t.status !== "processando") return;
@@ -66,7 +66,7 @@ export async function acompanharCartaoReal(deps: Deps, t: TentativaCartao, nome:
     if (idade(t.updated_at, agora) > PRAZO_COBRANDO_MS) await deps.db.resultado(t.id, "desconhecido", "cobrando_travado");
     return;
   }
-  await avancarToken(deps, t, nome, null);
+  await avancarToken(deps, t, null, null);
 }
 
 /** true = terminou (cobrou, recusou ou expirou). */
@@ -94,7 +94,8 @@ async function avancarToken(deps: Deps, t: TentativaCartao, nome: string | null,
   if (reg.status === "failed") { await deps.db.resultado(t.id, "recusado", "token_recusado"); return true; }
   if (reg.status !== "active" || !reg.token_code) return false;
   if (idade(t.created_at, agora) > PRAZO_COBRAR_MS) { await deps.db.resultado(t.id, "expirado", "cliente_ausente"); return true; }
-  if (!nome) return false; // sem o nome não há como cobrar; espera o navegador reenviar
+  nome = nome ?? reg.cardholder_name;
+  if (!nome) { await deps.db.resultado(t.id, "recusado", "sem_titular"); return true; }
   const val = dados ? { mes: dados.mes, ano: dados.ano } : validadeToken(reg.token_expiration);
   if (!val) { await deps.db.resultado(t.id, "recusado", "validade_ilegivel"); return true; }
   if (!(await deps.db.travarCobranca(t.id))) return true; // outra requisição já está cobrando
