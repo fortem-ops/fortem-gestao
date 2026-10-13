@@ -5,7 +5,7 @@ import { interFetch, onlyDigits } from "./inter.ts";
 type R = { ok: boolean; httpStatus: number; erro?: string; status?: number; detail?: unknown; [k: string]: unknown };
 
 export async function criarRecorrencia(sup: any, p: {
-  aluno_id: string; valor: number; data_inicio: string; data_fim?: string | null; objeto?: string | null; teste?: boolean;
+  aluno_id: string; valor: number; data_inicio: string; data_fim?: string | null; objeto?: string | null; teste?: boolean; loc?: number | null;
 }): Promise<R> {
   const { data: aluno, error: alunoErr } = await sup.from("alunos").select("id, nome").eq("id", p.aluno_id).maybeSingle();
   if (alunoErr || !aluno) return { ok: false, httpStatus: 404, erro: "Aluno não encontrado" };
@@ -23,6 +23,7 @@ export async function criarRecorrencia(sup: any, p: {
     calendario: { dataInicial: p.data_inicio, ...(p.data_fim ? { dataFinal: p.data_fim } : {}), periodicidade: "MENSAL" },
     valor: { valorMinimoRecebedor: p.valor.toFixed(2) },
     politicaRetentativa: "PERMITE_3R_7D",
+    ...(p.loc != null ? { loc: p.loc } : {}),
   };
   console.log("[pix-rec] contrato:", payload.vinculo.contrato, "cpf final:", cpf.slice(-3));
   const { status, data, raw } = await interFetch("/pix/v2/rec", { method: "POST", json: payload });
