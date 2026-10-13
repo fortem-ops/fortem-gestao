@@ -39,6 +39,7 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [cpfErro, setCpfErro] = useState("");
   const [website, setWebsite] = useState("");
+  const [faltaErro, setFaltaErro] = useState("");
   const preenchido = !!verificacao;
 
   function aplicar(r: Cadastro, id: string) {
@@ -100,6 +101,9 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
     if (website) return;
     if (!isValidCpfDigits(d.cpf)) { setCpfErro(C.contrato.cpfInvalido); return; }
     setCpfErro("");
+    const faltando = (["nome", "email", "whatsapp", "data_nascimento", "cep", "logradouro", "numero", "bairro", "cidade"] as const).some((k) => !d[k].trim());
+    if (faltando) { setAviso(""); setFaltaErro(T.cadastro.faltando); return; }
+    setFaltaErro("");
     onSubmit({ ...d, cpf: d.cpf.replace(/\D/g, ""), verificacao_id: verificacao ?? undefined });
   }
 
@@ -159,6 +163,7 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
       </div>
       <label className="flex gap-3 text-sm text-muted-foreground"><input required type="checkbox" checked={d.aceite} onChange={(e) => setD((x) => ({ ...x, aceite: e.target.checked }))} /><span>{T.cadastro.consentimento} <a href="/privacidade" className="underline">política de privacidade</a>.</span></label>
       <input name="website" aria-hidden="true" tabIndex={-1} className="hidden" value={website} onChange={(e) => setWebsite(e.target.value)} />
+      {faltaErro && <p role="alert" className="border-l-2 border-primary pl-3 text-sm">{faltaErro}</p>}
       {erro && <p role="alert" className="border-l-2 border-primary pl-3 text-sm">{erro}</p>}
       <Button type="submit" disabled={enviando || !d.aceite} className="w-full rounded-none h-auto py-4 font-display font-bold uppercase">{enviando ? C.carregando : T.cadastro.continuar}</Button>
       <p className="text-xs text-muted-foreground">{T.cadastro.rodape}</p>

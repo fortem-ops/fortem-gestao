@@ -73,6 +73,7 @@ export const TEXTOS_PLANOS = {
     consentimento: "Autorizo a FORTEM a entrar em contato comigo sobre este plano, conforme a",
     continuar: "Continuar para o contrato",
     rodape: "Nada é cobrado agora.",
+    faltando: "Preencha todos os campos obrigatórios antes de seguir.",
   },
   resumoAnual: (valor: string) => `${valor} em até 12x no cartão de crédito`,
 } as const;
