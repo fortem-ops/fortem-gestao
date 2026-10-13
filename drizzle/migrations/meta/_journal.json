@@ -666,6 +666,13 @@
       "when": 1791884936157,
       "tag": "0094_planos_identificacao_crm_unico",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1791886101653,
+      "tag": "0095_golive_2027_permitir_pix_automatico_contratos",
+      "breakpoints": true
     }
   ]
 }
