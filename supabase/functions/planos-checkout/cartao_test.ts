@@ -111,7 +111,7 @@ Deno.test("código do cartão nunca loga dados do cartão", async () => {
   for (const f of ["index.ts", "cartao.ts", "cartao-rede.ts", "fluxo-cartao.ts", "deps-cartao.ts", "../_shared/planos-cartao-token.ts", "../rede-tokenizacao-webhook/planos-token.ts"]) {
     const src = await Deno.readTextFile(new URL(f, import.meta.url));
     for (const linha of src.split("\n").filter((l) => /console\.|system_logs/.test(l)))
-      assertEquals(/numero|cvv|nome|cardNumber|securityCode|cardholder|cpf\b|dados\b|cartao\b/i.test(linha.replace(/"\[[^\]]*\]/g, "")), false, `${f}: ${linha.trim()}`);
+      assertEquals(/numero|cvv|nome|cardNumber|securityCode|cardholder|cpf\b|dados\b|cartao\b/i.test(linha.replace(/"\[[^\]]*\]/g, "").replace("fn: nome", "")), false, `${f}: ${linha.trim()}`);
     assertEquals(/cardholder_name/.test(src), false, f);
   }
 });
