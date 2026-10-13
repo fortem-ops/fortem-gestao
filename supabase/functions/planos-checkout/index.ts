@@ -59,6 +59,7 @@ async function gerar(propostaId: string, chave: string, contratante: any, ip: st
   const dados = lerContratante(contratante);
   const r = await rpc("fn_checkout_2027_contrato_gerar",
     { p_proposta_id: propostaId, p_chave: chave, p: dados, p_ip: ip }, propostaId);
+  if (r?.erro) throw new Neutro(NEUTRAS.find((m) => m === r.erro) ?? "Não foi possível continuar agora");
   const { data: servicos } = await admin.from("servicos_catalogo").select("nome, valor").eq("versao", r.item.versao);
   const vars = montarVariaveisContrato({
     contratante: r.contratante as Contratante, templateNome: r.template.nome,
@@ -93,6 +94,18 @@ Deno.serve(async (req) => {
     }
     if (acao === "revisar") {
       return json(200, await rpc("fn_checkout_2027_revisar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId));
+    }
+    if (acao === "alterar") {
+      const e = body?.escolhas ?? {};
+      const escolhas = {
+        plano_codigo: String(e.plano_codigo ?? "").slice(0, 60), forma_plano: String(e.forma_plano ?? "").slice(0, 30),
+        parcelas_plano: Number(e.parcelas_plano) || 1,
+        servicos: Array.isArray(e.servicos) ? e.servicos.filter((x: unknown) => typeof x === "string").slice(0, 4) : [],
+        forma_servicos: typeof e.forma_servicos === "string" ? e.forma_servicos.slice(0, 30) : null,
+        parcelas_servicos: Number(e.parcelas_servicos) || 1, corrida: e.corrida === true,
+        corrida_periodo_meses: Number(e.corrida_periodo_meses) || 1,
+      };
+      return json(200, await rpc("fn_checkout_2027_alterar", { p_proposta_id: propostaId, p_chave: chave, p: escolhas, p_ip: ip }, propostaId));
     }
     if (acao === "gerar_contrato") {
       const g = await gerar(propostaId, chave, body?.contratante, ip);
