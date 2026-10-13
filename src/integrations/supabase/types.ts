@@ -7734,6 +7734,7 @@ export type Database = {
           lead_erro: string | null
           nome: string
           notificacao_cartao_combinar_id: string | null
+          notificacao_cartao_recusado_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
           pagamento_nsu: string | null
@@ -7789,6 +7790,7 @@ export type Database = {
           lead_erro?: string | null
           nome: string
           notificacao_cartao_combinar_id?: string | null
+          notificacao_cartao_recusado_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
           pagamento_nsu?: string | null
@@ -7844,6 +7846,7 @@ export type Database = {
           lead_erro?: string | null
           nome?: string
           notificacao_cartao_combinar_id?: string | null
+          notificacao_cartao_recusado_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
           pagamento_nsu?: string | null
@@ -10451,6 +10454,7 @@ export type Database = {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_cartao_elegivel: { Args: { c: Json }; Returns: boolean }
       fn_checkout_2027_cartao_liquidado: {
         Args: {
           p_autorizacao: string
@@ -10467,6 +10471,10 @@ export type Database = {
       fn_checkout_2027_cartao_real: {
         Args: { p_proposta_id: string }
         Returns: boolean
+      }
+      fn_checkout_2027_cartao_recusado_aviso: {
+        Args: { p_proposta_id: string }
+        Returns: undefined
       }
       fn_checkout_2027_cartao_reservar: {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
@@ -10583,6 +10591,7 @@ export type Database = {
           lead_erro: string | null
           nome: string
           notificacao_cartao_combinar_id: string | null
+          notificacao_cartao_recusado_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
           pagamento_nsu: string | null

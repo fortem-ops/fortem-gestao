@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { pagamentoReservado } from "../_shared/checkout-pagamento-reservado.ts";
 import { interCobFetch } from "../_shared/inter-cob.ts";
 import { genTxid } from "../_shared/inter.ts";
-import { lerDadosCartao, lerNomeTitular } from "./cartao.ts";
+import { lerDadosCartao } from "./cartao.ts";
 import { acessoRede } from "./cartao-rede.ts";
 import { depsReais } from "./deps-cartao.ts";
 import { acompanharCartaoReal, iniciarCartaoReal } from "./fluxo-cartao.ts";
@@ -149,6 +149,44 @@ async function avisarRegistroFalhou(propostaId: string, txid: string) {
   } catch (e) { console.error("[planos-checkout] aviso pix_registro_falhou", { proposta: propostaId }); }
 }
 
+/** Reserva (lock, 3/30 min) + token + cobrança se o token ativar a tempo. */
+async function tokenizarCartao(propostaId: string, chave: string, ip: string, cartao: unknown) {
+  const dados = lerDadosCartao(cartao);
+  if (!dados) throw new Neutro("Confira os dados do cartão");
+  const acesso = await acessoRede();
+  if (!acesso) throw new Neutro("Pagamento por cartão indisponível no momento");
+  const t = await rpc("fn_checkout_2027_cartao_reservar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId) as Tentativa;
+  if (t.simulado) throw new Neutro("Pagamento por cartão indisponível no momento");
+  const deps = depsReais(admin, acesso, await softDescriptor());
+  if (!t.em_andamento) {
+    const tc = await deps.db.tentativa(t.id);
+    if (tc) await iniciarCartaoReal(deps, tc, dados);
+  }
+  await confirmarSePago(propostaId, deps, t.id);
+  const fim = await deps.db.tentativa(t.id);
+  return { tentativa: tentativaPublica(fim ? { ...t, status: fim.status as Tentativa["status"], motivo: fim.motivo } : t) };
+}
+
+/** Avança a tentativa de cartão real em andamento e devolve a tentativa atual. */
+async function statusCartao(propostaId: string, chave: string): Promise<Tentativa | null> {
+  const st = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+  const t = st?.tentativa as Tentativa | null;
+  if (!t || t.simulado || t.tipo !== "cartao" || !["processando", "desconhecido"].includes(t.status)) return t;
+  const acesso = await acessoRede();
+  if (!acesso) return t;
+  const deps = depsReais(admin, acesso, await softDescriptor());
+  const tc = await deps.db.tentativa(t.id);
+  if (tc) await acompanharCartaoReal(deps, tc);
+  await confirmarSePago(propostaId, deps, t.id);
+  const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+  return re?.tentativa ?? t;
+}
+
+async function confirmarSePago(propostaId: string, deps: ReturnType<typeof depsReais>, id: string) {
+  const t = await deps.db.tentativa(id);
+  if (t?.status === "aprovado") { try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente */ } }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
@@ -217,7 +255,8 @@ Deno.serve(async (req) => {
       if (Object.keys(r).some((k) => JSON.stringify(r[k]) !== JSON.stringify(e.revisao?.[k])))
         throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
       const sim = await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId);
-      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: pagamentoReservado(r, sim === true), aceite_id: e.aceite_id });
+      const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
+      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real }, aceite_id: e.aceite_id });
     }
     if (acao === "cartao_combinar") {
       // Cartão real não ligado: sem tentativa e sem "falhou"; avisa a equipe uma vez por proposta.
@@ -229,24 +268,16 @@ Deno.serve(async (req) => {
       if (t.simulado) return json(200, { tentativa: tentativaPublica(t), pix_copia_cola: null });
       return json(200, await pixReal(propostaId, t));
     }
-    if (acao === "pagar_cartao") {
-      // Cartão real só com fn_checkout_2027_cartao_real (flag ou teste real_baixo_valor). Simulação segue como antes.
+    if (acao === "tokenizar_cartao" || acao === "pagar_cartao") {
+      // Real só com fn_checkout_2027_cartao_real (flag + modo + elegibilidade, conferidos no banco).
+      // Cartão real já em andamento (mesmo após o modo de teste voltar a simulação): só acompanha, nunca cria outra.
+      const andamento = await statusCartao(propostaId, chave);
+      if (andamento && !andamento.simulado && andamento.tipo === "cartao" && ["processando", "desconhecido"].includes(andamento.status))
+        return json(200, { tentativa: tentativaPublica(andamento) });
       const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
-      if (real) {
-        const dados = lerDadosCartao(body?.cartao);
-        if (!dados) throw new Neutro("Confira os dados do cartão");
-        const acesso = await acessoRede();
-        if (!acesso) throw new Neutro("Pagamento por cartão indisponível no momento");
-        const t = await rpc("fn_checkout_2027_cartao_reservar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId) as Tentativa;
-        if (t.simulado) throw new Neutro("Pagamento por cartão indisponível no momento");
-        const deps = depsReais(admin, acesso, await softDescriptor());
-        if (!t.em_andamento) {
-          const tc = await deps.db.tentativa(t.id);
-          if (tc) await iniciarCartaoReal(deps, tc, dados);
-        }
-        const fim = await deps.db.tentativa(t.id);
-        return json(200, { tentativa: tentativaPublica(fim ? { ...t, status: fim.status as Tentativa["status"], motivo: fim.motivo } : t) });
-      }
+      if (real) return json(200, await tokenizarCartao(propostaId, chave, ip, body?.cartao));
+      if (acao === "tokenizar_cartao") throw new Neutro("Pagamento por cartão indisponível no momento");
+      // pagar_cartao em simulação: igual a antes, nunca chama a Rede.
       if ((await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId)) !== true)
         throw new Neutro("Pagamento por cartão indisponível no momento");
       const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "cartao", p_ip: ip }, propostaId) as Tentativa;
@@ -256,6 +287,9 @@ Deno.serve(async (req) => {
       }
       await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "recusado", p_ref: null, p_motivo: "cartao_real_nao_liberado" }, propostaId);
       throw new Neutro("Pagamento por cartão indisponível no momento");
+    }
+    if (acao === "status_cartao") {
+      return json(200, { tentativa: tentativaPublica(await statusCartao(propostaId, chave)) });
     }
     if (acao === "simular_pix") {
       const res = resultadoPixSimulado(body?.resultado);
@@ -287,18 +321,9 @@ Deno.serve(async (req) => {
           } else if (novo) t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: novo, p_ref: null, p_motivo: null }, propostaId);
         }
       }
-      // Cartão real em andamento: avança token/cobrança/conciliação. O nome só vem do navegador (memória), nunca do banco.
-      if (t && !t.simulado && t.tipo === "cartao" && (t.status === "processando" || t.status === "desconhecido")) {
-        const acesso = await acessoRede();
-        if (acesso) {
-          const deps = depsReais(admin, acesso, await softDescriptor());
-          const tc = await deps.db.tentativa(t.id);
-          if (tc) await acompanharCartaoReal(deps, tc, lerNomeTitular(body?.cartao?.nome));
-          const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
-          t = re?.tentativa ?? t;
-          if (t?.status === "aprovado") { try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente */ } }
-        }
-      }
+      // Cartão real em andamento: avança token/cobrança/conciliação (nunca recobra "desconhecido").
+      if (t && !t.simulado && t.tipo === "cartao" && (t.status === "processando" || t.status === "desconhecido"))
+        t = (await statusCartao(propostaId, chave)) ?? t;
       let copia: string | null = null;
       // Só avalia vencimento depois que a cobrança foi gravada (ref preenchida); durante a criação não mexe.
       if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente" && typeof st.ref === "string") {

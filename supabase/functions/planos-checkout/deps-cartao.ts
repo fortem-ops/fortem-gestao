@@ -24,10 +24,10 @@ export function depsReais(admin: any, acesso: Acesso, softDescriptor: string): D
         const { data } = await admin.from("checkout_2027_tentativas").select(COLS).eq("id", id).maybeSingle();
         return (data ?? null) as TentativaCartao | null;
       },
-      registrarToken: async (t, tokenizationId) => {
-        // Sem nome do titular, sem raw: só o id do token, a proposta e o status.
+      registrarToken: async (t, tokenizationId, nome) => {
+        // Nome do titular só aqui (decisão do dono, igual à Loja). Sem raw, sem número/CVV/CPF.
         const { data, error } = await admin.from("rede_tokenizacoes")
-          .insert({ tokenization_id: tokenizationId, proposta_id: t.proposta_id, aluno_id: null, origem: "planos_site", status: "pending" })
+          .insert({ tokenization_id: tokenizationId, proposta_id: t.proposta_id, aluno_id: null, origem: "planos_site", status: "pending", cardholder_name: nome })
           .select("id").single();
         if (error || !data) return false;
         await admin.from("checkout_2027_tentativas").update({ tokenizacao_id: data.id }).eq("id", t.id);
@@ -35,7 +35,7 @@ export function depsReais(admin: any, acesso: Acesso, softDescriptor: string): D
       },
       token: async (id) => {
         const { data } = await admin.from("rede_tokenizacoes")
-          .select("tokenization_id, status, token_code, token_expiration").eq("id", id).not("proposta_id", "is", null).is("aluno_id", null).maybeSingle();
+          .select("tokenization_id, status, token_code, token_expiration, cardholder_name").eq("id", id).not("proposta_id", "is", null).is("aluno_id", null).maybeSingle();
         return data ?? null;
       },
       aplicarConsulta: async (tokId, consulta) => { await aplicarConsultaToken(admin, tokId, consulta); },

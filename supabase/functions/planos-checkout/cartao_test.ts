@@ -1,6 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { chaveIdempotencia, lerDadosCartao, mapearConsulta, mapearTransacao, mascararTid, referencia, sanitizarRaw } from "./cartao.ts";
 import { estadoToken } from "../_shared/planos-cartao-token.ts";
+import { cartaoRealElegivel, chavesLimite } from "./pagamento.ts";
 import { acompanharCartaoReal, iniciarCartaoReal, type Deps, type TentativaCartao } from "./fluxo-cartao.ts";
 
 const NUM = "4235647728025682", CVV = "123", NOME = "NICOLAS TESTE";
@@ -30,7 +31,7 @@ Deno.test("sanitizarRaw não guarda número, CVV nem nome", () => {
 function cenario(opts: { token: ("pendente" | "ativo" | "recusado")[]; transacao?: { http: number; rc: string | null; erro?: boolean } }) {
   const gravado: string[] = []; const chamadas: string[] = [];
   let t: TentativaCartao = { id: "11111111-2222-3333-4444-555555555555", proposta_id: "p1", status: "processando", motivo: "token_pendente", valor_centavos: 120000, parcelas: 12, simulado: false, tokenizacao_id: null, consultado_em: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-  let tok = { tokenization_id: "tok1", status: "pending", token_code: null as string | null, token_expiration: "12/2030" };
+  let tok = { tokenization_id: "tok1", status: "pending", token_code: null as string | null, token_expiration: "12/2030", cardholder_name: null as string | null };
   let i = 0;
   const log = (x: unknown) => gravado.push(JSON.stringify(x));
   const deps: Deps = {
@@ -46,7 +47,7 @@ function cenario(opts: { token: ("pendente" | "ativo" | "recusado")[]; transacao
     },
     db: {
       tentativa: async () => ({ ...t }),
-      registrarToken: async (_t, id) => { log({ registrar: id }); t = { ...t, tokenizacao_id: "r1" }; return true; },
+      registrarToken: async (_t, id, nome) => { tok = { ...tok, cardholder_name: nome }; t = { ...t, tokenizacao_id: "r1" }; return true; },
       token: async () => ({ ...tok }),
       aplicarConsulta: async (_id, c) => { tok = { ...tok, status: estadoToken(c) === "ativo" ? "active" : estadoToken(c) === "recusado" ? "failed" : "pending", token_code: estadoToken(c) === "ativo" ? "TKN" : null }; },
       marcar: async (_id, c) => { log(c); t = { ...t, ...c } as TentativaCartao; },
@@ -72,22 +73,20 @@ Deno.test("token recusado → recusado, nunca cobra", async () => {
   assertEquals(c.t.status, "recusado");
   assertEquals(c.chamadas.some((x) => x.startsWith("cobrar")), false);
 });
-Deno.test("token pendente → segue processando; polling sem nome não cobra; com nome cobra 1x", async () => {
+Deno.test("token pendente → segue processando; polling cobra 1x com o nome do token guardado", async () => {
   const c = cenario({ token: ["pendente", "pendente", "pendente", "ativo"] });
   await iniciarCartaoReal(c.deps, c.t, dados);
   assertEquals(c.t.status, "processando");
-  await acompanharCartaoReal(c.deps, c.t, null);
-  assertEquals(c.chamadas.some((x) => x.startsWith("cobrar")), false);
-  await acompanharCartaoReal(c.deps, c.t, NOME);
-  await acompanharCartaoReal(c.deps, c.t, NOME);
-  assertEquals(c.chamadas.filter((x) => x.startsWith("cobrar")).length, 1);
+  await acompanharCartaoReal(c.deps, c.t);
+  await acompanharCartaoReal(c.deps, c.t);
+  assertEquals(c.chamadas.filter((x) => x.startsWith("cobrar")), ["cobrar:" + NOME + ":12"]);
   assertEquals(c.t.status, "aprovado");
 });
 Deno.test("token não ativa em 10 min → expirado", async () => {
   const c = cenario({ token: ["pendente"] });
   await iniciarCartaoReal(c.deps, c.t, dados);
   c.deps.agora = () => Date.now() + 11 * 60_000;
-  await acompanharCartaoReal(c.deps, c.t, NOME);
+  await acompanharCartaoReal(c.deps, c.t);
   assertEquals(c.t.status, "expirado");
 });
 Deno.test("timeout na transação → desconhecido e nunca recobra; conciliação sem achar após prazo → recusado", async () => {
@@ -95,7 +94,7 @@ Deno.test("timeout na transação → desconhecido e nunca recobra; conciliaçã
   await iniciarCartaoReal(c.deps, c.t, dados);
   assertEquals(c.t.status, "desconhecido");
   c.deps.agora = () => Date.now() + 3 * 60_000;
-  await acompanharCartaoReal(c.deps, c.t, NOME);
+  await acompanharCartaoReal(c.deps, c.t);
   assertEquals(c.chamadas.filter((x) => x.startsWith("cobrar")).length, 1);
   assertEquals(c.chamadas.includes("referencia"), true);
   assertEquals(c.t.status, "recusado");
@@ -112,7 +111,8 @@ Deno.test("código do cartão nunca loga dados do cartão", async () => {
     const src = await Deno.readTextFile(new URL(f, import.meta.url));
     for (const linha of src.split("\n").filter((l) => /console\.|system_logs/.test(l)))
       assertEquals(/numero|cvv|nome|cardNumber|securityCode|cardholder|cpf\b|dados\b|cartao\b/i.test(linha.replace(/"\[[^\]]*\]/g, "").replace("fn: nome", "").replace("semCpf(", "")), false, `${f}: ${linha.trim()}`);
-    assertEquals(/cardholder_name/.test(src), false, f);
+    // Nome do titular só pode ser gravado junto do token (deps-cartao.ts → rede_tokenizacoes).
+    if (!["deps-cartao.ts", "fluxo-cartao.ts"].includes(f)) assertEquals(/cardholder_name/.test(src), false, f);
   }
 });
 
@@ -124,4 +124,25 @@ Deno.test("webhook: caminho de aluno byte a byte igual ao original", async () =>
   assertEquals(h, "104ca39e2d18c2f981fd00f33e332312e8d4dca3cca2656e6926d5f067cebde6");
   const desvio = (await Deno.readTextFile(new URL("../rede-tokenizacao-webhook/index.ts", import.meta.url))).match(/if \(regPlanos\?\.proposta_id && !regPlanos\.aluno_id\)/);
   assertEquals(!!desvio, true);
+});
+
+Deno.test("elegibilidade: plano 12x com consultas juntas sim; consultas à parte, Start/recorrência e Pix não", () => {
+  assertEquals(cartaoRealElegivel({ forma_plano: "cartao_parcelado", parcelas_plano: 12, servicos_centavos: 0 }), true);
+  assertEquals(cartaoRealElegivel({ forma_plano: "cartao_parcelado", parcelas_plano: 12, servicos_centavos: 50000, forma_servicos: null }), true);
+  assertEquals(cartaoRealElegivel({ forma_plano: "cartao_parcelado", parcelas_plano: 12, servicos_centavos: 50000, forma_servicos: "cartao_parcelado", parcelas_servicos: 6 }), false);
+  assertEquals(cartaoRealElegivel({ forma_plano: "cartao_parcelado", parcelas_plano: 12, servicos_centavos: 50000, forma_servicos: "pix_vista" }), false);
+  assertEquals(cartaoRealElegivel({ forma_plano: "recorrencia", parcelas_plano: 1 }), false);
+  assertEquals(cartaoRealElegivel({ forma_plano: "pix_vista" }), false);
+  assertEquals(cartaoRealElegivel({ forma_plano: null, forma_servicos: "cartao_parcelado", parcelas_servicos: 6 }), true);
+  assertEquals(cartaoRealElegivel({ forma_plano: null, forma_servicos: "cartao_parcelado", parcelas_servicos: 7 }), false);
+});
+Deno.test("limites: tokenizar 10/h por IP; status_cartao na cota de consulta", () => {
+  assertEquals(chavesLimite("tokenizar_cartao", "1.2.3.4", "p").find((x) => x.chave.startsWith("ckcard"))?.limite, 10);
+  assertEquals(chavesLimite("status_cartao", "1.2.3.4", "p").some((x) => x.chave.startsWith("ckf:")), false);
+});
+Deno.test("nada gravado na tentativa contém nome, número ou CVV", async () => {
+  const c = cenario({ token: ["pendente", "ativo"] });
+  await iniciarCartaoReal(c.deps, c.t, dados);
+  const t = JSON.stringify(c.t) + c.gravado.join("|");
+  assertEquals(t.includes(NOME) || t.includes(NUM) || /\b\d{13,19}\b/.test(t), false);
 });
