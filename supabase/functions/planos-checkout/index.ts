@@ -190,9 +190,24 @@ async function cartaoEsgotado(propostaId: string): Promise<boolean> {
   return l.length >= 3 && !l.some((t: any) => ["processando", "desconhecido", "aprovado"].includes(t.status));
 }
 
+/** Dispara o e-mail de confirmação; falha nunca desfaz a baixa, mas fica registrada (só id e mensagem curta). */
+async function chamarConfirmacao(propostaId: string) {
+  let msg = "";
+  try {
+    const { error } = await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } });
+    if (error) {
+      const status = (error as any)?.context?.status;
+      msg = `${error.name ?? "erro"}${status ? ` HTTP ${status}` : ""}`;
+    }
+  } catch (e) { msg = String((e as Error)?.message ?? e); }
+  if (msg) {
+    try { await admin.from("system_logs").insert({ modulo: "planos-checkout", acao: "confirmacao_falhou", mensagem: `${propostaId}: ${msg}`.slice(0, 200) }); } catch { /* log best-effort */ }
+  }
+}
+
 async function confirmarSePago(propostaId: string, deps: ReturnType<typeof depsReais>, id: string) {
   const t = await deps.db.tentativa(id);
-  if (t?.status === "aprovado") { try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente */ } }
+  if (t?.status === "aprovado") await chamarConfirmacao(propostaId);
 }
 
 Deno.serve(async (req) => {

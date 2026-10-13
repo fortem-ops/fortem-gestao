@@ -15,6 +15,17 @@ const json = (status: number, body: unknown) =>
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const sup = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+/** Chamada interna com a chave de serviço. O gateway pode trocar a chave por um JWT
+ * de serviço no Authorization; por isso aceita a chave literal (Authorization ou apikey)
+ * ou um JWT com assinatura verificada e role=service_role. */
+async function ehServico(bearer: string, apikey: string): Promise<boolean> {
+  const chave = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (chave && (bearer === chave || apikey === chave)) return true;
+  if (bearer.split(".").length !== 3) return false;
+  const { data, error } = await sup.auth.getClaims(bearer);
+  return !error && data?.claims?.role === "service_role";
+}
+
 async function ehAdmin(bearer: string): Promise<boolean> {
   if (!bearer) return false;
   const { data } = await sup.auth.getUser(bearer);
@@ -31,8 +42,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json(405, { ok: false });
   const bearer = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
-  const servico = bearer !== "" && bearer === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!servico && !(await ehAdmin(bearer))) return json(401, { ok: false });
+  const servico = await ehServico(bearer, req.headers.get("apikey") ?? "");
+  if (!servico && !(await ehAdmin(bearer))) {
+    // Só a forma da credencial, nunca o valor.
+    await log("nao_autorizado", `sem servico/admin (bearer_jwt=${bearer.split(".").length === 3}, apikey=${req.headers.has("apikey")})`);
+    return json(401, { ok: false });
+  }
 
   const body = await req.json().catch(() => ({}));
   const id = typeof body?.proposta_id === "string" && UUID.test(body.proposta_id) ? body.proposta_id : "";
