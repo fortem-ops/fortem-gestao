@@ -2,6 +2,7 @@
 // Anônimo só fala com esta função; ela chama fn_checkout_2027_* com service_role.
 // Nunca registra CPF, e-mail ou telefone; logs só com id da proposta.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { pagamentoReservado } from "../_shared/checkout-pagamento-reservado.ts";
 import {
   cpfDigitosValidos, hashTexto, montarVariaveisContrato, preencherContrato, semCpf, variaveisParaGuardar,
   type Contratante,
@@ -127,6 +128,16 @@ Deno.serve(async (req) => {
     }
     if (acao === "revisar") {
       return json(200, await rpc("fn_checkout_2027_revisar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId));
+    }
+    if (acao === "tela_pagamento") {
+      // Session/eligibility and acceptance are validated on the server.
+      // No payment, card storage, Pix generation or financial status write.
+      const e = await rpc("fn_checkout_2027_estado", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+      if (e.etapa !== "contrato_aceito" || !e.aceite_id) throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
+      const r = await rpc("fn_checkout_2027_calcular", { p_proposta_id: propostaId }, propostaId);
+      if (Object.keys(r).some((k) => JSON.stringify(r[k]) !== JSON.stringify(e.revisao?.[k])))
+        throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
+      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: pagamentoReservado(r), aceite_id: e.aceite_id });
     }
     if (acao === "alterar") {
       const e = body?.escolhas ?? {};

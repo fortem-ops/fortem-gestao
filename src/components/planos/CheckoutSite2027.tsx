@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { PagamentoReservado2027, type TelaPagamento } from "./PagamentoReservado2027";
+import { etapaReservada, guardarConfirmacao } from "@/lib/checkoutReservado2027";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { isValidCpfDigits } from "@/lib/cpfValidation";
 import { fetchCep, formatCep } from "@/lib/viacep";
@@ -14,7 +16,7 @@ type Revisao = {
   corrida_total_centavos: number | null; total_centavos: number;
 };
 type Contrato = { template_id: string; template_versao: number; conteudo_html: string; hash: string };
-type Etapa = "carregando" | "revisao" | "dados" | "contrato" | "aceito";
+type Etapa = "carregando" | "revisao" | "dados" | "contrato" | "pagamento" | "confirmacao";
 
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const NOME: Record<string, string> = { start_2027: "Start", power_2027: "Power", pro_2027: "Pro" };
@@ -39,6 +41,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
 }) {
   const [etapa, setEtapa] = useState<Etapa>("carregando");
   const [revisao, setRevisao] = useState<Revisao | null>(null);
+  const [telaPagamento, setTelaPagamento] = useState<TelaPagamento | null>(null);
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
   // Dados do contratante só em memória (nunca no navegador).
@@ -64,11 +67,18 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
   async function carregarRevisao() {
     setErro(""); setOcupado(true);
     try {
+      const estado = await checkout<{ etapa: string; aceite_id: string | null }>("estado", sessao);
+      const destino = etapaReservada(estado.etapa, sessao.proposta_id, estado.aceite_id);
+      if (destino !== "revisao") {
+        const tela = await checkout<TelaPagamento>("tela_pagamento", sessao);
+        setTelaPagamento(tela); setRevisao(tela.revisao); setEtapa(destino);
+        return;
+      }
       const r = await checkout<Revisao>("revisar", sessao);
       setRevisao(r);
-      setEtapa(r.etapa === "contrato_aceito" && etapaInicial === "contrato_aceito" ? "aceito" : "revisao");
+      setEtapa("revisao");
     } catch (e) { falhou(e); setEtapa("revisao"); }
-    setOcupado(false);
+    finally { setOcupado(false); }
   }
   useEffect(() => { carregarRevisao(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { titulo.current?.focus(); window.scrollTo({ top: 0 }); }, [etapa]);
@@ -123,7 +133,9 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
     try {
       await checkout("aceitar", { ...sessao, contratante: contratante(), hash_exibido: contrato.hash, li_e_aceito: true });
       setD((x) => ({ ...x, cpf: "" }));
-      setEtapa("aceito");
+      setContrato(null);
+      setEtapa("carregando");
+      await carregarRevisao();
     } catch (e) {
       falhou(e);
       if (e instanceof ErroCheckout && e.message === C.contrato.hashMudou) {
@@ -143,8 +155,10 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
 
   if (etapa === "carregando") return <p className="py-10 text-muted-foreground" role="status">{C.carregando}</p>;
 
-  if (etapa === "aceito") return <section className="max-w-2xl py-6"><H sub={C.aceito.texto}>{C.aceito.titulo}</H>
-    {revisao && <p className="font-bold">{NOME[revisao.familia]} · {FREQ[lerCodigo(revisao.plano_codigo).frequencia]} · {C.revisao.total} {brl(revisao.total_centavos)}</p>}</section>;
+  if ((etapa === "pagamento" || etapa === "confirmacao") && telaPagamento) return <PagamentoReservado2027
+    tela={telaPagamento} confirmacao={etapa === "confirmacao"} onAlterar={onAlterar}
+    onVoltar={() => setEtapa("pagamento")}
+    onConfirmar={() => { guardarConfirmacao(sessao.proposta_id, telaPagamento.aceite_id); setEtapa("confirmacao"); }} />;
 
   if (etapa === "revisao") {
     const r = revisao;
