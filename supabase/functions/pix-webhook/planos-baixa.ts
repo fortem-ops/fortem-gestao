@@ -13,7 +13,10 @@ export function valorEmCentavos(v: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
 }
 
-type Sup = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: any; error: any }>; from: (t: string) => any };
+type Sup = {
+  rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: any; error: any }>; from: (t: string) => any;
+  functions?: { invoke: (n: string, o: { body: unknown }) => Promise<unknown> };
+};
 
 export async function baixarPixProposta(sup: Sup, txid: string, ev: any): Promise<string> {
   try {
@@ -24,6 +27,10 @@ export async function baixarPixProposta(sup: Sup, txid: string, ev: any): Promis
     const r = String(data?.resultado ?? "erro");
     if (r !== "baixado" && r !== "ja_processado") {
       await sup.from("system_logs").insert({ modulo: "pix-webhook", acao: "planos_baixa_erro", mensagem: `${txid}: ${r}`, payload: mascararCpf({ resultado: data, ev }) });
+    }
+    if ((r === "baixado" || r === "ja_processado") && data?.proposta_id && sup.functions) {
+      // E-mail de confirmação: idempotente no banco; falha não afeta a baixa.
+      try { await sup.functions.invoke("planos-confirmacao", { body: { proposta_id: data.proposta_id } }); } catch { /* registrado lá */ }
     }
     return r;
   } catch (e) {

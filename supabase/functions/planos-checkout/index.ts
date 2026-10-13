@@ -202,7 +202,10 @@ Deno.serve(async (req) => {
           const novo = status < 300 ? statusInterParaTentativa((data as any)?.status) : null;
           if (novo === "aprovado") {
             const valor = Math.round(Number((data as any)?.valor?.original ?? 0) * 100);
-            await admin.rpc("fn_checkout_2027_pix_liquidado", { p_txid: st.ref, p_valor_centavos: valor, p_e2e: (data as any)?.pix?.[0]?.endToEndId ?? null, p_raw: null });
+            const { data: bx } = await admin.rpc("fn_checkout_2027_pix_liquidado", { p_txid: st.ref, p_valor_centavos: valor, p_e2e: (data as any)?.pix?.[0]?.endToEndId ?? null, p_raw: null });
+            if (bx?.resultado === "baixado" || bx?.resultado === "ja_processado") {
+              try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente; registrado lá */ }
+            }
             const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
             t = re?.tentativa ?? t;
           } else if (novo) t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: novo, p_ref: null, p_motivo: null }, propostaId);
