@@ -50,7 +50,7 @@ function PagamentoAtivo({ sessao, pix, onAprovado }: { sessao: SessaoCheckout; p
   useEffect(() => {
     if (!pendentePix) return;
     const relogio = setInterval(() => setAgora(Date.now()), 1000);
-    const consulta = setInterval(() => { checkout<RespostaPagamento>("status_pagamento", sessao).then(aplicar).catch(() => {}); }, 5000);
+    const consulta = setInterval(() => { checkout<RespostaPagamento>("status_pagamento", sessao).then(aplicar).catch(() => {}); }, 8000);
     return () => { clearInterval(relogio); clearInterval(consulta); };
   }, [pendentePix, sessao]);
   const teste = t && !t.simulado && t.valor_centavos !== t.total_proposta_centavos;

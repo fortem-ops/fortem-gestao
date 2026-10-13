@@ -92,7 +92,8 @@ async function pixReal(propostaId: string, t: Tentativa) {
   const { data: existente } = await admin.from("pix_cobrancas").select("id, txid, status, created_at, raw_response")
     .eq("proposta_id", propostaId).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
   // Reaproveita só a cobrança da própria tentativa, ativa e dentro da validade.
-  if (existente?.txid && (t as any).ref === existente.txid && cobrancaValida(existente as any))
+  const { data: atual } = await admin.from("checkout_2027_tentativas").select("ref").eq("id", t.id).maybeSingle();
+  if (existente?.txid && atual?.ref === existente.txid && cobrancaValida(existente as any))
     return { tentativa: tentativaPublica(t), pix_copia_cola: (existente.raw_response as any)?.pixCopiaECola ?? null };
   if (existente?.id) await expirarPixAntigo(propostaId, existente.id, t.id);
   else await expirarPixAntigo(propostaId, null, t.id);
@@ -270,6 +271,11 @@ Deno.serve(async (req) => {
           if (c?.id && c.txid === st.ref) await expirarPixAntigo(propostaId, c.id, null);
           t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "expirado", p_ref: null, p_motivo: "pix_vencido" }, propostaId);
         } else copia = (c?.raw_response as any)?.pixCopiaECola ?? null;
+      }
+      // Tentativa já expirada pelo banco: a cobrança ativa dela também vira EXPIRADA (só desta proposta).
+      if (t && !t.simulado && t.tipo === "pix" && t.status === "expirado" && typeof st.ref === "string") {
+        const { data: c } = await admin.from("pix_cobrancas").select("id, status, created_at").eq("proposta_id", propostaId).eq("txid", st.ref).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
+        if (c?.id) await expirarPixAntigo(propostaId, c.id, null);
       }
       return json(200, { etapa: st?.etapa, tentativa: tentativaPublica(t), pix_copia_cola: copia });
     }
