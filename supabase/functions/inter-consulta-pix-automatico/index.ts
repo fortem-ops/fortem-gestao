@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
   if (req.method === "POST") { try { corpo = (await req.clone().json()) ?? {}; } catch { /* sem corpo */ } }
   modo = modo ?? corpo.modo ?? null;
   if (modo === "previa_payload") return jsonResponse(await previaPayload());
+  if (modo === "registrar_webhooks" && !interno && corpo.confirmar === "REGISTRAR_AVISOS") return jsonResponse(await registrarWebhooks());
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
@@ -147,4 +148,45 @@ async function previaPayload() {
     politicaRetentativa: "PERMITE_3R_7D",
   };
   return { enviado: false, aluno_encontrado: !!aluno, cpf_valido: cpf.length === 11, cpf_final: cpf.slice(-3), payload };
+}
+
+// Registra os três avisos (Pix comum, recorrência, cobrança) com ?token=. Nunca devolve o segredo.
+function mascarar(url: unknown): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(String(url));
+    for (const k of [...u.searchParams.keys()]) u.searchParams.set(k, "***");
+    return u.toString().replace(/%2A/g, "*");
+  } catch { return "(url inválida)"; }
+}
+async function registrarWebhooks() {
+  const segredo = Deno.env.get("PIX_WEBHOOK_SECRET") ?? "";
+  const chave = Deno.env.get("INTER_PIX_CHAVE") ?? "";
+  if (segredo.length < 16) return { erro: "PIX_WEBHOOK_SECRET ausente ou curto" };
+  if (!chave) return { erro: "INTER_PIX_CHAVE ausente" };
+  const destino = `${Deno.env.get("SUPABASE_URL")}/functions/v1/pix-webhook?token=${encodeURIComponent(segredo)}`;
+  const alvos: [string, string][] = [
+    ["webhook_pix", `/pix/v2/webhook/${encodeURIComponent(chave)}`],
+    ["webhookrec", `/pix/v2/webhookrec`],
+    ["webhookcobr", `/pix/v2/webhookcobr`],
+  ];
+  const antes: Record<string, unknown> = {};
+  for (const [n, p] of alvos) {
+    const r = await interFetch(p, { method: "GET" });
+    antes[n] = { status: r.status, url: mascarar(r.data?.webhookUrl), criacao: r.data?.criacao ?? null };
+  }
+  const registro: Record<string, unknown> = {};
+  for (const [n, p] of alvos) {
+    const r = await interFetch(p, { method: "PUT", json: { webhookUrl: destino } });
+    registro[n] = { status: r.status, erro: r.status >= 400 ? (r.data?.title ?? r.data?.detail ?? String(r.raw).slice(0, 200)) : null };
+    if (r.status >= 400) break; // para na ordem pedida
+    await new Promise((x) => setTimeout(x, 1500));
+  }
+  const depois: Record<string, unknown> = {};
+  for (const [n, p] of alvos) {
+    const r = await interFetch(p, { method: "GET" });
+    const url = r.data?.webhookUrl ? String(r.data.webhookUrl) : "";
+    depois[n] = { status: r.status, url: mascarar(url), token_confere: url === destino };
+  }
+  return { credencial: "cob", antes, registro, depois };
 }
