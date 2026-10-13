@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Contratos 2027: restaurar Pix Automático pelo backup, ajustar validação de ativação sem ativar, prazo de reposição de 30 dias, renderizar cinco exemplos e verificar preservação
+
 - [x] Rodada 2 /planos: identificação segura por telefone, cartões selecionáveis, parcelas e interruptor de recorrência; 75 testes e fluxo visual 390px/1280px sem ativação
 - [ ] Rodada 2: envio real vinculado ao NICOLAS TESTE (bloqueadores: telefone compartilhado por 6 cadastros e ausência de sessão admin autorizada)
 
