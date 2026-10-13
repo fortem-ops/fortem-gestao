@@ -58,3 +58,17 @@ export function corpoEmailCodigo(codigo: string): { assunto: string; html: strin
 </div></body></html>`;
   return { assunto, html };
 }
+
+/** Resposta pública do envio: igual para CPF com e sem cadastro (anti-enumeração). Só "limitado" difere. */
+export type EnvioPublico = { enviado: true; verificacao_id: string } | { enviado: false; motivo: "limitado" };
+export function respostaEnvioPublica(r: Envio, idFalso: string): EnvioPublico {
+  if (!r.enviado && r.motivo === "limitado") return { enviado: false, motivo: "limitado" };
+  return { enviado: true, verificacao_id: r.enviado ? r.verificacao_id : idFalso };
+}
+
+/** Validação pública: verificação inexistente responde como código errado. */
+export function respostaValidacaoPublica(r: { ok?: boolean; motivo?: string; restantes?: number } | null) {
+  if (r?.ok) return { ok: true };
+  if (!r || r.motivo === "invalido" || r.motivo === "usado") return { ok: false, motivo: "errado", restantes: 4 };
+  return { ok: false, motivo: r.motivo, ...(typeof r.restantes === "number" ? { restantes: r.restantes } : {}) };
+}
