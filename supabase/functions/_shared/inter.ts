@@ -74,6 +74,7 @@ export const SCOPES_PIX_AUTOMATICO = [
   "cobr.write","cobr.read","webhookrec.write","webhookrec.read",
   "webhookcobr.write","webhookcobr.read","webhook.write","webhook.read",
   "cob.write","cob.read","cobv.write","cobv.read","pix.write","pix.read",
+  "payloadlocationrec.write","payloadlocationrec.read",
 ].join(" ");
 
 function envCred(cred: CredInter, nome: string): string {

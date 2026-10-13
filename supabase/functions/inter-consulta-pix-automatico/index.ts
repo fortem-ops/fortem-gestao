@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
   return jsonResponse({ somente_leitura: true, oauth, escopos, resultados });
 });
 
-const CANDIDATOS = ["rec.write","rec.read","solicrec.write","solicrec.read","cobr.write","cobr.read","payloadrec.write","payloadrec.read","webhookrec.write","webhookrec.read","webhookcobr.write","webhookcobr.read","webhook.write","webhook.read","cob.write","cob.read","cobv.write","cobv.read","pix.write","pix.read"];
+const CANDIDATOS = ["rec.write","rec.read","solicrec.write","solicrec.read","cobr.write","cobr.read","payloadrec.write","payloadrec.read","payloadlocationrec.write","payloadlocationrec.read","payloadlocrec.write","payloadlocrec.read","webhookrec.write","webhookrec.read","webhookcobr.write","webhookcobr.read","webhook.write","webhook.read","cob.write","cob.read","cobv.write","cobv.read","pix.write","pix.read"];
 
 function resumir(status: number, data: any) {
   const r: Record<string, unknown> = { status };
