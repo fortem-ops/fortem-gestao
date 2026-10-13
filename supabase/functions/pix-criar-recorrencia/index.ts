@@ -1,9 +1,9 @@
-import { corsHeaders, jsonResponse, interFetch, admin, requireAdminOrCoord, onlyDigits } from "../_shared/inter.ts";
+import { corsHeaders, jsonResponse, interFetch, admin, requireAdmin, onlyDigits } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const auth = await requireAdminOrCoord(req);
+    const auth = await requireAdmin(req);
     if ("error" in auth) return auth.error;
 
     const body = await req.json().catch(() => null);
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       politicaRetentativa: "PERMITE_3R_7D",
     };
 
-    console.log("[pix-criar-recorrencia] payload:", JSON.stringify(payload));
+    console.log("[pix-criar-recorrencia] contrato:", payload.vinculo.contrato, "cpf final:", cpf.slice(-3));
     const { status, data, raw } = await interFetch("/pix/v2/rec", {
       method: "POST",
       json: payload,

@@ -1,5 +1,5 @@
 // Consulta SOMENTE-LEITURA ao Inter (Pix Automático): só GET, nada é criado no banco.
-import { jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
+import { onlyDigits, jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
   let corpo: any = {};
   if (req.method === "POST") { try { corpo = (await req.clone().json()) ?? {}; } catch { /* sem corpo */ } }
   modo = modo ?? corpo.modo ?? null;
+  if (modo === "previa_payload") return jsonResponse(await previaPayload());
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
@@ -125,4 +126,25 @@ async function descobrir(corpo: any) {
     }
   }
   return { somente_leitura: true, info, escopos, aceitos, token_combinado, consultas };
+}
+
+// Monta, SEM ENVIAR, o payload da recorrência de teste de R$ 1,00 do aluno NICOLAS TESTE (CPF mascarado).
+const ALUNO_TESTE = "085acf57-2dbe-464d-9acc-e1b0f5b77032";
+async function previaPayload() {
+  const sup = admin();
+  const { data: aluno } = await sup.from("alunos").select("id, nome").eq("id", ALUNO_TESTE).maybeSingle();
+  const { data: cpfRaw } = await sup.rpc("fn_reveal_cpf_service", { p_aluno_id: ALUNO_TESTE });
+  const cpf = onlyDigits(cpfRaw);
+  const mask = cpf.length === 11 ? `***.***.**${cpf.slice(8, 9)}-${cpf.slice(9)}` : null;
+  const payload = {
+    vinculo: {
+      objeto: "Plano mensal FORTEM",
+      contrato: ALUNO_TESTE.replace(/-/g, "").substring(0, 35),
+      devedor: { cpf: mask, nome: aluno?.nome ?? null },
+    },
+    calendario: { dataInicial: "2026-10-14", dataFinal: "2026-11-14", periodicidade: "MENSAL" },
+    valor: { valorMinimoRecebedor: "1.00" },
+    politicaRetentativa: "PERMITE_3R_7D",
+  };
+  return { enviado: false, aluno_encontrado: !!aluno, cpf_valido: cpf.length === 11, cpf_final: cpf.slice(-3), payload };
 }

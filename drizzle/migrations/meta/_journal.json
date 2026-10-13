@@ -673,6 +673,13 @@
       "when": 1791886101653,
       "tag": "0095_golive_2027_permitir_pix_automatico_contratos",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1791888167128,
+      "tag": "0096_inter_tokens_credencial",
+      "breakpoints": true
     }
   ]
 }
