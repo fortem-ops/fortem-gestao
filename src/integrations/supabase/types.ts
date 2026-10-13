@@ -7677,6 +7677,7 @@ export type Database = {
           aluno_suspeito_id: string | null
           chave_sessao_hash: string | null
           configuracao: Json
+          consentimento_contato_em: string | null
           contratante: Json | null
           corrida: boolean
           corrida_valor_mensal: number | null
@@ -7723,6 +7724,7 @@ export type Database = {
           aluno_suspeito_id?: string | null
           chave_sessao_hash?: string | null
           configuracao?: Json
+          consentimento_contato_em?: string | null
           contratante?: Json | null
           corrida?: boolean
           corrida_valor_mensal?: number | null
@@ -7769,6 +7771,7 @@ export type Database = {
           aluno_suspeito_id?: string | null
           chave_sessao_hash?: string | null
           configuracao?: Json
+          consentimento_contato_em?: string | null
           contratante?: Json | null
           corrida?: boolean
           corrida_valor_mensal?: number | null
@@ -10441,6 +10444,7 @@ export type Database = {
           aluno_suspeito_id: string | null
           chave_sessao_hash: string | null
           configuracao: Json
+          consentimento_contato_em: string | null
           contratante: Json | null
           corrida: boolean
           corrida_valor_mensal: number | null
@@ -11005,6 +11009,7 @@ export type Database = {
         Args: { p_hash: string; p_id: string }
         Returns: Json
       }
+      fn_planos_dados_verificados: { Args: { p_id: string }; Returns: Json }
       fn_planos_divergencia_alertar: { Args: never; Returns: number }
       fn_planos_divergencia_contrato: {
         Args: never
@@ -11032,6 +11037,10 @@ export type Database = {
       fn_planos_publico_2027: { Args: { p_previa?: boolean }; Returns: Json }
       fn_planos_resolver: {
         Args: { p_tipo: string; p_valor: string }
+        Returns: string
+      }
+      fn_planos_verificacao_admin: {
+        Args: { p_cpf: string; p_user_id: string }
         Returns: string
       }
       fn_ponto_ajustar_jornada: {

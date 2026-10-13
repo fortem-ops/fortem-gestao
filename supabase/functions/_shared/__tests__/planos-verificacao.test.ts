@@ -30,3 +30,25 @@ describe("identificação /planos", () => {
     expect(corpoEmailCodigo("123456").assunto).toBe("Seu código FORTEM: 123456");
   });
 });
+
+import { respostaEnvioPublica, respostaValidacaoPublica } from "../planos-verificacao";
+describe("cadastro único /planos — anti-enumeração", () => {
+  const idFalso = "00000000-0000-4000-8000-000000000000";
+  it("CPF existente e inexistente respondem com as mesmas chaves e sem e-mail", () => {
+    const existe = respostaEnvioPublica({ enviado: true, verificacao_id: "abc", email_mascarado: "n*****@gmail.com" }, idFalso);
+    const naoExiste = respostaEnvioPublica({ enviado: false, motivo: "indisponivel" }, idFalso);
+    const semEmail = respostaEnvioPublica({ enviado: false, motivo: "sem_email" }, idFalso);
+    expect(Object.keys(existe).sort()).toEqual(Object.keys(naoExiste).sort());
+    expect(Object.keys(semEmail).sort()).toEqual(Object.keys(naoExiste).sort());
+    expect(JSON.stringify(existe)).not.toContain("@");
+    expect(naoExiste).toEqual({ enviado: true, verificacao_id: idFalso });
+  });
+  it("só o limite de tentativas tem resposta diferente", () => {
+    expect(respostaEnvioPublica({ enviado: false, motivo: "limitado" }, idFalso)).toEqual({ enviado: false, motivo: "limitado" });
+  });
+  it("validar uma verificação inexistente parece código errado", () => {
+    expect(respostaValidacaoPublica({ ok: false, motivo: "invalido" })).toEqual({ ok: false, motivo: "errado", restantes: 4 });
+    expect(respostaValidacaoPublica({ ok: false, motivo: "errado", restantes: 4 })).toEqual({ ok: false, motivo: "errado", restantes: 4 });
+    expect(respostaValidacaoPublica({ ok: true })).toEqual({ ok: true });
+  });
+});
