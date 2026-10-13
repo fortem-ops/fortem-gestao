@@ -19,14 +19,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { KpiCard } from "@/components/relatorios/KpiCard";
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign, Copy, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign, Copy, X, Download, FileSpreadsheet, FileDown } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useFornecedores } from "@/hooks/useDespesas";
+import { exportarDespesasXLSX, exportarDespesasPDF, type DespesaExportRow, type DespesasExportMeta } from "@/lib/despesasExport";
 import { LancarFolhaDialog } from "@/components/financeiro/LancarFolhaDialog";
 import { ImportarFaturaDialog } from "@/components/financeiro/ImportarFaturaDialog";
 import {
