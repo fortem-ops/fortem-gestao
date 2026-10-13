@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { TEXTOS_CHECKOUT } from "@/config/planosPublicoTextos";
 import { useQuery } from "@tanstack/react-query";
@@ -15,18 +15,28 @@ const PlanosPublico2027 = lazy(() => import("./PlanosPublico2027"));
 export default function PlanosRota() {
   const [params] = useSearchParams();
   const previa = params.get("previa") === "1";
+  // Na prévia do editor a sessão chega com atraso: espera a sessão antes de pedir o catálogo,
+  // senão o servidor responde como visitante e a prévia de admin cai no fluxo público (com Turnstile).
+  const [usuario, setUsuario] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let vivo = true;
+    supabase.auth.getSession().then(({ data }) => { if (vivo) setUsuario(data.session?.user.id ?? null); });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => { if (vivo) setUsuario(s?.user.id ?? null); });
+    return () => { vivo = false; sub.subscription.unsubscribe(); };
+  }, []);
   const { data, isLoading } = useQuery({
-    queryKey: ["planos-publico-2027", previa],
+    queryKey: ["planos-publico-2027", previa, previa ? usuario : null],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_planos_publico_2027" as any, { p_previa: previa });
       if (error) throw error;
       return data as unknown as CatalogoPublico;
     },
+    enabled: !previa || usuario !== undefined,
     staleTime: 60_000,
     retry: 1,
   });
 
-  if (isLoading) return <div data-planos2027="true" className="min-h-screen bg-background" />;
+  if (isLoading || (previa && usuario === undefined)) return <div data-planos2027="true" className="min-h-screen bg-background" />;
   const usar2027 = !!data && data.planos.length > 0 && (data.disponivel || data.previa);
   // Prévia pedida sem admin logado: o servidor não liberou os itens; orienta o login.
   if (previa && !data?.previa) return <PreviaSemLogin />;
