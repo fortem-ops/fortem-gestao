@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { pagamentoReservado } from "../_shared/checkout-pagamento-reservado.ts";
 import { interCobFetch } from "../_shared/inter-cob.ts";
 import { genTxid } from "../_shared/inter.ts";
-import { lerDadosCartao } from "./cartao.ts";
+import { lerDadosCartao, lerNomeTitular } from "./cartao.ts";
 import { acessoRede } from "./cartao-rede.ts";
 import { depsReais } from "./deps-cartao.ts";
 import { acompanharCartaoReal, iniciarCartaoReal } from "./fluxo-cartao.ts";
@@ -293,8 +293,7 @@ Deno.serve(async (req) => {
         if (acesso) {
           const deps = depsReais(admin, acesso, await softDescriptor());
           const tc = await deps.db.tentativa(t.id);
-          const nome = lerDadosCartao({ ...body?.cartao, numero: "4111111111111111", mes: "12", ano: "2099", cvv: "123" })?.nome ?? null;
-          if (tc) await acompanharCartaoReal(deps, tc, body?.cartao?.nome ? nome : null);
+          if (tc) await acompanharCartaoReal(deps, tc, lerNomeTitular(body?.cartao?.nome));
           const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
           t = re?.tentativa ?? t;
           if (t?.status === "aprovado") { try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente */ } }
