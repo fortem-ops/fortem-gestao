@@ -799,6 +799,13 @@
       "when": 1791926780495,
       "tag": "0113_checkout_2027_aviso_teste_lista",
       "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1791927473562,
+      "tag": "0114_migration",
+      "breakpoints": true
     }
   ]
 }

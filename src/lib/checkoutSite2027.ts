@@ -62,3 +62,30 @@ export function lerCodigo(codigo: string): { frequencia: string; periodo: "anual
 export function rolouAteOFim(el: { scrollTop: number; clientHeight: number; scrollHeight: number }): boolean {
   return el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
 }
+
+/**
+ * Proposta pública: tenta abrir o checkout logo após o cadastro.
+ * Devolve a sessão ou null quando o checkout não está liberado (a tela cai em "a equipe entra em contato").
+ */
+export async function iniciarCheckoutPublico(
+  propostaId: string,
+  chamar: (acao: string, corpo: Record<string, unknown>) => Promise<{ chave_sessao?: string; etapa?: string }> = checkout,
+): Promise<{ sessao: SessaoCheckout; etapa: string } | null> {
+  try {
+    const r = await chamar("iniciar", { proposta_id: propostaId });
+    if (!r?.chave_sessao) return null;
+    return { sessao: { proposta_id: propostaId, chave_sessao: r.chave_sessao }, etapa: r.etapa ?? "identificada" };
+  } catch { return null; }
+}
+
+/** Valida a sessão salva com "estado"; inválida ou expirada é apagada. */
+export async function restaurarSessao(
+  chamar: (acao: string, corpo: Record<string, unknown>) => Promise<{ etapa?: string }> = checkout,
+): Promise<{ sessao: SessaoCheckout; etapa: string } | null> {
+  const s = lerSessao();
+  if (!s) return null;
+  try {
+    const r = await chamar("estado", s);
+    return { sessao: s, etapa: r?.etapa ?? "identificada" };
+  } catch { limparSessao(); return null; }
+}
