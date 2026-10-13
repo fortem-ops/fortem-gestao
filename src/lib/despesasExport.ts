@@ -35,7 +35,7 @@ const FORTEM_GREEN: [number, number, number] = [34, 197, 94];
 const FORTEM_DARK: [number, number, number] = [15, 17, 23];
 
 function nomeArquivo(meta: DespesasExportMeta, ext: string) {
-  const slug = meta.periodo.replaceAll("/", "-").replaceAll(" ", "");
+  const slug = meta.periodo.replace(/[\/\s]/g, "-");
   return `despesas-${slug}.${ext}`;
 }
 
