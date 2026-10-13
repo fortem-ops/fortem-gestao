@@ -49,7 +49,7 @@ export function corpoEmailCodigo(codigo: string): { assunto: string; html: strin
   const assunto = `Seu código FORTEM: ${codigo}`;
   const html = `<!doctype html><html><body style="margin:0;background:#ffffff;font-family:Archivo,Arial,sans-serif;color:#111111">
 <div style="max-width:520px;margin:0 auto;padding:32px 24px">
-<div style="font-weight:900;font-size:22px;letter-spacing:1px;text-transform:uppercase;border-bottom:4px solid #E30613;padding-bottom:12px">FORTEM</div>
+<div style="font-weight:900;font-size:22px;letter-spacing:1px;text-transform:uppercase;border-bottom:4px solid #E21C1C;padding-bottom:12px">FORTEM</div>
 <p style="font-size:16px;line-height:1.5;margin:24px 0">Use o código abaixo para confirmar que é você e continuar a compra do seu plano.</p>
 <div style="font-size:36px;font-weight:900;letter-spacing:8px;background:#111111;color:#ffffff;padding:16px 20px;display:inline-block">${codigo}</div>
 <p style="font-size:15px;line-height:1.5;margin:24px 0 8px">Ele vale por 10 minutos.</p>
