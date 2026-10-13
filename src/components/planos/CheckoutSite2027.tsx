@@ -156,7 +156,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
   if (etapa === "carregando") return <p className="py-10 text-muted-foreground" role="status">{C.carregando}</p>;
 
   if ((etapa === "pagamento" || etapa === "confirmacao") && telaPagamento) return <PagamentoReservado2027
-    tela={telaPagamento} confirmacao={etapa === "confirmacao"} onAlterar={onAlterar}
+    tela={telaPagamento} sessao={sessao} confirmacao={etapa === "confirmacao"} onAlterar={onAlterar}
     onVoltar={() => setEtapa("pagamento")}
     onConfirmar={() => { guardarConfirmacao(sessao.proposta_id, telaPagamento.aceite_id); setEtapa("confirmacao"); }} />;
 

@@ -3,6 +3,9 @@
 // Nunca registra CPF, e-mail ou telefone; logs só com id da proposta.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { pagamentoReservado } from "../_shared/checkout-pagamento-reservado.ts";
+import { interCobFetch } from "../_shared/inter-cob.ts";
+import { genTxid } from "../_shared/inter.ts";
+import { resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
 import {
   cpfDigitosValidos, hashTexto, montarVariaveisContrato, preencherContrato, semCpf, variaveisParaGuardar,
   type Contratante,
@@ -30,7 +33,8 @@ const NEUTRAS = [
   "Informe um CEP válido", "Preencha o endereço completo", "Este CPF não confere com o seu cadastro",
   "Este CPF precisa ser confirmado. Volte e identifique-se como aluno", "Preencha seus dados antes de aceitar",
   "Marque que você leu e aceita o contrato", "O contrato mudou. Leia a versão atual e aceite de novo",
-  "Informe seu nome completo", "Informe um e-mail válido",
+  "Informe seu nome completo", "Informe um e-mail válido", "Pagamento por cartão indisponível no momento",
+  "Pix indisponível no momento",
 ];
 class Neutro extends Error {}
 
@@ -70,6 +74,29 @@ async function gerar(propostaId: string, chave: string, contratante: any, ip: st
   });
   const html = preencherContrato(r.template.conteudo, vars);
   return { r, vars, html, hash: await hashTexto(html) };
+}
+
+/** Pix real (só modo real_baixo_valor de teste ou checkout ativo). Sem devedor: nenhum CPF sai do servidor. */
+async function pixReal(propostaId: string, t: Tentativa) {
+  const { data: existente } = await admin.from("pix_cobrancas").select("txid, raw_response")
+    .eq("proposta_id", propostaId).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
+  if (existente?.txid) return { tentativa: tentativaPublica(t), pix_copia_cola: (existente.raw_response as any)?.pixCopiaECola ?? null };
+  const chavePix = Deno.env.get("INTER_PIX_CHAVE");
+  if (!chavePix) throw new Neutro("Pix indisponível no momento");
+  const txid = genTxid();
+  const { status, data } = await interCobFetch(`/pix/v2/cob/${txid}`, {
+    method: "PUT",
+    json: { calendario: { expiracao: 1800 }, valor: { original: (t.valor_centavos / 100).toFixed(2) }, chave: chavePix, solicitacaoPagador: "Plano FORTEM" },
+  });
+  const copia = (data as any)?.pixCopiaECola;
+  if (status >= 300 || !copia) {
+    console.error("[planos-checkout] Inter /cob falhou", { proposta: propostaId, status });
+    await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "recusado", p_ref: null, p_motivo: "falha_criar_pix" }, propostaId);
+    throw new Neutro("Pix indisponível no momento");
+  }
+  await admin.from("pix_cobrancas").insert({ proposta_id: propostaId, txid, valor: t.valor_centavos / 100, status: (data as any)?.status ?? "ATIVA", descricao: "Plano FORTEM (site)", raw_response: data });
+  await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "pendente", p_ref: txid, p_motivo: null }, propostaId);
+  return { tentativa: tentativaPublica(t), pix_copia_cola: copia };
 }
 
 Deno.serve(async (req) => {
@@ -133,11 +160,50 @@ Deno.serve(async (req) => {
       // Session/eligibility and acceptance are validated on the server.
       // No payment, card storage, Pix generation or financial status write.
       const e = await rpc("fn_checkout_2027_estado", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
-      if (e.etapa !== "contrato_aceito" || !e.aceite_id) throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
+      if (!["contrato_aceito", "aguardando_pagamento", "falhou"].includes(e.etapa) || !e.aceite_id) throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
       const r = await rpc("fn_checkout_2027_calcular", { p_proposta_id: propostaId }, propostaId);
       if (Object.keys(r).some((k) => JSON.stringify(r[k]) !== JSON.stringify(e.revisao?.[k])))
         throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
       return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: pagamentoReservado(r), aceite_id: e.aceite_id });
+    }
+    if (acao === "pagar_pix") {
+      const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "pix", p_ip: ip }, propostaId) as Tentativa;
+      if (t.simulado) return json(200, { tentativa: tentativaPublica(t), pix_copia_cola: null });
+      return json(200, await pixReal(propostaId, t));
+    }
+    if (acao === "pagar_cartao") {
+      const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "cartao", p_ip: ip }, propostaId) as Tentativa;
+      if (t.simulado) {
+        const r = await rpc("fn_checkout_2027_simular_resultado", { p_tentativa_id: t.id, p_resultado: resultadoCartaoSimulado(body?.simular) }, propostaId);
+        return json(200, { tentativa: tentativaPublica(r) });
+      }
+      // Cobrança real no cartão ainda não está ligada nesta fase: registra recusa sem chamar a Rede.
+      await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "recusado", p_ref: null, p_motivo: "cartao_real_nao_liberado" }, propostaId);
+      throw new Neutro("Pagamento por cartão indisponível no momento");
+    }
+    if (acao === "simular_pix") {
+      const res = resultadoPixSimulado(body?.resultado);
+      const st = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+      const t = st?.tentativa as Tentativa | null;
+      if (!res || !t || t.tipo !== "pix" || !t.simulado) throw new Neutro("Checkout indisponível no momento");
+      const r = await rpc("fn_checkout_2027_simular_resultado", { p_tentativa_id: t.id, p_resultado: res }, propostaId);
+      return json(200, { tentativa: tentativaPublica(r) });
+    }
+    if (acao === "status_pagamento") {
+      const st = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+      let t = st?.tentativa as Tentativa | null;
+      // Pix real pendente: só consulta (GET) no Inter.
+      if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente" && typeof st.ref === "string") {
+        const { status, data } = await interCobFetch(`/pix/v2/cob/${st.ref}`, { method: "GET" });
+        const novo = status < 300 ? statusInterParaTentativa((data as any)?.status) : null;
+        if (novo) t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: novo, p_ref: null, p_motivo: null }, propostaId);
+      }
+      let copia: string | null = null;
+      if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente") {
+        const { data: c } = await admin.from("pix_cobrancas").select("raw_response").eq("proposta_id", propostaId).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
+        copia = (c?.raw_response as any)?.pixCopiaECola ?? null;
+      }
+      return json(200, { etapa: st?.etapa, tentativa: tentativaPublica(t), pix_copia_cola: copia });
     }
     if (acao === "alterar") {
       const e = body?.escolhas ?? {};

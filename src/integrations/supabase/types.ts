@@ -1559,6 +1559,65 @@ export type Database = {
           },
         ]
       }
+      checkout_2027_tentativas: {
+        Row: {
+          aceite_id: string | null
+          created_at: string
+          expira_em: string | null
+          id: string
+          motivo: string | null
+          parcelas: number
+          proposta_id: string
+          ref: string | null
+          simulado: boolean
+          status: string
+          tipo: string
+          total_proposta_centavos: number
+          updated_at: string
+          valor_centavos: number
+        }
+        Insert: {
+          aceite_id?: string | null
+          created_at?: string
+          expira_em?: string | null
+          id?: string
+          motivo?: string | null
+          parcelas?: number
+          proposta_id: string
+          ref?: string | null
+          simulado?: boolean
+          status?: string
+          tipo: string
+          total_proposta_centavos: number
+          updated_at?: string
+          valor_centavos: number
+        }
+        Update: {
+          aceite_id?: string | null
+          created_at?: string
+          expira_em?: string | null
+          id?: string
+          motivo?: string | null
+          parcelas?: number
+          proposta_id?: string
+          ref?: string | null
+          simulado?: boolean
+          status?: string
+          tipo?: string
+          total_proposta_centavos?: number
+          updated_at?: string
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_2027_tentativas_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_planos_2027"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ciclos_credito: {
         Row: {
           cobranca_id: string | null
@@ -5354,6 +5413,7 @@ export type Database = {
           motivo_estorno: string | null
           nsu: string | null
           pedido_id: string | null
+          proposta_id: string | null
           raw_response: Json | null
           return_code: string | null
           return_message: string | null
@@ -5374,6 +5434,7 @@ export type Database = {
           motivo_estorno?: string | null
           nsu?: string | null
           pedido_id?: string | null
+          proposta_id?: string | null
           raw_response?: Json | null
           return_code?: string | null
           return_message?: string | null
@@ -5394,6 +5455,7 @@ export type Database = {
           motivo_estorno?: string | null
           nsu?: string | null
           pedido_id?: string | null
+          proposta_id?: string | null
           raw_response?: Json | null
           return_code?: string | null
           return_message?: string | null
@@ -5946,6 +6008,7 @@ export type Database = {
           motivo_rejeicao: string | null
           pagamento_id: string | null
           pedido_id: string | null
+          proposta_id: string | null
           raw_response: Json | null
           status: string
           txid: string
@@ -5964,6 +6027,7 @@ export type Database = {
           motivo_rejeicao?: string | null
           pagamento_id?: string | null
           pedido_id?: string | null
+          proposta_id?: string | null
           raw_response?: Json | null
           status?: string
           txid: string
@@ -5982,6 +6046,7 @@ export type Database = {
           motivo_rejeicao?: string | null
           pagamento_id?: string | null
           pedido_id?: string | null
+          proposta_id?: string | null
           raw_response?: Json | null
           status?: string
           txid?: string
@@ -7632,6 +7697,9 @@ export type Database = {
           lead_erro: string | null
           nome: string
           origem: string
+          pagamento_ref: string | null
+          pagamento_tipo: string | null
+          pago_em: string | null
           parcelas_plano: number
           parcelas_servicos: number | null
           plano_codigo: string
@@ -7675,6 +7743,9 @@ export type Database = {
           lead_erro?: string | null
           nome: string
           origem?: string
+          pagamento_ref?: string | null
+          pagamento_tipo?: string | null
+          pago_em?: string | null
           parcelas_plano?: number
           parcelas_servicos?: number | null
           plano_codigo: string
@@ -7718,6 +7789,9 @@ export type Database = {
           lead_erro?: string | null
           nome?: string
           origem?: string
+          pagamento_ref?: string | null
+          pagamento_tipo?: string | null
+          pago_em?: string | null
           parcelas_plano?: number
           parcelas_servicos?: number | null
           plano_codigo?: string
@@ -8064,6 +8138,7 @@ export type Database = {
           last4: string | null
           link_cartao_id: string | null
           origem: string
+          proposta_id: string | null
           raw_response: Json | null
           status: string
           token_code: string | null
@@ -8083,6 +8158,7 @@ export type Database = {
           last4?: string | null
           link_cartao_id?: string | null
           origem?: string
+          proposta_id?: string | null
           raw_response?: Json | null
           status?: string
           token_code?: string | null
@@ -8102,6 +8178,7 @@ export type Database = {
           last4?: string | null
           link_cartao_id?: string | null
           origem?: string
+          proposta_id?: string | null
           raw_response?: Json | null
           status?: string
           token_code?: string | null
@@ -10305,6 +10382,7 @@ export type Database = {
         Args: { p: Json; p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_ativo: { Args: never; Returns: boolean }
       fn_checkout_2027_calcular: {
         Args: { p_proposta_id: string }
         Returns: Json
@@ -10326,6 +10404,10 @@ export type Database = {
         Args: { p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_ja_aprovado: {
+        Args: { p_proposta_id: string }
+        Returns: boolean
+      }
       fn_checkout_2027_liberado: {
         Args: { p_proposta_id: string }
         Returns: boolean
@@ -10333,6 +10415,19 @@ export type Database = {
       fn_checkout_2027_marcar_teste_admin: {
         Args: { p_proposta_id: string; p_user_id: string }
         Returns: boolean
+      }
+      fn_checkout_2027_pagamento_iniciar: {
+        Args: {
+          p_chave: string
+          p_ip: string
+          p_proposta_id: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
+      fn_checkout_2027_pagamento_status: {
+        Args: { p_chave: string; p_proposta_id: string }
+        Returns: Json
       }
       fn_checkout_2027_revisar: {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
@@ -10366,6 +10461,9 @@ export type Database = {
           lead_erro: string | null
           nome: string
           origem: string
+          pagamento_ref: string | null
+          pagamento_tipo: string | null
+          pago_em: string | null
           parcelas_plano: number
           parcelas_servicos: number | null
           plano_codigo: string
@@ -10389,6 +10487,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      fn_checkout_2027_simular_resultado: {
+        Args: { p_resultado: string; p_tentativa_id: string }
+        Returns: Json
       }
       fn_checkout_2027_template: {
         Args: {
@@ -10414,6 +10516,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      fn_checkout_2027_tentativa_atualizar: {
+        Args: {
+          p_motivo: string
+          p_ref: string
+          p_status: string
+          p_tentativa_id: string
+        }
+        Returns: Json
+      }
+      fn_checkout_2027_tentativa_json: {
+        Args: {
+          t: Database["public"]["Tables"]["checkout_2027_tentativas"]["Row"]
+        }
+        Returns: Json
       }
       fn_checkout_2027_teste: {
         Args: { p_proposta_id: string }

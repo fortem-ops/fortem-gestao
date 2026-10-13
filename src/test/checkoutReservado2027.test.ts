@@ -44,3 +44,32 @@ describe("pagamento reservado 2D-2", () => {
     expect(etapaReservada("contrato_aceito", "p2", "a1")).toBe("pagamento");
   });
 });
+import { resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica } from "../../supabase/functions/planos-checkout/pagamento";
+import { etapaReservada as etapa2 } from "@/lib/checkoutReservado2027";
+
+describe("pagamento do checkout 2027 (simulação)", () => {
+  it("cartão simulado só aprova com 'aprovado'; qualquer outra entrada recusa", () => {
+    expect(resultadoCartaoSimulado("aprovado")).toBe("aprovado");
+    expect(resultadoCartaoSimulado("x")).toBe("recusado");
+    expect(resultadoCartaoSimulado(undefined)).toBe("recusado");
+  });
+  it("Pix simulado aceita só pago ou expirado", () => {
+    expect(resultadoPixSimulado("aprovado")).toBe("aprovado");
+    expect(resultadoPixSimulado("expirado")).toBe("expirado");
+    expect(resultadoPixSimulado("recusado")).toBeNull();
+  });
+  it("Pix do Inter CONCLUIDA vira aprovado; ATIVA não muda", () => {
+    expect(statusInterParaTentativa("CONCLUIDA")).toBe("aprovado");
+    expect(statusInterParaTentativa("ATIVA")).toBeNull();
+  });
+  it("resposta pública nunca expõe referência do provedor", () => {
+    const t: any = { id: "1", tipo: "pix", simulado: true, valor_centavos: 100, total_proposta_centavos: 100, parcelas: 1, status: "pendente", expira_em: null, motivo: "x", ref: "TXID" };
+    expect(tentativaPublica(t)).not.toHaveProperty("ref");
+    expect(tentativaPublica(t)).not.toHaveProperty("motivo");
+  });
+  it("aguardando pagamento e recusa retomam no passo de pagamento; paga vai à confirmação", () => {
+    expect(etapa2("aguardando_pagamento", "p", "a")).toBe("pagamento");
+    expect(etapa2("falhou", "p", "a")).toBe("pagamento");
+    expect(etapa2("paga", "p", "a")).toBe("confirmacao");
+  });
+});

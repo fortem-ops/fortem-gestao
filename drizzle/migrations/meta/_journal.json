@@ -722,6 +722,20 @@
       "when": 1791902544647,
       "tag": "0102_checkout_2027_dados_contratante",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1791906187663,
+      "tag": "0103_checkout_2027_pagamentos_simulacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1791907020657,
+      "tag": "0104_checkout_2027_bloqueia_apos_aprovado",
+      "breakpoints": true
     }
   ]
 }
