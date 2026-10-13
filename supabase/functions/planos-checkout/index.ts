@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
     if (acao === "dados_contratante") {
       // Só devolve dados do cadastro quando o vínculo foi confirmado por código; nunca o CPF completo.
       const r = await rpc("fn_checkout_2027_dados_contratante", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId);
-      const dica = typeof r?.cpf_ultimos3 === "string" && /^\d{3}$/.test(r.cpf_ultimos3) ? `***.***.*${r.cpf_ultimos3.slice(0, 2)}-${r.cpf_ultimos3.slice(2)}` : null;
+      const dica = typeof r?.cpf_ultimos3 === "string" && /^\d{3}$/.test(r.cpf_ultimos3) ? `***.***.**${r.cpf_ultimos3[0]}-${r.cpf_ultimos3.slice(1)}` : null;
       const { cpf_ultimos3: _x, ...resto } = r ?? {};
       return json(200, { ...resto, cpf_dica: r?.confirmado ? dica : null });
     }
