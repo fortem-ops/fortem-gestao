@@ -47,7 +47,7 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, onAprovado, o
     e.preventDefault();
     setErro("");
     const v = validarCartao(campos);
-    if (!v.ok) { setErro(v.erro); return; }
+    if (v.ok === false) { setErro(v.erro); return; }
     // Apaga os dados da tela antes de qualquer espera: não ficam em estado depois do envio.
     setCampos(vazio);
     setOcupado(true);
