@@ -67,6 +67,26 @@ Deno.test("token ativa → cobra na mesma requisição, com nome só em memória
   const tudo = c.gravado.join("|");
   assertEquals(tudo.includes(NOME) || tudo.includes(NUM) || tudo.includes(CVV + '"') || /\d{13,19}/.test(tudo), false);
 });
+Deno.test("cobrança usa a validade do token, não a digitada", async () => {
+  const c = cenario({ token: ["ativo"], expiracao: "09/2029" });
+  await iniciarCartaoReal(c.deps, c.t, dados); // digitado 12/2030, token 09/2029
+  assertEquals(c.t.status, "aprovado");
+  assertEquals(c.cobrancas, [{ mes: "09", ano: "2029" }]);
+});
+Deno.test("token sem validade → cai na validade digitada", async () => {
+  const c = cenario({ token: ["ativo"], expiracao: null });
+  await iniciarCartaoReal(c.deps, c.t, dados);
+  assertEquals(c.t.status, "aprovado");
+  assertEquals(c.cobrancas, [{ mes: "12", ano: "2030" }]);
+});
+Deno.test("polling também cobra com a validade do token", async () => {
+  const c = cenario({ token: ["pendente", "ativo"], expiracao: "03/2028" });
+  await iniciarCartaoReal(c.deps, c.t, dados);
+  assertEquals(c.t.status, "processando");
+  await acompanharCartaoReal(c.deps, c.t);
+  assertEquals(c.t.status, "aprovado");
+  assertEquals(c.cobrancas, [{ mes: "03", ano: "2028" }]);
+});
 Deno.test("token recusado → recusado, nunca cobra", async () => {
   const c = cenario({ token: ["recusado"] });
   await iniciarCartaoReal(c.deps, c.t, dados);
