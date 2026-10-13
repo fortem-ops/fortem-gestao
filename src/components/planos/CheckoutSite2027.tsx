@@ -44,6 +44,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
   const [revisao, setRevisao] = useState<Revisao | null>(null);
   const [telaPagamento, setTelaPagamento] = useState<TelaPagamento | null>(null);
   const [erro, setErro] = useState("");
+  const [pagoServidor, setPagoServidor] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   // Dados do contratante só em memória (nunca no navegador).
   const [d, setD] = useState(() => cadastroUnico
@@ -74,6 +75,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
     try {
       const estado = await checkout<{ etapa: string; aceite_id: string | null }>("estado", sessao);
       const destino = etapaReservada(estado.etapa, sessao.proposta_id, estado.aceite_id);
+      setPagoServidor(estado.etapa === "paga");
       if (destino !== "revisao") {
         const tela = await checkout<TelaPagamento>("tela_pagamento", sessao);
         setTelaPagamento(tela); setRevisao(tela.revisao); setEtapa(destino);
@@ -169,7 +171,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
   if (etapa === "carregando") return <p className="py-10 text-muted-foreground" role="status">{C.carregando}</p>;
 
   if ((etapa === "pagamento" || etapa === "confirmacao") && telaPagamento) return <PagamentoReservado2027
-    tela={telaPagamento} sessao={sessao} confirmacao={etapa === "confirmacao"} onAlterar={onAlterar}
+    tela={telaPagamento} sessao={sessao} confirmacao={etapa === "confirmacao"} pagoServidor={pagoServidor} onAlterar={onAlterar}
     onVoltar={() => setEtapa("pagamento")}
     onConfirmar={() => { guardarConfirmacao(sessao.proposta_id, telaPagamento.aceite_id); setEtapa("confirmacao"); }} />;
 

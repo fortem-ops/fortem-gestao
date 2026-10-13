@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Clock3, CreditCard, LockKeyhole, QrCode, ClipboardCheck } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { checkout, lerCodigo, type SessaoCheckout } from "@/lib/checkoutSite2027";
@@ -58,7 +59,9 @@ function PagamentoAtivo({ sessao, pix, onAprovado }: { sessao: SessaoCheckout; p
     {teste && <p className="mb-4 text-sm font-semibold">{C.pagamento.valorTeste(brl(t!.valor_centavos))}</p>}
     {pix ? <>
       {pendentePix ? <div className="text-center">
-        <div className="mx-auto flex aspect-square w-48 max-w-full flex-col items-center justify-center gap-4 border border-dashed border-border bg-muted/30 p-5"><QrCode aria-hidden="true" className="size-12 text-muted-foreground" /><span className="text-sm text-muted-foreground">{t!.simulado ? C.pagamento.pixSimulado : C.pagamento.aguardandoPix}</span></div>
+        {copia && !t!.simulado
+          ? <div className="mx-auto w-56 max-w-full bg-card p-3"><QRCodeSVG value={copia} size={512} level="M" marginSize={2} bgColor="hsl(0 0% 100%)" fgColor="hsl(0 0% 0%)" className="h-auto w-full" role="img" aria-label={C.pagamento.qrAria} /></div>
+          : <div className="mx-auto flex aspect-square w-48 max-w-full flex-col items-center justify-center gap-4 border border-dashed border-border bg-muted/30 p-5"><QrCode aria-hidden="true" className="size-12 text-muted-foreground" /><span className="text-sm text-muted-foreground">{t!.simulado ? C.pagamento.pixSimulado : C.pagamento.aguardandoPix}</span></div>}
         <p className="mt-5 flex items-center justify-center gap-2 text-sm" aria-live="off"><Clock3 className="size-4" />{C.pagamento.restante} · {restante(t!.expira_em, agora)}</p>
         <p role="status" className="mt-3 text-sm text-muted-foreground">{C.pagamento.aguardandoPix}</p>
         {copia && <div className="mt-4 grid gap-2"><code className="block break-all border border-border p-3 text-left text-xs">{copia}</code>
@@ -84,11 +87,13 @@ function PagamentoAtivo({ sessao, pix, onAprovado }: { sessao: SessaoCheckout; p
   </div>;
 }
 
-export function PagamentoReservado2027({ tela, sessao, confirmacao, onConfirmar, onVoltar, onAlterar }: {
-  tela: TelaPagamento; sessao: SessaoCheckout; confirmacao: boolean; onConfirmar: () => void; onVoltar: () => void; onAlterar: () => void;
+export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor = false, onConfirmar, onVoltar, onAlterar }: {
+  tela: TelaPagamento; sessao: SessaoCheckout; confirmacao: boolean; pagoServidor?: boolean; onConfirmar: () => void; onVoltar: () => void; onAlterar: () => void;
 }) {
   const [aprovado, setAprovado] = useState<null | "real" | "simulado">(null);
   const { revisao: r, pagamento: p } = tela;
+  /** Pago de verdade (servidor ou aprovação real nesta tela): sem voltar nem alterar. */
+  const pago = pagoServidor || aprovado === "real";
   const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => { titulo.current?.focus(); }, [confirmacao]);
   const codigo = lerCodigo(r.plano_codigo);
@@ -113,15 +118,15 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, onConfirmar,
   ];
   return <section className="max-w-5xl">
     <p className="mb-3 text-xs font-semibold uppercase text-primary">{confirmacao ? C.confirmacao.passo : C.pagamento.passo}</p>
-    <h1 ref={titulo} tabIndex={-1} className="font-display text-2xl sm:text-3xl font-extrabold uppercase leading-tight outline-none">{confirmacao ? C.confirmacao.titulo : C.pagamento.titulo}</h1>
-    <p className="mt-2 text-muted-foreground">{confirmacao ? (aprovado ? C.confirmacao.textoAprovado : C.confirmacao.texto) : C.pagamento.subtitulo}</p>
+    <h1 ref={titulo} tabIndex={-1} className="font-display text-2xl sm:text-3xl font-extrabold uppercase leading-tight outline-none">{confirmacao ? (pago ? C.confirmacao.tituloPago : C.confirmacao.titulo) : C.pagamento.titulo}</h1>
+    <p className="mt-2 text-muted-foreground">{confirmacao ? (pago || aprovado ? C.confirmacao.textoAprovado : C.confirmacao.texto) : C.pagamento.subtitulo}</p>
     <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0">
         {confirmacao ? <>
-          <div role="status" className="flex items-center gap-3 border-y border-border py-5"><ClipboardCheck className="size-6 shrink-0 text-primary" /><strong className="font-display uppercase">{aprovado === "simulado" ? C.pagamento.aprovadoSimulado : aprovado ? C.pagamento.aprovado : C.confirmacao.status}</strong></div>
+          <div role="status" className="flex items-center gap-3 border-y border-border py-5"><ClipboardCheck className="size-6 shrink-0 text-primary" /><strong className="font-display uppercase">{aprovado === "simulado" ? C.pagamento.aprovadoSimulado : pago ? C.pagamento.aprovado : C.confirmacao.status}</strong></div>
           <h2 className="mt-7 font-display text-lg font-bold uppercase">{C.confirmacao.proximos}</h2>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{C.confirmacao.equipe}</p>
-          <Button variant="outline" className={`${controle} mt-7 w-full`} onClick={onVoltar}>{C.pagamento.voltar}</Button>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{pago ? C.confirmacao.equipePago : C.confirmacao.equipe}</p>
+          {!pago && <Button variant="outline" className={`${controle} mt-7 w-full`} onClick={onVoltar}>{C.pagamento.voltar}</Button>}
         </> : <>
           <h2 className="font-display text-lg font-bold uppercase">{C.pagamento.forma}</h2>
           <div role="group" aria-label={C.pagamento.forma} className="mt-4 grid gap-3">
@@ -145,8 +150,10 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, onConfirmar,
         <h2 className="font-display text-lg font-bold uppercase">{C.pagamento.resumo}</h2>
         <p className="mt-5 font-display text-2xl font-bold uppercase">{nomes[r.familia] ?? r.familia}</p>
         <dl className="mt-4 text-sm">{linhas.map(([k, v]) => <div key={k} className="border-b border-border py-3"><dt className="text-xs font-semibold uppercase text-muted-foreground">{k}</dt><dd className="mt-2 break-words leading-relaxed">{v}</dd></div>)}<div className="flex flex-wrap justify-between gap-3 py-5 font-bold"><dt className="font-display uppercase">{C.revisao.total}</dt><dd>{brl(r.total_centavos)}</dd></div></dl>
-        <Button variant="outline" className={`${controle} w-full`} onClick={onAlterar}>{C.revisao.alterar}</Button>
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{C.revisao.avisoAceite}</p>
+        {!pago && <>
+          <Button variant="outline" className={`${controle} w-full`} onClick={onAlterar}>{C.revisao.alterar}</Button>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{C.revisao.avisoAceite}</p>
+        </>}
       </aside>
     </div>
   </section>;
