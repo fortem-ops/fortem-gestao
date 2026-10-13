@@ -1,69 +1,74 @@
-# Fase 2 do checkout /planos 2027 — Identificação → Revisão → Contrato → Pagamento (tela) → Confirmação
+# Checkout /planos 2027 no modelo da Loja
 
-Sem cobrança real. A tela de pagamento fica como etapa reservada ("pagamento em breve") até a Fase 4. Tudo só em `?previa=1` e só com o aluno de teste.
+Só planejamento. Nada de cobrança real, nem mudança em catálogo, cron, Inter ou pix-webhook.
 
-## 1. Etapas e telas (mobile-first, design FORTEM)
-```text
-5 IDENTIFICAÇÃO -> 6 REVISÃO -> 7 CONTRATO -> 8 PAGAMENTO -> 9 CONFIRMAÇÃO
-   (já existe)      resumo       texto+aceite   reservado      status final
-```
-- Barra de etapas no topo, títulos em maiúsculas, Archivo, vermelho da marca, cantos retos, voz "você", sem exclamação. Textos novos em `planosPublicoTextos` (`revisao.*`, `contrato.*`, `confirmacao.*`).
-- **Revisão:** plano, período, forma de pagamento, consultas e corrida, com o total e as parcelas vindos do servidor. Botão "Alterar" volta às escolhas sem perder a proposta.
-- **Contrato:** dados do contratante (nome, CPF obrigatório, data de nascimento, endereço com CEP), depois o texto integral com rolagem; o botão "Aceito o contrato" só libera com a caixa "Li e aceito" marcada e após rolar até o fim.
-- **Pagamento (reservado):** mostra a forma escolhida e "O pagamento será liberado em breve". Nenhuma chamada à Rede ou ao Inter.
-- **Confirmação:** resumo da proposta e próximos passos; nesta fase a proposta fica em `contrato_aceito`.
+## 1. Como a Loja funciona hoje (o que confirmei no código)
 
-## 2. Regras de identificação e cadastro
-- Novo aluno/prospect: proposta + lead nascem na identificação (como hoje). Cadastro de aluno só no pagamento aprovado (Fase 5).
-- Aluno e ex-aluno: vínculo só com o código por e-mail validado (já pronto). Sem código, segue como "novo".
-- **CPF no contrato:** obrigatório, dígitos validados no navegador e no servidor. Se for de um cadastro existente e a proposta não estiver vinculada pelo código, o servidor recusa com mensagem neutra ("Este CPF precisa ser confirmado. Volte e identifique-se como aluno.") mostrando no máximo as iniciais; marca `aluno_suspeito_id` para a equipe. Nunca devolve id, e-mail ou telefone.
-- Se a proposta estiver vinculada, o CPF digitado precisa bater com o `cpf_hash` do cadastro.
-- O CPF da proposta é guardado cifrado + hash (mesma cifra do cadastro); a tela só mostra os 3 últimos dígitos.
+Para o cliente (`src/components/store/CheckoutFlow.tsx`, cerca de 1.030 linhas): carrinho → dados (aluno logado ou visitante) → escolha Pix ou cartão → tela de Pix com QR, ou cartão (novo ou salvo, com parcelas) → sucesso.
 
-## 3. Contrato
-- Template: `contrato_templates` por `plano_tipo = planos_catalogo.familia` + forma (`cartao_recorrencia` ou `cartao_parcelado`; Pix à vista usa parcelado) + `ativo`. Pix Automático aparece só no texto dos templates de recorrência, como já está; a página não oferece Pix Automático.
-- **Problema conhecido:** os 5 templates 2027 estão desligados (ativo = false). Para testar na prévia, a função aceita o template desligado apenas quando a proposta é do aluno de teste (lista `vendas_2027_teste_aluno_ids`). Ninguém mais consegue gerar contrato até o go-live.
-- Variáveis: mesma lógica de `src/lib/contratos2027.ts` reproduzida no servidor (função em `_shared`), com teste que compara as duas saídas para não divergir.
-- Valores sempre recalculados no servidor a partir do catálogo (mesma regra de `calcularVenda2027`, em centavos); valor do navegador é ignorado.
-- Gravação em `contratos_documentos`: `conteudo_gerado` (HTML), `template_id`, `template_versao`, `regulamento_versao`, `variaveis_utilizadas` (CPF mascarado), `aceite=true`, `data_aceite` (hora do servidor), `ip_aceite`, novas colunas `hash_texto` (SHA-256 do texto exato exibido), `user_agent`, `origem='site'`, `proposta_id`. O navegador envia o hash do texto que viu; o servidor regera e só aceita se os hashes forem iguais.
-- Como ainda não há aluno nem contrato comercial, o documento fica preso à proposta (`aluno_id` e `contrato_id` nulos) e é ligado ao contrato na Fase 5.
+No servidor:
+- `loja-criar-pedido`: cria o pedido com `idempotency_key` (guardado no sessionStorage), recalcula o valor e o cupom no servidor e devolve `pedido_id` e `cartao_token` (`links_cartao`).
+- Cartão: `rede-salvar-cartao` inicia a tokenização (`rede_tokenizacoes`), `loja-status-tokenizacao` acompanha (active / failed / recusado_bandeira) e `loja-cobrar-pedido` cobra pela Rede usando o token salvo em `cartoes_salvos`. O valor vem de `pedidos.valor_final`, as parcelas vêm do pedido, cada cobrança é registrada em `pagamentos_rede` e há limite por IP (`_shared/loja-rate-limit.ts`). Não há 3DS.
+- Pix: `loja-criar-pix` cria a cobrança imediata no Inter (`/pix/v2/cob`, validade de 1800 s), reaproveita um Pix CRIADO ou ATIVO e responde "já pago" se o pedido já foi pago.
+- Baixa: o `pix-webhook` marca o pedido como pago e liga o aluno (`fn_loja_vincular_aluno`). Enquanto isso, a tela consulta `loja-status-pedido` a cada poucos segundos.
+- Aviso: `loja-enviar-confirmacao-email` (Gmail). Estorno manual por `loja-estornar-pedido`.
 
-## 4. Estados, expiração e idempotência
-- Status: `rascunho → identificada → contrato_aceito → aguardando_pagamento → paga | falhou | expirada`. Nesta fase só os três primeiros (+ `expirada`) são usados.
-- `chave_sessao` aleatória (gerada no servidor na criação, guardada no navegador); toda ação exige `proposta_id` + `chave_sessao`. Só o hash da chave fica no banco.
-- `expira_em` = última atividade + 24h. Rotina nenhuma é criada: a expiração é avaliada na hora de cada chamada.
-- Recarregar ou voltar: `fn_checkout_2027_estado` devolve a etapa atual e o resumo; a tela retoma dali.
-- Reclicar "Aceito": idempotente (um documento por proposta, índice único). Duas abas: a segunda vê o mesmo estado.
-- Proposta expirada: pode ser retomada pelo mesmo navegador; recalcula valores e, se o template ou o valor mudou, invalida o aceite antigo (fica no histórico) e pede novo aceite.
-- Alterar escolhas depois do aceite volta para `identificada` e exige novo aceite.
+Dá para reaproveitar:
+- O caminho de tokenização e cobrança pela Rede (`rede-salvar-cartao`, a acompanhamento de tokenização, `rede-cobrar-token`/`rede-cobrar-salvo`, `pagamentos_rede`, `cartoes_salvos`) e o `_shared/rede-auth.ts`.
+- A chamada `interCobFetch` com `/cob` de 30 min.
+- O padrão das telas: Pix com QR, acompanhamento de status, cartão salvo/novo, parcelas, sucesso.
+- A idempotência por chave de sessão e o limite por IP.
 
-## 5. Banco (migrações previstas)
-1. `checkout_2027_estrutura`: colunas em `propostas_planos_2027` (`chave_sessao_hash`, `expira_em`, `etapa_atualizada_em`, `cpf_cifrado`, `cpf_hash`, dados do contratante cifrados quando sensíveis, `contrato_documento_id`); colunas em `contratos_documentos` (`hash_texto`, `user_agent`, `origem` default 'admin', `proposta_id`) + índice único parcial `(proposta_id)`; check de status ampliado.
-2. `checkout_2027_funcoes`: `fn_checkout_2027_estado`, `fn_checkout_2027_revisar`, `fn_checkout_2027_contrato_gerar`, `fn_checkout_2027_aceitar`, todas `security definer`, `search_path` fixo, EXECUTE só para `service_role`; chamadas por uma edge function nova `planos-checkout` (que captura IP e user agent).
-- RLS: nenhuma leitura pública nova; anônimo só fala com a edge function. Linhas existentes de `contratos_documentos` não mudam (colunas novas nulas/default).
-- Rate limit: reaproveita `fn_planos_limite` por IP e por proposta (ex.: 60/h por IP, 20 aceites/h por proposta).
-- Chave de liga/desliga `planos_checkout_ativo` (false) em `sistema_config`; com false, só o aluno de teste passa.
+## 2. O que muda na 2D e na Fase 4
 
-## 6. Segurança, LGPD e o que NÃO muda
-- CPF nunca em URL, log, system_logs nem erro; logs só com id da proposta e 3 últimos dígitos.
-- Consentimento: aceite registra a versão do regulamento e da política de privacidade.
-- Não serão tocados: catálogo 2027 (planos/serviços/templates seguem inativos), go-live, `fn_venda_2027_criar`, cron do cartão, `cobrar-recorrencias-diario`, Rede, Inter, pix-webhook, Loja, Corrida, venda e contratos do admin, `aceitar-contrato-token`/`aceitar-contrato-documento`, `gerarDocumentoContrato`.
-- Riscos: contrato errado (mitigado por validação família/forma + teste); texto divergente entre navegador e servidor (comparação de hash); vazamento por CPF (resposta neutra + limite); reversão: desligar `planos_checkout_ativo` e a tela volta ao fluxo atual de proposta.
+O pagamento passa a usar a proposta (`propostas_planos_2027`), não o pedido. Ações novas na `planos-checkout`:
+- `pagar_pix`: exige proposta em `contrato_aceito` com aceite válido e valor recalculado no servidor. Cria `/cob` de 30 min, ou reaproveita a que estiver ativa, grava em `pix_cobrancas` com `proposta_id` e muda o estado para `aguardando_pagamento`.
+- `pagar_cartao`: mesma tokenização da Loja. A cobrança sai em 1x a 12x conforme a forma aceita no contrato; as parcelas nunca vêm do navegador.
+- `pagar_recorrencia`: tokeniza, salva em `cartoes_salvos` e cobra só a 1ª mensalidade no ato. As outras 11 ficam como cobranças `pendente` com a marca `origem='planos_2027'`. O cron continua inativo.
+- `status`: consultado pela tela, como na Loja.
+- Baixa do Pix: o `pix-webhook` vai precisar de um novo ramo "proposta 2027". **Essa é uma mudança no pix-webhook e precisa de aprovação separada.** Até lá, a baixa é feita por conferência (GET do Inter) na própria ação `status`.
 
-## 7. Testes (sem cobrança)
-- Unitários: transições de estado válidas/inválidas; expiração 24h; idempotência do aceite; hash igual navegador/servidor; escolha do template por família × forma; variáveis do servidor = `contratos2027.ts`; CPF obrigatório e duplicidade com resposta neutra; nenhum CPF nos logs.
-- Ponta a ponta na prévia com NICOLAS TESTE: identificar → revisar → aceitar → confirmação; recarregar retoma; segunda aba mostra mesmo estado.
-- Consultas no banco: 1 documento por proposta, `hash_texto` preenchido, `origem='site'`; contagens da Fase 0 iguais (fora as linhas de teste); planos/serviços/templates 2027 ativos = 0; pix_cobrancas=19, pagamentos=3, cobrancas pendentes=625, crons 34/33.
+Diferenças inevitáveis em relação à Loja:
+- Plano tem contrato com aceite e CPF obrigatório. Produto de loja não tem.
+- A cobrança é bloqueada se o aceite perdeu validade (escolhas alteradas ou hash diferente).
+- Plano gera mensalidades, recorrência e créditos. Pedido de loja só gera um pagamento.
+- O cadastro de aluno, o contrato e o `contratos_documentos` só nascem depois do pagamento aprovado (Fase 5).
+- Sem cupom e sem estoque.
 
-## 8. Subfases (cada uma aprovada separadamente)
-- **2A — Banco:** as duas migrações + chave desligada. Entrega: colunas/funções criadas, contagens inalteradas.
-- **2B — Servidor:** edge function `planos-checkout` + variáveis/valores no servidor + testes unitários. Entrega: chamadas por curl só com o aluno de teste.
-- **2C — Telas Revisão e Contrato:** tela, aceite, retomada. Entrega: aceite gravado na prévia.
-- **2D — Telas Pagamento (reservada) e Confirmação** + teste ponta a ponta e conferência final.
+## 3. Testar na prévia sem abrir para o público
+
+O motivo atual está confirmado: `fn_checkout_2027_liberado` só libera com `planos_checkout_ativo=true` ou com proposta de teste (`fn_checkout_2027_teste`). Uma proposta da prévia que não está ligada ao NICOLAS TESTE cai em "A equipe entra em contato".
+
+Opções:
+- **A (recomendada): admin logado na prévia.** Na prévia (`?previa=1`), o site envia a sessão do admin. A `planos-checkout` confere no servidor (`has_role` admin) e marca a proposta com `teste_admin=true` e `criado_por`. `fn_checkout_2027_teste` passa a aceitar também essas propostas. Não depende de CPF de teste e o público continua bloqueado.
+- B: lista de teste por e-mail em `sistema_config` (por exemplo, o e-mail do dono). É mais simples, mas qualquer pessoa que digite esse e-mail passaria pela trava.
+- C: criar CPF próprio para o NICOLAS TESTE. Altera dados de aluno, e isso está fora da regra atual.
+
+Propostas `teste_admin` nunca viram aluno real automaticamente. Na Fase 5, elas usam o aluno de teste.
+
+## 4. Riscos
+
+- **A Rede está em produção, sem sandbox.** Todo teste de cartão é cobrança real. Só será feito com seu pedido explícito, em valor simbólico, com estorno logo em seguida por `rede-cancelar`.
+- Sem 3DS: o risco de fraude é o mesmo de hoje na Loja. Mantemos limite por IP e o Turnstile preparado.
+- Pix: o teste também é real (R$ 1,00), só com seu pedido.
+- O cron `cobrar-recorrencias-diario` continua inativo. As 11 mensalidades ficam pendentes e marcadas, e religar o cron só para 2027 é uma fase própria.
+- Pix duplicado: evitado pela reutilização da cobrança ativa e pelo estado da proposta.
+- Para reverter: as ações novas ficam atrás da trava. Basta remover a liberação `teste_admin` para voltar ao estado atual.
+
+## 5. Subfases
+
+- **2D-1 (teste por admin):** pequena migração (`teste_admin`, `criado_por` e ajuste em `fn_checkout_2027_teste`), sessão do admin aceita na `planos-checkout` e envio da sessão na prévia. Pronto quando: um admin percorre Identificação → Contrato sem o NICOLAS TESTE, e um anônimo continua recebendo "Checkout indisponível".
+- **2D-2 (telas):** telas de Pagamento e Confirmação no padrão da Loja: escolha da forma, Pix com QR e contagem de 30 min, área do cartão. Botões em modo "reservado" (sem cobrança) e confirmação final. Nenhuma chamada à Rede ou ao Inter.
+- **4A (Pix à vista):** ação `pagar_pix` com `/cob` de 30 min, mais `status` com conferência. Teste real de R$ 1,00 só com seu OK.
+- **4B (cartão até 12x):** tokenização e cobrança reaproveitando a Loja. Teste real e estorno só com seu OK.
+- **4C (recorrência no cartão):** cartão salvo, 1ª cobrança no ato e 11 pendentes marcadas. Cron inativo.
+- **4D (baixa automática pelo webhook):** ramo da proposta no `pix-webhook`, com aprovação própria.
+- **5:** ativação, aluno, contrato, `contratos_documentos`, créditos e e-mail (Resend).
 
 ## Decisões em aberto
-1. **Templates desligados:** liberar o template inativo só para o aluno de teste (recomendo) ou ativar os 5 templates agora (afeta outras telas que listam contratos ativos)?
-2. **Bloqueio do teste:** o CPF e o celular do NICOLAS TESTE são compartilhados com outros cadastros, então ele não é identificado. Dar a ele um CPF de teste só dele (recomendo) ou usar outro cadastro de teste?
-3. **Dados do contratante para o novo aluno:** pedir endereço completo já no contrato (recomendo, o contrato precisa) ou só nome, CPF e nascimento?
-4. **Rolagem obrigatória** até o fim do texto antes de liberar o aceite: manter (recomendo) ou só a caixa "Li e aceito"?
-5. **PDF do contrato:** oferecer download do texto aceito já nesta fase (gerado no navegador, sem armazenamento novo) ou só na Fase 5 por e-mail?
+
+1. Forma de teste: A (admin logado), B (e-mail em lista) ou C? Recomendo A.
+2. A baixa do Pix na 4A vem por conferência na tela e o webhook fica para a 4D, ou já mexemos no webhook na 4A? Recomendo deixar para a 4D.
+3. Na recorrência, a 1ª mensalidade é cobrada no ato e as 11 seguintes no mesmo dia dos meses seguintes? Recomendo que sim.
+4. O valor simbólico para o teste real de cartão: R$ 1,00 com estorno no mesmo dia? Recomendo que sim.
+5. O e-mail de confirmação do plano sai pelo Resend (como o código) e não pelo Gmail da Loja? Recomendo o Resend.
