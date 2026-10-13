@@ -1,24 +1,22 @@
-import { corsHeaders, jsonResponse, getInterToken, admin, requireAdmin } from "../_shared/inter.ts";
+// Diagnóstico admin-only: confirma que o token do Pix Automático é obtido. Nunca devolve o token.
+import { corsHeaders, jsonResponse, getInterToken, admin, requireAdmin, CRED_PIX_AUTOMATICO } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const auth = await requireAdmin(req);
     if ("error" in auth) return auth.error;
-
-    const clientId = Deno.env.get("INTER_CLIENT_ID") ?? "";
-    console.log("[inter-auth] CLIENT_ID:", clientId.substring(0, 8) + "..." + clientId.slice(-4), "len=", clientId.length);
-    const token = await getInterToken();
-    console.log("[inter-auth] token prefix:", token.substring(0, 20), "len=", token.length);
+    await getInterToken();
     const { data } = await admin()
       .from("inter_tokens")
-      .select("expires_at")
+      .select("expires_at, scope")
+      .eq("credencial", CRED_PIX_AUTOMATICO)
       .order("expires_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    return jsonResponse({ access_token: token, expires_at: data?.expires_at ?? null });
+    return jsonResponse({ ok: true, credencial: CRED_PIX_AUTOMATICO, expires_at: data?.expires_at ?? null, scope: data?.scope ?? null });
   } catch (e) {
     console.error("inter-auth error", e);
-    return jsonResponse({ error: String(e?.message ?? e) }, 500);
+    return jsonResponse({ error: String((e as Error)?.message ?? e) }, 500);
   }
 });
