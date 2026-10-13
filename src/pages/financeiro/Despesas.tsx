@@ -19,21 +19,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { KpiCard } from "@/components/relatorios/KpiCard";
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign, Copy, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Receipt, Wallet, TrendingUp, TrendingDown, Check, ChevronsUpDown, CircleDollarSign, Copy, X, Download, FileSpreadsheet, FileDown } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useFornecedores } from "@/hooks/useDespesas";
+import { exportarDespesasXLSX, exportarDespesasPDF, type DespesaExportRow, type DespesasExportMeta } from "@/lib/despesasExport";
 import { LancarFolhaDialog } from "@/components/financeiro/LancarFolhaDialog";
 import { ImportarFaturaDialog } from "@/components/financeiro/ImportarFaturaDialog";
 import {
   CategoriasHierarquia, FornecedoresCadastro, nomeCategoria, useArvoreCategorias,
 } from "@/components/financeiro/DespesasCadastros";
 import {
-  STATUS_LABELS, FORMAS_DESPESA, CONTAS_DESPESA, type Despesa, type DespesaCategoria, type DespesaInput,
+  STATUS_LABELS, TIPO_LABELS, FORMAS_DESPESA, CONTAS_DESPESA, type Despesa, type DespesaCategoria, type DespesaInput,
   type DespesaStatus, type DespesaTipo, type Fornecedor,
 } from "@/types/despesas";
 
@@ -240,6 +242,51 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   const limparFiltros = () => {
     setPeriodo("mes"); setBase("venc"); setBusca(""); setFCat("todas"); setFTipo("todos"); setFStatus("todos");
     setFForn("todos"); setFForma("todos"); setFConta("todos"); setFConc("todos"); setDIni(""); setDFim("");
+  };
+
+  const montarExport = (): { rows: DespesaExportRow[]; meta: DespesasExportMeta } | null => {
+    const baseRows = selecionadas.size > 0 ? linhas.filter((d) => selecionadas.has(d.id)) : linhas;
+    if (!baseRows.length) {
+      toast.error("Nada para exportar");
+      return null;
+    }
+    const rows: DespesaExportRow[] = baseRows.map((d) => ({
+      vencimento: fmtData(d.data_competencia),
+      pagamento: d.data_pagamento ? fmtData(d.data_pagamento) : "—",
+      descricao: d.descricao,
+      fornecedor: d.fornecedor_id ? (fornMap.get(d.fornecedor_id) ?? "—") : "—",
+      categoria: d.categoria_id ? nomeCategoria(catMap.get(d.categoria_id), catMap) : "—",
+      tipo: TIPO_LABELS[d.tipo],
+      status: STATUS_LABELS[d.status],
+      forma: d.forma_pagamento ?? "—",
+      conta: d.conta_bancaria ?? "—",
+      parcela: d.parcela_total ? `${d.parcela_atual}/${d.parcela_total}` : "—",
+      valor: num(d.valor),
+      valorPago: d.valor_pago != null ? num(d.valor_pago) : null,
+      conciliado: d.conciliado ? "Sim" : "Não",
+    }));
+    const filtros: string[] = [];
+    if (fCat !== "todas") filtros.push(`Categoria: ${nomeCategoria(catMap.get(fCat), catMap)}`);
+    if (fForn !== "todos") filtros.push(`Fornecedor: ${fForn === "nenhum" ? "Sem fornecedor" : (fornMap.get(fForn) ?? "")}`);
+    if (fTipo !== "todos") filtros.push(`Tipo: ${TIPO_LABELS[fTipo as DespesaTipo]}`);
+    if (fStatus !== "todos") filtros.push(`Status: ${STATUS_LABELS[fStatus as DespesaStatus]}`);
+    if (fForma !== "todos") filtros.push(`Forma: ${fForma}`);
+    if (fConta !== "todos") filtros.push(`Conta: ${fConta}`);
+    if (fConc !== "todos") filtros.push(fConc === "sim" ? "Conciliadas" : "Não conciliadas");
+    if (busca.trim()) filtros.push(`Busca: "${busca.trim()}"`);
+    const meta: DespesasExportMeta = {
+      periodo: `${fmtData(rIni)} a ${fmtData(rFim)}`,
+      base: base === "pag" ? "Pagamento" : "Vencimento",
+      filtros,
+      apenasSelecionadas: selecionadas.size > 0,
+    };
+    return { rows, meta };
+  };
+  const exportar = (fmt: "xlsx" | "pdf") => {
+    const dados = montarExport();
+    if (!dados) return;
+    if (fmt === "xlsx") exportarDespesasXLSX(dados.rows, dados.meta);
+    else exportarDespesasPDF(dados.rows, dados.meta);
   };
 
   // Seleção em lote: limpa ao mudar período/filtros
@@ -479,6 +526,21 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
             <span className="ml-auto self-center text-sm text-muted-foreground">
               {linhas.length} lançamento(s) · {brl(totalFiltrado)}
             </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" disabled={isLoadingAll}>
+                  <Download className="h-4 w-4" /> Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportar("xlsx")} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" /> Excel (XLSX)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportar("pdf")} className="gap-2">
+                  <FileDown className="h-4 w-4" /> PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {canEdit && selecionadas.size > 0 && (
