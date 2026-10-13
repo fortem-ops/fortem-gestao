@@ -164,7 +164,13 @@ Deno.serve(async (req) => {
       const r = await rpc("fn_checkout_2027_calcular", { p_proposta_id: propostaId }, propostaId);
       if (Object.keys(r).some((k) => JSON.stringify(r[k]) !== JSON.stringify(e.revisao?.[k])))
         throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
-      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: pagamentoReservado(r), aceite_id: e.aceite_id });
+      const sim = await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId);
+      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: pagamentoReservado(r, sim === true), aceite_id: e.aceite_id });
+    }
+    if (acao === "cartao_combinar") {
+      // Cartão real não ligado: sem tentativa e sem "falhou"; avisa a equipe uma vez por proposta.
+      const res = await rpc("fn_checkout_2027_cartao_combinar", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+      return json(200, { ok: res?.ok === true });
     }
     if (acao === "pagar_pix") {
       const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "pix", p_ip: ip }, propostaId) as Tentativa;
@@ -172,6 +178,9 @@ Deno.serve(async (req) => {
       return json(200, await pixReal(propostaId, t));
     }
     if (acao === "pagar_cartao") {
+      // Fora da simulação o cartão vai para "a combinar": recusa antes de criar tentativa.
+      if ((await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId)) !== true)
+        throw new Neutro("Pagamento por cartão indisponível no momento");
       const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "cartao", p_ip: ip }, propostaId) as Tentativa;
       if (t.simulado) {
         const r = await rpc("fn_checkout_2027_simular_resultado", { p_tentativa_id: t.id, p_resultado: resultadoCartaoSimulado(body?.simular) }, propostaId);

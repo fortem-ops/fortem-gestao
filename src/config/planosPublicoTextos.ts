@@ -62,6 +62,7 @@ export const TEXTOS_PLANOS = {
     limitado: "Muitas tentativas. Tente novamente mais tarde.",
   },
   cadastro: {
+    verificacao: "Confirme a verificação de segurança acima para continuar.",
     titulo: "Seus dados",
     subtitulo: "Estes dados vão para o contrato. Você preenche uma vez só.",
     banner: "Aluno ou ex-aluno? Coloque o seu CPF para preenchimento automático dos seus dados.",
@@ -164,6 +165,8 @@ export const TEXTOS_CHECKOUT = {
     aprovado: "Pagamento aprovado", aprovadoSimulado: "Pagamento aprovado (simulação)",
     valorTeste: (v: string) => `Valor cobrado neste teste: ${v}`,
     restante: "Tempo restante",
+    combinar: "Por enquanto, o pagamento no cartão é combinado diretamente com a equipe. A equipe FORTEM entra em contato pelo WhatsApp para concluir o pagamento.",
+    combinarBotao: "A equipe FORTEM entra em contato",
   },
   confirmacao: {
     titulo: "Proposta registrada", status: "Aguardando pagamento", passo: "Passo 9 de 9",

@@ -28,6 +28,15 @@ describe("pagamento reservado 2D-2", () => {
   it("não oferece Pix nem parcelamento no Start recorrente", () => {
     expect(pagamentoReservado({ ...revisao, forma_plano: "recorrencia", plano_centavos: 49900, parcelas_plano: 1, servicos_centavos: 0 }).formas_permitidas).toEqual(["recorrencia"]);
   });
+  it("só Pix à vista: fora da simulação, cartão e recorrência ficam a combinar", () => {
+    expect(pagamentoReservado(revisao, false).cartao_a_combinar).toBe(true);
+    expect(pagamentoReservado({ ...revisao, forma_plano: "recorrencia" }, false).cartao_a_combinar).toBe(true);
+    expect(pagamentoReservado({ ...revisao, forma_plano: "pix_vista" }, false).cartao_a_combinar).toBe(false);
+  });
+  it("em simulação o cartão mantém os botões de teste", () => {
+    expect(pagamentoReservado(revisao, true).cartao_a_combinar).toBe(false);
+    expect(pagamentoReservado({ ...revisao, forma_plano: "recorrencia" }, true).cartao_a_combinar).toBe(false);
+  });
   it("sobra de centavos só na última parcela e nunca mais de 12x", () => {
     expect(parcelasReservadas(1000, 3)).toEqual([333, 333, 334]);
     expect(parcelasReservadas(1200, 13)).toHaveLength(12);

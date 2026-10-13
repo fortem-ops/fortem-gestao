@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { TurnstilePlanos } from "@/components/planos/TurnstilePlanos";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { TEXTOS_PLANOS as T, TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
@@ -10,7 +11,7 @@ import { mascararCpf } from "@/lib/checkoutSite2027";
 export type DadosContratante = {
   nome: string; email: string; whatsapp: string; cpf: string; rg: string; data_nascimento: string;
   cep: string; logradouro: string; numero: string; complemento: string; bairro: string; cidade: string; uf: string;
-  aceite: boolean; verificacao_id?: string;
+  aceite: boolean; verificacao_id?: string; turnstile_passe?: string;
 };
 const UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
 const VAZIO: DadosContratante = { nome: "", email: "", whatsapp: "", cpf: "", rg: "", data_nascimento: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "RS", aceite: false };
@@ -41,6 +42,11 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
   const [website, setWebsite] = useState("");
   const [faltaErro, setFaltaErro] = useState("");
   const preenchido = !!verificacao;
+  const [passe, setPasse] = useState<string | null>(null);
+  const [tsAtivo, setTsAtivo] = useState(false);
+  const [reinicio, setReinicio] = useState(0);
+  useEffect(() => { if (erro && tsAtivo) setReinicio((n) => n + 1); }, [erro, tsAtivo]);
+  const falta = !previa && tsAtivo && !passe;
 
   function aplicar(r: Cadastro, id: string) {
     setD((x) => preencherComCadastro({ ...x, cpf: cpfBusca }, r));
@@ -60,8 +66,9 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
         else { setD((x) => ({ ...x, cpf: cpfBusca })); setAviso(T.cadastro.naoEncontradoPrevia); }
         return;
       }
-      const { data } = await supabase.functions.invoke("planos-codigo", { body: { acao: "enviar", tipo: "cpf", valor } });
+      const { data } = await supabase.functions.invoke("planos-codigo", { body: { acao: "enviar", tipo: "cpf", valor, turnstile_passe: passe ?? undefined } });
       if (data?.motivo === "limitado") { setAviso(T.identificacao.limitado); return; }
+      if (data?.motivo === "captcha") { setAviso(T.cadastro.verificacao); setReinicio((n) => n + 1); return; }
       setD((x) => ({ ...x, cpf: cpfBusca }));
       if (data?.enviado && data.verificacao_id) setAguardandoCodigo(data.verificacao_id);
       else setAviso(T.cadastro.semCodigo);
@@ -99,12 +106,13 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
   function enviar(e: FormEvent) {
     e.preventDefault();
     if (website) return;
+    if (falta) { setFaltaErro(T.cadastro.verificacao); return; }
     if (!isValidCpfDigits(d.cpf)) { setCpfErro(C.contrato.cpfInvalido); return; }
     setCpfErro("");
     const faltando = (["nome", "email", "whatsapp", "data_nascimento", "cep", "logradouro", "numero", "bairro", "cidade"] as const).some((k) => !d[k].trim());
     if (faltando) { setAviso(""); setFaltaErro(T.cadastro.faltando); return; }
     setFaltaErro("");
-    onSubmit({ ...d, cpf: d.cpf.replace(/\D/g, ""), verificacao_id: verificacao ?? undefined });
+    onSubmit({ ...d, cpf: d.cpf.replace(/\D/g, ""), verificacao_id: verificacao ?? undefined, turnstile_passe: passe ?? undefined });
   }
 
   const campo = (k: keyof DadosContratante, rotulo: string, extra: Record<string, unknown> = {}) => (
@@ -114,12 +122,13 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
   );
 
   return <div className="space-y-6">
+    {!previa && <TurnstilePlanos reinicio={reinicio} onPasse={(p, ativo) => { setPasse(p); setTsAtivo(ativo); }} />}
     <section aria-label={T.cadastro.banner} className="border-l-4 border-primary bg-card p-4 space-y-3">
       <p className="font-semibold">{T.cadastro.banner}</p>
       {!preenchido && <div className="flex flex-col sm:flex-row gap-3">
         <input aria-label="CPF para buscar seus dados" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" className="campo sm:max-w-[220px]"
           value={cpfBusca} disabled={!!aguardandoCodigo} onChange={(e) => { setCpfBusca(mascararCpf(e.target.value)); setAviso(""); }} />
-        {!aguardandoCodigo && <Button type="button" variant="outline" className="rounded-none" disabled={ocupado || cpfBusca.replace(/\D/g, "").length !== 11} onClick={buscar}>{ocupado ? C.carregando : T.cadastro.buscar}</Button>}
+        {!aguardandoCodigo && <Button type="button" variant="outline" className="rounded-none" disabled={ocupado || falta || cpfBusca.replace(/\D/g, "").length !== 11} onClick={buscar}>{ocupado ? C.carregando : T.cadastro.buscar}</Button>}
       </div>}
       {aguardandoCodigo && !preenchido && <div className="space-y-3">
         <p className="text-sm">{T.cadastro.enviado}</p>
@@ -165,7 +174,7 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
       <input name="website" aria-hidden="true" tabIndex={-1} className="hidden" value={website} onChange={(e) => setWebsite(e.target.value)} />
       {faltaErro && <p role="alert" className="border-l-2 border-primary pl-3 text-sm">{faltaErro}</p>}
       {erro && <p role="alert" className="border-l-2 border-primary pl-3 text-sm">{erro}</p>}
-      <Button type="submit" disabled={enviando || !d.aceite} className="w-full rounded-none h-auto py-4 font-display font-bold uppercase">{enviando ? C.carregando : T.cadastro.continuar}</Button>
+      <Button type="submit" disabled={enviando || !d.aceite || falta} className="w-full rounded-none h-auto py-4 font-display font-bold uppercase">{enviando ? C.carregando : T.cadastro.continuar}</Button>
       <p className="text-xs text-muted-foreground">{T.cadastro.rodape}</p>
     </form>
   </div>;

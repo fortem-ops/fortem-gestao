@@ -93,7 +93,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
     setEnviando(true);
     const { data, error } = await supabase.rpc("fn_proposta_plano_2027_criar" as any, { p: {
       previa: catalogo.previa, nome: dados.nome, whatsapp: dados.whatsapp, email: dados.email, cpf: dados.cpf,
-      aceite: dados.aceite, verificacao_id: dados.verificacao_id,
+      aceite: dados.aceite, verificacao_id: dados.verificacao_id, turnstile_passe: dados.turnstile_passe,
       plano_codigo: item.codigo, forma_plano: formaEfetiva, parcelas_plano: parcelas,
       servicos: servicosEscolhidos.map((s) => s.codigo), forma_servicos: formaServicos, parcelas_servicos: parcelasServicos,
       corrida: !!corridaEscolhida, corrida_periodo_meses: corridaEscolhida?.periodo_meses ?? 1,

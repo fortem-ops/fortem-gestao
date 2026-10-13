@@ -5,10 +5,16 @@ export function parcelasReservadas(total: number, quantidade: number): number[] 
   return Array.from({ length: n }, (_, i) => i === n - 1 ? total - base * (n - 1) : base);
 }
 
-export function pagamentoReservado(r: Record<string, any>) {
+/** Cartão real ainda não ligado: fora da simulação, cartão e recorrência viram "a combinar" com a equipe. */
+export function cartaoACombinar(formaPlano: string, cartaoSimulacao: boolean): boolean {
+  return (formaPlano === "cartao_parcelado" || formaPlano === "recorrencia") && !cartaoSimulacao;
+}
+
+export function pagamentoReservado(r: Record<string, any>, cartaoSimulacao = true) {
   const junto = r.forma_plano === "cartao_parcelado" && !r.forma_servicos;
   return {
     reservado: true,
+    cartao_a_combinar: cartaoACombinar(r.forma_plano, cartaoSimulacao),
     validade_pix_segundos: 1800,
     formas_permitidas: [r.forma_plano],
     parcelas: parcelasReservadas(Number(r.plano_centavos) + (junto ? Number(r.servicos_centavos) : 0), Number(r.parcelas_plano)),
