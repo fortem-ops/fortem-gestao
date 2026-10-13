@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   // Rascunho (só admin): mostra o texto sem reservar nem enviar.
   if (body?.acao === "rascunho") {
     if (servico) return json(403, { ok: false });
-    const { data: d } = await sup.rpc("fn_checkout_2027_email_dados", { p_id: undefined, p_proposta_id: id });
+    const { data: d } = await sup.rpc("fn_checkout_2027_email_dados", { p_proposta_id: id });
     if (!d) return json(200, { ok: false });
     const e = montarEmail(d);
     return json(200, { ok: true, assunto: e.assunto, texto: e.texto });
