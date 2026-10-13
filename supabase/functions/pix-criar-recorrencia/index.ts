@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       politicaRetentativa: "PERMITE_3R_7D",
     };
 
-    console.log("[pix-criar-recorrencia] payload:", JSON.stringify(payload));
+    console.log("[pix-criar-recorrencia] contrato:", payload.vinculo.contrato, "cpf final:", cpf.slice(-3));
     const { status, data, raw } = await interFetch("/pix/v2/rec", {
       method: "POST",
       json: payload,
