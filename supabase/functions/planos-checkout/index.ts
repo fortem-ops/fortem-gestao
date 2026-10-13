@@ -29,6 +29,7 @@ const NEUTRAS = [
   "Informe um CEP válido", "Preencha o endereço completo", "Este CPF não confere com o seu cadastro",
   "Este CPF precisa ser confirmado. Volte e identifique-se como aluno", "Preencha seus dados antes de aceitar",
   "Marque que você leu e aceita o contrato", "O contrato mudou. Leia a versão atual e aceite de novo",
+  "Informe seu nome completo", "Informe um e-mail válido",
 ];
 class Neutro extends Error {}
 
@@ -43,11 +44,12 @@ async function rpc(nome: string, args: Record<string, unknown>, propostaId: stri
   return data;
 }
 
-function lerContratante(c: any): Omit<Contratante, "nome" | "email"> {
+function lerContratante(c: any): Omit<Contratante, "nome" | "email"> & { nome: string; email: string } {
   const s = (v: unknown, max = 120) => (typeof v === "string" ? v.trim().slice(0, max) : "");
   const cpf = s(c?.cpf, 20).replace(/\D/g, "");
   if (!cpfDigitosValidos(cpf)) throw new Neutro("CPF inválido. Confira os números");
   return {
+    nome: s(c?.nome), email: s(c?.email, 160),
     cpf, data_nascimento: s(c?.data_nascimento, 10), cep: s(c?.cep, 10).replace(/\D/g, ""),
     logradouro: s(c?.logradouro), numero: s(c?.numero, 20), complemento: s(c?.complemento, 80) || null,
     bairro: s(c?.bairro), cidade: s(c?.cidade, 80), uf: s(c?.uf, 2).toUpperCase(), rg: s(c?.rg, 20) || null,
@@ -137,6 +139,13 @@ Deno.serve(async (req) => {
         corrida_periodo_meses: Number(e.corrida_periodo_meses) || 1,
       };
       return json(200, await rpc("fn_checkout_2027_alterar", { p_proposta_id: propostaId, p_chave: chave, p: escolhas, p_ip: ip }, propostaId));
+    }
+    if (acao === "dados_contratante") {
+      // Só devolve dados do cadastro quando o vínculo foi confirmado por código; nunca o CPF completo.
+      const r = await rpc("fn_checkout_2027_dados_contratante", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId);
+      const dica = typeof r?.cpf_ultimos3 === "string" && /^\d{3}$/.test(r.cpf_ultimos3) ? `***.***.*${r.cpf_ultimos3.slice(0, 2)}-${r.cpf_ultimos3.slice(2)}` : null;
+      const { cpf_ultimos3: _x, ...resto } = r ?? {};
+      return json(200, { ...resto, cpf_dica: r?.confirmado ? dica : null });
     }
     if (acao === "gerar_contrato") {
       const g = await gerar(propostaId, chave, body?.contratante, ip);
