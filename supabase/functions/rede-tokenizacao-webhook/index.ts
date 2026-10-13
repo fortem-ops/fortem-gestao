@@ -4,6 +4,7 @@ import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { salvarCartaoComSubstituicao } from "../_shared/cartao-substituicao.ts";
 import { bandeiraRecusouToken } from "../_shared/rede-brand-token.ts";
 import { dispararAvisoRecusa } from "../_shared/avisar-recusa.ts";
+import { tratarTokenPlanos } from "./planos-token.ts";
 
 const TOKEN_SERVICE_URLS = {
   sandbox:  "https://rl7-sandbox-api.useredecloud.com.br/token-service/oauth/v2/tokenization",
@@ -89,6 +90,18 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  // Desvio: token do checkout /planos (proposta, sem aluno). Caminho de aluno segue idêntico abaixo.
+  {
+    const { data: regPlanos } = await supabase.from("rede_tokenizacoes")
+      .select("proposta_id, aluno_id").eq("tokenization_id", tokenizationId).maybeSingle();
+    if (regPlanos?.proposta_id && !regPlanos.aluno_id) {
+      try { await tratarTokenPlanos(supabase, String(tokenizationId)); }
+      catch { console.error("[rede-tokenizacao-webhook] falha no token de proposta", { tokenizationId }); }
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    }
+  }
+
 
   // 3/4/5/6. Processamento (síncrono, mas rápido) — respondemos 200 ao final
   try {

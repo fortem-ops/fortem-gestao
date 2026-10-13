@@ -5,8 +5,8 @@
 
 export type Tentativa = {
   id: string; tipo: "pix" | "cartao"; simulado: boolean; valor_centavos: number; total_proposta_centavos: number;
-  parcelas: number; status: "pendente" | "aprovado" | "recusado" | "expirado"; expira_em: string | null; motivo: string | null;
-  reutilizada?: boolean;
+  parcelas: number; status: "pendente" | "aprovado" | "recusado" | "expirado" | "processando" | "desconhecido"; expira_em: string | null; motivo: string | null;
+  reutilizada?: boolean; em_andamento?: boolean;
 };
 
 /** Resultado aceito no cartão simulado; qualquer outro valor vira recusa. */
@@ -23,11 +23,12 @@ export function statusInterParaTentativa(s: unknown): Tentativa["status"] | null
   if (s === "REMOVIDA_PELO_USUARIO_RECEBEDOR" || s === "REMOVIDA_PELO_PSP") return "expirado";
   return null;
 }
-/** Resposta pública da tentativa: nunca expõe ref/txid de provedor. */
+/** Resposta pública da tentativa: nunca expõe ref/txid nem motivo interno; cartão ganha só a fase. */
 export function tentativaPublica(t: Tentativa | null) {
   if (!t) return null;
   const { id, tipo, simulado, valor_centavos, total_proposta_centavos, parcelas, status, expira_em } = t;
-  return { id, tipo, simulado, valor_centavos, total_proposta_centavos, parcelas, status, expira_em };
+  const fase = status === "desconhecido" ? "confirmando" : status === "processando" ? (t.motivo === "cobrando" ? "cobrando" : "validando") : null;
+  return { id, tipo, simulado, valor_centavos, total_proposta_centavos, parcelas, status, expira_em, fase };
 }
 
 /** Validade da cobrança Pix do /planos (calendario.expiracao) e margem antes de reaproveitar. */
@@ -46,6 +47,7 @@ export function chavesLimite(acao: unknown, ip: string, propostaId: string): { c
   if (typeof acao === "string" && ACOES_CONSULTA.has(acao)) {
     return [{ chave: `ckc:p:${propostaId}`, limite: 600 }, ...(ip ? [{ chave: `ckc:i:${ip}`, limite: 20000 }] : [])];
   }
+  if (acao === "pagar_cartao" && ip) return [{ chave: `ckf:i:${ip}`, limite: 120 }, { chave: `ckcard:i:${ip}`, limite: 10 }];
   return ip ? [{ chave: `ckf:i:${ip}`, limite: 120 }] : [];
 }
 

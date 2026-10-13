@@ -10451,6 +10451,31 @@ export type Database = {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_cartao_liquidado: {
+        Args: {
+          p_autorizacao: string
+          p_nsu: string
+          p_parcelas: number
+          p_raw: Json
+          p_return_code: string
+          p_tentativa_id: string
+          p_tid: string
+          p_valor_centavos: number
+        }
+        Returns: Json
+      }
+      fn_checkout_2027_cartao_real: {
+        Args: { p_proposta_id: string }
+        Returns: boolean
+      }
+      fn_checkout_2027_cartao_reservar: {
+        Args: { p_chave: string; p_ip: string; p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_cartao_resultado: {
+        Args: { p_motivo: string; p_status: string; p_tentativa_id: string }
+        Returns: Json
+      }
       fn_checkout_2027_cartao_simulado: {
         Args: { p_proposta_id: string }
         Returns: boolean
