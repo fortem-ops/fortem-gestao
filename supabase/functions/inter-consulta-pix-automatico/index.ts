@@ -1,4 +1,5 @@
-// Consulta SOMENTE-LEITURA ao Inter (Pix Automático): só GET, nada é criado no banco.
+// Consulta ao Inter (Pix Automático). Modos de escrita só com confirmação explícita; teste_3f_criar é temporário e só interno.
+import { criarRecorrencia, solicitarConfirmacao, mascararCpf } from "../_shared/pix-rec.ts";
 import { onlyDigits, jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
@@ -27,6 +28,11 @@ Deno.serve(async (req) => {
     const seg = Deno.env.get("PIX_WEBHOOK_SECRET") ?? "";
     const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/pix-webhook?token=${encodeURIComponent(seg)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pix: [] }) });
     return jsonResponse({ status: r.status, corpo: (await r.text()).slice(0, 200) });
+  }
+  // TEMPORÁRIO (teste 3F): só via segredo interno, parâmetros fixos, nunca cria duas.
+  if (modo === "teste_3f_criar") {
+    if (!interno || corpo.confirmar !== "TESTE_3F") return jsonResponse({ error: "Forbidden" }, 403);
+    return jsonResponse(await teste3fCriar());
   }
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
@@ -195,4 +201,20 @@ async function registrarWebhooks() {
     depois[n] = { status: r.status, url: mascarar(url), token_confere: url === destino };
   }
   return { credencial: "cob", antes, registro, depois };
+}
+
+const TESTE_3F = { aluno_id: "085acf57-2dbe-464d-9acc-e1b0f5b77032", valor: 1, data_inicio: "2026-10-14", data_fim: "2026-11-14", objeto: "Teste Pix Automatico FORTEM", teste: true };
+
+async function teste3fCriar() {
+  const sup = admin();
+  const log = (acao: string, payload: unknown) => sup.from("system_logs").insert({ modulo: "pix-automatico-teste-3f", acao, mensagem: acao, payload: mascararCpf(payload) });
+  const { count } = await sup.from("pix_recorrencias").select("id", { count: "exact", head: true }).eq("aluno_id", TESTE_3F.aluno_id);
+  if ((count ?? 0) > 0) { await log("recusado_ja_existe", { count }); return { ok: false, erro: "Já existe recorrência para o aluno de teste; nada criado." }; }
+  const rec = await criarRecorrencia(sup, TESTE_3F);
+  await log("rec", rec);
+  if (!rec.ok) return mascararCpf({ etapa: "rec", ...rec });
+  const sol = await solicitarConfirmacao(sup, rec.idRec as string);
+  await log("solicrec", sol);
+  const { data: banco } = await sup.from("pix_recorrencias").select("id_rec, id_solic_rec, status, valor_minimo, data_inicio, data_fim").eq("id_rec", rec.idRec).maybeSingle();
+  return mascararCpf({ rec: { status: rec.status, idRec: rec.idRec, statusInter: rec.statusInter }, solicrec: sol.ok ? { status: sol.status, idSolicRec: sol.idSolicRec, statusInter: sol.statusInter, expiracao: sol.expiracao } : sol, banco });
 }
