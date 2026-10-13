@@ -42,8 +42,12 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
   // Dados do contratante só em memória (nunca no navegador).
-  const [d, setD] = useState({ cpf: "", data_nascimento: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "RS" });
+  const [d, setD] = useState({ nome, email, rg: "", cpf: "", data_nascimento: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "RS" });
   const [cpfErro, setCpfErro] = useState("");
+  // Dica do CPF (só 3 últimos dígitos) e aviso de conferência, quando o cadastro foi confirmado por código.
+  const [cpfDica, setCpfDica] = useState<string | null>(null);
+  const [confirmado, setConfirmado] = useState(false);
+  const carregouDados = useRef(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [contrato, setContrato] = useState<Contrato | null>(null);
   const [lido, setLido] = useState(false);
@@ -71,6 +75,24 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
 
   // Contrato curto que já cabe na caixa conta como lido.
   useEffect(() => { if (etapa === "contrato" && caixa.current && rolouAteOFim(caixa.current)) setLido(true); }, [etapa, contrato]);
+
+  // Pré-preenche com o cadastro só quando o servidor confirma o vínculo por código.
+  useEffect(() => {
+    if (etapa !== "dados" || carregouDados.current) return;
+    carregouDados.current = true;
+    type Dados = { confirmado: boolean; cpf_dica: string | null } & Partial<Record<"nome" | "email" | "data_nascimento" | "cep" | "logradouro" | "numero" | "complemento" | "bairro" | "cidade" | "uf" | "rg", string | null>>;
+    checkout<Dados>("dados_contratante", sessao).then((r) => {
+      if (!r?.confirmado) return;
+      const v = (x: string | null | undefined, atual: string) => (typeof x === "string" && x.trim() ? x : atual);
+      setD((x) => ({
+        ...x, nome: v(r.nome, x.nome), email: v(r.email, x.email), data_nascimento: v(r.data_nascimento?.slice(0, 10), x.data_nascimento),
+        cep: r.cep ? formatCep(r.cep) : x.cep, logradouro: v(r.logradouro, x.logradouro), numero: v(r.numero, x.numero),
+        complemento: v(r.complemento, x.complemento), bairro: v(r.bairro, x.bairro), cidade: v(r.cidade, x.cidade),
+        uf: r.uf && UFS.includes(r.uf.toUpperCase()) ? r.uf.toUpperCase() : x.uf, rg: v(r.rg, x.rg),
+      }));
+      setConfirmado(true); setCpfDica(r.cpf_dica);
+    }).catch(() => { /* segue com o formulário vazio */ });
+  }, [etapa, sessao]);
 
   async function buscarCep(v: string) {
     const cep = formatCep(v);
@@ -148,16 +170,18 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
       </div></section>;
   }
 
-  if (etapa === "dados") return <section className="max-w-2xl"><p className="text-xs text-primary font-semibold uppercase mb-3">Passo 7 de 9</p><H sub={C.contrato.subtitulo}>{C.contrato.titulo}</H>
+  if (etapa === "dados") return <section className="max-w-2xl"><p className="text-xs text-primary font-semibold uppercase mb-3">Passo 7 de 9</p><H sub={confirmado ? C.contrato.confira : C.contrato.subtitulo}>{C.contrato.titulo}</H>
     <form onSubmit={gerar} className="grid gap-4" noValidate>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm">{C.contrato.nome}<input className="campo mt-2" value={nome} readOnly aria-readonly="true" /></label>
-        <label className="block text-sm">{C.contrato.email}<input className="campo mt-2" value={email} readOnly aria-readonly="true" /></label>
+        {campo("nome", C.contrato.nome, { required: true, autoComplete: "name", maxLength: 120 })}
+        {campo("email", C.contrato.email, { required: true, type: "email", autoComplete: "email", maxLength: 160 })}
         <label className="block text-sm">{C.contrato.cpf}
           <input className="campo mt-2" inputMode="numeric" autoComplete="off" required value={d.cpf} aria-invalid={!!cpfErro} aria-describedby={cpfErro ? "cpf-erro" : undefined}
             onChange={(e) => { setCpfErro(""); setD((x) => ({ ...x, cpf: mascararCpf(e.target.value) })); }} placeholder="000.000.000-00" />
+          {cpfDica && <span className="mt-1 block text-xs text-muted-foreground">{C.contrato.cpfDica(cpfDica)}</span>}
           {cpfErro && <span id="cpf-erro" role="alert" className="mt-1 block text-xs text-primary">{cpfErro}</span>}
         </label>
+        {campo("rg", C.contrato.rg, { maxLength: 20 })}
         {campo("data_nascimento", C.contrato.nascimento, { type: "date", required: true, autoComplete: "bday" })}
         <label className="block text-sm">{C.contrato.cep}
           <input className="campo mt-2" inputMode="numeric" autoComplete="postal-code" required value={d.cep} onChange={(e) => buscarCep(e.target.value)} placeholder="00000-000" />

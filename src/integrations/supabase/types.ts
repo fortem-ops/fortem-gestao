@@ -10313,6 +10313,10 @@ export type Database = {
         Args: { p: Json; p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_dados_contratante: {
+        Args: { p_chave: string; p_ip: string; p_proposta_id: string }
+        Returns: Json
+      }
       fn_checkout_2027_estado: {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: Json
