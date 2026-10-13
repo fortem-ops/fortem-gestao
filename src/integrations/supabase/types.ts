@@ -1562,8 +1562,11 @@ export type Database = {
       checkout_2027_tentativas: {
         Row: {
           aceite_id: string | null
+          bandeira: string | null
+          consultado_em: string | null
           created_at: string
           expira_em: string | null
+          final_cartao: string | null
           id: string
           motivo: string | null
           parcelas: number
@@ -1572,14 +1575,18 @@ export type Database = {
           simulado: boolean
           status: string
           tipo: string
+          tokenizacao_id: string | null
           total_proposta_centavos: number
           updated_at: string
           valor_centavos: number
         }
         Insert: {
           aceite_id?: string | null
+          bandeira?: string | null
+          consultado_em?: string | null
           created_at?: string
           expira_em?: string | null
+          final_cartao?: string | null
           id?: string
           motivo?: string | null
           parcelas?: number
@@ -1588,14 +1595,18 @@ export type Database = {
           simulado?: boolean
           status?: string
           tipo: string
+          tokenizacao_id?: string | null
           total_proposta_centavos: number
           updated_at?: string
           valor_centavos: number
         }
         Update: {
           aceite_id?: string | null
+          bandeira?: string | null
+          consultado_em?: string | null
           created_at?: string
           expira_em?: string | null
+          final_cartao?: string | null
           id?: string
           motivo?: string | null
           parcelas?: number
@@ -1604,6 +1615,7 @@ export type Database = {
           simulado?: boolean
           status?: string
           tipo?: string
+          tokenizacao_id?: string | null
           total_proposta_centavos?: number
           updated_at?: string
           valor_centavos?: number
@@ -7724,7 +7736,10 @@ export type Database = {
           notificacao_cartao_combinar_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
+          pagamento_nsu: string | null
+          pagamento_parcelas: number | null
           pagamento_ref: string | null
+          pagamento_tid_mascarado: string | null
           pagamento_tipo: string | null
           pago_em: string | null
           parcelas_plano: number
@@ -7776,7 +7791,10 @@ export type Database = {
           notificacao_cartao_combinar_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
+          pagamento_nsu?: string | null
+          pagamento_parcelas?: number | null
           pagamento_ref?: string | null
+          pagamento_tid_mascarado?: string | null
           pagamento_tipo?: string | null
           pago_em?: string | null
           parcelas_plano?: number
@@ -7828,7 +7846,10 @@ export type Database = {
           notificacao_cartao_combinar_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
+          pagamento_nsu?: string | null
+          pagamento_parcelas?: number | null
           pagamento_ref?: string | null
+          pagamento_tid_mascarado?: string | null
           pagamento_tipo?: string | null
           pago_em?: string | null
           parcelas_plano?: number
@@ -8166,7 +8187,7 @@ export type Database = {
       }
       rede_tokenizacoes: {
         Row: {
-          aluno_id: string
+          aluno_id: string | null
           bin: string | null
           brand_name: string | null
           brand_tid: string | null
@@ -8186,7 +8207,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          aluno_id: string
+          aluno_id?: string | null
           bin?: string | null
           brand_name?: string | null
           brand_tid?: string | null
@@ -8206,7 +8227,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          aluno_id?: string
+          aluno_id?: string | null
           bin?: string | null
           brand_name?: string | null
           brand_tid?: string | null
@@ -10539,7 +10560,10 @@ export type Database = {
           notificacao_cartao_combinar_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
+          pagamento_nsu: string | null
+          pagamento_parcelas: number | null
           pagamento_ref: string | null
+          pagamento_tid_mascarado: string | null
           pagamento_tipo: string | null
           pago_em: string | null
           parcelas_plano: number
