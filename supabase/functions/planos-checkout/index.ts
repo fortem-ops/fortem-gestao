@@ -338,7 +338,7 @@ Deno.serve(async (req) => {
             const valor = Math.round(Number((data as any)?.valor?.original ?? 0) * 100);
             const { data: bx } = await admin.rpc("fn_checkout_2027_pix_liquidado", { p_txid: st.ref, p_valor_centavos: valor, p_e2e: (data as any)?.pix?.[0]?.endToEndId ?? null, p_raw: null });
             if (bx?.resultado === "baixado" || bx?.resultado === "ja_processado") {
-              try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente; registrado lá */ }
+              await chamarConfirmacao(propostaId);
             }
             const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
             t = re?.tentativa ?? t;
