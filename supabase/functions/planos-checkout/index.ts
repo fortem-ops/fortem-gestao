@@ -190,9 +190,24 @@ async function cartaoEsgotado(propostaId: string): Promise<boolean> {
   return l.length >= 3 && !l.some((t: any) => ["processando", "desconhecido", "aprovado"].includes(t.status));
 }
 
+/** Dispara o e-mail de confirmação; falha nunca desfaz a baixa, mas fica registrada (só id e mensagem curta). */
+async function chamarConfirmacao(propostaId: string) {
+  let msg = "";
+  try {
+    const { error } = await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } });
+    if (error) {
+      const status = (error as any)?.context?.status;
+      msg = `${error.name ?? "erro"}${status ? ` HTTP ${status}` : ""}`;
+    }
+  } catch (e) { msg = String((e as Error)?.message ?? e); }
+  if (msg) {
+    try { await admin.from("system_logs").insert({ modulo: "planos-checkout", acao: "confirmacao_falhou", mensagem: `${propostaId}: ${msg}`.slice(0, 200) }); } catch { /* log best-effort */ }
+  }
+}
+
 async function confirmarSePago(propostaId: string, deps: ReturnType<typeof depsReais>, id: string) {
   const t = await deps.db.tentativa(id);
-  if (t?.status === "aprovado") { try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente */ } }
+  if (t?.status === "aprovado") await chamarConfirmacao(propostaId);
 }
 
 Deno.serve(async (req) => {
@@ -323,7 +338,7 @@ Deno.serve(async (req) => {
             const valor = Math.round(Number((data as any)?.valor?.original ?? 0) * 100);
             const { data: bx } = await admin.rpc("fn_checkout_2027_pix_liquidado", { p_txid: st.ref, p_valor_centavos: valor, p_e2e: (data as any)?.pix?.[0]?.endToEndId ?? null, p_raw: null });
             if (bx?.resultado === "baixado" || bx?.resultado === "ja_processado") {
-              try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente; registrado lá */ }
+              await chamarConfirmacao(propostaId);
             }
             const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
             t = re?.tentativa ?? t;
