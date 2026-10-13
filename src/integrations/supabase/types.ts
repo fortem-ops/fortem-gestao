@@ -7687,6 +7687,9 @@ export type Database = {
           created_at: string
           criado_por: string | null
           email: string
+          email_confirmacao_enviado_em: string | null
+          email_confirmacao_erro: string | null
+          email_confirmacao_reservado_em: string | null
           etapa_atualizada_em: string | null
           etapa_checkout: string | null
           expira_em: string | null
@@ -7697,6 +7700,7 @@ export type Database = {
           id: string
           lead_erro: string | null
           nome: string
+          notificacao_pagamento_id: string | null
           origem: string
           pagamento_ref: string | null
           pagamento_tipo: string | null
@@ -7734,6 +7738,9 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           email: string
+          email_confirmacao_enviado_em?: string | null
+          email_confirmacao_erro?: string | null
+          email_confirmacao_reservado_em?: string | null
           etapa_atualizada_em?: string | null
           etapa_checkout?: string | null
           expira_em?: string | null
@@ -7744,6 +7751,7 @@ export type Database = {
           id?: string
           lead_erro?: string | null
           nome: string
+          notificacao_pagamento_id?: string | null
           origem?: string
           pagamento_ref?: string | null
           pagamento_tipo?: string | null
@@ -7781,6 +7789,9 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           email?: string
+          email_confirmacao_enviado_em?: string | null
+          email_confirmacao_erro?: string | null
+          email_confirmacao_reservado_em?: string | null
           etapa_atualizada_em?: string | null
           etapa_checkout?: string | null
           expira_em?: string | null
@@ -7791,6 +7802,7 @@ export type Database = {
           id?: string
           lead_erro?: string | null
           nome?: string
+          notificacao_pagamento_id?: string | null
           origem?: string
           pagamento_ref?: string | null
           pagamento_tipo?: string | null
@@ -10398,6 +10410,18 @@ export type Database = {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_email_dados: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_email_reservar: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_email_resultado: {
+        Args: { p_enviado: boolean; p_erro: string; p_proposta_id: string }
+        Returns: undefined
+      }
       fn_checkout_2027_estado: {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: Json
@@ -10441,6 +10465,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_checkout_2027_pos_pagamento: {
+        Args: { p_proposta_id: string }
+        Returns: string
+      }
       fn_checkout_2027_revisar: {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
@@ -10463,6 +10491,9 @@ export type Database = {
           created_at: string
           criado_por: string | null
           email: string
+          email_confirmacao_enviado_em: string | null
+          email_confirmacao_erro: string | null
+          email_confirmacao_reservado_em: string | null
           etapa_atualizada_em: string | null
           etapa_checkout: string | null
           expira_em: string | null
@@ -10473,6 +10504,7 @@ export type Database = {
           id: string
           lead_erro: string | null
           nome: string
+          notificacao_pagamento_id: string | null
           origem: string
           pagamento_ref: string | null
           pagamento_tipo: string | null

@@ -771,6 +771,13 @@
       "when": 1791923323904,
       "tag": "0109_checkout_2027_pix_webhook",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1791924058525,
+      "tag": "0110_checkout_2027_pos_pagamento",
+      "breakpoints": true
     }
   ]
 }
