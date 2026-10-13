@@ -23,6 +23,11 @@ Deno.serve(async (req) => {
   modo = modo ?? corpo.modo ?? null;
   if (modo === "previa_payload") return jsonResponse(await previaPayload());
   if (modo === "registrar_webhooks" && corpo.confirmar === "REGISTRAR_AVISOS") return jsonResponse(await registrarWebhooks());
+  if (modo === "testar_webhook_token") {
+    const seg = Deno.env.get("PIX_WEBHOOK_SECRET") ?? "";
+    const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/pix-webhook?token=${encodeURIComponent(seg)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pix: [] }) });
+    return jsonResponse({ status: r.status, corpo: (await r.text()).slice(0, 200) });
+  }
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
