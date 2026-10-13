@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   if (req.method === "POST") { try { corpo = (await req.clone().json()) ?? {}; } catch { /* sem corpo */ } }
   modo = modo ?? corpo.modo ?? null;
   if (modo === "previa_payload") return jsonResponse(await previaPayload());
-  if (modo === "registrar_webhooks" && !interno && corpo.confirmar === "REGISTRAR_AVISOS") return jsonResponse(await registrarWebhooks());
+  if (modo === "registrar_webhooks" && corpo.confirmar === "REGISTRAR_AVISOS") return jsonResponse(await registrarWebhooks());
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
