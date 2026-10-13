@@ -263,7 +263,8 @@ Deno.serve(async (req) => {
         }
       }
       let copia: string | null = null;
-      if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente") {
+      // Só avalia vencimento depois que a cobrança foi gravada (ref preenchida); durante a criação não mexe.
+      if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente" && typeof st.ref === "string") {
         const { data: c } = await admin.from("pix_cobrancas").select("id, txid, status, created_at, raw_response").eq("proposta_id", propostaId).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
         const venceu = (t.expira_em && Date.parse(t.expira_em) <= Date.now()) || !c || c.txid !== st.ref || !cobrancaValida(c as any);
         if (venceu) {
