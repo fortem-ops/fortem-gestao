@@ -1,7 +1,6 @@
 // Código de verificação por e-mail da identificação pública /planos.
 // Nunca registra CPF, código ou e-mail completo em log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import {
   corpoEmailCodigo, cpfDigitosValidos, gerarCodigo, hashCodigo, mascararEmail, podeEnviarCodigo,
 } from "../_shared/planos-verificacao.ts";
@@ -41,12 +40,35 @@ async function turnstileOk(token: unknown, ip: string): Promise<boolean> {
   return (await r.json().catch(() => ({})))?.success === true;
 }
 
+// Envio do código de identificação via Resend (domínio soufortem.com.br verificado).
+// Nunca registra o código, o e-mail completo nem a chave em log.
 async function enviarEmail(to: string, assunto: string, html: string) {
-  const password = Deno.env.get("GMAIL_APP_PASSWORD");
-  if (!password) throw new Error("smtp_indisponivel");
-  const client = new SMTPClient({ connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: "contatofortem@gmail.com", password } } });
-  await client.send({ from: "FORTEM <contatofortem@gmail.com>", to, subject: assunto, content: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(), html });
-  await client.close();
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  if (!apiKey) throw new Error("email_indisponivel");
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "FORTEM <nao-responda@soufortem.com.br>",
+      to: [to],
+      reply_to: "contatofortem@gmail.com",
+      subject: assunto,
+      html,
+      text: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    }),
+  });
+  if (!r.ok) {
+    const corpo = await r.text().catch(() => "");
+    let msg = "erro_resend";
+    try { msg = String(JSON.parse(corpo)?.message ?? msg).slice(0, 300); } catch { /* mantém msg genérica */ }
+    console.error("[planos-codigo] falha no envio do código", { status: r.status });
+    await admin.from("system_logs").insert({
+      modulo: "planos-codigo",
+      acao: "falha_envio_email",
+      mensagem: `Resend recusou o envio do código (HTTP ${r.status}): ${msg}`,
+    });
+    throw new Error("email_indisponivel");
+  }
 }
 
 Deno.serve(async (req) => {
