@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { TEXTOS_CHECKOUT } from "@/config/planosPublicoTextos";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
@@ -27,6 +28,8 @@ export default function PlanosRota() {
 
   if (isLoading) return <div data-planos2027="true" className="min-h-screen bg-background" />;
   const usar2027 = !!data && data.planos.length > 0 && (data.disponivel || data.previa);
+  // Prévia pedida sem admin logado: o servidor não liberou os itens; orienta o login.
+  if (previa && !data?.previa) return <PreviaSemLogin />;
   if (!usar2027) return <PlanosEmBreve />;
   return (
     <Suspense fallback={<div data-planos2027="true" className="min-h-screen bg-background" />}>
@@ -54,6 +57,24 @@ function PlanosEmBreve() {
         <a href={link} target="_blank" rel="noreferrer" className="mt-8 inline-block bg-primary text-primary-foreground px-6 py-4 font-display font-bold uppercase tracking-wider">
           Falar no WhatsApp
         </a>
+      </main>
+    </div>
+  );
+}
+
+function PreviaSemLogin() {
+  const T = TEXTOS_CHECKOUT.previaLogin;
+  return (
+    <div data-planos2027="true" className="min-h-screen bg-background text-foreground">
+      <Seo path="/planos" title="Planos FORTEM 2027" description="Prévia de admin dos planos FORTEM." />
+      <header className="border-b border-border"><div className="mx-auto max-w-5xl px-4 py-5"><span className="font-display text-xl font-black tracking-tight">FORTEM</span></div></header>
+      <main className="mx-auto max-w-2xl px-4 py-20">
+        <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">{T.titulo}</p>
+        <h1 role="alert" className="mt-2 font-display text-2xl sm:text-3xl font-extrabold uppercase leading-tight">{T.texto}</h1>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link to="/login" className="inline-block bg-primary text-primary-foreground px-6 py-4 font-display font-bold uppercase tracking-wider">{T.entrar}</Link>
+          <Link to="/planos" className="inline-block border border-border px-6 py-4 font-display font-bold uppercase tracking-wider">{T.publica}</Link>
+        </div>
       </main>
     </div>
   );
