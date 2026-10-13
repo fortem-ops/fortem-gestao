@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { TEXTOS_CHECKOUT as C, TEXTOS_PLANOS as T } from "@/config/planosPublicoTextos";
+import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { isValidCpfDigits } from "@/lib/cpfValidation";
 import { fetchCep, formatCep } from "@/lib/viacep";
 import {
@@ -199,6 +199,5 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
       <Button variant="outline" className="h-auto py-4 rounded-none font-bold uppercase" onClick={() => setEtapa("dados")} disabled={ocupado}>{C.contrato.editarDados}</Button>
       <Button className="h-auto py-4 rounded-none font-bold uppercase" onClick={aceitar} disabled={!lido || !marcado || ocupado}>{ocupado ? C.carregando : C.contrato.aceitar}</Button>
     </div>
-    <p className="sr-only">{T.passos.length}</p>
   </section>;
 }
