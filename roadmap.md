@@ -1,7 +1,9 @@
 # Roadmap
 
 - [x] Checkout /planos — Fase 0: contagens de referência (só leitura)
-- [ ] Checkout /planos — Fase 1: identificação por celular ou CPF + código por e-mail + Turnstile desligado por chave
+- [x] Checkout /planos — Fase 1: identificação por celular ou CPF + código por e-mail + Turnstile desligado por chave
+- [ ] Fase 1: envio real do código ao NICOLAS TESTE (bloqueio: CPF e telefone dele são compartilhados com outros cadastros)
+- [ ] Turnstile: aguarda site key e secret do dono
 - [ ] Checkout /planos — Fases 2–8 (aguardam OK do dono; CPF obrigatório no contrato, reposição para aprovação da equipe, Pix 30 min, compra real só com pedido)
 
 - [x] Contratos 2027: Pix Automático restaurado pelo backup; ativação recusa só boleto (não executada); reposição contratual de 30 dias; cinco exemplos renderizados; 76 testes; catálogo, legado e registros financeiros preservados. Transferência de créditos ainda não implementada, sem criação nesta rodada.
