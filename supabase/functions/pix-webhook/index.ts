@@ -1,6 +1,7 @@
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
 import { extrairEventos, statusRec, statusCobr, podeAtualizarRec, mascararCpf } from "./eventos.ts";
 import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
+import { ehCobrancaPlanos, baixarPixProposta } from "./planos-baixa.ts";
 
 
 async function notifyAdmins(params: {
@@ -91,11 +92,17 @@ Deno.serve(async (req) => {
       if (!txid) continue;
       const { data: cob } = await sup
         .from("pix_cobrancas")
-        .select("id, pedido_id, corrida_venda_id")
+        .select("id, pedido_id, corrida_venda_id, proposta_id")
         .eq("txid", txid)
         .maybeSingle();
       if (!cob) {
         console.log("pix-webhook: txid não encontrado em pix_cobrancas", txid);
+        continue;
+      }
+      // --- Planos do site (/planos): caminho isolado em planos-baixa.ts ---
+      if (ehCobrancaPlanos(cob)) {
+        await baixarPixProposta(sup, txid, ev);
+        pixTratados.add(txid);
         continue;
       }
       // --- Corrida (Pix à vista): caminho isolado, não interfere na Loja ---
