@@ -81,6 +81,20 @@ export function sanitizarRaw(raw: any) {
   };
 }
 
+/** Motivo interno da recusa: código + mensagem curta da Rede + retorno da bandeira (sem dados do cartão). */
+export function motivoRecusa(parsed: any): string {
+  const limpa = (v: unknown, n: number) => typeof v === "string"
+    ? v.replace(/\d{5,}/g, "").replace(/[^A-Za-z0-9 .,()\-\u00C0-\u00FF]/g, "").replace(/\s+/g, " ").trim().slice(0, n) : "";
+  const rc = limpa(parsed?.returnCode, 8);
+  const partes = ["transacao_" + rc];
+  const msg = limpa(parsed?.returnMessage, 60);
+  if (msg) partes.push(msg);
+  const b = parsed?.brand;
+  const brc = limpa(b?.returnCode, 4), mac = limpa(b?.merchantAdviceCode, 4);
+  if (brc || mac) partes.push("bandeira " + (brc || "-") + (mac ? " mac " + mac : ""));
+  return partes.join(" | ").slice(0, 120);
+}
+
 /** Prazos (ms). */
 export const PRAZO_TOKEN_MS = 10 * 60_000;      // token sem ativar → expirado
 export const PRAZO_COBRAR_MS = 30 * 60_000;     // token ativo, mas o cliente sumiu: não cobra depois disso

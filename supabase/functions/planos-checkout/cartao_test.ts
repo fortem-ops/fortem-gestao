@@ -106,6 +106,15 @@ Deno.test("recusa da transação → recusado com código, sem dados do cartão"
   assertEquals(c.t.motivo, "transacao_51");
 });
 
+Deno.test("recusa guarda mensagem e retorno da bandeira, sem dados do cartão", async () => {
+  const { motivoRecusa } = await import("./cartao.ts");
+  const m = motivoRecusa({ returnCode: "107", returnMessage: "Unauthorized. Please try again. " + NUM, cardNumber: NUM, cardholderName: NOME,
+    brand: { returnCode: "05", merchantAdviceCode: "03" } });
+  assertEquals(m, "transacao_107 | Unauthorized. Please try again. | bandeira 05 mac 03");
+  assertEquals(motivoRecusa({ returnCode: "51" }), "transacao_51");
+  assertEquals(m.length <= 120, true);
+});
+
 Deno.test("código do cartão nunca loga dados do cartão", async () => {
   for (const f of ["index.ts", "cartao.ts", "cartao-rede.ts", "fluxo-cartao.ts", "deps-cartao.ts", "../_shared/planos-cartao-token.ts", "../rede-tokenizacao-webhook/planos-token.ts"]) {
     const src = await Deno.readTextFile(new URL(f, import.meta.url));

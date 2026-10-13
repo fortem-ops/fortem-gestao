@@ -5,7 +5,7 @@
 // logs, raw ou respostas ao navegador.
 import {
   INTERVALO_CONSULTA_MS, PRAZO_COBRANDO_MS, PRAZO_COBRAR_MS, PRAZO_TOKEN_MS,
-  mapearConsulta, mapearTransacao, mascararTid, referencia, sanitizarRaw, validadeToken, type DadosCartao,
+  mapearConsulta, mapearTransacao, motivoRecusa, mascararTid, referencia, sanitizarRaw, validadeToken, type DadosCartao,
 } from "./cartao.ts";
 import { consultaSegura, estadoToken } from "../_shared/planos-cartao-token.ts";
 
@@ -110,7 +110,7 @@ async function avancarToken(deps: Deps, t: TentativaCartao, nome: string | null,
       tid: r.parsed?.tid ?? null, nsu: r.parsed?.nsu ?? null, autorizacao: r.parsed?.authorizationCode ?? null,
       returnCode: r.parsed?.returnCode ?? null, centavos: t.valor_centavos, parcelas: t.parcelas, raw: sanitizarRaw(r.parsed),
     });
-  } else if (res === "recusado") await deps.db.resultado(t.id, "recusado", "transacao_" + String(r.parsed?.returnCode ?? "").slice(0, 8));
+  } else if (res === "recusado") await deps.db.resultado(t.id, "recusado", motivoRecusa(r.parsed));
   else await deps.db.resultado(t.id, "desconhecido", "sem_resposta");
   return true;
 }
