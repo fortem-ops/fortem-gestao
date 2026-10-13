@@ -4,6 +4,7 @@ import { PagamentoReservado2027, type TelaPagamento } from "./PagamentoReservado
 import { etapaReservada, guardarConfirmacao } from "@/lib/checkoutReservado2027";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { isValidCpfDigits } from "@/lib/cpfValidation";
+import type { DadosContratante } from "./CadastroContratante2027";
 import { fetchCep, formatCep } from "@/lib/viacep";
 import {
   checkout, dividirCentavos, ErroCheckout, lerCodigo, limparSessao, mascararCpf, rolouAteOFim, type SessaoCheckout,
@@ -35,8 +36,8 @@ function descreverPagamento(r: Revisao) {
   return `Cartão de crédito em ${r.parcelas_plano}x de ${brl(p[0])}${iguais ? "" : ` (última ${brl(p[p.length - 1])})`}${comServicos ? ", com as consultas" : ""}`;
 }
 
-export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar, onSessaoInvalida }: {
-  sessao: SessaoCheckout; etapaInicial?: string; nome: string; email: string;
+export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratante: cadastroUnico, onAlterar, onSessaoInvalida }: {
+  sessao: SessaoCheckout; etapaInicial?: string; nome: string; email: string; contratante?: DadosContratante | null;
   onAlterar: () => void; onSessaoInvalida: () => void;
 }) {
   const [etapa, setEtapa] = useState<Etapa>("carregando");
@@ -45,7 +46,11 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
   // Dados do contratante só em memória (nunca no navegador).
-  const [d, setD] = useState({ nome, email, rg: "", cpf: "", data_nascimento: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "RS" });
+  const [d, setD] = useState(() => cadastroUnico
+    ? { nome: cadastroUnico.nome, email: cadastroUnico.email, rg: cadastroUnico.rg, cpf: mascararCpf(cadastroUnico.cpf), data_nascimento: cadastroUnico.data_nascimento, cep: cadastroUnico.cep, logradouro: cadastroUnico.logradouro, numero: cadastroUnico.numero, complemento: cadastroUnico.complemento, bairro: cadastroUnico.bairro, cidade: cadastroUnico.cidade, uf: cadastroUnico.uf }
+    : { nome, email, rg: "", cpf: "", data_nascimento: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "RS" });
+  // Cadastro único já preenchido: gera o contrato direto, sem pedir os dados de novo.
+  const usarCadastro = useRef(!!cadastroUnico);
   const [cpfErro, setCpfErro] = useState("");
   // Dica do CPF (só 3 últimos dígitos) e aviso de conferência, quando o cadastro foi confirmado por código.
   const [cpfDica, setCpfDica] = useState<string | null>(null);
@@ -76,6 +81,14 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
       }
       const r = await checkout<Revisao>("revisar", sessao);
       setRevisao(r);
+      if (usarCadastro.current) {
+        usarCadastro.current = false; carregouDados.current = true;
+        try {
+          const c = await checkout<Contrato>("gerar_contrato", { ...sessao, contratante: contratante() });
+          setContrato(c); setLido(false); setMarcado(false); setEtapa("contrato");
+          return;
+        } catch (e) { falhou(e); setEtapa("dados"); return; }
+      }
       setEtapa("revisao");
     } catch (e) { falhou(e); setEtapa("revisao"); }
     finally { setOcupado(false); }
