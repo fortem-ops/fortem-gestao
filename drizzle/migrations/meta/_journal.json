@@ -778,6 +778,13 @@
       "when": 1791924058525,
       "tag": "0110_checkout_2027_pos_pagamento",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1791924195312,
+      "tag": "0111_checkout_2027_pos_pagamento_valor_brl",
+      "breakpoints": true
     }
   ]
 }
