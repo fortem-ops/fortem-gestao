@@ -51,98 +51,111 @@ export async function requireAdminOrCoord(req: Request) {
   return { userId };
 }
 
-// ---------- Banco Inter ----------
+export async function requireAdmin(req: Request) {
+  const auth = await requireAdminOrCoord(req);
+  if ("error" in auth) return auth;
+  const { data: isA } = await admin().rpc("is_admin", { _user_id: auth.userId });
+  if (!isA) return { error: jsonResponse({ error: "Forbidden" }, 403) };
+  return auth;
+}
+
+// ---------- Banco Inter (Pix Automático) ----------
+// Chave única que escolhe o conjunto de credenciais do Pix Automático.
+// "cob"   = INTER_COB_* (integração de 10/09/2026, com Pix Automático liberado) — PADRÃO.
+// "inter" = INTER_*     (integração de 22/06/2026) — reserva, mantida só para reverter.
+export type CredInter = "cob" | "inter";
+export const CRED_PIX_AUTOMATICO: CredInter = "cob";
 
 const BASE_URL = (Deno.env.get("INTER_BASE_URL") ?? "").replace(/\/$/, "");
 const CONTA = Deno.env.get("INTER_CONTA_CORRENTE") ?? "";
 
+export const SCOPES_PIX_AUTOMATICO = [
+  "rec.write","rec.read","solicrec.write","solicrec.read",
+  "cobr.write","cobr.read","webhookrec.write","webhookrec.read",
+  "webhookcobr.write","webhookcobr.read","webhook.write","webhook.read",
+  "cob.write","cob.read","cobv.write","cobv.read","pix.write","pix.read",
+].join(" ");
+
+function envCred(cred: CredInter, nome: string): string {
+  return Deno.env.get(cred === "cob" ? `INTER_COB_${nome}` : `INTER_${nome}`) ?? "";
+}
+
 function normalizePem(raw: string, kind: "CERT" | "KEY"): string {
   let s = raw.trim();
-  // Unescape literal \n / \r if pasted as a single line.
   if (s.includes("\\n")) s = s.replace(/\\r/g, "").replace(/\\n/g, "\n");
-  // If no PEM header present, assume it's base64-encoded PEM and decode.
   if (!s.includes("-----BEGIN")) {
     try {
       const decoded = atob(s.replace(/\s+/g, ""));
       if (decoded.includes("-----BEGIN")) s = decoded;
     } catch { /* ignore */ }
   }
-  // Normalize CRLF -> LF and ensure trailing newline.
   s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim() + "\n";
-  if (!s.includes("-----BEGIN")) {
-    throw new Error(`INTER_${kind}_PEM inválido: nenhum bloco PEM encontrado`);
-  }
+  if (!s.includes("-----BEGIN")) throw new Error(`Certificado/chave ${kind} inválido: nenhum bloco PEM encontrado`);
   return s;
 }
 
-let _httpClient: any = null;
-function getHttpClient(): any {
-  if (_httpClient) return _httpClient;
-  const certRaw = Deno.env.get("INTER_CERT_PEM");
-  const keyRaw = Deno.env.get("INTER_KEY_PEM");
-  if (!certRaw || !keyRaw) throw new Error("INTER_CERT_PEM / INTER_KEY_PEM ausentes");
-  console.log("[inter] CERT raw prefix:", certRaw.substring(0, 30));
-  console.log("[inter] KEY  raw prefix:", keyRaw.substring(0, 30));
-  const cert = normalizePem(certRaw, "CERT");
-  const key = normalizePem(keyRaw, "KEY");
-  console.log("[inter] CERT normalized prefix:", cert.substring(0, 30), "len=", cert.length);
-  console.log("[inter] KEY  normalized prefix:", key.substring(0, 30), "len=", key.length);
-  console.log("[inter] CLIENT_ID present:", !!Deno.env.get("INTER_CLIENT_ID"), "CONTA:", Deno.env.get("INTER_CONTA_CORRENTE"));
+const _clients: Partial<Record<CredInter, any>> = {};
+function getHttpClient(cred: CredInter = CRED_PIX_AUTOMATICO): any {
+  if (_clients[cred]) return _clients[cred];
+  const certRaw = envCred(cred, "CERT_PEM");
+  const keyRaw = envCred(cred, "KEY_PEM");
+  if (!certRaw || !keyRaw) throw new Error(`Certificado/chave ausentes para a credencial ${cred}`);
   // @ts-ignore Deno.createHttpClient is unstable but available in Supabase Edge Runtime
-  _httpClient = Deno.createHttpClient({ cert, key });
-  return _httpClient;
+  _clients[cred] = Deno.createHttpClient({ cert: normalizePem(certRaw, "CERT"), key: normalizePem(keyRaw, "KEY") });
+  return _clients[cred];
 }
 
-const SCOPES = [
-  "cobv.write","cobv.read","cob.write","cob.read",
-  "rec.write","rec.read","solicrec.write","solicrec.read",
-  "webhook.write","webhook.read","pix.write","pix.read",
-].join(" ");
-
-async function fetchNewToken(): Promise<{ access_token: string; expires_in: number; scope?: string }> {
-  const clientId = Deno.env.get("INTER_CLIENT_ID");
-  const clientSecret = Deno.env.get("INTER_CLIENT_SECRET");
-  if (!clientId || !clientSecret) throw new Error("INTER_CLIENT_ID/SECRET ausentes");
-  console.log("[inter:oauth] CLIENT_ID:", clientId.substring(0, 8) + "..." + clientId.slice(-4), "len=", clientId.length);
-  const body = new URLSearchParams({
-    client_id: clientId,
-    client_secret: clientSecret,
-    grant_type: "client_credentials",
-    scope: SCOPES,
-  });
-  const origin = new URL(BASE_URL).origin;
-  const res = await fetch(`${origin}/oauth/v2/token`, {
+async function fetchNewToken(cred: CredInter, scope: string): Promise<{ access_token: string; expires_in: number; scope?: string }> {
+  const clientId = envCred(cred, "CLIENT_ID");
+  const clientSecret = envCred(cred, "CLIENT_SECRET");
+  if (!clientId || !clientSecret) throw new Error(`Credenciais ausentes para ${cred}`);
+  const body = new URLSearchParams({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials", scope });
+  const res = await fetch(`${new URL(BASE_URL).origin}/oauth/v2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
     // @ts-ignore unstable client option
-    client: getHttpClient(),
+    client: getHttpClient(cred),
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`Inter OAuth ${res.status}: ${text}`);
+  if (!res.ok) throw new Error(`Inter OAuth (${cred}) ${res.status}: ${text.slice(0, 200)}`);
   const parsed = JSON.parse(text);
-  console.log("[inter:oauth] token prefix:", String(parsed.access_token).substring(0, 20), "expires_in:", parsed.expires_in, "scope:", parsed.scope);
+  console.log("[inter:oauth] credencial:", cred, "expires_in:", parsed.expires_in, "scope:", parsed.scope);
   return parsed;
 }
 
-export async function getInterToken(): Promise<string> {
+/** true se todos os escopos pedidos estão contidos no escopo do token. */
+export function escopoContido(pedido: string, doToken: string | null | undefined): boolean {
+  const tem = new Set(String(doToken ?? "").split(/\s+/).filter(Boolean));
+  return pedido.split(/\s+/).filter(Boolean).every((s) => tem.has(s));
+}
+
+/**
+ * Token do Pix Automático. Cache em inter_tokens isolado por credencial (coluna credencial)
+ * e por escopo (só reaproveita se o escopo pedido estiver contido no do token).
+ * Tokens antigos sem credencial (emitidos pela integração de 22/06) são ignorados.
+ * A Loja/Corrida usa outro cache (inter_cob_tokens, em inter-cob.ts) e não é afetada.
+ */
+export async function getInterToken(cred: CredInter = CRED_PIX_AUTOMATICO, scope: string = SCOPES_PIX_AUTOMATICO): Promise<string> {
   const sup = admin();
   const nowIso = new Date(Date.now() + 60_000).toISOString();
-  const { data: existing } = await sup
+  const { data: rows } = await sup
     .from("inter_tokens")
-    .select("access_token, expires_at")
+    .select("access_token, expires_at, scope")
+    .eq("credencial", cred)
     .gt("expires_at", nowIso)
     .order("expires_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (existing?.access_token) return existing.access_token as string;
+    .limit(10);
+  const hit = (rows ?? []).find((r: any) => escopoContido(scope, r.scope));
+  if (hit?.access_token) return hit.access_token as string;
 
-  const tok = await fetchNewToken();
+  const tok = await fetchNewToken(cred, scope);
   const expiresAt = new Date(Date.now() + (tok.expires_in - 60) * 1000).toISOString();
   await sup.from("inter_tokens").insert({
     access_token: tok.access_token,
     expires_at: expiresAt,
-    scope: tok.scope ?? SCOPES,
+    scope: tok.scope ?? scope,
+    credencial: cred,
   });
   return tok.access_token;
 }
@@ -150,8 +163,9 @@ export async function getInterToken(): Promise<string> {
 export async function interFetch(
   path: string,
   init: RequestInit & { json?: unknown } = {},
+  cred: CredInter = CRED_PIX_AUTOMATICO,
 ): Promise<{ status: number; data: any; raw: string }> {
-  const token = await getInterToken();
+  const token = await getInterToken(cred);
   const headers: Record<string, string> = {
     "Authorization": `Bearer ${token}`,
     "x-conta-corrente": CONTA,
@@ -163,27 +177,18 @@ export async function interFetch(
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(init.json);
   }
-  const origin = new URL(BASE_URL).origin;
-  const url = `${origin}${path}`;
-  console.log("[inter:fetch]", init.method ?? "GET", url);
-  console.log("[inter:fetch] token prefix:", token.substring(0, 20), "len=", token.length);
-  console.log("[inter:fetch] x-conta-corrente:", CONTA);
-  if (init.json !== undefined) {
-    console.log("[inter:fetch] payload:", JSON.stringify(init.json));
-  }
+  const url = `${new URL(BASE_URL).origin}${path}`;
+  console.log("[inter:fetch]", cred, init.method ?? "GET", path);
   const res = await fetch(url, {
     ...init,
     headers,
     body,
     // @ts-ignore unstable client option
-    client: getHttpClient(),
+    client: getHttpClient(cred),
   });
   const raw = await res.text();
-  if (res.status >= 400) {
-    console.error("[inter:fetch] status:", res.status, "raw:", raw.substring(0, 800));
-  } else {
-    console.log("[inter:fetch] status:", res.status);
-  }
+  if (res.status >= 400) console.error("[inter:fetch] status:", res.status, "raw:", raw.substring(0, 300));
+  else console.log("[inter:fetch] status:", res.status);
   let data: any = null;
   try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
   return { status: res.status, data, raw };
@@ -197,50 +202,31 @@ export function onlyDigits(s: string | null | undefined): string {
   return String(s ?? "").replace(/\D/g, "");
 }
 
-/** Somente leitura: obtém um token novo e devolve só os escopos concedidos (nunca o token). */
-export async function consultarEscoposInter(): Promise<{ escopos: string | null; expires_in: number | null }> {
-  const tok = await fetchNewToken();
+/** Somente leitura: token novo (sem cache) e devolve só os escopos concedidos (nunca o token). */
+export async function consultarEscoposInter(cred: CredInter = CRED_PIX_AUTOMATICO): Promise<{ escopos: string | null; expires_in: number | null }> {
+  const tok = await fetchNewToken(cred, SCOPES_PIX_AUTOMATICO);
   return { escopos: tok.scope ?? null, expires_in: tok.expires_in ?? null };
 }
 
-/** Diagnóstico: conjunto de credenciais (INTER_* ou INTER_COB_*). Sem cache e sem log de token. */
-export type CredDiag = "inter" | "cob";
-const _diagClients: Record<string, any> = {};
-function envDiag(cred: CredDiag, nome: string) {
-  return Deno.env.get(cred === "cob" ? `INTER_COB_${nome}` : `INTER_${nome}`) ?? "";
-}
-function clientDiag(cred: CredDiag): any {
-  if (cred === "inter") return getHttpClient();
-  if (_diagClients[cred]) return _diagClients[cred];
-  const cert = normalizePem(envDiag(cred, "CERT_PEM"), "CERT");
-  const key = normalizePem(envDiag(cred, "KEY_PEM"), "KEY");
-  // @ts-ignore unstable
-  _diagClients[cred] = Deno.createHttpClient({ cert, key });
-  return _diagClients[cred];
+/** Diagnóstico: token com escopos específicos, sem cache e sem log do token. */
+export async function tokenDiagnostico(scope: string, cred: CredInter = CRED_PIX_AUTOMATICO): Promise<{ ok: boolean; status: number; token?: string; scope?: string; erro?: string }> {
+  try {
+    const t = await fetchNewToken(cred, scope);
+    return { ok: true, status: 200, token: t.access_token, scope: t.scope };
+  } catch (e) {
+    const m = String((e as Error)?.message ?? e);
+    const st = Number(m.match(/ (\d{3}):/)?.[1] ?? 0);
+    return { ok: false, status: st, erro: m.slice(0, 200) };
+  }
 }
 
-export async function tokenDiagnostico(scope: string, cred: CredDiag = "inter"): Promise<{ ok: boolean; status: number; token?: string; scope?: string; erro?: string }> {
-  const body = new URLSearchParams({ client_id: envDiag(cred, "CLIENT_ID"), client_secret: envDiag(cred, "CLIENT_SECRET"), grant_type: "client_credentials", scope });
-  const res = await fetch(`${new URL(BASE_URL).origin}/oauth/v2/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-    // @ts-ignore unstable client option
-    client: clientDiag(cred),
-  });
-  const text = await res.text();
-  if (!res.ok) return { ok: false, status: res.status, erro: text.slice(0, 200) };
-  const p = JSON.parse(text);
-  return { ok: true, status: res.status, token: p.access_token, scope: p.scope };
-}
-
-export async function getDiagnostico(path: string, token: string, conta = true, cred: CredDiag = "inter"): Promise<{ status: number; data: any }> {
+export async function getDiagnostico(path: string, token: string, conta = true, cred: CredInter = CRED_PIX_AUTOMATICO): Promise<{ status: number; data: any }> {
   const headers: Record<string, string> = { Authorization: `Bearer ${token}`, Accept: "application/json" };
   if (conta) headers["x-conta-corrente"] = CONTA;
   const res = await fetch(`${new URL(BASE_URL).origin}${path}`, {
     method: "GET", headers,
     // @ts-ignore unstable client option
-    client: clientDiag(cred),
+    client: getHttpClient(cred),
   });
   const raw = await res.text();
   let data: any = raw;
@@ -248,13 +234,13 @@ export async function getDiagnostico(path: string, token: string, conta = true, 
   return { status: res.status, data };
 }
 
-export async function infoDiagnostico(cred: CredDiag = "inter") {
-  const id = envDiag(cred, "CLIENT_ID");
+export async function infoDiagnostico(cred: CredInter = CRED_PIX_AUTOMATICO) {
+  const id = envCred(cred, "CLIENT_ID");
   const conta = onlyDigits(CONTA);
   let cert: Record<string, unknown> = {};
   try {
     const { X509Certificate } = await import("node:crypto");
-    const x = new X509Certificate(normalizePem(envDiag(cred, "CERT_PEM"), "CERT"));
+    const x = new X509Certificate(normalizePem(envCred(cred, "CERT_PEM"), "CERT"));
     cert = { subject: x.subject, validFrom: x.validFrom, validTo: x.validTo };
   } catch (e) { cert = { erro: String((e as Error)?.message ?? e).slice(0, 120) }; }
   return {
