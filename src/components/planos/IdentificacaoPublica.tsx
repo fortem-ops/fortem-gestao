@@ -70,7 +70,8 @@ export function IdentificacaoPublicaForm({ onSubmit, enviando, erro }: { onSubmi
     if (website) return;
     if (novo && form.cpf && !isValidCpfDigits(form.cpf)) { setAviso(T.identificacao.cpfInvalido); return; }
     const whatsapp = whatsappDaBusca ? valorBusca : form.whatsapp;
-    onSubmit({ ...form, whatsapp, tipo_identificacao: tipo, confirmar_vinculo: confirmado && !novo, verificacao_id: confirmado && !novo ? verificacaoId! : undefined });
+    const cpf = form.cpf || (tipo !== "novo" && busca === "cpf" && !confirmado ? valorBusca : "");
+    onSubmit({ ...form, cpf, whatsapp, tipo_identificacao: tipo, confirmar_vinculo: confirmado && !novo, verificacao_id: confirmado && !novo ? verificacaoId! : undefined });
   }
 
   return <form onSubmit={enviar} className="space-y-4">
