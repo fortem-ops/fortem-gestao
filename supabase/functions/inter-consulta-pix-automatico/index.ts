@@ -34,6 +34,10 @@ Deno.serve(async (req) => {
     if (!interno || corpo.confirmar !== "TESTE_3F") return jsonResponse({ error: "Forbidden" }, 403);
     return jsonResponse(await teste3fCriar());
   }
+  if (modo === "teste_3f_qr") {
+    if (!interno || corpo.confirmar !== "TESTE_3F_QR") return jsonResponse({ error: "Forbidden" }, 403);
+    return jsonResponse(await teste3fQr());
+  }
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
@@ -217,4 +221,47 @@ async function teste3fCriar() {
   await log("solicrec", sol);
   const { data: banco } = await sup.from("pix_recorrencias").select("id_rec, id_solic_rec, status, valor_minimo, data_inicio, data_fim").eq("id_rec", rec.idRec).maybeSingle();
   return mascararCpf({ rec: { status: rec.status, idRec: rec.idRec, statusInter: rec.statusInter }, solicrec: sol.ok ? { status: sol.status, idSolicRec: sol.idSolicRec, statusInter: sol.statusInter, expiracao: sol.expiracao } : sol, banco });
+}
+
+const TESTE_3F_QR = { ...TESTE_3F, data_inicio: "2026-10-13", data_fim: "2026-11-13" };
+const REC_3F_ANTIGA = "RR0041696820261013GHAjHW1tmv3";
+
+// Jornada 2: cancela a rec de teste antiga, cria locrec, nova rec com loc e lê o copia e cola. Uma tentativa por etapa.
+async function teste3fQr() {
+  const sup = admin();
+  const log = (acao: string, payload: unknown) => sup.from("system_logs").insert({ modulo: "pix-automatico-teste-3f", acao, mensagem: acao, payload: mascararCpf(payload) });
+  const out: Record<string, unknown> = {};
+
+  const { data: antiga } = await sup.from("pix_recorrencias").select("status, raw_response").eq("id_rec", REC_3F_ANTIGA).maybeSingle();
+  if (antiga && antiga.status !== "CANCELADA") {
+    const c = await interFetch(`/pix/v2/rec/${REC_3F_ANTIGA}`, { method: "PATCH", json: { status: "CANCELADA" } });
+    out.cancelar = { http: c.status, statusInter: c.data?.status ?? null, erro: c.status >= 300 ? c.data : undefined };
+    await log("cancelar_antiga", out.cancelar);
+    if (c.status >= 300) return mascararCpf(out);
+    await sup.from("pix_recorrencias").update({ status: "CANCELADA", motivo_cancelamento: "teste 3F" }).eq("id_rec", REC_3F_ANTIGA);
+  }
+
+  // Trava: só segue se todas as recs do aluno forem CANCELADA com marca teste_3F.
+  const { data: existentes } = await sup.from("pix_recorrencias").select("status, raw_response").eq("aluno_id", TESTE_3F.aluno_id);
+  const bloqueia = (existentes ?? []).some((r: any) => !(r.status === "CANCELADA" && r.raw_response?._marcador === "teste_3F"));
+  if (bloqueia) { await log("recusado_ja_existe", { n: existentes?.length }); return { ...out, ok: false, erro: "Já existe recorrência ativa para o aluno de teste; nada criado." }; }
+
+  const l = await interFetch("/pix/v2/locrec", { method: "POST" });
+  out.locrec = { http: l.status, id: l.data?.id ?? null, location: l.data?.location ?? null, erro: l.status >= 300 ? l.data : undefined };
+  await log("locrec", out.locrec);
+  if (l.status >= 300 || l.data?.id == null) return mascararCpf(out);
+
+  const rec = await criarRecorrencia(sup, { ...TESTE_3F_QR, loc: Number(l.data.id) });
+  out.rec = { http: rec.status, idRec: rec.idRec ?? null, statusInter: rec.statusInter ?? null, erro: rec.ok ? undefined : rec.detail ?? rec.erro };
+  await log("rec_qr", out.rec);
+  if (!rec.ok) return mascararCpf(out);
+
+  const g = await interFetch(`/pix/v2/rec/${rec.idRec}`, { method: "GET" });
+  const copiaECola = g.data?.dadosQR?.pixCopiaECola ?? null;
+  out.get = { http: g.status, statusInter: g.data?.status ?? null, jornada: g.data?.dadosQR?.jornada ?? null, chaves: g.data ? Object.keys(g.data) : null, erro: g.status >= 300 ? g.data : undefined };
+  await log("get_rec_qr", out.get);
+  if (copiaECola) {
+    await sup.from("pix_recorrencias").update({ raw_response: { ...(rec.recorrencia as any)?.raw_response, loc: l.data, dadosQR: g.data?.dadosQR } }).eq("id_rec", rec.idRec);
+  }
+  return { ...(mascararCpf(out) as object), pixCopiaECola: copiaECola };
 }

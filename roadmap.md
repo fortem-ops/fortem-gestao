@@ -23,3 +23,4 @@
 - [x] Planos 2027 — Fase 4: /planos público em 5 passos (prévia admin), propostas do site em Leads
 
 - [x] 3B.1 Start 2027 mensal com renovação + 3C rotina mensal de créditos (tolerância 3 dias)
+- [ ] 3F QR (Jornada 2): cancelar rec 14/10, criar nova hoje com loc, entregar QR; aguardar autorização do dono
