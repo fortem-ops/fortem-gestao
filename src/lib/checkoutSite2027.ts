@@ -15,17 +15,28 @@ export function salvarSessao(s: SessaoCheckout) {
 }
 export function limparSessao() { try { window.sessionStorage.removeItem(CHAVE); } catch { /* nada */ } }
 
-export class ErroCheckout extends Error {}
+export class ErroCheckout extends Error { diagnostico?: string }
 
 /** Chama a função pública planos-checkout; erros do servidor já vêm neutros. */
 export async function checkout<T = any>(acao: string, corpo: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("planos-checkout", { body: { acao, ...corpo } });
+  let headers: Record<string, string> | undefined;
+  if (corpo.previa === true) {
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      if (s.session?.access_token) headers = { Authorization: `Bearer ${s.session.access_token}` };
+    } catch { /* segue sem sessão */ }
+  }
+  const { data, error } = await supabase.functions.invoke("planos-checkout", { body: { acao, ...corpo }, headers });
   if (error) {
     let msg = "Não foi possível continuar agora. Tente novamente em instantes";
     try { const j = await (error as any).context?.json?.(); if (typeof j?.error === "string") msg = j.error; } catch { /* genérica */ }
     throw new ErroCheckout(msg);
   }
-  if (data && typeof (data as any).erro === "string") throw new ErroCheckout((data as any).erro);
+  if (data && typeof (data as any).erro === "string") {
+    const e = new ErroCheckout((data as any).erro);
+    if (typeof (data as any).diagnostico === "string") e.diagnostico = (data as any).diagnostico;
+    throw e;
+  }
   return data as T;
 }
 

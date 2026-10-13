@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Switch } from "@/components/ui/switch";
 import { IdentificacaoPublicaForm, type IdentificacaoPublica } from "@/components/planos/IdentificacaoPublica";
 import { CheckoutSite2027 } from "@/components/planos/CheckoutSite2027";
-import { checkout, lerSessao, limparSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
+import { checkout, ErroCheckout, lerSessao, limparSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
 import { Check, ArrowLeft, CircleHelp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
@@ -108,7 +108,12 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
         salvarSessao(s); setContato({ nome: dados.nome, email: dados.email }); setEtapaSessao(r.etapa); setSessao(s);
         window.scrollTo({ top: 0 });
         return;
-      } catch { /* checkout fechado para esta proposta: segue o fluxo atual */ }
+      } catch (e) {
+        // Prévia: mostra ao admin o motivo em vez de cair em "equipe entra em contato".
+        const err = e as ErroCheckout;
+        setErros({ geral: err.diagnostico ? `${err.message}. Diagnóstico da prévia: ${err.diagnostico}` : err.message });
+        return;
+      }
     }
     setEnviado(true); window.scrollTo({ top: 0 });
   }
