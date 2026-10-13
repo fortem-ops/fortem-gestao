@@ -136,7 +136,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
           <div role="group" aria-label={C.pagamento.forma} className="mt-4 grid gap-3">
             {p.formas_permitidas.map((f) => <Button key={f} variant="outline" aria-pressed={true} className={`${controle} justify-start gap-3 border-primary bg-primary/10 px-4`}><span aria-hidden="true">{pix ? <QrCode /> : <CreditCard />}</span>{forma}</Button>)}
           </div>
-          {!pix && !recorrencia && <label className="mt-5 block text-sm">{C.pagamento.parcelas}<select disabled value={p.parcelas.length} className="campo mt-2"><option value={p.parcelas.length}>{descrever(p.parcelas)}</option></select></label>}
+          {!pix && !recorrencia && !formCartao && <label className="mt-5 block text-sm">{C.pagamento.parcelas}<select disabled value={p.parcelas.length} className="campo mt-2"><option value={p.parcelas.length}>{descrever(p.parcelas)}</option></select></label>}
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">{C.pagamento.escolhaAviso}</p>
           {combinar ? <>
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.cartaoAviso}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.combinar}</p></div>
