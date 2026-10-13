@@ -310,13 +310,14 @@ async function conferirRec3f(atualizar: boolean) {
   return mascararCpf(out);
 }
 
-// Parâmetros fixos aprovados pelo dono (vencimento hoje, ciente da regra de D+2). Uma tentativa, sem variações.
+// Parâmetros fixos aprovados pelo dono (vencimento D+2 = 2026-10-15). Uma tentativa, sem variações.
 async function teste3fCobr() {
   const sup = admin();
   const log = (acao: string, payload: unknown) => sup.from("system_logs").insert({ modulo: "pix-automatico-teste-3f", acao, mensagem: acao, payload: mascararCpf(payload) });
-  const idRec = REC_3F_QR, venc = "2026-10-13", valor = 1, info = "Teste Pix Automatico FORTEM";
-  const { count } = await sup.from("pix_cobrancas").select("id", { count: "exact", head: true }).eq("id_rec", idRec);
-  if ((count ?? 0) > 0) { await log("cobr_recusado_ja_existe", { count }); return { ok: false, erro: "Já existe cobrança para essa idRec; nada enviado." }; }
+  const idRec = REC_3F_QR, venc = "2026-10-15", valor = 1, info = "Teste Pix Automatico FORTEM";
+  const { data: exist } = await sup.from("pix_cobrancas").select("status, raw_response").eq("id_rec", idRec);
+  const count = (exist ?? []).filter((c: any) => !(c.status === "REJEITADA" && c.raw_response?._marcador === "teste_3F")).length;
+  if (count > 0) { await log("cobr_recusado_ja_existe", { count }); return { ok: false, erro: "Já existe cobrança para essa idRec; nada enviado." }; }
   const { data: rec } = await sup.from("pix_recorrencias").select("aluno_id, status").eq("id_rec", idRec).maybeSingle();
   if (!rec || rec.status !== "AUTORIZADA" || rec.aluno_id !== TESTE_3F.aluno_id) return { ok: false, erro: "Recorrência de teste não está AUTORIZADA para o aluno de teste." };
   const { data: aluno } = await sup.from("alunos").select("nome").eq("id", rec.aluno_id).maybeSingle();
