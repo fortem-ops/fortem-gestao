@@ -10295,6 +10295,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_checkout_2027_alterar: {
+        Args: { p: Json; p_chave: string; p_ip: string; p_proposta_id: string }
+        Returns: Json
+      }
       fn_checkout_2027_calcular: {
         Args: { p_proposta_id: string }
         Returns: Json
