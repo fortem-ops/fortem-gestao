@@ -54,11 +54,9 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   // Dados do cadastro único: só em memória, para gerar o contrato sem pedir de novo.
   const [contratante, setContratante] = useState<DadosContratante | null>(null);
   useEffect(() => {
-    if (!catalogo.previa) return;
-    const s = lerSessao();
-    if (!s) return;
-    checkout<{ etapa: string }>("estado", s).then((r) => { setEtapaSessao(r.etapa); setSessao(s); }).catch(() => limparSessao());
-  }, [catalogo.previa]);
+    // Prévia e público: só proposta_id + chave ficam no navegador; o servidor confere com "estado".
+    restaurarSessao().then((r) => { if (r) { setEtapaSessao(r.etapa); setSessao(r.sessao); } });
+  }, []);
   const formas = formasPermitidas(familia).slice().sort((a, b) => ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(a) - ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(b));
   const formaEfetiva = formas.includes(forma) ? forma : formas[0];
   const item = encontrarItem(catalogo, familia, freq, formaEfetiva);
@@ -115,6 +113,15 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
         // Prévia: mostra ao admin o motivo em vez de cair em "equipe entra em contato".
         const err = e as ErroCheckout;
         setErros({ geral: err.diagnostico ? `${err.message}. Diagnóstico da prévia: ${err.diagnostico}` : err.message });
+        return;
+      }
+    }
+    if (!catalogo.previa && id) {
+      // Público: abre o checkout se liberado; senão segue o "equipe entra em contato", sem erro visível.
+      const r = await iniciarCheckoutPublico(id);
+      if (r) {
+        salvarSessao(r.sessao); setContato({ nome: dados.nome, email: dados.email }); setContratante(dados); setEtapaSessao(r.etapa); setSessao(r.sessao);
+        window.scrollTo({ top: 0 });
         return;
       }
     }
