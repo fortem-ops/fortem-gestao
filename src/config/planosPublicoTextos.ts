@@ -61,6 +61,19 @@ export const TEXTOS_PLANOS = {
     semEmail: "Não conseguimos confirmar o seu cadastro por e-mail. Siga com os seus dados; a equipe FORTEM confere o vínculo.",
     limitado: "Muitas tentativas. Tente novamente mais tarde.",
   },
+  cadastro: {
+    titulo: "Seus dados",
+    subtitulo: "Estes dados vão para o contrato. Você preenche uma vez só.",
+    banner: "Aluno ou ex-aluno? Coloque o seu CPF para preenchimento automático dos seus dados.",
+    buscar: "Buscar meus dados",
+    enviado: "Se este CPF tiver cadastro com e-mail, enviamos um código de 6 dígitos para o e-mail cadastrado. Ele vale por 10 minutos.",
+    semCodigo: "Não recebeu? Preencha seus dados abaixo; a equipe FORTEM confere o vínculo.",
+    preenchido: "Confira seus dados. Se algo mudou, corrija antes de seguir.",
+    naoEncontradoPrevia: "Prévia: nenhum cadastro único com este CPF. Preencha os dados.",
+    consentimento: "Autorizo a FORTEM a entrar em contato comigo sobre este plano, conforme a",
+    continuar: "Continuar para o contrato",
+    rodape: "Nada é cobrado agora.",
+  },
   resumoAnual: (valor: string) => `${valor} em até 12x no cartão de crédito`,
 } as const;
 
