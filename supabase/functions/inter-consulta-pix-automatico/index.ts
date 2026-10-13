@@ -72,14 +72,18 @@ function resumir(status: number, data: any) {
   else if (data && typeof data === "object") {
     const lista = data.recs ?? data.solicitacoes ?? data.cobsr ?? data.cobs ?? data.webhooks ?? null;
     if (Array.isArray(lista)) r.itens = lista.length;
-    if (data.webhookUrl !== undefined) r.webhook_cadastrado = !!data.webhookUrl;
+    if (data.webhookUrl !== undefined) {
+      r.webhook_cadastrado = !!data.webhookUrl;
+      try { const u = new URL(String(data.webhookUrl)); r.webhook_destino = u.host + u.pathname; } catch { /* sem url */ }
+    }
     r.chaves = Object.keys(data).slice(0, 8);
   }
   return r;
 }
 
 async function descobrir(corpo: any) {
-  const info = await infoDiagnostico();
+  const cred = corpo.credencial === "cob" ? "cob" : "inter";
+  const info = await infoDiagnostico(cred);
   const escopos: Record<string, unknown> = {};
   const aceitos: string[] = Array.isArray(corpo.consultar_com) ? corpo.consultar_com : [];
   const testar: string[] = Array.isArray(corpo.consultar_com) ? [] : (Array.isArray(corpo.escopos) ? corpo.escopos.filter((x: string) => CANDIDATOS.includes(x)) : CANDIDATOS);
@@ -87,7 +91,7 @@ async function descobrir(corpo: any) {
   for (const [i, sc] of testar.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, pausa));
     try {
-      const t = await tokenDiagnostico(sc);
+      const t = await tokenDiagnostico(sc, cred);
       escopos[sc] = t.ok ? { aceito: true, concedido: t.scope } : { aceito: false, status: t.status, erro: t.erro };
       if (t.ok) aceitos.push(sc);
     } catch (e) { escopos[sc] = { aceito: false, erro: String((e as Error)?.message ?? e).slice(0, 160) }; }
@@ -95,7 +99,7 @@ async function descobrir(corpo: any) {
   const consultas: Record<string, unknown> = {};
   let token_combinado: unknown = null;
   if (aceitos.length) {
-    const t = await tokenDiagnostico(aceitos.join(" "));
+    const t = await tokenDiagnostico(aceitos.join(" "), cred);
     token_combinado = { ok: t.ok, status: t.status, concedido: t.scope, erro: t.erro };
     if (t.ok && t.token) {
       const fim = new Date(); const ini = new Date(fim.getTime() - 30 * 24 * 3600 * 1000);
@@ -109,11 +113,13 @@ async function descobrir(corpo: any) {
         webhookrec: `/pix/v2/webhookrec`,
         webhookcobr: `/pix/v2/webhookcobr`,
       };
+      const chave = Deno.env.get("INTER_PIX_CHAVE") ?? "";
+      if (chave) paths.webhook_pix = `/pix/v2/webhook/${encodeURIComponent(chave)}`;
       for (const [n, p] of Object.entries(paths)) {
         try {
-          const a = await getDiagnostico(p, t.token, true);
+          const a = await getDiagnostico(p, t.token, true, cred);
           consultas[n] = resumir(a.status, a.data);
-          if (n === "rec") { const b = await getDiagnostico(p, t.token, false); consultas["rec_sem_conta"] = resumir(b.status, b.data); }
+          if (n === "rec") { const b = await getDiagnostico(p, t.token, false, cred); consultas["rec_sem_conta"] = resumir(b.status, b.data); }
         } catch (e) { consultas[n] = { erro: String((e as Error)?.message ?? e).slice(0, 160) }; }
       }
     }
