@@ -25,7 +25,7 @@ export function depsReais(admin: any, acesso: Acesso, softDescriptor: string): D
         return (data ?? null) as TentativaCartao | null;
       },
       registrarToken: async (t, tokenizationId) => {
-        // Sem cardholder_name, sem raw: só o id do token, a proposta e o status.
+        // Sem nome do titular, sem raw: só o id do token, a proposta e o status.
         const { data, error } = await admin.from("rede_tokenizacoes")
           .insert({ tokenization_id: tokenizationId, proposta_id: t.proposta_id, aluno_id: null, origem: "planos_site", status: "pending" })
           .select("id").single();
