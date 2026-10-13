@@ -6350,6 +6350,42 @@ export type Database = {
         }
         Relationships: []
       }
+      planos_verificacoes: {
+        Row: {
+          aluno_id: string
+          codigo_hash: string
+          consumido_em: string | null
+          created_at: string
+          email: string
+          expira_em: string
+          id: string
+          tentativas: number
+          validado_em: string | null
+        }
+        Insert: {
+          aluno_id: string
+          codigo_hash: string
+          consumido_em?: string | null
+          created_at?: string
+          email: string
+          expira_em?: string
+          id?: string
+          tentativas?: number
+          validado_em?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          codigo_hash?: string
+          consumido_em?: string | null
+          created_at?: string
+          email?: string
+          expira_em?: string
+          id?: string
+          tentativas?: number
+          validado_em?: string | null
+        }
+        Relationships: []
+      }
       ponto_acordos_intervalo: {
         Row: {
           aceite_digital_em: string | null
@@ -7461,6 +7497,7 @@ export type Database = {
       propostas_planos_2027: {
         Row: {
           aluno_id: string | null
+          aluno_suspeito_id: string | null
           configuracao: Json
           corrida: boolean
           corrida_valor_mensal: number | null
@@ -7485,12 +7522,14 @@ export type Database = {
           tipo_identificacao: string
           updated_at: string
           valor_total_centavos: number
+          verificacao_id: string | null
           verificacao_vinculo: string
           vinculo_por_telefone: boolean
           whatsapp: string
         }
         Insert: {
           aluno_id?: string | null
+          aluno_suspeito_id?: string | null
           configuracao?: Json
           corrida?: boolean
           corrida_valor_mensal?: number | null
@@ -7515,12 +7554,14 @@ export type Database = {
           tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos: number
+          verificacao_id?: string | null
           verificacao_vinculo?: string
           vinculo_por_telefone?: boolean
           whatsapp: string
         }
         Update: {
           aluno_id?: string | null
+          aluno_suspeito_id?: string | null
           configuracao?: Json
           corrida?: boolean
           corrida_valor_mensal?: number | null
@@ -7545,6 +7586,7 @@ export type Database = {
           tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos?: number
+          verificacao_id?: string | null
           verificacao_vinculo?: string
           vinculo_por_telefone?: boolean
           whatsapp?: string
@@ -10179,6 +10221,7 @@ export type Database = {
           vagas_utilizadas: number
         }[]
       }
+      fn_cpf_digitos_validos: { Args: { p: string }; Returns: boolean }
       fn_creditos_atividade_de_servico: {
         Args: { _tipo_servico: string }
         Returns: string
@@ -10569,6 +10612,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fn_planos_codigo_validar: {
+        Args: { p_hash: string; p_id: string }
+        Returns: Json
+      }
       fn_planos_divergencia_alertar: { Args: never; Returns: number }
       fn_planos_divergencia_contrato: {
         Args: never
@@ -10583,12 +10630,21 @@ export type Database = {
           tipo: string
         }[]
       }
+      fn_planos_identificar: { Args: { p: Json }; Returns: Json }
       fn_planos_identificar_telefone: {
         Args: { p_telefone: string }
         Returns: Json
       }
+      fn_planos_limite: {
+        Args: { p_chave: string; p_limite: number }
+        Returns: boolean
+      }
       fn_planos_normalizar_telefone: { Args: { t: string }; Returns: string }
       fn_planos_publico_2027: { Args: { p_previa?: boolean }; Returns: Json }
+      fn_planos_resolver: {
+        Args: { p_tipo: string; p_valor: string }
+        Returns: string
+      }
       fn_ponto_ajustar_jornada: {
         Args: {
           _campo: string
