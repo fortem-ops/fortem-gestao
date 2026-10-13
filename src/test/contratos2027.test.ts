@@ -47,6 +47,15 @@ describe("contratos 2027", () => {
     expect(montarClausulaReposicao(power1x)).toBe("");
   });
 
+  it("reposição exige novo plano em até 30 dias corridos e expira após o prazo", () => {
+    for (const frequencia of ["1x", "2x", "3x"]) {
+      const clausula = montarClausulaReposicao({ ...pro3x, frequencia });
+      expect(clausula).toContain("em até 30 (trinta) dias corridos após o término da vigência deste contrato");
+      expect(clausula).toContain("encerrado esse prazo, o saldo não será transferido");
+    }
+    expect(montarClausulaReposicao({ ...pro3x, ilimitado: true })).toBe("");
+  });
+
   it("benefícios do Pro: 2 avaliações, bota 4/mês; Power: 1 avaliação", () => {
     const pro = montarVariaveis2027(pro3x, []).BENEFICIOS_PLANO;
     expect(pro).toContain("2 avaliações funcionais (1º e 6º mês)");

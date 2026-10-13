@@ -87,7 +87,7 @@ export function montarClausulaReposicao(item: CatalogoPlano2027): string {
   const pctTxt = pct === 50 ? "50% (cinquenta por cento)" : `${pct}%`;
   return (
     `<h2>DA REPOSIÇÃO DE CRÉDITOS</h2>\n` +
-    `<p><strong>Cláusula 15ª-A</strong> – Ao final da vigência deste contrato, ${pctTxt} do saldo de créditos de treino não utilizados, arredondado para cima, será transferido ao novo plano contratado pelo ALUNO, para uso conforme a vigência deste novo plano.</p>\n` +
+    `<p><strong>Cláusula 15ª-A</strong> – Ao final da vigência deste contrato, ${pctTxt} do saldo de créditos de treino não utilizados, arredondado para cima, será transferido ao novo plano contratado pelo ALUNO, para uso conforme a vigência deste novo plano, desde que o novo plano seja contratado em até 30 (trinta) dias corridos após o término da vigência deste contrato; encerrado esse prazo, o saldo não será transferido.</p>\n` +
     `<p>Parágrafo único – A reposição vale somente para créditos de treino, não se aplicando a créditos de nutrição, reabilitação ou avaliações.</p>\n\n`
   );
 }
