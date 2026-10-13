@@ -182,6 +182,14 @@ async function statusCartao(propostaId: string, chave: string): Promise<Tentativ
   return re?.tentativa ?? t;
 }
 
+/** 3 tentativas de cartão em 30 min (mesma regra de fn_checkout_2027_pagamento_iniciar), sem nenhuma em andamento. */
+async function cartaoEsgotado(propostaId: string): Promise<boolean> {
+  const desde = new Date(Date.now() - 30 * 60_000).toISOString();
+  const { data } = await admin.from("checkout_2027_tentativas").select("status").eq("proposta_id", propostaId).eq("tipo", "cartao").gt("created_at", desde);
+  const l = data ?? [];
+  return l.length >= 3 && !l.some((t: any) => ["processando", "desconhecido", "aprovado"].includes(t.status));
+}
+
 async function confirmarSePago(propostaId: string, deps: ReturnType<typeof depsReais>, id: string) {
   const t = await deps.db.tentativa(id);
   if (t?.status === "aprovado") { try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente */ } }
@@ -256,7 +264,7 @@ Deno.serve(async (req) => {
         throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
       const sim = await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId);
       const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
-      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real }, aceite_id: e.aceite_id });
+      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real, cartao_simulado: sim === true && !real }, aceite_id: e.aceite_id });
     }
     if (acao === "cartao_combinar") {
       // Cartão real não ligado: sem tentativa e sem "falhou"; avisa a equipe uma vez por proposta.
@@ -275,7 +283,8 @@ Deno.serve(async (req) => {
       if (andamento && !andamento.simulado && andamento.tipo === "cartao" && ["processando", "desconhecido"].includes(andamento.status))
         return json(200, { tentativa: tentativaPublica(andamento) });
       const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
-      if (real) return json(200, await tokenizarCartao(propostaId, chave, ip, body?.cartao));
+      if (await cartaoEsgotado(propostaId)) return json(200, { tentativa: tentativaPublica(andamento), cartao_esgotado: true });
+      if (real) return json(200, { ...(await tokenizarCartao(propostaId, chave, ip, body?.cartao)), cartao_esgotado: await cartaoEsgotado(propostaId) });
       if (acao === "tokenizar_cartao") throw new Neutro("Pagamento por cartão indisponível no momento");
       // pagar_cartao em simulação: igual a antes, nunca chama a Rede.
       if ((await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId)) !== true)
@@ -283,13 +292,13 @@ Deno.serve(async (req) => {
       const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "cartao", p_ip: ip }, propostaId) as Tentativa;
       if (t.simulado) {
         const r = await rpc("fn_checkout_2027_simular_resultado", { p_tentativa_id: t.id, p_resultado: resultadoCartaoSimulado(body?.simular) }, propostaId);
-        return json(200, { tentativa: tentativaPublica(r) });
+        return json(200, { tentativa: tentativaPublica(r), cartao_esgotado: await cartaoEsgotado(propostaId) });
       }
       await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "recusado", p_ref: null, p_motivo: "cartao_real_nao_liberado" }, propostaId);
       throw new Neutro("Pagamento por cartão indisponível no momento");
     }
     if (acao === "status_cartao") {
-      return json(200, { tentativa: tentativaPublica(await statusCartao(propostaId, chave)) });
+      return json(200, { tentativa: tentativaPublica(await statusCartao(propostaId, chave)), cartao_esgotado: await cartaoEsgotado(propostaId) });
     }
     if (acao === "simular_pix") {
       const res = resultadoPixSimulado(body?.resultado);
@@ -340,7 +349,7 @@ Deno.serve(async (req) => {
         const { data: c } = await admin.from("pix_cobrancas").select("id, status, created_at").eq("proposta_id", propostaId).eq("txid", st.ref).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
         if (c?.id) await expirarPixAntigo(propostaId, c.id, null);
       }
-      return json(200, { etapa: st?.etapa, tentativa: tentativaPublica(t), pix_copia_cola: copia });
+      return json(200, { etapa: st?.etapa, tentativa: tentativaPublica(t), pix_copia_cola: copia, cartao_esgotado: t?.tipo === "cartao" ? await cartaoEsgotado(propostaId) : false });
     }
     if (acao === "alterar") {
       const e = body?.escolhas ?? {};

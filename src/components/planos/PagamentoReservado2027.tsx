@@ -3,6 +3,7 @@ import { Clock3, CreditCard, LockKeyhole, QrCode, ClipboardCheck } from "lucide-
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
+import { CartaoPagamento2027 } from "./CartaoPagamento2027";
 import { checkout, lerCodigo, type SessaoCheckout } from "@/lib/checkoutSite2027";
 
 type TentativaTela = { id: string; tipo: "pix" | "cartao"; simulado: boolean; valor_centavos: number; total_proposta_centavos: number; parcelas: number; status: "pendente" | "aprovado" | "recusado" | "expirado"; expira_em: string | null };
@@ -16,7 +17,7 @@ export type RevisaoCheckout = {
 };
 export type TelaPagamento = {
   revisao: RevisaoCheckout; aceite_id: string;
-  pagamento: { reservado: boolean; cartao_a_combinar?: boolean; validade_pix_segundos: number; formas_permitidas: string[]; parcelas: number[]; parcelas_servicos: number[] };
+  pagamento: { reservado: boolean; cartao_a_combinar?: boolean; cartao_real?: boolean; cartao_simulado?: boolean; validade_pix_segundos: number; formas_permitidas: string[]; parcelas: number[]; parcelas_servicos: number[] };
 };
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const nomes: Record<string, string> = { start_2027: "Start", power_2027: "Power", pro_2027: "Pro" };
@@ -94,12 +95,15 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
   const { revisao: r, pagamento: p } = tela;
   /** Pago de verdade (servidor ou aprovação real nesta tela): sem voltar nem alterar. */
   const pago = pagoServidor || aprovado === "real";
+  /** Cartão validando/processando/confirmando: sem voltar nem alterar. */
+  const [travado, setTravado] = useState(false);
   const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => { titulo.current?.focus(); }, [confirmacao]);
   const codigo = lerCodigo(r.plano_codigo);
   const pix = r.forma_plano === "pix_vista";
   const recorrencia = r.forma_plano === "recorrencia";
   const combinar = !pix && p.cartao_a_combinar === true;
+  const formCartao = !pix && !recorrencia && !combinar && (p.cartao_real === true || p.cartao_simulado === true);
   const [avisando, setAvisando] = useState(false);
   const [erroCombinar, setErroCombinar] = useState("");
   async function combinarComEquipe() {
@@ -132,7 +136,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
           <div role="group" aria-label={C.pagamento.forma} className="mt-4 grid gap-3">
             {p.formas_permitidas.map((f) => <Button key={f} variant="outline" aria-pressed={true} className={`${controle} justify-start gap-3 border-primary bg-primary/10 px-4`}><span aria-hidden="true">{pix ? <QrCode /> : <CreditCard />}</span>{forma}</Button>)}
           </div>
-          {!pix && !recorrencia && <label className="mt-5 block text-sm">{C.pagamento.parcelas}<select disabled value={p.parcelas.length} className="campo mt-2"><option value={p.parcelas.length}>{descrever(p.parcelas)}</option></select></label>}
+          {!pix && !recorrencia && !formCartao && <label className="mt-5 block text-sm">{C.pagamento.parcelas}<select disabled value={p.parcelas.length} className="campo mt-2"><option value={p.parcelas.length}>{descrever(p.parcelas)}</option></select></label>}
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">{C.pagamento.escolhaAviso}</p>
           {combinar ? <>
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.cartaoAviso}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.combinar}</p></div>
@@ -142,7 +146,9 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.cartaoAviso}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.primeiraRecorrencia}</p></div>
             <p role="status" className="mt-5 text-sm font-semibold">{C.pagamento.reservado}</p>
             <Button disabled className={`${controle} mt-4 w-full`}>{C.pagamento.pagar}</Button>
-          </> : <PagamentoAtivo sessao={sessao} pix={pix} onAprovado={(sim) => { setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />}
+          </> : formCartao ? <CartaoPagamento2027 sessao={sessao} simulacao={p.cartao_real !== true} parcelas={p.parcelas} onTravado={setTravado}
+            onAprovado={(sim) => { setTravado(false); setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />
+          : <PagamentoAtivo sessao={sessao} pix={pix} onAprovado={(sim) => { setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />}
           {recorrencia && !combinar && <Button className={`${controle} mt-3 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>}
         </>}
       </div>
@@ -150,7 +156,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
         <h2 className="font-display text-lg font-bold uppercase">{C.pagamento.resumo}</h2>
         <p className="mt-5 font-display text-2xl font-bold uppercase">{nomes[r.familia] ?? r.familia}</p>
         <dl className="mt-4 text-sm">{linhas.map(([k, v]) => <div key={k} className="border-b border-border py-3"><dt className="text-xs font-semibold uppercase text-muted-foreground">{k}</dt><dd className="mt-2 break-words leading-relaxed">{v}</dd></div>)}<div className="flex flex-wrap justify-between gap-3 py-5 font-bold"><dt className="font-display uppercase">{C.revisao.total}</dt><dd>{brl(r.total_centavos)}</dd></div></dl>
-        {!pago && <>
+        {!pago && !travado && <>
           <Button variant="outline" className={`${controle} w-full`} onClick={onAlterar}>{C.revisao.alterar}</Button>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{C.revisao.avisoAceite}</p>
         </>}

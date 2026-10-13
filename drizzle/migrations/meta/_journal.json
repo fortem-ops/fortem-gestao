@@ -834,6 +834,13 @@
       "when": 1791931228609,
       "tag": "0118_checkout_2027_cartao_reservar_ordem",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1791931500527,
+      "tag": "0119_checkout_2027_cartao_f3",
+      "breakpoints": true
     }
   ]
 }

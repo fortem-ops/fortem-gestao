@@ -7734,6 +7734,7 @@ export type Database = {
           lead_erro: string | null
           nome: string
           notificacao_cartao_combinar_id: string | null
+          notificacao_cartao_divergente_id: string | null
           notificacao_cartao_recusado_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
@@ -7790,6 +7791,7 @@ export type Database = {
           lead_erro?: string | null
           nome: string
           notificacao_cartao_combinar_id?: string | null
+          notificacao_cartao_divergente_id?: string | null
           notificacao_cartao_recusado_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
@@ -7846,6 +7848,7 @@ export type Database = {
           lead_erro?: string | null
           nome?: string
           notificacao_cartao_combinar_id?: string | null
+          notificacao_cartao_divergente_id?: string | null
           notificacao_cartao_recusado_id?: string | null
           notificacao_pagamento_id?: string | null
           origem?: string
@@ -10454,6 +10457,10 @@ export type Database = {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_cartao_divergente_aviso: {
+        Args: { p_proposta_id: string }
+        Returns: undefined
+      }
       fn_checkout_2027_cartao_elegivel: { Args: { c: Json }; Returns: boolean }
       fn_checkout_2027_cartao_liquidado: {
         Args: {
@@ -10591,6 +10598,7 @@ export type Database = {
           lead_erro: string | null
           nome: string
           notificacao_cartao_combinar_id: string | null
+          notificacao_cartao_divergente_id: string | null
           notificacao_cartao_recusado_id: string | null
           notificacao_pagamento_id: string | null
           origem: string
