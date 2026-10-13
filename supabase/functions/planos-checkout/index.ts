@@ -270,6 +270,10 @@ Deno.serve(async (req) => {
     }
     if (acao === "tokenizar_cartao" || acao === "pagar_cartao") {
       // Real só com fn_checkout_2027_cartao_real (flag + modo + elegibilidade, conferidos no banco).
+      // Cartão real já em andamento (mesmo após o modo de teste voltar a simulação): só acompanha, nunca cria outra.
+      const andamento = await statusCartao(propostaId, chave);
+      if (andamento && !andamento.simulado && andamento.tipo === "cartao" && ["processando", "desconhecido"].includes(andamento.status))
+        return json(200, { tentativa: tentativaPublica(andamento) });
       const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
       if (real) return json(200, await tokenizarCartao(propostaId, chave, ip, body?.cartao));
       if (acao === "tokenizar_cartao") throw new Neutro("Pagamento por cartão indisponível no momento");
