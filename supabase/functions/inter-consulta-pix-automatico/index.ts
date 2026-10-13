@@ -38,6 +38,11 @@ Deno.serve(async (req) => {
     if (!interno || corpo.confirmar !== "TESTE_3F_QR") return jsonResponse({ error: "Forbidden" }, 403);
     return jsonResponse(await teste3fQr());
   }
+  // Leitura de uma recorrência de teste; com atualizar=true grava status interno conforme o GET (conferência manual).
+  if (modo === "conferir_rec_3f") {
+    if (!interno || corpo.confirmar !== "CONFERIR_3F") return jsonResponse({ error: "Forbidden" }, 403);
+    return jsonResponse(await conferirRec3f(!!corpo.atualizar));
+  }
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
@@ -264,4 +269,22 @@ async function teste3fQr() {
     await sup.from("pix_recorrencias").update({ raw_response: { ...(rec.recorrencia as any)?.raw_response, loc: l.data, dadosQR: g.data?.dadosQR } }).eq("id_rec", rec.idRec);
   }
   return { ...(mascararCpf(out) as object), pixCopiaECola: copiaECola };
+}
+
+const REC_3F_QR = "RR0041696820261013xm6a6FzsywP";
+async function conferirRec3f(atualizar: boolean) {
+  const sup = admin();
+  const g = await interFetch(`/pix/v2/rec/${REC_3F_QR}`, { method: "GET" });
+  const d = g.data ?? {};
+  const out: any = { http: g.status, status: d.status ?? null, ativacao: d.ativacao ?? null, solicitacao: d.solicitacao ?? null, atualizacao: d.atualizacao ?? null, jornada: d.dadosQR?.jornada ?? null, erro: g.status >= 300 ? d : undefined };
+  const wh = await interFetch("/pix/v2/webhookrec", { method: "GET" });
+  out.webhookrec = { http: wh.status, url: String(wh.data?.webhookUrl ?? "").replace(/token=[^&]+/, "token=***"), criacao: wh.data?.criacao ?? null };
+  const mapa: Record<string, string> = { APROVADA: "AUTORIZADA", REJEITADA: "REJEITADA", CANCELADA: "CANCELADA", EXPIRADA: "EXPIRADA" };
+  if (atualizar && g.status === 200 && mapa[d.status]) {
+    const { data: antes } = await sup.from("pix_recorrencias").select("status").eq("id_rec", REC_3F_QR).maybeSingle();
+    await sup.from("pix_recorrencias").update({ status: mapa[d.status] }).eq("id_rec", REC_3F_QR);
+    await sup.from("system_logs").insert({ modulo: "pix-automatico-teste-3f", acao: "conferencia_manual", mensagem: `Status atualizado por conferência manual (GET Inter: ${d.status})`, payload: { idRec: REC_3F_QR, antes: antes?.status, depois: mapa[d.status] } });
+    out.banco = { antes: antes?.status, depois: mapa[d.status] };
+  }
+  return mascararCpf(out);
 }
