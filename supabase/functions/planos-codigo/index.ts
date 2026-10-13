@@ -1,6 +1,7 @@
 // Código de verificação por e-mail da identificação pública /planos.
 // Nunca registra CPF, código ou e-mail completo em log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { avaliarTurnstile, passeValido } from "../_shared/planos-turnstile.ts";
 import {
   corpoEmailCodigo, cpfDigitosValidos, gerarCodigo, hashCodigo, mascararEmail, podeEnviarCodigo,
   respostaEnvioPublica, respostaValidacaoPublica, type Envio,
@@ -29,16 +30,13 @@ async function limite(chave: string, n: number) {
   return data === true;
 }
 
-/** Turnstile: só valida quando a chave está ligada E o segredo existe. Sem segredo, não bloqueia. */
-async function turnstileOk(token: unknown, ip: string): Promise<boolean> {
+/** Turnstile: com a chave ligada, exige um passe emitido aqui depois da verificação na Cloudflare. */
+async function passeOk(passe: unknown): Promise<boolean> {
   if ((await config("planos_turnstile_ativo")) !== true) return true;
-  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
-  if (!secret) { console.warn("[planos-codigo] Turnstile ligado sem TURNSTILE_SECRET_KEY; seguindo sem bloquear"); return true; }
-  if (typeof token !== "string" || !token) return false;
-  const form = new FormData();
-  form.append("secret", secret); form.append("response", token); if (ip) form.append("remoteip", ip);
-  const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
-  return (await r.json().catch(() => ({})))?.success === true;
+  if (!passeValido(passe)) return false;
+  const { data } = await admin.from("planos_turnstile_passes").select("id")
+    .eq("id", passe).is("consumido_em", null).gt("expira_em", new Date().toISOString()).maybeSingle();
+  return !!data;
 }
 
 // Envio do código de identificação via Resend (domínio soufortem.com.br verificado).
@@ -76,7 +74,7 @@ async function enviarCodigo(body: any, ip: string): Promise<Envio | { enviado: f
       const tipo = body.tipo === "cpf" ? "cpf" : body.tipo === "telefone" ? "telefone" : null;
       const valor = typeof body.valor === "string" ? body.valor.replace(/\D/g, "") : "";
       if (!tipo || !valor || (tipo === "cpf" && !cpfDigitosValidos(valor))) return ({ enviado: false, motivo: "indisponivel" });
-      if (!(await turnstileOk(body.turnstile_token, ip))) return ({ enviado: false, motivo: "captcha" });
+      if (!(await passeOk(body.turnstile_passe))) return ({ enviado: false, motivo: "captcha" });
       if (!(await limite(`cod-ip:${ip}`, 10)) || !(await limite(`cod-ident:${await sha(tipo + valor)}`, 5))) {
         return ({ enviado: false, motivo: "limitado" });
       }
@@ -113,6 +111,19 @@ Deno.serve(async (req) => {
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "sem-ip";
   const body = await req.json().catch(() => ({}));
   try {
+    if (body?.acao === "turnstile_config") {
+      const ativo = (await config("planos_turnstile_ativo")) === true;
+      return json(200, { ativo, site_key: ativo ? await config("planos_turnstile_site_key") : null });
+    }
+    if (body?.acao === "turnstile") {
+      // Verifica o token do widget no servidor e devolve um passe de uso único (20 min).
+      if (!(await limite(`ts-ip:${ip}`, 30))) return json(200, { ok: false });
+      const r = await avaliarTurnstile(await config("planos_turnstile_ativo"), Deno.env.get("TURNSTILE_SECRET_KEY"), body.token, ip);
+      if (r === "livre") return json(200, { ok: true, passe: null });
+      if (r !== "ok") return json(200, { ok: false });
+      const { data, error } = await admin.from("planos_turnstile_passes").insert({}).select("id").single();
+      return json(200, error ? { ok: false } : { ok: true, passe: data.id });
+    }
     if (body?.acao === "enviar") {
       const inicio = Date.now();
       let r: Awaited<ReturnType<typeof enviarCodigo>>;
