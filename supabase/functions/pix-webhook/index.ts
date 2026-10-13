@@ -1,4 +1,5 @@
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
+import { extrairEventos, statusRec, statusCobr, podeAtualizarRec, mascararCpf } from "./eventos.ts";
 import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
 
 
@@ -159,57 +160,44 @@ Deno.serve(async (req) => {
       console.log("pix-webhook: pedido da loja pago", cob.pedido_id, txid);
     }
 
-    // O Inter envia listas como { rec: [...] } / { cobr: [...] } ou eventos avulsos.
-    const eventos: any[] = []
-      .concat(payload?.rec ?? [])
-      .concat(payload?.cobr ?? [])
-      .concat(pixRecebidos.filter((p: any) => !p?.txid || !pixTratados.has(p.txid)));
-    if (eventos.length === 0 && payload?.tipo) eventos.push(payload);
+    // Avisos de Pix Automático. Listas aceitas: rec|recs e cobr|cobrs|cobsr (ver eventos.ts).
+    const eventos = extrairEventos(payload, pixRecebidos.filter((p: any) => !p?.txid || !pixTratados.has(p.txid)));
+    const naoReconhecido = (motivo: string, origem: string, ev: unknown) =>
+      sup.from("system_logs").insert({ modulo: "pix-webhook", acao: "aviso_nao_reconhecido", mensagem: `${origem}: ${motivo}`, payload: mascararCpf(ev) });
 
-
-    for (const ev of eventos) {
-      const tipo: string = ev?.tipo ?? ev?.evento ?? "";
-      const idRec: string | undefined = ev?.idRec;
+    for (const { origem, ev } of eventos) {
       const txid: string | undefined = ev?.txid;
 
       // --- Recorrências ---
-      if (tipo === "REC_AUTORIZADA" || ev?.status === "AUTORIZADA") {
-        if (idRec) {
-          await sup.from("pix_recorrencias")
-            .update({ status: "AUTORIZADA" })
-            .eq("id_rec", idRec);
-        }
-        continue;
-      }
-      if (tipo === "REC_CANCELADA" || ev?.status === "CANCELADA") {
-        if (idRec) {
-          await sup.from("pix_recorrencias")
-            .update({ status: "CANCELADA" })
-            .eq("id_rec", idRec);
-        }
-        continue;
-      }
-      if (tipo === "REC_REJEITADA" || ev?.status === "REJEITADA") {
-        if (idRec) {
-          await sup.from("pix_recorrencias")
-            .update({ status: "REJEITADA" })
-            .eq("id_rec", idRec);
+      if (origem === "rec") {
+        const idRec: string | undefined = ev?.idRec;
+        const novo = statusRec(ev);
+        if (!idRec || !novo) { await naoReconhecido(!idRec ? "sem idRec" : `status ${ev?.status ?? ev?.tipo}`, origem, ev); continue; }
+        const { data: rec } = await sup.from("pix_recorrencias").select("status").eq("id_rec", idRec).maybeSingle();
+        if (!rec) { await naoReconhecido("idRec não encontrado", origem, ev); continue; }
+        if (podeAtualizarRec(rec.status, novo)) {
+          await sup.from("pix_recorrencias").update({ status: novo }).eq("id_rec", idRec);
+          await sup.from("system_logs").insert({ modulo: "pix-webhook", acao: "recorrencia_status", mensagem: `${idRec}: ${rec.status} -> ${novo}`, payload: { idRec, antes: rec.status, depois: novo, statusInter: ev?.status ?? null } });
         }
         continue;
       }
 
-      // --- Cobranças ---
-      if (!txid) continue;
+      // --- Cobranças (Pix Automático); itens "pix" sem status seguem sem ação, como antes ---
+      const st = statusCobr(ev);
+      if (!st) { if (origem === "cobr") await naoReconhecido(`status ${ev?.status ?? ev?.tipo}`, origem, ev); continue; }
+      if (!txid) { await naoReconhecido("sem txid", origem, ev); continue; }
       const { data: cob } = await sup
         .from("pix_cobrancas")
-        .select("id, aluno_id, valor, id_rec, pagamento_id, corrida_venda_id")
+        .select("id, aluno_id, valor, id_rec, pagamento_id, corrida_venda_id, status")
         .eq("txid", txid)
         .maybeSingle();
+      if (!cob) { await naoReconhecido("txid não encontrado", origem, ev); continue; }
+      if (cob.status === st) continue; // idempotente
+      if (cob.status === "LIQUIDADA") { await naoReconhecido(`já LIQUIDADA, recebido ${st}`, origem, ev); continue; }
 
-
-      if (tipo === "COBR_LIQUIDADA" || ev?.status === "LIQUIDADA") {
-        let pagamentoId = cob?.pagamento_id ?? null;
-        if (cob && !pagamentoId) {
+      if (st === "LIQUIDADA") {
+        let pagamentoId = cob.pagamento_id ?? null;
+        if (!pagamentoId) {
           const { data: pag } = await sup
             .from("pagamentos")
             .insert({
@@ -225,27 +213,18 @@ Deno.serve(async (req) => {
           pagamentoId = pag?.id ?? null;
         }
         await sup.from("pix_cobrancas")
-          .update({
-            status: "LIQUIDADA",
-            liquidado_em: new Date().toISOString(),
-            pagamento_id: pagamentoId,
-            raw_response: ev,
-          })
-          .eq("txid", txid);
-
-        if (cob) {
-          const { data: aluno } = await sup
-            .from("alunos").select("nome").eq("id", cob.aluno_id).maybeSingle();
-          await notifyAdmins({
-            titulo: `Pix recebido — ${aluno?.nome ?? "Aluno"}`,
-            descricao: `Cobrança ${txid} liquidada no valor de ${brl(cob.valor)}.`,
-            aluno_id: cob.aluno_id,
-            prioridade: "media",
-          });
-        }
+          .update({ status: "LIQUIDADA", liquidado_em: new Date().toISOString(), pagamento_id: pagamentoId, raw_response: ev })
+          .eq("id", cob.id);
+        const { data: aluno } = await sup.from("alunos").select("nome").eq("id", cob.aluno_id).maybeSingle();
+        await notifyAdmins({
+          titulo: `Pix recebido — ${aluno?.nome ?? "Aluno"}`,
+          descricao: `Cobrança ${txid} liquidada no valor de ${brl(cob.valor)}.`,
+          aluno_id: cob.aluno_id,
+          prioridade: "media",
+        });
 
         // --- Corrida (Pix à vista): adição isolada, não afeta o caminho da Loja ---
-        if (cob?.corrida_venda_id) {
+        if (cob.corrida_venda_id) {
           try {
             const { data: vendaCorrida } = await sup
               .from("vendas")
@@ -269,41 +248,26 @@ Deno.serve(async (req) => {
             console.error("pix-webhook: falha ao processar pagamento aprovado da Corrida", String(e));
           }
         }
-
         continue;
       }
 
-      if (tipo === "COBR_REJEITADA" || ev?.status === "REJEITADA") {
+      if (st === "REJEITADA") {
         const motivo: string = ev?.motivo ?? ev?.descricaoMotivo ?? "Rejeitada pelo banco";
         await sup.from("pix_cobrancas")
           .update({ status: "REJEITADA", motivo_rejeicao: motivo, raw_response: ev })
-          .eq("txid", txid);
-        if (cob) {
-          const { data: aluno } = await sup
-            .from("alunos").select("nome").eq("id", cob.aluno_id).maybeSingle();
-          await notifyAdmins({
-            titulo: `Pix rejeitado — ${aluno?.nome ?? "Aluno"}`,
-            descricao: `Cobrança ${txid} (${brl(cob.valor)}) foi rejeitada. Motivo: ${motivo}.`,
-            aluno_id: cob.aluno_id,
-            prioridade: "alta",
-          });
-        }
+          .eq("id", cob.id);
+        const { data: aluno } = await sup.from("alunos").select("nome").eq("id", cob.aluno_id).maybeSingle();
+        await notifyAdmins({
+          titulo: `Pix rejeitado — ${aluno?.nome ?? "Aluno"}`,
+          descricao: `Cobrança ${txid} (${brl(cob.valor)}) foi rejeitada. Motivo: ${motivo}.`,
+          aluno_id: cob.aluno_id,
+          prioridade: "alta",
+        });
         continue;
       }
 
-      if (tipo === "COBR_AGENDADA" || ev?.status === "AGENDADA") {
-        await sup.from("pix_cobrancas")
-          .update({ status: "AGENDADA", raw_response: ev })
-          .eq("txid", txid);
-        continue;
-      }
-
-      if (tipo === "COBR_CANCELADA" || ev?.status === "CANCELADA") {
-        await sup.from("pix_cobrancas")
-          .update({ status: "CANCELADA", raw_response: ev })
-          .eq("txid", txid);
-        continue;
-      }
+      // AGENDADA / CANCELADA / EXPIRADA
+      await sup.from("pix_cobrancas").update({ status: st, raw_response: ev }).eq("id", cob.id);
     }
 
     return jsonResponse({ ok: true });
