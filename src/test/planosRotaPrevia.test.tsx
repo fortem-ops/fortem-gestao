@@ -14,6 +14,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     },
   },
 }));
+vi.mock("@/components/Seo", () => ({ Seo: () => null }));
 import PlanosRota from "@/pages/PlanosRota";
 
 describe("prévia de admin espera a sessão", () => {
