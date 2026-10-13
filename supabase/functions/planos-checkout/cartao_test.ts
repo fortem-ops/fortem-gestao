@@ -80,7 +80,7 @@ Deno.test("token sem validade → cai na validade digitada", async () => {
   assertEquals(c.cobrancas, [{ mes: "12", ano: "2030" }]);
 });
 Deno.test("polling também cobra com a validade do token", async () => {
-  const c = cenario({ token: ["pendente", "ativo"], expiracao: "03/2028" });
+  const c = cenario({ token: ["pendente", "pendente", "pendente", "ativo"], expiracao: "03/2028" });
   await iniciarCartaoReal(c.deps, c.t, dados);
   assertEquals(c.t.status, "processando");
   await acompanharCartaoReal(c.deps, c.t);
