@@ -743,6 +743,13 @@
       "when": 1791907342611,
       "tag": "0105_planos_proposta_previa_sem_limite",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1791908918810,
+      "tag": "0106_planos_cadastro_unico",
+      "breakpoints": true
     }
   ]
 }
