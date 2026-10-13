@@ -62,6 +62,7 @@ export const TEXTOS_PLANOS = {
     limitado: "Muitas tentativas. Tente novamente mais tarde.",
   },
   cadastro: {
+    verificacao: "Confirme a verificação de segurança acima para continuar.",
     titulo: "Seus dados",
     subtitulo: "Estes dados vão para o contrato. Você preenche uma vez só.",
     banner: "Aluno ou ex-aluno? Coloque o seu CPF para preenchimento automático dos seus dados.",
