@@ -15,7 +15,7 @@ export type RevisaoCheckout = {
 };
 export type TelaPagamento = {
   revisao: RevisaoCheckout; aceite_id: string;
-  pagamento: { reservado: boolean; validade_pix_segundos: number; formas_permitidas: string[]; parcelas: number[]; parcelas_servicos: number[] };
+  pagamento: { reservado: boolean; cartao_a_combinar?: boolean; validade_pix_segundos: number; formas_permitidas: string[]; parcelas: number[]; parcelas_servicos: number[] };
 };
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const nomes: Record<string, string> = { start_2027: "Start", power_2027: "Power", pro_2027: "Pro" };
@@ -94,6 +94,15 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, onConfirmar,
   const codigo = lerCodigo(r.plano_codigo);
   const pix = r.forma_plano === "pix_vista";
   const recorrencia = r.forma_plano === "recorrencia";
+  const combinar = !pix && p.cartao_a_combinar === true;
+  const [avisando, setAvisando] = useState(false);
+  const [erroCombinar, setErroCombinar] = useState("");
+  async function combinarComEquipe() {
+    setAvisando(true); setErroCombinar("");
+    try { await checkout("cartao_combinar", sessao); onConfirmar(); }
+    catch (e) { setErroCombinar(e instanceof Error ? e.message : C.erroGenerico); }
+    finally { setAvisando(false); }
+  }
   const forma = pix ? C.pagamento.pix : recorrencia ? C.pagamento.recorrencia : C.pagamento.cartao;
   const linhas = [
     [C.revisao.frequencia, frequencias[codigo.frequencia] ?? codigo.frequencia],
@@ -120,12 +129,16 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, onConfirmar,
           </div>
           {!pix && !recorrencia && <label className="mt-5 block text-sm">{C.pagamento.parcelas}<select disabled value={p.parcelas.length} className="campo mt-2"><option value={p.parcelas.length}>{descrever(p.parcelas)}</option></select></label>}
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">{C.pagamento.escolhaAviso}</p>
-          {recorrencia ? <>
+          {combinar ? <>
+            <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.cartaoAviso}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.combinar}</p></div>
+            <Button className={`${controle} mt-5 w-full`} disabled={avisando} onClick={combinarComEquipe}>{C.pagamento.combinarBotao}</Button>
+            {erroCombinar && <p role="alert" className="mt-4 text-sm font-semibold text-destructive">{erroCombinar}</p>}
+          </> : recorrencia ? <>
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.cartaoAviso}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.primeiraRecorrencia}</p></div>
             <p role="status" className="mt-5 text-sm font-semibold">{C.pagamento.reservado}</p>
             <Button disabled className={`${controle} mt-4 w-full`}>{C.pagamento.pagar}</Button>
           </> : <PagamentoAtivo sessao={sessao} pix={pix} onAprovado={(sim) => { setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />}
-          {recorrencia && <Button className={`${controle} mt-3 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>}
+          {recorrencia && !combinar && <Button className={`${controle} mt-3 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>}
         </>}
       </div>
       <aside className="min-w-0 border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">

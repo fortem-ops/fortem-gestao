@@ -164,6 +164,8 @@ export const TEXTOS_CHECKOUT = {
     aprovado: "Pagamento aprovado", aprovadoSimulado: "Pagamento aprovado (simulação)",
     valorTeste: (v: string) => `Valor cobrado neste teste: ${v}`,
     restante: "Tempo restante",
+    combinar: "Por enquanto, o pagamento no cartão é combinado diretamente com a equipe. A equipe FORTEM entra em contato pelo WhatsApp para concluir o pagamento.",
+    combinarBotao: "A equipe FORTEM entra em contato",
   },
   confirmacao: {
     titulo: "Proposta registrada", status: "Aguardando pagamento", passo: "Passo 9 de 9",
