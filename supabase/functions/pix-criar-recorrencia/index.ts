@@ -1,4 +1,5 @@
-import { corsHeaders, jsonResponse, interFetch, admin, requireAdmin, onlyDigits } from "../_shared/inter.ts";
+import { corsHeaders, jsonResponse, admin, requireAdmin } from "../_shared/inter.ts";
+import { criarRecorrencia } from "../_shared/pix-rec.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -12,70 +13,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "aluno_id, valor_minimo e data_inicio são obrigatórios" }, 400);
     }
     const valor = Number(valor_minimo);
-    if (!isFinite(valor) || valor <= 0) {
-      return jsonResponse({ error: "valor_minimo inválido" }, 400);
-    }
+    if (!isFinite(valor) || valor <= 0) return jsonResponse({ error: "valor_minimo inválido" }, 400);
 
-    const sup = admin();
-    const { data: aluno, error: alunoErr } = await sup
-      .from("alunos")
-      .select("id, nome")
-      .eq("id", aluno_id)
-      .maybeSingle();
-    if (alunoErr || !aluno) return jsonResponse({ error: "Aluno não encontrado" }, 404);
-    const { data: cpfRevealed, error: cpfErr } = await sup.rpc("fn_reveal_cpf_service", { p_aluno_id: aluno_id });
-    if (cpfErr) return jsonResponse({ error: `Falha ao obter CPF: ${cpfErr.message}` }, 500);
-    const cpf = onlyDigits(cpfRevealed);
-    if (cpf.length !== 11) return jsonResponse({ error: "Aluno sem CPF válido" }, 400);
-
-    const payload: any = {
-      vinculo: {
-        objeto: typeof objeto === "string" && objeto.trim() ? objeto.trim().slice(0, 140) : "Plano mensal FORTEM",
-        contrato: aluno_id.replace(/-/g, "").substring(0, 35),
-        devedor: { cpf, nome: aluno.nome },
-      },
-      calendario: {
-        dataInicial: data_inicio,
-        ...(data_fim ? { dataFinal: data_fim } : {}),
-        periodicidade: "MENSAL",
-      },
-      valor: { valorMinimoRecebedor: valor.toFixed(2) },
-      politicaRetentativa: "PERMITE_3R_7D",
-    };
-
-    console.log("[pix-criar-recorrencia] contrato:", payload.vinculo.contrato, "cpf final:", cpf.slice(-3));
-    const { status, data, raw } = await interFetch("/pix/v2/rec", {
-      method: "POST",
-      json: payload,
-    });
-
-    if (status >= 300) {
-      console.error("Inter /rec error", status, raw);
-      return jsonResponse({ error: "Falha ao criar recorrência no Inter", status, detail: data }, 502);
-    }
-    const idRec: string = data?.idRec;
-    if (!idRec) return jsonResponse({ error: "idRec não retornado", detail: data }, 502);
-
-    const { data: inserted, error: insErr } = await sup
-      .from("pix_recorrencias")
-      .insert({
-        aluno_id,
-        id_rec: idRec,
-        status: "CRIADA",
-        valor_minimo: valor,
-        periodicidade: "MENSAL",
-        data_inicio,
-        data_fim: data_fim ?? null,
-        politica_retentativa: "PERMITE_3R_7D",
-        raw_response: teste ? { ...data, _marcador: "teste_3F" } : data,
-      })
-      .select()
-      .single();
-    if (insErr) return jsonResponse({ error: insErr.message }, 500);
-
-    return jsonResponse({ recorrencia: inserted });
+    const r = await criarRecorrencia(admin(), { aluno_id, valor, data_inicio, data_fim, objeto, teste: !!teste });
+    if (!r.ok) return jsonResponse({ error: r.erro, status: r.status, detail: r.detail }, r.httpStatus);
+    return jsonResponse({ recorrencia: r.recorrencia });
   } catch (e) {
     console.error("pix-criar-recorrencia error", e);
-    return jsonResponse({ error: String(e?.message ?? e) }, 500);
+    return jsonResponse({ error: String((e as Error)?.message ?? e) }, 500);
   }
 });

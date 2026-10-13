@@ -1,4 +1,5 @@
-import { corsHeaders, jsonResponse, interFetch, admin, requireAdmin, onlyDigits } from "../_shared/inter.ts";
+import { corsHeaders, jsonResponse, admin, requireAdmin } from "../_shared/inter.ts";
+import { solicitarConfirmacao } from "../_shared/pix-rec.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -9,57 +10,11 @@ Deno.serve(async (req) => {
     const { idRec } = (await req.json().catch(() => null)) ?? {};
     if (!idRec) return jsonResponse({ error: "idRec é obrigatório" }, 400);
 
-    const sup = admin();
-    const { data: rec } = await sup
-      .from("pix_recorrencias")
-      .select("aluno_id, id_rec, data_inicio")
-      .eq("id_rec", idRec)
-      .maybeSingle();
-    if (!rec) return jsonResponse({ error: "Recorrência não encontrada" }, 404);
-
-    const { data: aluno } = await sup
-      .from("alunos")
-      .select("nome")
-      .eq("id", rec.aluno_id)
-      .maybeSingle();
-    if (!aluno) return jsonResponse({ error: "Aluno não encontrado" }, 404);
-    const { data: cpfRevealed, error: cpfErr } = await sup.rpc("fn_reveal_cpf_service", { p_aluno_id: rec.aluno_id });
-    if (cpfErr) return jsonResponse({ error: `Falha ao obter CPF: ${cpfErr.message}` }, 500);
-    const cpf = onlyDigits(cpfRevealed);
-    if (cpf.length !== 11) return jsonResponse({ error: "Aluno sem CPF válido" }, 400);
-
-    const payload = {
-      idRec,
-      calendario: { dataExpiracaoSolicitacao: (() => {
-        // Expira em 7 dias ou antes do início da recorrência (00:00 de Brasília), o que vier primeiro.
-        const seteDias = Date.now() + 7 * 24 * 3600 * 1000;
-        const inicio = rec.data_inicio ? new Date(`${rec.data_inicio}T02:59:00Z`).getTime() : seteDias;
-        return new Date(Math.min(seteDias, inicio)).toISOString().replace(/\.\d{3}Z$/, "Z");
-      })() },
-      destinatario: { cpf, nome: aluno.nome },
-    };
-
-    const { status, data, raw } = await interFetch("/pix/v2/solicrec", {
-      method: "POST",
-      json: payload,
-    });
-    if (status >= 300) {
-      console.error("Inter /solicrec error", status, raw);
-      return jsonResponse({ error: "Falha ao solicitar confirmação", status, detail: data }, 502);
-    }
-    const idSolicRec: string | undefined = data?.idSolicRec;
-
-    await sup
-      .from("pix_recorrencias")
-      .update({
-        status: "AGUARDANDO_AUTORIZACAO",
-        id_solic_rec: idSolicRec ?? null,
-      })
-      .eq("id_rec", idRec);
-
-    return jsonResponse({ ok: true, idSolicRec });
+    const r = await solicitarConfirmacao(admin(), idRec);
+    if (!r.ok) return jsonResponse({ error: r.erro, status: r.status, detail: r.detail }, r.httpStatus);
+    return jsonResponse({ ok: true, idSolicRec: r.idSolicRec });
   } catch (e) {
     console.error("pix-solicitar-confirmacao error", e);
-    return jsonResponse({ error: String(e?.message ?? e) }, 500);
+    return jsonResponse({ error: String((e as Error)?.message ?? e) }, 500);
   }
 });
