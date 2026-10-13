@@ -35,7 +35,7 @@ import {
   CategoriasHierarquia, FornecedoresCadastro, nomeCategoria, useArvoreCategorias,
 } from "@/components/financeiro/DespesasCadastros";
 import {
-  STATUS_LABELS, FORMAS_DESPESA, CONTAS_DESPESA, type Despesa, type DespesaCategoria, type DespesaInput,
+  STATUS_LABELS, TIPO_LABELS, FORMAS_DESPESA, CONTAS_DESPESA, type Despesa, type DespesaCategoria, type DespesaInput,
   type DespesaStatus, type DespesaTipo, type Fornecedor,
 } from "@/types/despesas";
 
@@ -242,6 +242,51 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   const limparFiltros = () => {
     setPeriodo("mes"); setBase("venc"); setBusca(""); setFCat("todas"); setFTipo("todos"); setFStatus("todos");
     setFForn("todos"); setFForma("todos"); setFConta("todos"); setFConc("todos"); setDIni(""); setDFim("");
+  };
+
+  const montarExport = (): { rows: DespesaExportRow[]; meta: DespesasExportMeta } | null => {
+    const baseRows = selecionadas.size > 0 ? linhas.filter((d) => selecionadas.has(d.id)) : linhas;
+    if (!baseRows.length) {
+      toast.error("Nada para exportar");
+      return null;
+    }
+    const rows: DespesaExportRow[] = baseRows.map((d) => ({
+      vencimento: fmtData(d.data_competencia),
+      pagamento: d.data_pagamento ? fmtData(d.data_pagamento) : "—",
+      descricao: d.descricao,
+      fornecedor: d.fornecedor_id ? (fornMap.get(d.fornecedor_id) ?? "—") : "—",
+      categoria: d.categoria_id ? nomeCategoria(catMap.get(d.categoria_id), catMap) : "—",
+      tipo: TIPO_LABELS[d.tipo],
+      status: STATUS_LABELS[d.status],
+      forma: d.forma_pagamento ?? "—",
+      conta: d.conta_bancaria ?? "—",
+      parcela: d.parcela_total ? `${d.parcela_atual}/${d.parcela_total}` : "—",
+      valor: num(d.valor),
+      valorPago: d.valor_pago != null ? num(d.valor_pago) : null,
+      conciliado: d.conciliado ? "Sim" : "Não",
+    }));
+    const filtros: string[] = [];
+    if (fCat !== "todas") filtros.push(`Categoria: ${nomeCategoria(catMap.get(fCat), catMap)}`);
+    if (fForn !== "todos") filtros.push(`Fornecedor: ${fForn === "nenhum" ? "Sem fornecedor" : (fornMap.get(fForn) ?? "")}`);
+    if (fTipo !== "todos") filtros.push(`Tipo: ${TIPO_LABELS[fTipo as DespesaTipo]}`);
+    if (fStatus !== "todos") filtros.push(`Status: ${STATUS_LABELS[fStatus as DespesaStatus]}`);
+    if (fForma !== "todos") filtros.push(`Forma: ${fForma}`);
+    if (fConta !== "todos") filtros.push(`Conta: ${fConta}`);
+    if (fConc !== "todos") filtros.push(fConc === "sim" ? "Conciliadas" : "Não conciliadas");
+    if (busca.trim()) filtros.push(`Busca: "${busca.trim()}"`);
+    const meta: DespesasExportMeta = {
+      periodo: `${fmtData(rIni)} a ${fmtData(rFim)}`,
+      base: base === "pag" ? "Pagamento" : "Vencimento",
+      filtros,
+      apenasSelecionadas: selecionadas.size > 0,
+    };
+    return { rows, meta };
+  };
+  const exportar = (fmt: "xlsx" | "pdf") => {
+    const dados = montarExport();
+    if (!dados) return;
+    if (fmt === "xlsx") exportarDespesasXLSX(dados.rows, dados.meta);
+    else exportarDespesasPDF(dados.rows, dados.meta);
   };
 
   // Seleção em lote: limpa ao mudar período/filtros
