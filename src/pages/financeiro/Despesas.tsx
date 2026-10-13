@@ -526,6 +526,21 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
             <span className="ml-auto self-center text-sm text-muted-foreground">
               {linhas.length} lançamento(s) · {brl(totalFiltrado)}
             </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" disabled={isLoadingAll}>
+                  <Download className="h-4 w-4" /> Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportar("xlsx")} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" /> Excel (XLSX)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportar("pdf")} className="gap-2">
+                  <FileDown className="h-4 w-4" /> PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {canEdit && selecionadas.size > 0 && (
