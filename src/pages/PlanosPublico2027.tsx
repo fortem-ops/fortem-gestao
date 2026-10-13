@@ -1,6 +1,8 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Switch } from "@/components/ui/switch";
 import { IdentificacaoPublicaForm, type IdentificacaoPublica } from "@/components/planos/IdentificacaoPublica";
+import { CheckoutSite2027 } from "@/components/planos/CheckoutSite2027";
+import { checkout, lerSessao, limparSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
 import { Check, ArrowLeft, CircleHelp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
@@ -44,6 +46,17 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   const [erros, setErros] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  // Checkout do site (prévia + proposta de teste enquanto planos_checkout_ativo=false).
+  const [sessao, setSessao] = useState<SessaoCheckout | null>(null);
+  const [etapaSessao, setEtapaSessao] = useState<string | undefined>();
+  const [alterando, setAlterando] = useState(false);
+  const [contato, setContato] = useState({ nome: "", email: "" });
+  useEffect(() => {
+    if (!catalogo.previa) return;
+    const s = lerSessao();
+    if (!s) return;
+    checkout<{ etapa: string }>("estado", s).then((r) => { setEtapaSessao(r.etapa); setSessao(s); }).catch(() => limparSessao());
+  }, [catalogo.previa]);
   const formas = formasPermitidas(familia).slice().sort((a, b) => ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(a) - ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(b));
   const formaEfetiva = formas.includes(forma) ? forma : formas[0];
   const item = encontrarItem(catalogo, familia, freq, formaEfetiva);
@@ -58,7 +71,20 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   const nome = NOME_FAMILIA[familia];
   const frequencia = rotuloFrequencia(freq);
   const ir = (n: number) => { setPasso(n); setCadastro(false); window.scrollTo({ top: 0, behavior: "instant" }); };
-  const abrirCadastro = () => { setDetalhes(false); setPasso(4); setCadastro(true); window.scrollTo({ top: 0, behavior: "instant" }); };
+  async function salvarAlteracao() {
+    if (!sessao || !item) return;
+    setErros({}); setEnviando(true);
+    try {
+      await checkout("alterar", { ...sessao, escolhas: {
+        plano_codigo: item.codigo, forma_plano: formaEfetiva, parcelas_plano: parcelas,
+        servicos: servicosEscolhidos.map((s) => s.codigo), forma_servicos: formaServicos, parcelas_servicos: parcelasServicos,
+        corrida: !!corridaEscolhida, corrida_periodo_meses: corridaEscolhida?.periodo_meses ?? 1,
+      } });
+      setEtapaSessao("identificada"); setAlterando(false); setDetalhes(false); window.scrollTo({ top: 0 });
+    } catch (e) { setErros({ geral: (e as Error).message }); setDetalhes(true); }
+    setEnviando(false);
+  }
+  const abrirCadastro = () => { if (sessao && alterando) { void salvarAlteracao(); return; } setDetalhes(false); setPasso(4); setCadastro(true); window.scrollTo({ top: 0, behavior: "instant" }); };
   async function enviar(dados: IdentificacaoPublica) {
     if (!dados.aceite || !item || !resumo) return;
     setErros({});
@@ -74,6 +100,16 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
     const resposta = data as unknown as { valor_total_centavos: number; limitado?: boolean };
     if (resposta.limitado) { setErros({ geral: "Muitas consultas. Tente novamente mais tarde." }); return; }
     if (resposta.valor_total_centavos !== Math.round(resumo.totalGeral * 100)) { setErros({ geral: "Os valores do catálogo mudaram. Revise sua proposta antes de continuar." }); return; }
+    const id = (data as unknown as { id?: string }).id;
+    if (catalogo.previa && id) {
+      try {
+        const r = await checkout<{ chave_sessao: string; etapa: string }>("iniciar", { proposta_id: id });
+        const s = { proposta_id: id, chave_sessao: r.chave_sessao };
+        salvarSessao(s); setContato({ nome: dados.nome, email: dados.email }); setEtapaSessao(r.etapa); setSessao(s);
+        window.scrollTo({ top: 0 });
+        return;
+      } catch { /* checkout fechado para esta proposta: segue o fluxo atual */ }
+    }
     setEnviado(true); window.scrollTo({ top: 0 });
   }
   const linhaPagamento = (f: FormaPublica) => f === "recorrencia" ? P.recorrenciaCartao : f === "pix_vista" ? P.pix_vista : `Cartão de crédito em ${parcelas}x`;
@@ -87,7 +123,8 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
     <div className="space-y-3 border-t border-border pt-5"><h3 className="font-display font-bold uppercase">{T.detalhes.adicionais}</h3>{servicosEscolhidos.length ? servicosEscolhidos.map((s) => <div key={s.codigo} className="flex justify-between gap-4"><span>{nomeServico(s)}</span><strong className="shrink-0">{brl(s.valor)}</strong></div>) : <p className="text-muted-foreground">Nenhum</p>}<div className="flex justify-between gap-4 font-bold"><span>{T.detalhes.consultas}</span><span>{brl(totalConsultas)}</span></div>{corridaEscolhida && <p>Grupo de corrida · {periodoLabel(corridaPeriodo ?? 1)}: {brl(corridaEscolhida.valor)} à parte ({brl(corridaEscolhida.valor / (corridaPeriodo ?? 1))} por mês).</p>}</div>
     <div className="space-y-3 border-t border-border pt-5"><h3 className="font-display font-bold uppercase">{T.detalhes.pagamento}</h3><p>Plano: {linhaPagamento(formaEfetiva)}</p>{totalConsultas > 0 && <p>Consultas: {resumo.servicosAvulsos ? resumo.servicosAvulsos.forma === "pix_vista" ? P.pix_vista : `Cartão de crédito em ${resumo.servicosAvulsos.parcelas.length}x` : `Cartão de crédito em ${parcelas}x, com o plano`}</p>}</div>
     <div className="space-y-3 border-t border-border pt-5"><h3 className="font-display font-bold uppercase">Cobranças</h3>{primeira && <><p>{parcelasPlano.every((p) => p.valor === primeira.valor) ? parcelasPlano.length > 1 ? `1ª a ${parcelasPlano.length}ª cobrança ${brl(primeira.valor)}` : `1ª cobrança ${brl(primeira.valor)}` : descreverParcelas(parcelasPlano)} = Mensalidade {nome} {brl(primeira.plano)}{consultasParcela > 0 && ` + Consultas ${brl(consultasParcela)}`}</p>{resumo.servicosAvulsos && <p>Consultas à parte: {descreverParcelas(resumo.servicosAvulsos.parcelas)}</p>}<p className="text-muted-foreground">{familia === "start_2027" ? "Uma cobrança é gerada a cada mês, até o cancelamento." : formaEfetiva === "pix_vista" ? `Pagamento único do plano no Pix. Em 12 meses você terá pago ${brl(resumo.totalGeral)}.` : `Uma cobrança é gerada a cada mês. Em 12 meses você terá pago ${brl(resumo.totalGeral)}.`}</p></>}<div className="flex justify-between gap-4 text-lg font-bold"><span>{familia === "start_2027" ? "Total do ciclo e consultas" : "Total em 12 meses"}</span><span>{brl(resumo.totalGeral)}</span></div></div>
-    <Button className="w-full h-auto py-4 rounded-none font-bold uppercase whitespace-normal" onClick={abrirCadastro}>{T.detalhes.continuar}</Button>
+    {alterando && erros.geral && <p role="alert" className="border-l-2 border-primary pl-3 text-sm">{erros.geral}</p>}
+    <Button className="w-full h-auto py-4 rounded-none font-bold uppercase whitespace-normal" disabled={enviando} onClick={abrirCadastro}>{alterando ? "Salvar e revisar" : T.detalhes.continuar}</Button>
   </div>;
 
   return <div data-planos2027="true" className="min-h-screen bg-background text-foreground">
@@ -95,7 +132,11 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
     {catalogo.previa && <div className="bg-primary text-primary-foreground text-center text-xs font-semibold py-2 px-4">Prévia — itens ainda não estão à venda</div>}
     <header className="border-b border-border"><div className="mx-auto max-w-6xl px-4 sm:px-8 py-5 flex items-center justify-between"><span className="font-display text-xl font-black">FORTEM</span><span className="text-xs uppercase">Monte seu plano</span></div></header>
     <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-6 pb-48 lg:pb-12">
-      {enviado ? <div className="max-w-2xl py-10"><Titulo>A equipe FORTEM entra em contato</Titulo><p className="text-muted-foreground">Recebemos a sua escolha. Em breve você recebe uma mensagem no WhatsApp para confirmar os detalhes e concluir a matrícula.</p><p className="mt-6 font-bold">{nome} · {frequencia}</p><p className="mt-2">Total: {brl(resumo?.totalGeral ?? 0)}</p></div> : <>
+      {sessao && !alterando ? <CheckoutSite2027 key={`${sessao.proposta_id}-${etapaSessao}`} sessao={sessao} etapaInicial={etapaSessao}
+        nome={contato.nome || "Do seu cadastro"} email={contato.email || "Do seu cadastro"}
+        onAlterar={() => { setAlterando(true); ir(0); }}
+        onSessaoInvalida={() => { setSessao(null); setEtapaSessao(undefined); ir(0); }} />
+      : enviado ? <div className="max-w-2xl py-10"><Titulo>A equipe FORTEM entra em contato</Titulo><p className="text-muted-foreground">Recebemos a sua escolha. Em breve você recebe uma mensagem no WhatsApp para confirmar os detalhes e concluir a matrícula.</p><p className="mt-6 font-bold">{nome} · {frequencia}</p><p className="mt-2">Total: {brl(resumo?.totalGeral ?? 0)}</p></div> : <>
         <ol className="grid grid-cols-5 gap-1 lg:gap-4 mb-7" aria-label="Etapas">{T.passos.map((p, i) => <li key={p}><Button variant="ghost" disabled={i > passo} onClick={() => ir(i)} aria-current={i === passo ? "step" : undefined} className="w-full h-auto p-0 rounded-none flex-col items-start hover:bg-transparent"><span className={cn("block h-1 w-full", i <= passo ? "bg-primary" : "bg-border")} /><span className={cn("mt-3 hidden lg:flex items-center gap-2 text-xs", i === passo ? "text-foreground" : "text-muted-foreground")}><span className={cn("flex size-6 items-center justify-center border", i === passo ? "border-primary text-primary" : "border-border")}>{i + 1}</span>{p}</span></Button></li>)}</ol>
         <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-8 xl:gap-12 items-start">
           <div className="min-w-0"><p className="text-xs text-primary font-semibold uppercase mb-3">Passo {passo + 1} de 5</p>
