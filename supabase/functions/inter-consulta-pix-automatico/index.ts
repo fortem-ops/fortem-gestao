@@ -263,5 +263,5 @@ async function teste3fQr() {
   if (copiaECola) {
     await sup.from("pix_recorrencias").update({ raw_response: { ...(rec.recorrencia as any)?.raw_response, loc: l.data, dadosQR: g.data?.dadosQR } }).eq("id_rec", rec.idRec);
   }
-  return mascararCpf({ ...out, pixCopiaECola: copiaECola });
+  return { ...(mascararCpf(out) as object), pixCopiaECola: copiaECola };
 }
