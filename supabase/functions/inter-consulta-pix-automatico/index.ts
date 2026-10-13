@@ -1,5 +1,5 @@
 // Consulta SOMENTE-LEITURA ao Inter (Pix Automático): só GET, nada é criado no banco.
-import { jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter } from "../_shared/inter.ts";
+import { jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -16,6 +16,12 @@ Deno.serve(async (req) => {
     const { data: isA } = await admin().rpc("is_admin", { _user_id: auth.userId });
     if (!isA) return jsonResponse({ error: "Forbidden" }, 403);
   }
+
+  let modo = new URL(req.url).searchParams.get("modo");
+  let corpo: any = {};
+  if (req.method === "POST") { try { corpo = (await req.clone().json()) ?? {}; } catch { /* sem corpo */ } }
+  modo = modo ?? corpo.modo ?? null;
+  if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();
   const ini = new Date(fim.getTime() - 3 * 24 * 3600 * 1000);
@@ -57,3 +63,60 @@ Deno.serve(async (req) => {
   }
   return jsonResponse({ somente_leitura: true, oauth, escopos, resultados });
 });
+
+const CANDIDATOS = ["rec.write","rec.read","solicrec.write","solicrec.read","cobr.write","cobr.read","payloadrec.write","payloadrec.read","webhookrec.write","webhookrec.read","webhookcobr.write","webhookcobr.read","webhook.write","webhook.read","cob.write","cob.read","cobv.write","cobv.read","pix.write","pix.read"];
+
+function resumir(status: number, data: any) {
+  const r: Record<string, unknown> = { status };
+  if (status >= 400) r.erro = typeof data === "object" && data ? (data.title ?? data.detail ?? data.message ?? JSON.stringify(data).slice(0, 200)) : String(data ?? "").slice(0, 200);
+  else if (data && typeof data === "object") {
+    const lista = data.recs ?? data.solicitacoes ?? data.cobsr ?? data.cobs ?? data.webhooks ?? null;
+    if (Array.isArray(lista)) r.itens = lista.length;
+    if (data.webhookUrl !== undefined) r.webhook_cadastrado = !!data.webhookUrl;
+    r.chaves = Object.keys(data).slice(0, 8);
+  }
+  return r;
+}
+
+async function descobrir(corpo: any) {
+  const info = await infoDiagnostico();
+  const escopos: Record<string, unknown> = {};
+  const aceitos: string[] = Array.isArray(corpo.consultar_com) ? corpo.consultar_com : [];
+  const testar: string[] = Array.isArray(corpo.consultar_com) ? [] : (Array.isArray(corpo.escopos) ? corpo.escopos.filter((x: string) => CANDIDATOS.includes(x)) : CANDIDATOS);
+  const pausa = Math.min(Number(corpo.pausa_ms ?? 15000), 30000);
+  for (const [i, sc] of testar.entries()) {
+    if (i > 0) await new Promise((r) => setTimeout(r, pausa));
+    try {
+      const t = await tokenDiagnostico(sc);
+      escopos[sc] = t.ok ? { aceito: true, concedido: t.scope } : { aceito: false, status: t.status, erro: t.erro };
+      if (t.ok) aceitos.push(sc);
+    } catch (e) { escopos[sc] = { aceito: false, erro: String((e as Error)?.message ?? e).slice(0, 160) }; }
+  }
+  const consultas: Record<string, unknown> = {};
+  let token_combinado: unknown = null;
+  if (aceitos.length) {
+    const t = await tokenDiagnostico(aceitos.join(" "));
+    token_combinado = { ok: t.ok, status: t.status, concedido: t.scope, erro: t.erro };
+    if (t.ok && t.token) {
+      const fim = new Date(); const ini = new Date(fim.getTime() - 30 * 24 * 3600 * 1000);
+      const iso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+      const per = `inicio=${encodeURIComponent(iso(ini))}&fim=${encodeURIComponent(iso(fim))}`;
+      const paths: Record<string, string> = {
+        rec: `/pix/v2/rec?${per}`,
+        rec_pagina: `/pix/v2/rec?${per}&paginacao.paginaAtual=0&paginacao.itensPorPagina=10`,
+        solicrec: `/pix/v2/solicrec?${per}`,
+        cobr: `/pix/v2/cobr?${per}`,
+        webhookrec: `/pix/v2/webhookrec`,
+        webhookcobr: `/pix/v2/webhookcobr`,
+      };
+      for (const [n, p] of Object.entries(paths)) {
+        try {
+          const a = await getDiagnostico(p, t.token, true);
+          consultas[n] = resumir(a.status, a.data);
+          if (n === "rec") { const b = await getDiagnostico(p, t.token, false); consultas["rec_sem_conta"] = resumir(b.status, b.data); }
+        } catch (e) { consultas[n] = { erro: String((e as Error)?.message ?? e).slice(0, 160) }; }
+      }
+    }
+  }
+  return { somente_leitura: true, info, escopos, aceitos, token_combinado, consultas };
+}

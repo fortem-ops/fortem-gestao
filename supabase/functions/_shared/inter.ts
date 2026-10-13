@@ -202,3 +202,55 @@ export async function consultarEscoposInter(): Promise<{ escopos: string | null;
   const tok = await fetchNewToken();
   return { escopos: tok.scope ?? null, expires_in: tok.expires_in ?? null };
 }
+
+/** Somente leitura/diagnóstico: token com escopos específicos, sem gravar em cache e sem log do token. */
+export async function tokenDiagnostico(scope: string): Promise<{ ok: boolean; status: number; token?: string; scope?: string; erro?: string }> {
+  const clientId = Deno.env.get("INTER_CLIENT_ID") ?? "";
+  const clientSecret = Deno.env.get("INTER_CLIENT_SECRET") ?? "";
+  const body = new URLSearchParams({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials", scope });
+  const res = await fetch(`${new URL(BASE_URL).origin}/oauth/v2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+    // @ts-ignore unstable client option
+    client: getHttpClient(),
+  });
+  const text = await res.text();
+  if (!res.ok) return { ok: false, status: res.status, erro: text.slice(0, 200) };
+  const p = JSON.parse(text);
+  return { ok: true, status: res.status, token: p.access_token, scope: p.scope };
+}
+
+/** GET com token fornecido (diagnóstico). conta=false omite x-conta-corrente. */
+export async function getDiagnostico(path: string, token: string, conta = true): Promise<{ status: number; data: any }> {
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+  if (conta) headers["x-conta-corrente"] = CONTA;
+  const res = await fetch(`${new URL(BASE_URL).origin}${path}`, {
+    method: "GET", headers,
+    // @ts-ignore unstable client option
+    client: getHttpClient(),
+  });
+  const raw = await res.text();
+  let data: any = raw;
+  try { data = raw ? JSON.parse(raw) : null; } catch { /* raw */ }
+  return { status: res.status, data };
+}
+
+/** Metadados não sensíveis do ambiente Inter. */
+export async function infoDiagnostico() {
+  const id = Deno.env.get("INTER_CLIENT_ID") ?? "";
+  const conta = onlyDigits(CONTA);
+  let cert: Record<string, unknown> = {};
+  try {
+    const { X509Certificate } = await import("node:crypto");
+    const x = new X509Certificate(normalizePem(Deno.env.get("INTER_CERT_PEM") ?? "", "CERT"));
+    cert = { subject: x.subject, issuer: x.issuer, validFrom: x.validFrom, validTo: x.validTo };
+  } catch (e) { cert = { erro: String((e as Error)?.message ?? e).slice(0, 120) }; }
+  return {
+    client_id_prefixo: id.substring(0, 8),
+    host: BASE_URL ? new URL(BASE_URL).host : null,
+    conta_vs_41075951: conta === "41075951" ? "igual" : "diferente",
+    conta_ultimos3: conta.slice(-3),
+    cert,
+  };
+}
