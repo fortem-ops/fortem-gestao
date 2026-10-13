@@ -43,6 +43,22 @@ Deno.serve(async (req) => {
     if (!interno || corpo.confirmar !== "CONFERIR_3F") return jsonResponse({ error: "Forbidden" }, 403);
     return jsonResponse(await conferirRec3f(!!corpo.atualizar));
   }
+  // Teste do pix-webhook com avisos simulados FIXOS (sem cobrança): rec de teste APROVADA e ids inexistentes.
+  if (modo === "testar_webhook_avisos") {
+    if (!interno) return jsonResponse({ error: "Forbidden" }, 403);
+    const seg = Deno.env.get("PIX_WEBHOOK_SECRET") ?? "";
+    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/pix-webhook?token=${encodeURIComponent(seg)}`;
+    const corpos: Record<string, unknown> = {
+      b_rec_aprovada: { recs: [{ idRec: "RR0041696820261013xm6a6FzsywP", status: "APROVADA", ativacao: { tipoJornada: "JORNADA_2" } }] },
+      c_inexistentes: { recs: [{ idRec: "RRTESTE3FINEXISTENTE", status: "APROVADA" }], cobrs: [{ txid: "TESTE3FINEXISTENTE000000000", idRec: "RRTESTE3FINEXISTENTE", status: "CONCLUIDA" }] },
+    };
+    const out: Record<string, unknown> = {};
+    for (const [k, b] of Object.entries(corpos)) {
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+      out[k] = { status: r.status, corpo: (await r.text()).slice(0, 200) };
+    }
+    return jsonResponse(out);
+  }
   if (modo === "descobrir_escopos") return jsonResponse(await descobrir(corpo));
 
   const fim = new Date();

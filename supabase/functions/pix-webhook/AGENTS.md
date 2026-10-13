@@ -1,0 +1,1 @@
+- Avisos de Pix Automático no pix-webhook são classificados em `pix-webhook/eventos.ts` (aceita rec/recs e cobr/cobrs/cobsr; APROVADA→AUTORIZADA; CONCLUIDA→LIQUIDADA), com atualização idempotente e registro de aviso não reconhecido em system_logs. Por quê: o Inter usa nomes diferentes dos documentados antes e nenhum aviso pode se perder.
