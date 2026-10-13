@@ -10432,6 +10432,15 @@ export type Database = {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_pix_liquidado: {
+        Args: {
+          p_e2e: string
+          p_raw?: Json
+          p_txid: string
+          p_valor_centavos: number
+        }
+        Returns: Json
+      }
       fn_checkout_2027_revisar: {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
