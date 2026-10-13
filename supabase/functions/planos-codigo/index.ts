@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   corpoEmailCodigo, cpfDigitosValidos, gerarCodigo, hashCodigo, mascararEmail, podeEnviarCodigo,
+  respostaEnvioPublica, respostaValidacaoPublica, type Envio,
 } from "../_shared/planos-verificacao.ts";
 
 const cors = {
@@ -71,30 +72,24 @@ async function enviarEmail(to: string, assunto: string, html: string) {
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
-  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "sem-ip";
-  const body = await req.json().catch(() => ({}));
-  try {
-    if (body?.acao === "enviar") {
+async function enviarCodigo(body: any, ip: string): Promise<Envio | { enviado: false; motivo: "captcha" }> {
       const tipo = body.tipo === "cpf" ? "cpf" : body.tipo === "telefone" ? "telefone" : null;
       const valor = typeof body.valor === "string" ? body.valor.replace(/\D/g, "") : "";
-      if (!tipo || !valor || (tipo === "cpf" && !cpfDigitosValidos(valor))) return json(200, { enviado: false, motivo: "indisponivel" });
-      if (!(await turnstileOk(body.turnstile_token, ip))) return json(200, { enviado: false, motivo: "captcha" });
+      if (!tipo || !valor || (tipo === "cpf" && !cpfDigitosValidos(valor))) return ({ enviado: false, motivo: "indisponivel" });
+      if (!(await turnstileOk(body.turnstile_token, ip))) return ({ enviado: false, motivo: "captcha" });
       if (!(await limite(`cod-ip:${ip}`, 10)) || !(await limite(`cod-ident:${await sha(tipo + valor)}`, 5))) {
-        return json(200, { enviado: false, motivo: "limitado" });
+        return ({ enviado: false, motivo: "limitado" });
       }
       const { data: alunoId } = await admin.rpc("fn_planos_resolver", { p_tipo: tipo, p_valor: valor });
-      if (!alunoId) return json(200, { enviado: false, motivo: "indisponivel" });
+      if (!alunoId) return ({ enviado: false, motivo: "indisponivel" });
       const { data: aluno } = await admin.from("alunos").select("id, email").eq("id", alunoId).maybeSingle();
       const email = (aluno?.email ?? "").trim().toLowerCase();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(200, { enviado: false, motivo: "sem_email" });
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return ({ enviado: false, motivo: "sem_email" });
       const liberado = (await config("planos_codigo_email_livre")) === true;
       if (!podeEnviarCodigo(alunoId as string, liberado, await config("planos_codigo_email_teste_ids"))) {
-        return json(200, { enviado: false, motivo: "sem_email" });
+        return ({ enviado: false, motivo: "sem_email" });
       }
-      if (!(await limite(`cod-email:${await sha(email)}`, 5))) return json(200, { enviado: false, motivo: "limitado" });
+      if (!(await limite(`cod-email:${await sha(email)}`, 5))) return ({ enviado: false, motivo: "limitado" });
 
       // Invalida códigos anteriores ainda não usados deste cadastro.
       await admin.from("planos_verificacoes").update({ expira_em: new Date().toISOString() })
@@ -109,7 +104,43 @@ Deno.serve(async (req) => {
       const { assunto, html } = corpoEmailCodigo(codigo);
       await enviarEmail(email, assunto, html);
       console.log("[planos-codigo] código enviado", { verificacao_id: id });
-      return json(200, { enviado: true, verificacao_id: id, email_mascarado: mascararEmail(email) });
+      return { enviado: true, verificacao_id: id, email_mascarado: mascararEmail(email) };
+    }
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "sem-ip";
+  const body = await req.json().catch(() => ({}));
+  try {
+    if (body?.acao === "enviar") {
+      const inicio = Date.now();
+      let r: Awaited<ReturnType<typeof enviarCodigo>>;
+      try { r = await enviarCodigo(body, ip); } catch { r = { enviado: false, motivo: "indisponivel" }; }
+      if (!r.enviado && r.motivo === "captcha") return json(200, { enviado: false, motivo: "captcha" });
+      // Tempo parecido com o de um envio real, para não distinguir CPF com e sem cadastro.
+      const espera = 700 + Math.floor(Math.random() * 300) - (Date.now() - inicio);
+      if (espera > 0) await new Promise((ok) => setTimeout(ok, espera));
+      return json(200, respostaEnvioPublica(r as Envio, crypto.randomUUID()));
+    }
+    if (body?.acao === "dados_verificados") {
+      const id = typeof body.verificacao_id === "string" && /^[0-9a-f-]{36}$/i.test(body.verificacao_id) ? body.verificacao_id : null;
+      if (!id || !(await limite(`cod-dados-ip:${ip}`, 40))) return json(200, { ok: false });
+      const { data } = await admin.rpc("fn_planos_dados_verificados", { p_id: id });
+      return json(200, data ?? { ok: false });
+    }
+    if (body?.acao === "previa_admin") {
+      // Prévia: admin conferido no servidor preenche direto pelo CPF, sem código.
+      const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+      const valor = typeof body.valor === "string" ? body.valor.replace(/\D/g, "") : "";
+      if (!token || token === Deno.env.get("SUPABASE_ANON_KEY") || !cpfDigitosValidos(valor)) return json(200, { ok: false });
+      const { data: u } = await admin.auth.getUser(token);
+      const uid = u?.user?.id;
+      if (!uid) return json(200, { ok: false });
+      const { data: vid } = await admin.rpc("fn_planos_verificacao_admin", { p_cpf: valor, p_user_id: uid });
+      if (!vid) return json(200, { ok: false });
+      const { data } = await admin.rpc("fn_planos_dados_verificados", { p_id: vid });
+      return json(200, data?.ok ? { ...data, verificacao_id: vid } : { ok: false });
     }
     if (body?.acao === "validar") {
       const id = typeof body.verificacao_id === "string" && /^[0-9a-f-]{36}$/i.test(body.verificacao_id) ? body.verificacao_id : null;
@@ -117,7 +148,7 @@ Deno.serve(async (req) => {
       if (!id || codigo.length !== 6) return json(200, { ok: false, motivo: "errado" });
       if (!(await limite(`cod-val-ip:${ip}`, 40))) return json(200, { ok: false, motivo: "limitado" });
       const { data } = await admin.rpc("fn_planos_codigo_validar", { p_id: id, p_hash: await hashCodigo(id, codigo) });
-      return json(200, data ?? { ok: false, motivo: "invalido" });
+      return json(200, respostaValidacaoPublica(data));
     }
     return json(400, { error: "acao_invalida" });
   } catch (e) {
