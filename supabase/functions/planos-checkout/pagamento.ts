@@ -29,3 +29,30 @@ export function tentativaPublica(t: Tentativa | null) {
   const { id, tipo, simulado, valor_centavos, total_proposta_centavos, parcelas, status, expira_em } = t;
   return { id, tipo, simulado, valor_centavos, total_proposta_centavos, parcelas, status, expira_em };
 }
+
+/** Validade da cobrança Pix do /planos (calendario.expiracao) e margem antes de reaproveitar. */
+export const PIX_EXPIRACAO_S = 1800;
+export const PIX_MARGEM_S = 60;
+/** Cobrança só é reaproveitada se ainda ativa e dentro da validade com margem. */
+export function cobrancaValida(cob: { status: string; created_at: string } | null, agora = Date.now()): boolean {
+  if (!cob || !["CRIADA", "ATIVA"].includes(cob.status)) return false;
+  const criada = Date.parse(cob.created_at);
+  return Number.isFinite(criada) && agora - criada < (PIX_EXPIRACAO_S - PIX_MARGEM_S) * 1000;
+}
+
+/** Consultas da tela (polling) têm cota própria: por proposta e IP generoso; o resto segue 120/h por IP. */
+export const ACOES_CONSULTA = new Set(["status_pagamento", "estado"]);
+export function chavesLimite(acao: unknown, ip: string, propostaId: string): { chave: string; limite: number }[] {
+  if (typeof acao === "string" && ACOES_CONSULTA.has(acao)) {
+    return [{ chave: `ckc:p:${propostaId}`, limite: 600 }, ...(ip ? [{ chave: `ckc:i:${ip}`, limite: 20000 }] : [])];
+  }
+  return ip ? [{ chave: `ckf:i:${ip}`, limite: 120 }] : [];
+}
+
+/** Grava a cobrança com uma nova tentativa em caso de erro. Retorna true se gravou. */
+export async function gravarComRetentativa(gravar: () => Promise<{ error: unknown }>): Promise<boolean> {
+  for (let i = 0; i < 2; i++) {
+    try { const { error } = await gravar(); if (!error) return true; } catch { /* tenta de novo */ }
+  }
+  return false;
+}
