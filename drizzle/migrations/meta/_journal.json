@@ -736,6 +736,13 @@
       "when": 1791907020657,
       "tag": "0104_checkout_2027_bloqueia_apos_aprovado",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1791907342611,
+      "tag": "0105_planos_proposta_previa_sem_limite",
+      "breakpoints": true
     }
   ]
 }
