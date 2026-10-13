@@ -98,3 +98,35 @@ export const PACOTES_PUBLICOS: Record<string, { area: string; titulo: string; no
   reab_4_2027: { area: "Fisioterapia", titulo: "4 consultas" },
   reab_8_2027: { area: "Fisioterapia", titulo: "8 consultas" },
 };
+/** Checkout do site (Fase 2): revisão, contrato com aceite e confirmação provisória. */
+export const TEXTOS_CHECKOUT = {
+  revisao: {
+    titulo: "Revise a sua escolha",
+    subtitulo: "Os valores abaixo foram calculados pela FORTEM agora. Confira antes de seguir para o contrato.",
+    plano: "Plano", frequencia: "Frequência", periodo: "Período", pagamento: "Pagamento",
+    acompanhamento: "Acompanhamento", corrida: "Grupo de corrida", nenhum: "Nenhum",
+    total: "Total", corridaParte: "cobrado à parte",
+    alterar: "Alterar", continuar: "Seguir para o contrato",
+    avisoAceite: "Se você alterar a escolha, o contrato precisa ser aceito de novo.",
+  },
+  contrato: {
+    titulo: "Contrato",
+    subtitulo: "Preencha seus dados. Eles entram no contrato que você vai ler a seguir.",
+    nome: "Nome", email: "E-mail", cpf: "CPF", nascimento: "Data de nascimento", cep: "CEP",
+    logradouro: "Endereço", numero: "Número", complemento: "Complemento (opcional)", bairro: "Bairro",
+    cidade: "Cidade", uf: "UF", gerar: "Ver o contrato", buscandoCep: "Buscando endereço",
+    cpfInvalido: "CPF inválido. Confira os números",
+    leia: "Leia o contrato até o fim para liberar o aceite.",
+    lido: "Você leu o contrato até o fim.",
+    liEAceito: "Li e aceito o contrato",
+    aceitar: "Aceito o contrato",
+    editarDados: "Editar meus dados",
+    hashMudou: "O contrato mudou. Leia a versão atual e aceite de novo",
+  },
+  aceito: {
+    titulo: "Contrato aceito",
+    texto: "Seu aceite foi registrado. O pagamento será liberado em breve e a equipe FORTEM acompanha a sua proposta.",
+  },
+  carregando: "Carregando",
+  erroGenerico: "Não foi possível continuar agora. Tente novamente em instantes",
+};
