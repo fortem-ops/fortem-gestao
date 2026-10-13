@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      _backup_desvinculo_nicolas_20261013: {
+        Row: {
+          cpf_encrypted: string | null
+          cpf_hash: string | null
+          cpf_ultimos3: string | null
+          id: string | null
+          salvo_em: string | null
+          telefone: string | null
+        }
+        Insert: {
+          cpf_encrypted?: string | null
+          cpf_hash?: string | null
+          cpf_ultimos3?: string | null
+          id?: string | null
+          salvo_em?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          cpf_encrypted?: string | null
+          cpf_hash?: string | null
+          cpf_ultimos3?: string | null
+          id?: string | null
+          salvo_em?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       _golive_2027_backup: {
         Row: {
           ativo: boolean | null
