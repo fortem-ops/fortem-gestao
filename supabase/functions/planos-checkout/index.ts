@@ -192,11 +192,21 @@ Deno.serve(async (req) => {
     if (acao === "status_pagamento") {
       const st = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
       let t = st?.tentativa as Tentativa | null;
-      // Pix real pendente: só consulta (GET) no Inter.
+      // Pix real: o banco (baixa pelo webhook) vem primeiro. Consulta GET no Inter só como reserva, no máximo a cada 30 s.
       if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente" && typeof st.ref === "string") {
-        const { status, data } = await interCobFetch(`/pix/v2/cob/${st.ref}`, { method: "GET" });
-        const novo = status < 300 ? statusInterParaTentativa((data as any)?.status) : null;
-        if (novo) t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: novo, p_ref: null, p_motivo: null }, propostaId);
+        const limite = new Date(Date.now() - 30_000).toISOString();
+        const { data: tocado } = await admin.from("pix_cobrancas").update({ updated_at: new Date().toISOString() })
+          .eq("proposta_id", propostaId).eq("txid", st.ref).lt("updated_at", limite).select("id");
+        if (tocado?.length) {
+          const { status, data } = await interCobFetch(`/pix/v2/cob/${st.ref}`, { method: "GET" });
+          const novo = status < 300 ? statusInterParaTentativa((data as any)?.status) : null;
+          if (novo === "aprovado") {
+            const valor = Math.round(Number((data as any)?.valor?.original ?? 0) * 100);
+            await admin.rpc("fn_checkout_2027_pix_liquidado", { p_txid: st.ref, p_valor_centavos: valor, p_e2e: (data as any)?.pix?.[0]?.endToEndId ?? null, p_raw: null });
+            const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+            t = re?.tentativa ?? t;
+          } else if (novo) t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: novo, p_ref: null, p_motivo: null }, propostaId);
+        }
       }
       let copia: string | null = null;
       if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente") {
