@@ -86,7 +86,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
 
   async function gerar(e: FormEvent) {
     e.preventDefault(); setErro("");
-    if (!isValidCpfDigits(d.cpf.replace(/\D/g, ""))) { setCpfErro(C.cpfInvalido); return; }
+    if (!isValidCpfDigits(d.cpf.replace(/\D/g, ""))) { setCpfErro(C.contrato.cpfInvalido); return; }
     setCpfErro(""); setOcupado(true);
     try {
       const c = await checkout<Contrato>("gerar_contrato", { ...sessao, contratante: contratante() });
@@ -104,7 +104,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, onAlterar,
       setEtapa("aceito");
     } catch (e) {
       falhou(e);
-      if (e instanceof ErroCheckout && e.message === C.hashMudou) {
+      if (e instanceof ErroCheckout && e.message === C.contrato.hashMudou) {
         try { const c = await checkout<Contrato>("gerar_contrato", { ...sessao, contratante: contratante() }); setContrato(c); setLido(false); setMarcado(false); caixa.current?.scrollTo({ top: 0 }); } catch (e2) { falhou(e2); }
       }
     }
