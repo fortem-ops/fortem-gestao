@@ -5,6 +5,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { pagamentoReservado } from "../_shared/checkout-pagamento-reservado.ts";
 import { interCobFetch } from "../_shared/inter-cob.ts";
 import { genTxid } from "../_shared/inter.ts";
+import { lerDadosCartao, lerNomeTitular } from "./cartao.ts";
+import { acessoRede } from "./cartao-rede.ts";
+import { depsReais } from "./deps-cartao.ts";
+import { acompanharCartaoReal, iniciarCartaoReal } from "./fluxo-cartao.ts";
 import { chavesLimite, cobrancaValida, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
 import {
   cpfDigitosValidos, hashTexto, montarVariaveisContrato, preencherContrato, semCpf, variaveisParaGuardar,
@@ -34,9 +38,15 @@ const NEUTRAS = [
   "Este CPF precisa ser confirmado. Volte e identifique-se como aluno", "Preencha seus dados antes de aceitar",
   "Marque que você leu e aceita o contrato", "O contrato mudou. Leia a versão atual e aceite de novo",
   "Informe seu nome completo", "Informe um e-mail válido", "Pagamento por cartão indisponível no momento",
-  "Pix indisponível no momento",
+  "Pix indisponível no momento", "Confira os dados do cartão",
 ];
 class Neutro extends Error {}
+
+async function softDescriptor(): Promise<string> {
+  const { data } = await admin.from("sistema_config").select("valor").eq("chave", "planos_cartao_soft_descriptor").maybeSingle();
+  const v = typeof data?.valor === "string" ? data.valor : "";
+  return v.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 13);
+}
 
 async function rpc(nome: string, args: Record<string, unknown>, propostaId: string) {
   const { data, error } = await admin.rpc(nome, args);
@@ -220,7 +230,23 @@ Deno.serve(async (req) => {
       return json(200, await pixReal(propostaId, t));
     }
     if (acao === "pagar_cartao") {
-      // Fora da simulação o cartão vai para "a combinar": recusa antes de criar tentativa.
+      // Cartão real só com fn_checkout_2027_cartao_real (flag ou teste real_baixo_valor). Simulação segue como antes.
+      const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
+      if (real) {
+        const dados = lerDadosCartao(body?.cartao);
+        if (!dados) throw new Neutro("Confira os dados do cartão");
+        const acesso = await acessoRede();
+        if (!acesso) throw new Neutro("Pagamento por cartão indisponível no momento");
+        const t = await rpc("fn_checkout_2027_cartao_reservar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId) as Tentativa;
+        if (t.simulado) throw new Neutro("Pagamento por cartão indisponível no momento");
+        const deps = depsReais(admin, acesso, await softDescriptor());
+        if (!t.em_andamento) {
+          const tc = await deps.db.tentativa(t.id);
+          if (tc) await iniciarCartaoReal(deps, tc, dados);
+        }
+        const fim = await deps.db.tentativa(t.id);
+        return json(200, { tentativa: tentativaPublica(fim ? { ...t, status: fim.status as Tentativa["status"], motivo: fim.motivo } : t) });
+      }
       if ((await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId)) !== true)
         throw new Neutro("Pagamento por cartão indisponível no momento");
       const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "cartao", p_ip: ip }, propostaId) as Tentativa;
@@ -228,7 +254,6 @@ Deno.serve(async (req) => {
         const r = await rpc("fn_checkout_2027_simular_resultado", { p_tentativa_id: t.id, p_resultado: resultadoCartaoSimulado(body?.simular) }, propostaId);
         return json(200, { tentativa: tentativaPublica(r) });
       }
-      // Cobrança real no cartão ainda não está ligada nesta fase: registra recusa sem chamar a Rede.
       await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "recusado", p_ref: null, p_motivo: "cartao_real_nao_liberado" }, propostaId);
       throw new Neutro("Pagamento por cartão indisponível no momento");
     }
@@ -260,6 +285,18 @@ Deno.serve(async (req) => {
             const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
             t = re?.tentativa ?? t;
           } else if (novo) t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: novo, p_ref: null, p_motivo: null }, propostaId);
+        }
+      }
+      // Cartão real em andamento: avança token/cobrança/conciliação. O nome só vem do navegador (memória), nunca do banco.
+      if (t && !t.simulado && t.tipo === "cartao" && (t.status === "processando" || t.status === "desconhecido")) {
+        const acesso = await acessoRede();
+        if (acesso) {
+          const deps = depsReais(admin, acesso, await softDescriptor());
+          const tc = await deps.db.tentativa(t.id);
+          if (tc) await acompanharCartaoReal(deps, tc, lerNomeTitular(body?.cartao?.nome));
+          const re = await rpc("fn_checkout_2027_pagamento_status", { p_proposta_id: propostaId, p_chave: chave }, propostaId);
+          t = re?.tentativa ?? t;
+          if (t?.status === "aprovado") { try { await admin.functions.invoke("planos-confirmacao", { body: { proposta_id: propostaId } }); } catch { /* idempotente */ } }
         }
       }
       let copia: string | null = null;

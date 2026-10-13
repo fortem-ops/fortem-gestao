@@ -13,10 +13,16 @@ export function luhn(n: string): boolean {
   return s % 10 === 0;
 }
 
+/** Nome do titular normalizado (só em memória); null se curto demais. */
+export function lerNomeTitular(v: unknown): string | null {
+  const n = String(v ?? "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z ]/g, "").replace(/\s+/g, " ").slice(0, 26);
+  return n.length >= 3 ? n : null;
+}
+
 /** Valida o que veio do navegador. Retorna null se algo não confere (nunca ecoa os dados). */
 export function lerDadosCartao(c: any, agora = new Date()): DadosCartao | null {
   const numero = String(c?.numero ?? "").replace(/\D/g, "");
-  const nome = String(c?.nome ?? "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z ]/g, "").replace(/\s+/g, " ").slice(0, 26);
+  const nome = lerNomeTitular(c?.nome) ?? "";
   const mes = String(c?.mes ?? "").replace(/\D/g, "").padStart(2, "0");
   let ano = String(c?.ano ?? "").replace(/\D/g, "");
   if (ano.length === 2) ano = "20" + ano;
