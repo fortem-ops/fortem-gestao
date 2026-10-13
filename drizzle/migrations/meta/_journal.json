@@ -792,6 +792,13 @@
       "when": 1791924855409,
       "tag": "0112_planos_cartao_combinar_turnstile",
       "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1791926780495,
+      "tag": "0113_checkout_2027_aviso_teste_lista",
+      "breakpoints": true
     }
   ]
 }

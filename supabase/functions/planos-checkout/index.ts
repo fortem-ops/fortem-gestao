@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { pagamentoReservado } from "../_shared/checkout-pagamento-reservado.ts";
 import { interCobFetch } from "../_shared/inter-cob.ts";
 import { genTxid } from "../_shared/inter.ts";
-import { resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
+import { chavesLimite, cobrancaValida, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
 import {
   cpfDigitosValidos, hashTexto, montarVariaveisContrato, preencherContrato, semCpf, variaveisParaGuardar,
   type Contratante,
@@ -77,16 +77,32 @@ async function gerar(propostaId: string, chave: string, contratante: any, ip: st
 }
 
 /** Pix real (só modo real_baixo_valor de teste ou checkout ativo). Sem devedor: nenhum CPF sai do servidor. */
+/** Expira (só desta proposta) a cobrança ativa vencida/órfã e as tentativas Pix pendentes antigas. A baixa tardia pelo webhook segue valendo. */
+async function expirarPixAntigo(propostaId: string, cobId: string | null, tentativaAtual: string | null) {
+  if (cobId) await admin.from("pix_cobrancas").update({ status: "EXPIRADA", updated_at: new Date().toISOString() })
+    .eq("id", cobId).eq("proposta_id", propostaId).is("pedido_id", null).is("corrida_venda_id", null).in("status", ["CRIADA", "ATIVA"]);
+  let q = admin.from("checkout_2027_tentativas").update({ status: "expirado", updated_at: new Date().toISOString() })
+    .eq("proposta_id", propostaId).eq("tipo", "pix").eq("status", "pendente");
+  if (tentativaAtual) q = q.neq("id", tentativaAtual);
+  await q;
+}
+
+/** Pix real (só modo real_baixo_valor de teste ou checkout ativo). Sem devedor: nenhum CPF sai do servidor. */
 async function pixReal(propostaId: string, t: Tentativa) {
-  const { data: existente } = await admin.from("pix_cobrancas").select("txid, raw_response")
+  const { data: existente } = await admin.from("pix_cobrancas").select("id, txid, status, created_at, raw_response")
     .eq("proposta_id", propostaId).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
-  if (existente?.txid) return { tentativa: tentativaPublica(t), pix_copia_cola: (existente.raw_response as any)?.pixCopiaECola ?? null };
+  // Reaproveita só a cobrança da própria tentativa, ativa e dentro da validade.
+  const { data: atual } = await admin.from("checkout_2027_tentativas").select("ref").eq("id", t.id).maybeSingle();
+  if (existente?.txid && atual?.ref === existente.txid && cobrancaValida(existente as any))
+    return { tentativa: tentativaPublica(t), pix_copia_cola: (existente.raw_response as any)?.pixCopiaECola ?? null };
+  if (existente?.id) await expirarPixAntigo(propostaId, existente.id, t.id);
+  else await expirarPixAntigo(propostaId, null, t.id);
   const chavePix = Deno.env.get("INTER_PIX_CHAVE");
   if (!chavePix) throw new Neutro("Pix indisponível no momento");
   const txid = genTxid();
   const { status, data } = await interCobFetch(`/pix/v2/cob/${txid}`, {
     method: "PUT",
-    json: { calendario: { expiracao: 1800 }, valor: { original: (t.valor_centavos / 100).toFixed(2) }, chave: chavePix, solicitacaoPagador: "Plano FORTEM" },
+    json: { calendario: { expiracao: PIX_EXPIRACAO_S }, valor: { original: (t.valor_centavos / 100).toFixed(2) }, chave: chavePix, solicitacaoPagador: "Plano FORTEM" },
   });
   const copia = (data as any)?.pixCopiaECola;
   if (status >= 300 || !copia) {
@@ -94,9 +110,33 @@ async function pixReal(propostaId: string, t: Tentativa) {
     await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "recusado", p_ref: null, p_motivo: "falha_criar_pix" }, propostaId);
     throw new Neutro("Pix indisponível no momento");
   }
-  await admin.from("pix_cobrancas").insert({ proposta_id: propostaId, txid, valor: t.valor_centavos / 100, status: (data as any)?.status ?? "ATIVA", descricao: "Plano FORTEM (site)", raw_response: data });
+  const gravou = await gravarComRetentativa(() => admin.from("pix_cobrancas").insert({ proposta_id: propostaId, txid, valor: t.valor_centavos / 100, status: (data as any)?.status ?? "ATIVA", descricao: "Plano FORTEM (site)", raw_response: data }));
+  if (!gravou) {
+    await avisarRegistroFalhou(propostaId, txid);
+    await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "recusado", p_ref: txid, p_motivo: "pix_registro_falhou" }, propostaId);
+    throw new Neutro("Pix indisponível no momento");
+  }
   await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "pendente", p_ref: txid, p_motivo: null }, propostaId);
   return { tentativa: tentativaPublica(t), pix_copia_cola: copia };
+}
+
+/** Pix criado no Inter sem registro local: log + aviso aos admins (sem CPF). O código não é mostrado ao visitante. */
+async function avisarRegistroFalhou(propostaId: string, txid: string) {
+  try {
+    await admin.from("system_logs").insert({ modulo: "planos-checkout", acao: "pix_registro_falhou", mensagem: `proposta ${propostaId} txid ${txid}`, payload: { proposta_id: propostaId, txid } });
+  } catch { /* segue para o aviso */ }
+  try {
+    const { data: p } = await admin.from("propostas_planos_2027").select("nome").eq("id", propostaId).maybeSingle();
+    const { data: roles } = await admin.from("user_roles").select("user_id").eq("role", "admin");
+    const ids = [...new Set((roles ?? []).map((r: any) => r.user_id))];
+    if (!ids.length) return;
+    const { data: n } = await admin.from("notificacoes").insert({
+      titulo: `Atenção: Pix criado no Inter sem registro — proposta ${p?.nome ?? propostaId}, txid ${txid}`,
+      descricao: `A cobrança foi criada no Inter, mas não foi gravada no sistema. O visitante recebeu "Pix indisponível" e não viu o código. Confira no Inter se houve pagamento (txid ${txid}).`,
+      categoria: "financeiro", prioridade: "urgente", tipo: "simples", criado_por: ids[0],
+    }).select("id").single();
+    if (n?.id) await admin.from("notificacao_destinatarios").insert(ids.map((u) => ({ notificacao_id: n.id, usuario_id: u })));
+  } catch (e) { console.error("[planos-checkout] aviso pix_registro_falhou", { proposta: propostaId }); }
 }
 
 Deno.serve(async (req) => {
@@ -111,8 +151,10 @@ Deno.serve(async (req) => {
   if (!propostaId) return json(200, { erro: "Sessão inválida. Recomece a compra" });
 
   try {
-    if (ip && !(await rpc("fn_planos_limite", { p_chave: `ckf:i:${ip}`, p_limite: 120 }, propostaId)))
-      throw new Neutro("Muitas tentativas. Tente novamente mais tarde");
+    // Consultas da tela (polling) têm cota própria por proposta; demais ações seguem 120/h por IP.
+    for (const l of chavesLimite(acao, ip, propostaId))
+      if (!(await rpc("fn_planos_limite", { p_chave: l.chave, p_limite: l.limite }, propostaId)))
+        throw new Neutro("Muitas tentativas. Tente novamente mais tarde");
 
     if (acao === "iniciar") {
       // Prévia: admin logado marca a proposta como teste. O papel é conferido no servidor.
@@ -221,9 +263,20 @@ Deno.serve(async (req) => {
         }
       }
       let copia: string | null = null;
-      if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente") {
-        const { data: c } = await admin.from("pix_cobrancas").select("raw_response").eq("proposta_id", propostaId).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
-        copia = (c?.raw_response as any)?.pixCopiaECola ?? null;
+      // Só avalia vencimento depois que a cobrança foi gravada (ref preenchida); durante a criação não mexe.
+      if (t && !t.simulado && t.tipo === "pix" && t.status === "pendente" && typeof st.ref === "string") {
+        const { data: c } = await admin.from("pix_cobrancas").select("id, txid, status, created_at, raw_response").eq("proposta_id", propostaId).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
+        const venceu = (t.expira_em && Date.parse(t.expira_em) <= Date.now()) || !c || c.txid !== st.ref || !cobrancaValida(c as any);
+        if (venceu) {
+          // Vencido: expira cobrança e tentativa desta proposta; aviso tardio do Inter ainda dá baixa pelo txid.
+          if (c?.id && c.txid === st.ref) await expirarPixAntigo(propostaId, c.id, null);
+          t = await rpc("fn_checkout_2027_tentativa_atualizar", { p_tentativa_id: t.id, p_status: "expirado", p_ref: null, p_motivo: "pix_vencido" }, propostaId);
+        } else copia = (c?.raw_response as any)?.pixCopiaECola ?? null;
+      }
+      // Tentativa já expirada pelo banco: a cobrança ativa dela também vira EXPIRADA (só desta proposta).
+      if (t && !t.simulado && t.tipo === "pix" && t.status === "expirado" && typeof st.ref === "string") {
+        const { data: c } = await admin.from("pix_cobrancas").select("id, status, created_at").eq("proposta_id", propostaId).eq("txid", st.ref).in("status", ["CRIADA", "ATIVA"]).maybeSingle();
+        if (c?.id) await expirarPixAntigo(propostaId, c.id, null);
       }
       return json(200, { etapa: st?.etapa, tentativa: tentativaPublica(t), pix_copia_cola: copia });
     }
