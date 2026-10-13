@@ -1,9 +1,9 @@
-import { corsHeaders, jsonResponse, getInterToken, admin, requireAdminOrCoord } from "../_shared/inter.ts";
+import { corsHeaders, jsonResponse, getInterToken, admin, requireAdmin } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const auth = await requireAdminOrCoord(req);
+    const auth = await requireAdmin(req);
     if ("error" in auth) return auth.error;
 
     const clientId = Deno.env.get("INTER_CLIENT_ID") ?? "";

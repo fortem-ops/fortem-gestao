@@ -1,9 +1,9 @@
-import { corsHeaders, jsonResponse, interFetch, admin, requireAdminOrCoord, genTxid, onlyDigits } from "../_shared/inter.ts";
+import { corsHeaders, jsonResponse, interFetch, admin, requireAdmin, genTxid, onlyDigits } from "../_shared/inter.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const auth = await requireAdminOrCoord(req);
+    const auth = await requireAdmin(req);
     if ("error" in auth) return auth.error;
 
     const { idRec, valor, dataVencimento, descricao } = (await req.json().catch(() => null)) ?? {};
