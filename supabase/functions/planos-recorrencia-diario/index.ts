@@ -5,7 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { acessoRede, cobrar, consultarPorReferencia, type Acesso } from "../_shared/planos-cartao-rede.ts";
 import { mapearConsulta, mapearTransacao, motivoRecusa, validadeToken } from "../_shared/planos-cartao.ts";
-import { executar, type DepsRec, type Mensalidade } from "./fluxo.ts";
+import { executar, executarTesteReal, type DepsRec, type Mensalidade } from "./fluxo.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -50,8 +50,12 @@ function depsBase(simulacao: boolean): Omit<DepsRec, "devidas" | "incertas" | "c
       const r = await rpc("fn_recorrencia_2027_reservar", { p_id: id });
       return r && r.id ? (r as Mensalidade) : null;
     },
-    resultado: async (id, res, tid, motivo, hoje) =>
-      String(await rpc("fn_recorrencia_2027_resultado", { p_id: id, p_resultado: res, p_tid: tid, p_motivo: motivo, p_hoje: hoje })),
+    // Espelha em pagamentos_rede (só cobranças reais, o banco ignora simuladas) e grava o resultado na mesma transação.
+    resultado: async (id, res, tid, motivo, hoje, rede) =>
+      String(await rpc("fn_recorrencia_2027_resultado_rede", {
+        p_id: id, p_resultado: res, p_tid: tid, p_nsu: rede?.nsu ?? null, p_autorizacao: rede?.autorizacao ?? null,
+        p_return_code: rede?.returnCode ?? null, p_return_message: rede?.returnMessage ?? null, p_motivo: motivo, p_hoje: hoje,
+      })),
     alerta: async (mensagem) => {
       await log("teto_execucao", mensagem);
       const { data: adm } = await sup.from("user_roles").select("user_id").eq("role", "admin").order("user_id").limit(1);
@@ -89,8 +93,10 @@ function depsReais(acesso: Acesso | null, softDescriptor: string): DepsRec {
       });
       if (r.etapa === "criptograma") return { res: "recusado", motivo: "criptograma" };
       const res = mapearTransacao({ erroRede: r.erroRede, httpStatus: r.httpStatus, returnCode: r.parsed?.returnCode ?? null });
-      if (res === "aprovado") return { res, tid: r.parsed?.tid ?? null };
-      if (res === "recusado") return { res, motivo: motivoRecusa(r.parsed) };
+      const rede = { nsu: r.parsed?.nsu ?? null, autorizacao: r.parsed?.authorizationCode ?? null, returnCode: r.parsed?.returnCode ?? null,
+        returnMessage: typeof r.parsed?.returnMessage === "string" ? r.parsed.returnMessage : null };
+      if (res === "aprovado") return { res, tid: r.parsed?.tid ?? null, rede };
+      if (res === "recusado") return { res, tid: r.parsed?.tid ?? null, motivo: motivoRecusa(r.parsed), rede };
       return { res, motivo: "sem_resposta" };
     },
     consultar: async (m) => {
@@ -100,7 +106,8 @@ function depsReais(acesso: Acesso | null, softDescriptor: string): DepsRec {
       const res = mapearConsulta(c.httpStatus, c.parsed);
       // Valor divergente nunca é dado como pago automaticamente.
       if (res === "aprovado" && Number(c.parsed?.authorization?.amount ?? m.valor_centavos) !== m.valor_centavos) return { res: "desconhecido" };
-      return { res, tid: c.parsed?.authorization?.tid ?? null };
+      const a = c.parsed?.authorization ?? {};
+      return { res, tid: a.tid ?? null, rede: { nsu: a.nsu ?? null, autorizacao: a.authorizationCode ?? null, returnCode: a.returnCode ?? null, returnMessage: a.returnMessage ?? null } };
     },
   };
 }
@@ -138,6 +145,20 @@ Deno.serve(async (req) => {
       const resumo = await executar(depsSimulacao(pid, resultado, conciliacao), hoje);
       await log("simulacao", `simulação ${hoje}`, { proposta_id: pid, resultado, ...resumo });
       return json(200, { ok: true, modo: "simulacao", hoje, resumo });
+    }
+    // Teste real R5 (admin): uma mensalidade da proposta de teste do NICOLAS TESTE; travas no banco.
+    if (body?.modo === "teste_real") {
+      const pid = typeof body.proposta_id === "string" && UUID.test(body.proposta_id) ? body.proposta_id : "";
+      if (!pid) return json(400, { ok: false, erro: "proposta_id obrigatório" });
+      const hoje = hojeSP();
+      const acesso = await acessoRede();
+      if (!acesso) return json(200, { ok: false, motivo: "sem_acesso_rede" }); // antes de reservar: nada consumido
+      const { data: sd } = await sup.from("sistema_config").select("valor").eq("chave", "planos_cartao_soft_descriptor").maybeSingle();
+      const soft = (typeof sd?.valor === "string" ? sd.valor : "").replace(/[^A-Za-z0-9 ]/g, "").slice(0, 13);
+      const r = await executarTesteReal(depsReais(acesso, soft),
+        async () => (await rpc("fn_recorrencia_2027_teste_real_reservar", { p_proposta_id: pid })) as any, hoje);
+      await log("teste_real", `teste real: ${r.ok ? r.resultado : r.motivo}`, { proposta_id: pid, ...r });
+      return json(200, r);
     }
     // Modo real: só a chave de serviço (rotina diária, quando existir).
     if (!servico) return json(403, { ok: false, erro: "admin só executa simulação" });
