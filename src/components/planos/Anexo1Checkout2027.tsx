@@ -33,8 +33,8 @@ export function anexoParaEnvio(a: Anexo1Estado) {
   };
 }
 
-export function Anexo1Checkout2027({ valor, onChange, nome }: { valor: Anexo1Estado; onChange: (a: Anexo1Estado) => void; nome: string }) {
-  const set = (p: Partial<Anexo1Estado>) => onChange({ ...valor, ...p });
+export function Anexo1Checkout2027({ valor, onChange, nome }: { valor: Anexo1Estado; onChange: (f: (a: Anexo1Estado) => Anexo1Estado) => void; nome: string }) {
+  const set = (p: Partial<Anexo1Estado>) => onChange((a) => ({ ...a, ...p }));
   return (
     <section aria-labelledby="anexo1-titulo" className="mt-8 border-t border-border pt-6">
       <h2 id="anexo1-titulo" className="font-display text-lg font-bold uppercase">{C.anexo.titulo}</h2>
