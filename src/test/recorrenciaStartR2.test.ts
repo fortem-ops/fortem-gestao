@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { calcularVenda2027 } from "@/lib/vendas2027";
 import { modoPagamentoTela } from "@/lib/planosPagamentoTela";
 
-const start2x = { familia: "start_2027", modalidade_cobranca: "recorrencia_mensal", valor: 499, taxa_recorrencia: 24.9 };
-const power2xMensal = { familia: "power_2027", modalidade_cobranca: "recorrencia_mensal", valor: 429, taxa_recorrencia: 24.9 };
-const power2xAnual = { familia: "power_2027", modalidade_cobranca: "anual", valor: 5148, taxa_recorrencia: 0 };
+const start2x = { codigo: "start_2027_2x_mensal", familia: "start_2027", modalidade_cobranca: "recorrencia_mensal", valor: 499, taxa_recorrencia: 24.9 };
+const power2xMensal = { codigo: "power_2027_2x_mensal", familia: "power_2027", modalidade_cobranca: "recorrencia_mensal", valor: 429, taxa_recorrencia: 24.9 };
+const power2xAnual = { codigo: "power_2027_2x_anual", familia: "power_2027", modalidade_cobranca: "anual", valor: 5148, taxa_recorrencia: 0 };
 
 describe("cálculo R2", () => {
   it("Start = 1 cobrança mensal no preço do catálogo, sem a taxa de recorrência", () => {
