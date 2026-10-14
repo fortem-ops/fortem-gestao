@@ -84,9 +84,15 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
       const destino = etapaReservada(estado.etapa, sessao.proposta_id, estado.aceite_id);
       setPagoServidor(estado.etapa === "paga");
       if (destino !== "revisao") {
-        const tela = await checkout<TelaPagamento>("tela_pagamento", sessao);
-        setTelaPagamento(tela); setRevisao(tela.revisao); setEtapa(destino);
-        return;
+        try {
+          const tela = await checkout<TelaPagamento>("tela_pagamento", sessao);
+          setTelaPagamento(tela); setRevisao(tela.revisao); setEtapa(destino);
+          return;
+        } catch (e) {
+          // Escolha mudou depois do aceite: refaz a revisão (Passo 6) em vez de repetir a mesma recusa.
+          if (!(e instanceof ErroCheckout && e.message === C.contrato.hashMudou)) throw e;
+          limparConfirmacao(); usarCadastro.current = false;
+        }
       }
       const r = await checkout<Revisao>("revisar", sessao);
       setRevisao(r);
@@ -176,7 +182,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
   );
 
   if (etapa === "carregando") return <p className="py-10 text-muted-foreground" role="status">{C.carregando}</p>;
-  if (previaConsultas && revisao) return <ConsultasPagamentoPrevia2027 sessao={sessao} revisao={revisao} />;
+  if (previaConsultas && revisao) return <ConsultasPagamentoPrevia2027 sessao={sessao} revisao={revisao} onAlterar={() => { limparConfirmacao(); onAlterar(); }} />;
 
   if ((etapa === "pagamento" || etapa === "confirmacao") && telaPagamento) return <PagamentoReservado2027
     tela={telaPagamento} sessao={sessao} confirmacao={etapa === "confirmacao"} pagoServidor={pagoServidor} onAlterar={onAlterar}

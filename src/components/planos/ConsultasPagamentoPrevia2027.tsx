@@ -17,7 +17,7 @@ export function ResumoConsultasSeparadas({ revisao: r }: { revisao: RevisaoCheck
     <p className="font-semibold">Plano primeiro, consultas depois. Duas transações separadas; consultas não entram na primeira mensalidade.</p>
   </div>;
 }
-export function ConsultasPagamentoPrevia2027({ sessao, revisao }: { sessao: SessaoCheckout; revisao: RevisaoCheckout }) {
+export function ConsultasPagamentoPrevia2027({ sessao, revisao, onAlterar }: { sessao: SessaoCheckout; revisao: RevisaoCheckout; onAlterar?: () => void }) {
   const [e, setE] = useState<ConsultaPrevia | null>(null);
   const [erro, setErro] = useState(''); const [ocupado, setOcupado] = useState(true);
   const [forma, setForma] = useState<'cartao_parcelado' | 'pix_vista'>('cartao_parcelado');
@@ -43,6 +43,7 @@ export function ConsultasPagamentoPrevia2027({ sessao, revisao }: { sessao: Sess
     <p className="text-xs font-bold uppercase text-primary">Passo 5 · Pagamento · prévia admin</p>
     <h1 className="mt-3 font-display text-2xl font-extrabold uppercase sm:text-3xl">Plano e consultas</h1>
     <p role="note" className="mt-4 border-l-2 border-primary pl-3 text-sm">SIMULAÇÃO — sem cobrança, ativação, créditos ou e-mail reais.</p>
+    {onAlterar && !desconhecido && !completo && <Button variant="outline" className="mt-4 rounded-none font-bold uppercase" disabled={ocupado} onClick={onAlterar}>Alterar escolha</Button>}
     <div className="mt-7 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0">
         {erro && <p role="alert" className="mb-5 text-sm text-destructive">{erro}</p>}
