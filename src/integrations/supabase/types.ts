@@ -5425,6 +5425,7 @@ export type Database = {
           idempotency_key: string | null
           installments: number
           kind: string
+          mensalidade_2027_id: string | null
           motivo_estorno: string | null
           nsu: string | null
           pedido_id: string | null
@@ -5446,6 +5447,7 @@ export type Database = {
           idempotency_key?: string | null
           installments?: number
           kind?: string
+          mensalidade_2027_id?: string | null
           motivo_estorno?: string | null
           nsu?: string | null
           pedido_id?: string | null
@@ -5467,6 +5469,7 @@ export type Database = {
           idempotency_key?: string | null
           installments?: number
           kind?: string
+          mensalidade_2027_id?: string | null
           motivo_estorno?: string | null
           nsu?: string | null
           pedido_id?: string | null
@@ -11585,6 +11588,24 @@ export type Database = {
           p_tid: string
         }
         Returns: string
+      }
+      fn_recorrencia_2027_resultado_rede: {
+        Args: {
+          p_autorizacao: string
+          p_hoje: string
+          p_id: string
+          p_motivo: string
+          p_nsu: string
+          p_resultado: string
+          p_return_code: string
+          p_return_message: string
+          p_tid: string
+        }
+        Returns: string
+      }
+      fn_recorrencia_2027_teste_real_reservar: {
+        Args: { p_proposta_id: string }
+        Returns: Json
       }
       fn_renomear_nivel_exercicio: {
         Args: {
