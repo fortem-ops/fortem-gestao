@@ -71,6 +71,13 @@ function lerContratante(c: any): Omit<Contratante, "nome" | "email"> & { nome: s
   };
 }
 
+/** Parcelas escolhidas na tela de pagamento: inteiro 1..12; qualquer outra coisa vira nulo e o banco decide. */
+function lerParcelas(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 12) return null;
+  return v;
+}
+
+
 /** Gera o texto do contrato inteiramente no servidor. */
 async function gerar(propostaId: string, chave: string, contratante: any, ip: string) {
   const dados = lerContratante(contratante);
