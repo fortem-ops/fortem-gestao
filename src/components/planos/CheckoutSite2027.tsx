@@ -8,6 +8,7 @@ import { etapaReservada, guardarConfirmacao, limparConfirmacao } from "@/lib/che
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { isValidCpfDigits } from "@/lib/cpfValidation";
 import type { DadosContratante } from "./CadastroContratante2027";
+import { Anexo1Checkout2027, ANEXO1_VAZIO, anexoCompleto, anexoParaEnvio, type Anexo1Estado } from "./Anexo1Checkout2027";
 import { fetchCep, formatCep } from "@/lib/viacep";
 import {
   checkout, dividirCentavos, ErroCheckout, lerCodigo, limparSessao, mascararCpf, rolouAteOFim, type SessaoCheckout,
@@ -48,6 +49,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
   const [erro, setErro] = useState("");
   const [pagoServidor, setPagoServidor] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [anexo, setAnexo] = useState<Anexo1Estado>(ANEXO1_VAZIO);
   // Dados do contratante só em memória (nunca no navegador).
   const [d, setD] = useState(() => cadastroUnico
     ? { nome: cadastroUnico.nome, email: cadastroUnico.email, rg: cadastroUnico.rg, cpf: mascararCpf(cadastroUnico.cpf), data_nascimento: cadastroUnico.data_nascimento, cep: cadastroUnico.cep, logradouro: cadastroUnico.logradouro, numero: cadastroUnico.numero, complemento: cadastroUnico.complemento, bairro: cadastroUnico.bairro, cidade: cadastroUnico.cidade, uf: cadastroUnico.uf }
@@ -99,7 +101,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
         usarCadastro.current = false; carregouDados.current = true;
         try {
           const c = await checkout<Contrato>("gerar_contrato", { ...sessao, contratante: contratante() });
-          setContrato(c); setLido(false); setMarcado(false); setEtapa("contrato");
+          setContrato(c); setLido(false); setMarcado(false); setAnexo(ANEXO1_VAZIO); setEtapa("contrato");
           return;
         } catch (e) { falhou(e); setEtapa("dados"); return; }
       }
@@ -156,9 +158,11 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
 
   async function aceitar() {
     if (!contrato || !lido || !marcado) return;
+    if (!anexoCompleto(anexo)) { setErro(C.anexo.faltando); return; }
     setErro(""); setOcupado(true);
     try {
-      await checkout("aceitar", { ...sessao, contratante: contratante(), hash_exibido: contrato.hash, li_e_aceito: true });
+      await checkout("aceitar", { ...sessao, contratante: contratante(), hash_exibido: contrato.hash, li_e_aceito: true, ...anexoParaEnvio(anexo) });
+      setAnexo(ANEXO1_VAZIO);
       setD((x) => ({ ...x, cpf: "" }));
       setContrato(null);
       setEtapa("carregando");
@@ -172,7 +176,8 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
     setOcupado(false);
   }
 
-  const Erro = () => erro ? <p role="alert" className="mt-4 border-l-2 border-primary pl-3 text-sm">{erro}</p> : null;
+  const Erro = () => erro ? <div role="alert" className="mt-4 border-l-2 border-primary pl-3 text-sm"><p>{erro}</p>
+    {erro === C.contrato.menor18 && <Button asChild className="mt-3 h-auto py-3 rounded-none font-bold uppercase"><a href={C.confirmacao.whatsappUrl} target="_blank" rel="noopener noreferrer">{C.confirmacao.whatsappBotao}</a></Button>}</div> : null;
   const H = ({ children, sub }: { children: string; sub?: string }) => <div className="mb-6"><h1 ref={titulo} tabIndex={-1} className="font-display text-2xl sm:text-3xl font-extrabold uppercase leading-tight outline-none">{children}</h1>{sub && <p className="mt-2 text-muted-foreground">{sub}</p>}</div>;
   const campo = (k: keyof typeof d, rotulo: string, extra: Record<string, unknown> = {}) => (
     <label className="block text-sm">{rotulo}
@@ -257,6 +262,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
       className="h-[60vh] overflow-y-auto border border-border bg-card p-4 sm:p-6 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_h1]:font-display [&_h1]:text-lg [&_h1]:font-bold [&_h1]:uppercase [&_h1]:mb-3 [&_h2]:font-bold [&_h2]:uppercase [&_h2]:mt-5 [&_h2]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5"
       dangerouslySetInnerHTML={{ __html: contrato?.conteudo_html ?? "" }} />
     <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">{lido ? C.contrato.lido : C.contrato.leia}</p>
+    <Anexo1Checkout2027 valor={anexo} onChange={setAnexo} nome={d.nome} />
     <label className="mt-4 flex items-start gap-3 text-sm">
       <input type="checkbox" className="mt-1 size-4 accent-[hsl(var(--primary))]" checked={marcado} disabled={!lido} onChange={(e) => setMarcado(e.target.checked)} />
       <span>{C.contrato.liEAceito}</span>
@@ -264,7 +270,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
     <Erro />
     <div className="mt-6 grid gap-3 sm:grid-cols-2">
       <Button variant="outline" className="h-auto py-4 rounded-none font-bold uppercase" onClick={() => setEtapa("dados")} disabled={ocupado}>{C.contrato.editarDados}</Button>
-      <Button className="h-auto py-4 rounded-none font-bold uppercase" onClick={aceitar} disabled={!lido || !marcado || ocupado}>{ocupado ? C.carregando : C.contrato.aceitar}</Button>
+      <Button className="h-auto py-4 rounded-none font-bold uppercase" onClick={aceitar} disabled={!lido || !marcado || !anexoCompleto(anexo) || ocupado}>{ocupado ? C.carregando : C.contrato.aceitar}</Button>
     </div>
   </section>;
 }
