@@ -133,7 +133,8 @@ export function montarClausulaReposicao(item: CatalogoPlano2027): string {
 
 export function montarVariaveis2027(item: CatalogoPlano2027, servicos: ServicoTabela[]): Record<string, string> {
   const valor = Number(item.valor || 0);
-  const taxa = Number(item.taxa_recorrencia || 0);
+  // Start 2027 não tem taxa de recorrência, mesmo que o catálogo traga valor.
+  const taxa = item.familia === "start_2027" ? 0 : Number(item.taxa_recorrencia || 0);
   const freq = (item.frequencia ?? "").toLowerCase();
   const nome = item.nome_exibicao ?? item.nome ?? "";
   return {
