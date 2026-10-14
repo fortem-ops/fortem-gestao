@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Cancelar somente a proposta pública 8f9441a2 e listar outras propostas reais abertas com aceite.
+- [ ] Atualizar confirmação do Passo 9 com ativação automática e WhatsApp; rodar suíte.
+
 - [x] Checkout /planos — 2D-2: Pagamento reservado e Confirmação; 48 testes, prévia móvel/desktop, retomada e recusa anônima verificadas; contagens preservadas.
 - [x] Pagamentos P0+P1+P2 em simulação (Pix à vista, cartão 12x)
 - [ ] P3 webhook do Pix (aguarda aprovação)
