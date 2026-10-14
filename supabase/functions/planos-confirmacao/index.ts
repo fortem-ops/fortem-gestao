@@ -2,14 +2,14 @@
 // Envio uma vez por proposta (reserva atômica no banco); falha nunca desfaz a baixa.
 // Desligado por sistema_config.planos_email_confirmacao_ativo. Nunca registra CPF, e-mail completo ou chave.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { enviarConfirmacao } from "./remetente.ts";
 import { executarEnvio, type RegistroEmail } from "./envio.ts";
 import type { DadosEmail } from "./texto.ts";
 import { decidirEnvio, montarEmail } from "./texto.ts";
 
 const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  ...corsHeaders,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (status: number, body: unknown) =>
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   if (acao === "rascunho") {
     const { data: d, error } = await sup.rpc("fn_checkout_2027_email_completo", { p_proposta_id: id });
     if (error || !d) return json(200, { ok: false, resultado: "aceite_indisponivel" });
-    const e = montarEmail(d);
+    const e = montarEmail({ ...d, ensaio: !d.ativada_em });
     return json(200, { ok: true, assunto: e.assunto, texto: e.texto, html: e.html });
   }
   const chaveReenvio = body?.idempotency_key;
