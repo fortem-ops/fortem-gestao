@@ -1,92 +1,62 @@
-# Recorrência no cartão + Start no /planos (rodada única, em fases)
+# R6 — Recorrência no cartão aberta ao público
 
-Estado conferido: cron `cobrar-recorrencias-diario` está **inativo**; `renovar-planos-mensais-daily` (03:00) e `processar-cobrancas-diario` (07:00) seguem ativos. O núcleo `_shared/rede-recorrencia-core.ts` (`cobrarComToken`) já faz criptograma `subscription:true` + transação MIT `storageCard:"2"`. O cartão do /planos hoje usa `subscription:false` (compra única).
+## Situação conferida agora (somente leitura)
+- `cobrar-recorrencias-diario` (antigo): **active=false**, às 04:00 UTC. Não há outro job de recorrência.
+- Chaves: `planos_recorrencia_ativa=false`, `planos_cartao_real_ativo=true`, `planos_cartao_real_escopo="todos"`, `planos_pagamento_modo_teste="simulacao"`, `planos_checkout_ativo=true`, `planos_teste_valor_max_centavos=100`.
+- `planos_2027_mensalidades`: só existem 3 linhas, todas da proposta de teste 21511e24 (já cancelada): 2 pagas e 1 cancelada. **Nenhuma pendente.** Por isso, a 1ª execução terá **0 devidas e 0 cobranças**.
 
-## 1. Fluxo do comprador
+## Ponto que precisa ser resolvido antes do cron
+Hoje a função só aceita o modo real com a chave de serviço (ou um token com papel de serviço). Os jobs existentes chamam funções com a chave pública mais um segredo próprio (`x-webhook-secret`), e a chave de serviço não fica disponível para colocar no job. Se o job usar o padrão atual, a função vai recusar com 403 e nunca vai cobrar. Isso é seguro, mas deixa a recorrência sem funcionar.
 
-```text
-Cadastro → Revisão → Contrato (recorrência) → Pagamento (cartão) → Confirmação
-                                              |
-             tokeniza (storageCard 2, zero-dollar) — mesma tela de hoje
-             1ª mensalidade cobrada NA HORA (CIT, subscription:true)
-             aprovada → cria cronograma de mensalidades
-```
+**Proposta (mudança mínima, só em `planos-recorrencia-diario`):** aceitar também um segredo novo e exclusivo, `PLANOS_RECORRENCIA_CRON_SECRET`, enviado no cabeçalho `x-cron-secret` e comparado em tempo constante. Com esse segredo, a função entra **somente** no modo real normal: não roda a simulação de admin nem o teste real. O segredo é gerado com o gerador de segredos e nunca é registrado em log. O job guarda esse valor da mesma forma que os jobs atuais guardam o deles.
 
-- **Tokenização**: a mesma de hoje (`rede_tokenizacoes` com `proposta_id`), sem guardar número/CVV.
-- **1ª mensalidade cobrada na hora** (recomendado), pois vence na data da venda. É a transação iniciada pelo titular, com CVV presente na tokenização. As seguintes são cobranças sem o titular (MIT) pelo `cobrarComToken`.
-- **Após aprovar**:
-  - **Power/Pro recorrência**: cria as 12 mensalidades de uma vez (1ª paga, 11 pendentes com vencimento mensal no mesmo dia; meses curtos no último dia). Créditos do plano inteiro liberados na venda.
-  - **Start**: cria só o ciclo atual (pago) e o próximo pendente; cada pagamento gera o ciclo seguinte (`fn_renovar_start_2027`).
-- **Consultas junto do plano em recorrência**: pagamento separado, no mesmo passo, depois da 1ª mensalidade: cartão até 6x ou Pix à vista (reutiliza o fluxo atual).
-- **Tela de confirmação / e-mail**: "Assinatura ativa. 1ª mensalidade de R$ X paga hoje. Próximas cobranças automáticas todo dia D no cartão final NNNN". Power/Pro mostra "12 mensalidades"; Start mostra "renova mensalmente, cancele quando quiser". O e-mail usa o mesmo `planos-confirmacao` com um bloco novo para a recorrência.
-- **3 recusas em 30 min**: a proposta fica "aguardando". A tela oferece Pix à vista (só Power/Pro, valor do Pix) ou contato com a equipe; Start oferece só contato. O aviso interno é o atual de recusa.
+## 1) Cron
+- Nome `planos-recorrencia-diario`, horário `0 11 * * *` (08:00 em São Paulo, sem horário de verão). Ele faz um POST para a função com a chave pública, `x-cron-secret` e o corpo `{"trigger":"cron"}`, o que corresponde ao modo real.
+- É criado com o comando de SQL avulso, fora das migrações, porque contém a URL e o segredo.
+- **Não há risco de cobrança dupla:** o job antigo segue desligado e só lê `cobrancas` e contratos legados. O novo só lê `planos_2027_mensalidades`, com escopo de 2027 garantido no banco (`fn_recorrencia_2027_pode_cobrar`). Além disso, cada mensalidade só aceita uma aprovação (índice único e `idempotency_key` por mensalidade e tentativa), e a reserva bloqueia a linha de forma atômica.
 
-## 2. Cobrança mensal automática (só 2027)
+## 2) Ligar `planos_recorrencia_ativa = true`
+**Passa a ser possível ao público:**
+- Start mensal no cartão por recorrência, com a 1ª mensalidade cobrada na hora e renovação ciclo a ciclo até o cancelamento pela equipe.
+- Power/Pro em recorrência: 12 mensalidades com a taxa de R$ 24,90, a 1ª cobrada na hora e as outras 11 pelo cron.
+- Cobrança automática diária das mensalidades devidas, com retentativas e aviso interno.
 
-- **Função nova** `planos-recorrencia-diario`, com cron próprio novo. O `cobrar-recorrencias-diario` antigo **não é religado nem editado**.
-- **Escopo fixado no banco**: uma RPC `fn_recorrencia_2027_devidas()` (service_role) devolve só cobranças que cumprem tudo isto:
-  - têm vínculo `origem='planos_2027'`;
-  - têm `contratos.catalogo_id` com `versao` não nula;
-  - têm token ligado à proposta.
-  Gatilho de banco: uma cobrança com `origem='planos_2027'` só aceita token cuja proposta seja a mesma. Nada antigo entra, nem por erro na função.
-- **Flag** `planos_recorrencia_ativa` (desligada) e o mesmo `planos_pagamento_modo_teste`/teto R$1,00.
-- **Retentativas**: no D0, D+1 e D+3 (3 tentativas). Depois a mensalidade fica "inadimplente", com um aviso interno à equipe (comercial/alta, sem CPF) e WhatsApp/e-mail ao aluno somente se você aprovar (pergunta 4).
-- **Start em falha**: crédito mensal só sai com a mensalidade paga, com tolerância de 3 dias (`fn_creditos_mensais_2027` passa a checar o pagamento do ciclo). Sem pagamento até D+3, não libera crédito do ciclo e não gera o próximo. O acesso vai até o fim do último ciclo pago. Se pagar depois (Pix/cartão manual), libera e retoma.
-- **Power/Pro em falha**: os créditos já foram liberados. Fica inadimplência normal, sem bloquear créditos (pergunta 5).
+**Continua bloqueado:**
+- Recorrência junto com consultas na mesma compra (fase própria, depois).
+- Pix Automático no Start.
+- Troca de cartão pelo aluno (feita pela equipe).
+- E-mail ou WhatsApp de falha ao aluno (só aviso interno).
+- Estorno pelo software das linhas de `/planos`.
 
-## 3. Start na tela
+## 3) Checklist de segurança, conferido por SQL antes de ligar
+- [ ] Teto de R$ 30.000 por execução, com alerta interno ao atingir.
+- [ ] Máximo de 50 devidas por execução.
+- [ ] Retentativas D0/D+1/D+3; na 3ª recusa a mensalidade fica inadimplente e gera um único aviso (comercial/alta, sem CPF nem dados de cartão).
+- [ ] Vencimentos nos dias 29–31 passam para o último dia do mês.
+- [ ] Resultado incerto fica como `desconhecido`, é conciliado por referência e **nunca** é cobrado de novo.
+- [ ] Toda cobrança real, aprovada ou recusada, é espelhada em `pagamentos_rede` (código e mensagem curta, sem cartão).
+- [ ] Start sem pagamento até D+3 não libera crédito nem gera o próximo ciclo. Power/Pro inadimplentes mantêm os créditos.
+- [ ] O modo de teste continua em `simulacao`, então o teto de R$ 1 não se aplica ao público. Isso é intencional e confirmado.
+- [ ] O nome do titular só é mantido em tokens de recorrência ativos e é apagado no encerramento.
 
-- **Passo 5, variante só recorrência**: sem escolha de forma, texto "Pagamento mensal automático no cartão de crédito. Sem fidelidade: cancele quando quiser; o acesso vale até o fim do mês pago." Sem Pix nem parcelado.
-- **Cálculo**: `calcularVenda2027` ganha o caso Start = 1 parcela mensal (valor do catálogo), total exibido "R$ X/mês", sem total anual.
-- **Contrato**: template `familia=start` + `cartao_recorrencia` (de `contrato_templates`), com variáveis de ciclo indefinido, sem multa e cancelamento a qualquer tempo. Se o template não existir, a ativação recusa (regra atual).
-- **Renovação indefinida**: ciclo a ciclo até um cancelamento registrado (botão admin "Cancelar assinatura": marca o fim no ciclo atual e não cria o próximo).
+## 4) Ordem sugerida
+1. Gerar o segredo e publicar a função com a aceitação de `x-cron-secret`, mais um teste unitário (sem segredo recusa, segredo errado recusa, segredo certo entra só no modo real).
+2. Criar o cron com a flag **false**. Disparar manualmente uma vez com o mesmo comando do job e esperar `{modo:"real", desligado:true}` e uma linha em `system_logs`.
+3. Rodar uma simulação de admin em uma proposta de teste e esperar `0 devidas` sem chamar a Rede.
+4. Conferir por SQL: zero mensalidades pendentes e vencidas, e zero linhas novas em `pagamentos_rede`.
+5. Ligar `planos_recorrencia_ativa=true`. Disparar o job manualmente uma vez e esperar `devidas=0, cobradas=0`.
+6. No dia seguinte, às 11:00 UTC, conferir `cron.job_run_details` e `system_logs`.
 
-## 4. Segurança
+**Como desfazer rápido:**
+- `planos_recorrencia_ativa=false`: para tudo na hora. O cron continua rodando, mas retorna "desligado".
+- `select cron.alter_job(<id>, active := false)` ou `cron.unschedule('planos-recorrencia-diario')`.
+- Opcional: `planos_cartao_real_ativo=false` também bloqueia a 1ª mensalidade na tela.
 
-- **Idempotência por ciclo**:
-  - índice único (`contrato_id`, `competencia`) nas mensalidades 2027;
-  - trava atômica (`fn_recorrencia_2027_reservar`) antes de cobrar;
-  - referência Rede determinística por cobrança + tentativa;
-  - resultado incerto vira `desconhecido`, conferido pela referência e nunca recobrado.
-- **Limites**: no máximo 1 cobrança aprovada por cobrança/ciclo e 3 tentativas por ciclo. Valor sempre lido da cobrança no banco, nunca do navegador. Teto global por execução (ex.: 50 cobranças) com alerta se excedido.
-- **Testes**: modo `simulacao` (resultado escolhido pelo admin, nada vai à Rede) para toda a jornada, inclusive "pular para o próximo mês". O modo real só funciona com `real_baixo_valor`, teto R$1,00 e proposta de teste. Ele volta à simulação após um uso, como hoje.
-- **Sem dados sensíveis**: nada de PAN/CVV/CPF em logs; nome do titular só no token, apagado ao encerrar.
+## 5) Elegíveis na 1ª execução
+Hoje são **zero**: nenhuma mensalidade pendente existe, e as da 21511e24 estão pagas ou canceladas, com a assinatura cancelada. Só uma venda pública feita depois de ligar a flag criaria mensalidades; a nº2 dela venceria 1 mês depois. Imediatamente antes de ligar, rodar `fn_recorrencia_2027_devidas` (só leitura) e confirmar 0.
 
-## 5. Fases (cada uma para aprovação)
+## Não será feito
+Não religar nem editar `cobrar-recorrencias-diario`. Não tocar em Loja, Corrida, `rede-*` nem `_shared/rede-recorrencia-core.ts`. Não alterar outras chaves. Não fazer cobrança de teste. Não implementar estorno. Não implementar consultas junto com recorrência.
 
-| Fase | Entrega | Verificação SQL |
-|---|---|---|
-| R1 Banco | colunas de origem/competência, índice único, RPCs devidas/reservar/resultado, gatilho de escopo, flag desligada | `fn_recorrencia_2027_devidas()` retorna 0 linhas; inserir cobrança antiga com origem 2027 falha; tudo em transação desfeita |
-| R2 Cálculo + Start | `calcularVenda2027` Start, variante do passo 5, template, textos | Start: 1 parcela = preço catálogo; Power 2x recorr. = 12 × e total R$ 453,90 |
-| R3 1ª mensalidade | CIT `subscription:true` no fluxo de proposta, criação do cronograma (12 / ciclo Start) | simulação: 12 linhas Power, 2 linhas Start, 0 em `pagamentos_rede` |
-| R4 Cobrança mensal | `planos-recorrencia-diario` (simulação), retentativas, avisos, crédito Start condicionado | rodar 2x a mesma data → 1 tentativa por ciclo; Start não pago D+3 → 0 crédito |
-| R5 Teste real R$1 | só com seu pedido: 1ª mensalidade R$1 + 1 MIT R$1 com NICOLAS TESTE | 2 linhas aprovadas, nenhuma duplicada |
-| R6 Liberação | ligar flag + cron novo, só com seu pedido | cron antigo segue `active=false` |
-
-## Perguntas ao dono (com recomendação)
-
-1. 1ª mensalidade cobrada na hora? **Sim** (vence na data da venda).
-2. Datas de retentativa: **D0, D+1, D+3**?
-3. Vencimento em mês sem o dia (29–31): **último dia do mês**?
-4. Avisar o aluno na recusa por WhatsApp/e-mail? **Só aviso interno nesta rodada.**
-5. Power/Pro inadimplente: créditos continuam? **Sim, só cobrança pela equipe.**
-6. Cancelamento do Start: só pela equipe (botão admin) nesta rodada? **Sim.**
-7. Horário do cron novo: **08:00 America/Sao_Paulo = 11:00 UTC** (`0 11 * * *`), decidido pelo dono.
-8. Troca de cartão após recusa: link para nova tokenização? **Fica para a próxima rodada; equipe resolve.**
-
-## Riscos
-
-- O emissor pode recusar MIT sem CIT anterior com `subscription:true`; por isso a 1ª cobrança vira CIT com `subscription:true`. Validar no teste R5.
-- O código 107 já apareceu antes; manter `motivo` detalhado.
-- Mexer em `fn_creditos_mensais_2027` afeta créditos do Pro: a mudança fica restrita ao Start.
-- Tokens podem expirar (validade 2029+); o aviso interno cobre isso.
-
-## Fora do escopo
-
-Pix Automático, boleto, ativação automática do aluno/contrato, religar ou editar `cobrar-recorrencias-diario`, Loja/Corrida/rede-*, troca de cartão pelo aluno, estornos.
-
-## Detalhes técnicos
-
-- Reaproveitar `cobrarComToken` importando de `_shared` sem editá-lo. A CIT do /planos ganha um parâmetro `subscription` em `cartao-rede.ts` (padrão false, inalterado para 1x–12x).
-- Mensalidades em `cobrancas` com `origem='planos_2027'`, `competencia`, `contrato_id` (do contrato criado na ativação manual atual). Enquanto o contrato não existe, as mensalidades ficam ligadas à proposta (`proposta_id`) e são vinculadas na ativação.
-- Idempotência: `UNIQUE (proposta_id, competencia) WHERE origem='planos_2027'`.
+## Pergunta
+Aprova o segredo dedicado `x-cron-secret` (recomendado) em vez de tentar colocar a chave de serviço no job, o que não é possível aqui?
