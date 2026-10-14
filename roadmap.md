@@ -47,3 +47,4 @@
 - [x] Consultas + recorrência — F2: blocos PLANO/CONSULTAS, aceite F1 e simulação admin-only publicada; recusa, retomada após recarregar, bloqueio desconhecido e desktop/móvel verificados com NICOLAS TESTE; 904 testes passaram. Criada uma obrigação de teste, sem venda/crédito/cobrança/mensalidade/tentativa financeira/e-mail; controles preservados. Estado hipotético em logs exclusivos de prévia, não destinado à conciliação real (F3–F5).
 - [x] Consultas + recorrência — F3 (cartão das consultas) em simulação na prévia admin + ajustes F2.
 - [ ] Consultas + recorrência — teste real do cartão das consultas (máx. R$ 1,00) aguarda pedido do dono; F4–F5 aguardam aprovação.
+- [x] Prévia /planos: escolha Continuar/Começar nova simulação, Alterar após aceite sem beco (volta ao Passo 6), simulação das consultas reiniciada a cada novo aceite. Conferência visual aguarda sessão admin.

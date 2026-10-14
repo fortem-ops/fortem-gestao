@@ -82,3 +82,16 @@ describe("pagamento do checkout 2027 (simulação)", () => {
     expect(etapa2("paga", "p", "a")).toBe("confirmacao");
   });
 });
+
+import { guardarConfirmacao as g2, limparConfirmacao, etapaReservada as er2 } from "@/lib/checkoutReservado2027";
+describe("Alterar após aceite", () => {
+  it("limparConfirmacao faz a proposta voltar ao pagamento, não à confirmação", () => {
+    g2("p1", "a1");
+    expect(er2("contrato_aceito", "p1", "a1")).toBe("confirmacao");
+    limparConfirmacao();
+    expect(er2("contrato_aceito", "p1", "a1")).toBe("pagamento");
+  });
+  it("sem aceite (Alterar invalidou) volta à revisão", () => {
+    expect(er2("identificada", "p1", null)).toBe("revisao");
+  });
+});

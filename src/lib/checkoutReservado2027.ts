@@ -11,4 +11,6 @@ export function etapaReservada(etapa: string, proposta: string, aceite: string |
     if (s?.proposta === proposta && s?.aceite === aceite) return "confirmacao";
   } catch { /* no storage */ }
   return "pagamento";
+}export function limparConfirmacao() {
+  try { sessionStorage.removeItem(CHAVE); } catch { /* nada guardado */ }
 }

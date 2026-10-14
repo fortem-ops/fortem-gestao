@@ -44,7 +44,9 @@ Deno.serve(async req => {
     if (obligationError) throw new Error('Prévia indisponível');
     const { data: log, error: logError } = await db.from('system_logs').select('payload').eq('modulo', 'consultas-previa-f2').eq('acao', b.proposta_id).order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (logError) throw new Error('Não foi possível reconstruir a simulação');
-    let e: EstadoPrevia = log?.payload as EstadoPrevia ?? inicial();
+    // Simulation belongs to one plan acceptance: "Alterar" + new acceptance starts a clean rehearsal.
+    const salvo = log?.payload as (EstadoPrevia & { aceite_id?: string | null }) | undefined;
+    let e: EstadoPrevia = salvo && salvo.aceite_id === p.aceite_id ? salvo : inicial();
     const forma = b.forma ?? obligation?.forma ?? p.forma_servicos ?? 'cartao_parcelado';
     const parcelas = forma === 'pix_vista' ? 1 : b.parcelas ?? obligation?.parcelas ?? p.parcelas_servicos ?? 6;
     let termo = obligation;
@@ -52,7 +54,7 @@ Deno.serve(async req => {
       termo = await invoke('fn_consultas_2027_termo', { ...base, p_forma: forma, p_parcelas: parcelas });
     }
     const gravar = async () => {
-      const { error } = await db.from('system_logs').insert({ modulo: 'consultas-previa-f2', acao: b.proposta_id, mensagem: 'Simulação F2 — sem cobrança, ativação, créditos ou e-mail', user_id: uid, payload: e });
+      const { error } = await db.from('system_logs').insert({ modulo: 'consultas-previa-f2', acao: b.proposta_id, mensagem: 'Simulação F2 — sem cobrança, ativação, créditos ou e-mail', user_id: uid, payload: { ...e, aceite_id: p.aceite_id ?? null } });
       if (error) throw new Error('Não foi possível guardar a simulação');
     };
     if (b.acao === 'aceitar') {
