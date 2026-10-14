@@ -2486,8 +2486,10 @@ export type Database = {
           gateway: string | null
           id: string
           meio_registro: string
+          mensalidade_2027_id: string | null
           motivo_recusa: string | null
           numero_ciclo: number
+          origem: string | null
           proxima_tentativa_em: string | null
           registrado_por: string | null
           status: string
@@ -2509,8 +2511,10 @@ export type Database = {
           gateway?: string | null
           id?: string
           meio_registro?: string
+          mensalidade_2027_id?: string | null
           motivo_recusa?: string | null
           numero_ciclo: number
+          origem?: string | null
           proxima_tentativa_em?: string | null
           registrado_por?: string | null
           status?: string
@@ -2532,8 +2536,10 @@ export type Database = {
           gateway?: string | null
           id?: string
           meio_registro?: string
+          mensalidade_2027_id?: string | null
           motivo_recusa?: string | null
           numero_ciclo?: number
+          origem?: string | null
           proxima_tentativa_em?: string | null
           registrado_por?: string | null
           status?: string
@@ -6377,6 +6383,7 @@ export type Database = {
         Row: {
           baixa_manual_forma: string | null
           baixa_manual_por: string | null
+          cobranca_id: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
@@ -6400,6 +6407,7 @@ export type Database = {
         Insert: {
           baixa_manual_forma?: string | null
           baixa_manual_por?: string | null
+          cobranca_id?: string | null
           competencia: string
           contrato_id?: string | null
           created_at?: string
@@ -6423,6 +6431,7 @@ export type Database = {
         Update: {
           baixa_manual_forma?: string | null
           baixa_manual_por?: string | null
+          cobranca_id?: string | null
           competencia?: string
           contrato_id?: string | null
           created_at?: string
@@ -11506,6 +11515,7 @@ export type Database = {
         Returns: {
           baixa_manual_forma: string | null
           baixa_manual_por: string | null
+          cobranca_id: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
@@ -11538,6 +11548,7 @@ export type Database = {
         Returns: {
           baixa_manual_forma: string | null
           baixa_manual_por: string | null
+          cobranca_id: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
@@ -11574,6 +11585,7 @@ export type Database = {
         Returns: {
           baixa_manual_forma: string | null
           baixa_manual_por: string | null
+          cobranca_id: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
@@ -11614,6 +11626,7 @@ export type Database = {
         Returns: {
           baixa_manual_forma: string | null
           baixa_manual_por: string | null
+          cobranca_id: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
