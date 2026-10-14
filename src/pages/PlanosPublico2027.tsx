@@ -3,7 +3,8 @@ import { Switch } from "@/components/ui/switch";
 import { CadastroContratante2027, type DadosContratante } from "@/components/planos/CadastroContratante2027";
 import { CheckoutSite2027 } from "@/components/planos/CheckoutSite2027";
 import { ResumoConsultasSeparadas } from '@/components/planos/ConsultasPagamentoPrevia2027';
-import { checkout, ErroCheckout, iniciarCheckoutPublico, restaurarSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
+import { checkout, ErroCheckout, iniciarCheckoutPublico, limparSessao, restaurarSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
+import { limparConfirmacao } from "@/lib/checkoutReservado2027";
 import { Check, ArrowLeft, CircleHelp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
@@ -54,10 +55,18 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   const [contato, setContato] = useState({ nome: "", email: "" });
   // Dados do cadastro único: só em memória, para gerar o contrato sem pedir de novo.
   const [contratante, setContratante] = useState<DadosContratante | null>(null);
+  // Prévia: a simulação guardada só é retomada se o admin escolher "Continuar".
+  const [pendente, setPendente] = useState<{ sessao: SessaoCheckout; etapa: string } | null>(null);
   useEffect(() => {
     // Prévia e público: só proposta_id + chave ficam no navegador; o servidor confere com "estado".
-    restaurarSessao().then((r) => { if (r) { setEtapaSessao(r.etapa); setSessao(r.sessao); } });
-  }, []);
+    restaurarSessao().then((r) => {
+      if (!r) return;
+      if (catalogo.previa) { setPendente(r); return; }
+      setEtapaSessao(r.etapa); setSessao(r.sessao);
+    });
+  }, [catalogo.previa]);
+  const continuarSimulacao = () => { if (!pendente) return; setEtapaSessao(pendente.etapa); setSessao(pendente.sessao); setPendente(null); };
+  const novaSimulacao = () => { limparSessao(); limparConfirmacao(); setPendente(null); setSessao(null); setEtapaSessao(undefined); setAlterando(false); setContratante(null); ir(0); };
   const formas = formasPermitidas(familia).slice().sort((a, b) => ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(a) - ["cartao_parcelado", "recorrencia", "pix_vista"].indexOf(b));
   const formaEfetiva = formas.includes(forma) ? forma : formas[0];
   const item = encontrarItem(catalogo, familia, freq, formaEfetiva);

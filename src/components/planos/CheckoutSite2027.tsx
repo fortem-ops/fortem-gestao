@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PagamentoReservado2027, type TelaPagamento } from "./PagamentoReservado2027";
 import { ConsultasPagamentoPrevia2027, ResumoConsultasSeparadas } from './ConsultasPagamentoPrevia2027';
 import { consultasPrevia, consultasSeparadas } from '@/lib/consultasPrevia2027';
-import { etapaReservada, guardarConfirmacao } from "@/lib/checkoutReservado2027";
+import { etapaReservada, guardarConfirmacao, limparConfirmacao } from "@/lib/checkoutReservado2027";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { isValidCpfDigits } from "@/lib/cpfValidation";
 import type { DadosContratante } from "./CadastroContratante2027";
