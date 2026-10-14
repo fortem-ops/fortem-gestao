@@ -157,12 +157,12 @@ async function avisarRegistroFalhou(propostaId: string, txid: string) {
 }
 
 /** Reserva (lock, 3/30 min) + token + cobrança se o token ativar a tempo. */
-async function tokenizarCartao(propostaId: string, chave: string, ip: string, cartao: unknown) {
+async function tokenizarCartao(propostaId: string, chave: string, ip: string, cartao: unknown, parcelas: number | null) {
   const dados = lerDadosCartao(cartao);
   if (!dados) throw new Neutro("Confira os dados do cartão");
   const acesso = await acessoRede();
   if (!acesso) throw new Neutro("Pagamento por cartão indisponível no momento");
-  const t = await rpc("fn_checkout_2027_cartao_reservar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId) as Tentativa;
+  const t = await rpc("fn_checkout_2027_cartao_reservar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip, p_parcelas: parcelas }, propostaId) as Tentativa;
   if (t.simulado) throw new Neutro("Pagamento por cartão indisponível no momento");
   const deps = depsReais(admin, acesso, await softDescriptor());
   if (!t.em_andamento) {
