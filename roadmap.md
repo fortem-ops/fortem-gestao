@@ -48,4 +48,5 @@
 - [x] Consultas + recorrência — F3 (cartão das consultas) em simulação na prévia admin + ajustes F2.
 - [ ] Consultas + recorrência — teste real do cartão das consultas (máx. R$ 1,00) aguarda pedido do dono; F4–F5 aguardam aprovação.
 - [x] Prévia /planos: escolha Continuar/Começar nova simulação, Alterar após aceite sem beco (volta ao Passo 6), simulação das consultas reiniciada a cada novo aceite. Conferência visual aguarda sessão admin.
-- [ ] Go-live venda de planos: site vende só plano, consultas via equipe (WhatsApp 555135199451), servidor recusa consultas, simulação F2/F3 dormente
+- [x] Go-live venda de planos: site vende só plano, consultas via equipe (WhatsApp 555135199451), servidor recusa consultas (migração 0140, rollback em scripts/proposta-sem-consultas.rollback.sql), simulação F2/F3 dormente; F3–F5 pausadas
+- [ ] Compra real de teste de baixo valor (Pix, cartão 3x, Start recorrência) aguarda autorização do dono
