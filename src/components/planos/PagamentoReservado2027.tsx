@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { CartaoPagamento2027 } from "./CartaoPagamento2027";
 import { checkout, lerCodigo, type SessaoCheckout } from "@/lib/checkoutSite2027";
+import { modoPagamentoTela } from "@/lib/planosPagamentoTela";
 
 type TentativaTela = { id: string; tipo: "pix" | "cartao"; simulado: boolean; valor_centavos: number; total_proposta_centavos: number; parcelas: number; status: "pendente" | "aprovado" | "recusado" | "expirado"; expira_em: string | null };
 type RespostaPagamento = { tentativa: TentativaTela | null; pix_copia_cola?: string | null };
@@ -158,7 +159,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
       <aside className="min-w-0 border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
         <h2 className="font-display text-lg font-bold uppercase">{C.pagamento.resumo}</h2>
         <p className="mt-5 font-display text-2xl font-bold uppercase">{nomes[r.familia] ?? r.familia}</p>
-        <dl className="mt-4 text-sm">{linhas.map(([k, v]) => <div key={k} className="border-b border-border py-3"><dt className="text-xs font-semibold uppercase text-muted-foreground">{k}</dt><dd className="mt-2 break-words leading-relaxed">{v}</dd></div>)}<div className="flex flex-wrap justify-between gap-3 py-5 font-bold"><dt className="font-display uppercase">{C.revisao.total}</dt><dd>{brl(r.total_centavos)}</dd></div></dl>
+        <dl className="mt-4 text-sm">{linhas.map(([k, v]) => <div key={k} className="border-b border-border py-3"><dt className="text-xs font-semibold uppercase text-muted-foreground">{k}</dt><dd className="mt-2 break-words leading-relaxed">{v}</dd></div>)}<div className="flex flex-wrap justify-between gap-3 py-5 font-bold"><dt className="font-display uppercase">{C.revisao.total}</dt><dd>{brl(r.total_centavos)}{ehStart && !r.servicos_centavos ? " /mês" : ""}</dd></div></dl>
         {!pago && !travado && <>
           <Button variant="outline" className={`${controle} w-full`} onClick={onAlterar}>{C.revisao.alterar}</Button>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{C.revisao.avisoAceite}</p>
