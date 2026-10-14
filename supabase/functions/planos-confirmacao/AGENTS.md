@@ -1,0 +1,5 @@
+# Initial plan email
+
+- Use one initial Resend email after successful activation, containing the verified acceptance snapshot as escaped plain-text clauses plus payment/contract summary; why: never substitute current legal wording or duplicate the receipt.
+- Reserve sends atomically in service-only `planos_2027_email_envios` with frozen payload and stable provider idempotency key; initial events are unique per proposal, explicit admin resends have their own event, and failed events remain retryable; why: retries cannot alter content or duplicate automatic delivery.
+- Safe rehearsals require a paid test proposal and the verified test student's fixed mailbox, do not activate or change payment data, and do not mark the initial email delivered; why: preview delivery must not affect real purchases.

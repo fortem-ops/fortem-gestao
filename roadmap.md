@@ -41,4 +41,5 @@
 - [x] Ativação 2027 — Fase B: pagamentos, mensalidades espelho, Start do site, filtros de teste (limpeza da ativação de teste 5e8fb850 aguarda autorização)
 - [x] Ativação 2027 — Fase C: estorno pelo fluxo atual (cartão, mensalidade, Pix do site)
 - [x] Ativação 2027 — Fase D: Financeiro > Propostas de contratos; aba de Leads removida, favoritos redirecionados, coord/admin consulta e ações sensíveis só admin; navegação autenticada desktop/móvel verificada, sem ações financeiras.
-- [ ] Ativação 2027 — Fase E: contrato no corpo do e-mail ao aluno (aguarda aprovação)
+- [x] Ativação 2027 — Fase E: e-mail único com comprovante/contrato aceito, reenvio admin, 9 testes de e-mail e 892 testes gerais; ensaios Power Pix/Start recorrência e envio seguro único, sem ativação/baixa.
+- [ ] Fase E — comprovar recebimento na caixa de teste (aguarda confirmação do dono) e e-mail após compra real ativada (aguarda compra real autorizada).
