@@ -11122,6 +11122,38 @@ export type Database = {
         Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
         Returns: number
       }
+      fn_consultas_2027_aceitar: {
+        Args: {
+          p_chave: string
+          p_forma: string
+          p_hash: string
+          p_parcelas: number
+          p_proposta_id: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      fn_consultas_2027_estado: {
+        Args: { p_chave: string; p_proposta_id: string }
+        Returns: Json
+      }
+      fn_consultas_2027_reservar: {
+        Args: { p_chave: string; p_obrigacao_id: string }
+        Returns: Json
+      }
+      fn_consultas_2027_resultado_simulado: {
+        Args: { p_chave: string; p_resultado: string; p_tentativa_id: string }
+        Returns: Json
+      }
+      fn_consultas_2027_termo: {
+        Args: {
+          p_chave: string
+          p_forma: string
+          p_parcelas: number
+          p_proposta_id: string
+        }
+        Returns: Json
+      }
       fn_convert_lead_to_prospect: {
         Args: {
           _aluno_id: string
