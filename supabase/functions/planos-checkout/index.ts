@@ -281,7 +281,18 @@ Deno.serve(async (req) => {
         throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
       const sim = await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId);
       const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
-      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real, cartao_simulado: sim === true && !real }, aceite_id: e.aceite_id });
+      // Teste real armado (proposta de teste + modo real_baixo_valor): a tela mostra o valor de teste, não o cheio.
+      let teste_real_centavos: number | null = null;
+      if (real && (await rpc("fn_checkout_2027_teste", { p_proposta_id: propostaId }, propostaId)) === true) {
+        const { data: cfg } = await admin.from("sistema_config").select("chave, valor").in("chave", ["planos_pagamento_modo_teste", "planos_teste_valor_max_centavos"]);
+        const modo = cfg?.find((c) => c.chave === "planos_pagamento_modo_teste")?.valor;
+        const teto = Math.min(Number(cfg?.find((c) => c.chave === "planos_teste_valor_max_centavos")?.valor) || 100, 100);
+        if (modo === "real_baixo_valor") {
+          const base = r.forma_plano === "recorrencia" ? Math.floor(Number(r.plano_centavos) / Math.max(1, Number(r.parcelas_plano) || 1)) : Number(r.total_centavos);
+          teste_real_centavos = Math.min(base, teto);
+        }
+      }
+      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real, cartao_simulado: sim === true && !real, teste_real_centavos }, aceite_id: e.aceite_id });
     }
     if (ACOES_COBRANCA.has(acao)) {
       // O site vende só o plano: proposta antiga com consultas nunca segue para cobrança.

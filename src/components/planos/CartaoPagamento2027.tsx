@@ -16,8 +16,10 @@ const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency"
 const vazio = { numero: "", nome: "", validade: "", cvv: "" };
 
 /** Cartão no /planos: real (Rede, pelo servidor) ou simulação da prévia admin (nada é enviado). */
-export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscolhida, onEscolherParcelas, onAprovado, onTravado, chamar = checkout }: {
+export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscolhida, onEscolherParcelas, onAprovado, onTravado, chamar = checkout, testeReal, valorCheio }: {
   sessao: SessaoCheckout; simulacao: boolean; parcelas: number[]; parcelasEscolhida?: number; onEscolherParcelas?: (n: number) => void;
+  /** Teste real armado (só proposta de teste admin): valor em centavos que o servidor vai cobrar, sempre 1x. */
+  testeReal?: number | null; valorCheio?: number;
   onAprovado: (simulado: boolean) => void; onTravado: (travado: boolean) => void;
   chamar?: typeof checkout;
 }) {
@@ -32,6 +34,7 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscol
   const faseServidor = faseCartao(t, esgotado);
   const fase: FaseCartao = novo && (faseServidor === "recusado" || faseServidor === "expirado") ? "formulario" : faseServidor;
   const travado = faseTravada(fase);
+  const testeAtivo = !simulacao && typeof testeReal === "number" && testeReal > 0;
 
   useEffect(() => { chamar<Resposta>("status_cartao", sessao).then(aplicar).catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { onTravado(travado); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [travado]);
@@ -52,7 +55,8 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscol
     setCampos(vazio);
     setOcupado(true);
     try {
-      const parcelasEnvio = onEscolherParcelas ? parcelasEscolhida ?? parcelas.length : null;
+      // Teste real: o servidor cobra sempre 1x; não enviamos a escolha de parcelas.
+      const parcelasEnvio = testeAtivo ? null : onEscolherParcelas ? parcelasEscolhida ?? parcelas.length : null;
       const corpo = { ...sessao, ...(parcelasEnvio ? { parcelas: parcelasEnvio } : {}), ...(simulacao ? { simular: simular ?? "aprovado" } : { cartao: v.cartao }) };
       aplicar(await chamar<Resposta>(simulacao ? "pagar_cartao" : "tokenizar_cartao", corpo));
     } catch (err) {
@@ -83,7 +87,8 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscol
           <Input className="mt-2 rounded-none" type="password" inputMode="numeric" autoComplete="off" name="fortem-cc-c" value={campos.cvv} maxLength={4}
             onChange={(e) => setCampos((c) => ({ ...c, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))} /></label>
       </div>
-      <label className="block text-sm">{C.cartao.parcelas}
+      {testeAtivo ? <p role="note" className="border-2 border-primary p-3 text-sm font-bold">{C.pagamento.testeRealAviso(brl(testeReal!), brl(valorCheio ?? 0))}</p>
+      : <label className="block text-sm">{C.cartao.parcelas}
         {onEscolherParcelas ? <>
           <select className="campo mt-2" value={parcelasEscolhida ?? n} onChange={(e) => onEscolherParcelas(Number(e.target.value))} aria-describedby="cartao-parcelas-aviso">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((k) => <option key={k} value={k}>{k}x</option>)}
@@ -93,13 +98,13 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscol
           <select className="campo mt-2" value={n} onChange={() => {}} aria-describedby="cartao-parcelas-aviso">
             <option value={n}>{resumoParcelas}</option>
           </select>
-        </>}</label>
-      <p id="cartao-parcelas-aviso" className="text-xs text-muted-foreground">{C.pagamento.escolhaAviso}</p>
+        </>}</label>}
+      {!testeAtivo && <p id="cartao-parcelas-aviso" className="text-xs text-muted-foreground">{C.pagamento.escolhaAviso}</p>}
       <p className="flex gap-2 text-xs text-muted-foreground"><LockKeyhole aria-hidden="true" className="size-4 shrink-0" />{simulacao ? C.cartao.simulacaoAviso : C.cartao.seguro}</p>
       {simulacao ? <div className="grid gap-3 sm:grid-cols-2">
         <Button type="submit" className={controle} disabled={ocupado}>{C.pagamento.simularAprovar}</Button>
         <Button type="button" variant="outline" className={controle} disabled={ocupado} onClick={(e) => enviar(e, "recusado")}>{C.pagamento.simularRecusar}</Button>
-      </div> : <Button type="submit" className={`${controle} w-full`} disabled={ocupado}>{ocupado ? C.cartao.validando : `${C.cartao.pagar} · ${resumoParcelas}`}</Button>}
+      </div> : <Button type="submit" className={`${controle} w-full`} disabled={ocupado}>{ocupado ? C.cartao.validando : testeAtivo ? C.pagamento.testeRealBotao(brl(testeReal!)) : `${C.cartao.pagar} · ${resumoParcelas}`}</Button>}
     </form> : <div ref={aviso} tabIndex={-1} className="outline-none">
       {travado && <div role="status" aria-live="polite" className="flex items-start gap-3">
         <Loader2 aria-hidden="true" className="size-6 shrink-0 animate-spin text-primary" />

@@ -109,3 +109,26 @@ describe("parcelas escolhidas na etapa final de pagamento", () => {
     expect("parcelas" in corpo).toBe(false);
   });
 });
+
+describe("teste real de R$ 1,00 (só proposta de teste admin)", () => {
+  it("mostra aviso de teste, esconde parcelas e não envia parcelas", async () => {
+    chamar.mockClear();
+    await act(async () => {
+      render(<CartaoPagamento2027 sessao={sessao} simulacao={false} parcelas={dividirCentavos(TOTAL, 3)} parcelasEscolhida={3}
+        onEscolherParcelas={() => {}} onAprovado={() => {}} onTravado={() => {}} testeReal={100} valorCheio={TOTAL} />);
+    });
+    expect(screen.getByText(/será cobrado R\$\s1,00 em 1x/)).toBeTruthy();
+    expect(screen.getByText(/R\$\s5\.148,00 não será cobrado/)).toBeTruthy();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByRole("button", { name: /PAGAR R\$\s1,00 \(TESTE\)/ })).toBeTruthy();
+  });
+  it("sem teste armado, segue com seletor e valor cheio", async () => {
+    await act(async () => {
+      render(<CartaoPagamento2027 sessao={sessao} simulacao={false} parcelas={dividirCentavos(TOTAL, 3)} parcelasEscolhida={3}
+        onEscolherParcelas={() => {}} onAprovado={() => {}} onTravado={() => {}} testeReal={null} valorCheio={TOTAL} />);
+    });
+    expect(screen.queryByText(/TESTE —/)).toBeNull();
+    expect(screen.getAllByRole("combobox").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /3x de R\$\s1\.716,00/ })).toBeTruthy();
+  });
+});
