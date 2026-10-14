@@ -60,7 +60,7 @@ O anexo do site é uma cópia do `/assinar` de hoje. O que o cliente preencher a
 
 ---
 
-# NOVO PLANO — Pix Automático: solicitação de confirmação sempre falha (achado de monitoramento)
+# ADIADO — Pix Automático (não aprovado; dono decide após o lançamento). NÃO implementar.
 
 Somente plano. Nada implementado.
 
