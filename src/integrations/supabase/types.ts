@@ -10860,7 +10860,12 @@ export type Database = {
         Returns: undefined
       }
       fn_checkout_2027_cartao_reservar: {
-        Args: { p_chave: string; p_ip: string; p_proposta_id: string }
+        Args: {
+          p_chave: string
+          p_ip: string
+          p_parcelas?: number
+          p_proposta_id: string
+        }
         Returns: Json
       }
       fn_checkout_2027_cartao_resultado: {
@@ -10920,6 +10925,7 @@ export type Database = {
         Args: {
           p_chave: string
           p_ip: string
+          p_parcelas?: number
           p_proposta_id: string
           p_tipo: string
         }
