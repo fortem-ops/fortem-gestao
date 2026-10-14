@@ -17,7 +17,7 @@ export type RevisaoCheckout = {
   corrida_total_centavos: number | null; total_centavos: number;
 };
 export type TelaPagamento = {
-  revisao: RevisaoCheckout; aceite_id: string;
+  revisao: RevisaoCheckout; aceite_id: string; anexo_restricao?: boolean;
   pagamento: { reservado: boolean; cartao_a_combinar?: boolean; cartao_real?: boolean; cartao_simulado?: boolean; teste_real_centavos?: number | null; validade_pix_segundos: number; formas_permitidas: string[]; parcelas: number[]; parcelas_servicos: number[] };
 };
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -140,6 +140,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
           <div role="status" className="flex items-center gap-3 border-y border-border py-5"><ClipboardCheck className="size-6 shrink-0 text-primary" /><strong className="font-display uppercase">{aprovado === "simulado" ? C.pagamento.aprovadoSimulado : pago ? C.pagamento.aprovado : C.confirmacao.status}</strong></div>
           <h2 className="mt-7 font-display text-lg font-bold uppercase">{C.confirmacao.proximos}</h2>
           {recorrencia && (pago || aprovado) && <p className="mt-3 text-sm leading-relaxed">{C.confirmacao.assinatura(brl(p.parcelas[0] ?? 0), new Date().getDate(), ehStart)}</p>}
+          {tela.anexo_restricao && (pago || aprovado) && <p className="mt-3 border-l-2 border-primary pl-3 text-sm leading-relaxed">{C.confirmacao.atestado}</p>}
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{pago ? C.confirmacao.equipePago : C.confirmacao.equipe}</p>
           {pago && <Button asChild className={`${controle} mt-7 w-full`}><a href={C.confirmacao.whatsappUrl} target="_blank" rel="noopener noreferrer">{C.confirmacao.whatsappBotao}</a></Button>}
           {!pago && <Button variant="outline" className={`${controle} mt-7 w-full`} onClick={onVoltar}>{C.pagamento.voltar}</Button>}
