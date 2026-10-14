@@ -11154,6 +11154,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_consultas_2027_vender: {
+        Args: { p_obrigacao_id: string }
+        Returns: Json
+      }
       fn_convert_lead_to_prospect: {
         Args: {
           _aluno_id: string
