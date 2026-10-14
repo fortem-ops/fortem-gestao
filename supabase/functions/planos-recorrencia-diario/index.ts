@@ -147,8 +147,9 @@ Deno.serve(async (req) => {
       await log("desligado", "planos_recorrencia_ativa=false; nada cobrado");
       return json(200, { ok: true, modo: "real", desligado: true });
     }
-    const { data: sd } = await sup.from("sistema_config").select("valor").eq("chave", "rede_soft_descriptor").maybeSingle();
-    const resumo = await executar(depsReais(await acessoRede(), String(sd?.valor ?? "FORTEM").replace(/"/g, "").slice(0, 13)), hoje);
+    const { data: sd } = await sup.from("sistema_config").select("valor").eq("chave", "planos_cartao_soft_descriptor").maybeSingle();
+    const soft = (typeof sd?.valor === "string" ? sd.valor : "").replace(/[^A-Za-z0-9 ]/g, "").slice(0, 13);
+    const resumo = await executar(depsReais(await acessoRede(), soft), hoje);
     await log("execucao", `execução ${hoje}`, resumo);
     return json(200, { ok: true, modo: "real", hoje, resumo });
   } catch (e) {
