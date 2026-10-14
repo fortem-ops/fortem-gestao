@@ -9,7 +9,7 @@ import { lerDadosCartao } from "./cartao.ts";
 import { acessoRede } from "./cartao-rede.ts";
 import { depsReais } from "./deps-cartao.ts";
 import { acompanharCartaoReal, iniciarCartaoReal } from "./fluxo-cartao.ts";
-import { ACOES_COBRANCA, chavesLimite, cobrancaValida, temConsultas, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
+import { ACOES_COBRANCA, chavesLimite, cobrancaValida, temConsultas, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, lerParcelas, tentativaPublica, type Tentativa } from "./pagamento.ts";
 import {
   cpfDigitosValidos, hashTexto, montarVariaveisContrato, preencherContrato, semCpf, variaveisParaGuardar,
   type Contratante,
@@ -70,6 +70,8 @@ function lerContratante(c: any): Omit<Contratante, "nome" | "email"> & { nome: s
     bairro: s(c?.bairro), cidade: s(c?.cidade, 80), uf: s(c?.uf, 2).toUpperCase(), rg: s(c?.rg, 20) || null,
   };
 }
+
+
 
 /** Gera o texto do contrato inteiramente no servidor. */
 async function gerar(propostaId: string, chave: string, contratante: any, ip: string) {
@@ -150,12 +152,12 @@ async function avisarRegistroFalhou(propostaId: string, txid: string) {
 }
 
 /** Reserva (lock, 3/30 min) + token + cobrança se o token ativar a tempo. */
-async function tokenizarCartao(propostaId: string, chave: string, ip: string, cartao: unknown) {
+async function tokenizarCartao(propostaId: string, chave: string, ip: string, cartao: unknown, parcelas: number | null) {
   const dados = lerDadosCartao(cartao);
   if (!dados) throw new Neutro("Confira os dados do cartão");
   const acesso = await acessoRede();
   if (!acesso) throw new Neutro("Pagamento por cartão indisponível no momento");
-  const t = await rpc("fn_checkout_2027_cartao_reservar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip }, propostaId) as Tentativa;
+  const t = await rpc("fn_checkout_2027_cartao_reservar", { p_proposta_id: propostaId, p_chave: chave, p_ip: ip, p_parcelas: parcelas }, propostaId) as Tentativa;
   if (t.simulado) throw new Neutro("Pagamento por cartão indisponível no momento");
   const deps = depsReais(admin, acesso, await softDescriptor());
   if (!t.em_andamento) {
@@ -299,17 +301,18 @@ Deno.serve(async (req) => {
     if (acao === "tokenizar_cartao" || acao === "pagar_cartao") {
       // Real só com fn_checkout_2027_cartao_real (flag + modo + elegibilidade, conferidos no banco).
       // Cartão real já em andamento (mesmo após o modo de teste voltar a simulação): só acompanha, nunca cria outra.
+      const parcelas = lerParcelas(body?.parcelas);
       const andamento = await statusCartao(propostaId, chave);
       if (andamento && !andamento.simulado && andamento.tipo === "cartao" && ["processando", "desconhecido"].includes(andamento.status))
         return json(200, { tentativa: tentativaPublica(andamento) });
       const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
       if (await cartaoEsgotado(propostaId)) return json(200, { tentativa: tentativaPublica(andamento), cartao_esgotado: true });
-      if (real) return json(200, { ...(await tokenizarCartao(propostaId, chave, ip, body?.cartao)), cartao_esgotado: await cartaoEsgotado(propostaId) });
+      if (real) return json(200, { ...(await tokenizarCartao(propostaId, chave, ip, body?.cartao, parcelas)), cartao_esgotado: await cartaoEsgotado(propostaId) });
       if (acao === "tokenizar_cartao") throw new Neutro("Pagamento por cartão indisponível no momento");
       // pagar_cartao em simulação: igual a antes, nunca chama a Rede.
       if ((await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId)) !== true)
         throw new Neutro("Pagamento por cartão indisponível no momento");
-      const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "cartao", p_ip: ip }, propostaId) as Tentativa;
+      const t = await rpc("fn_checkout_2027_pagamento_iniciar", { p_proposta_id: propostaId, p_chave: chave, p_tipo: "cartao", p_ip: ip, p_parcelas: parcelas }, propostaId) as Tentativa;
       if (t.simulado) {
         const r = await rpc("fn_checkout_2027_simular_resultado", { p_tentativa_id: t.id, p_resultado: resultadoCartaoSimulado(body?.simular) }, propostaId);
         return json(200, { tentativa: tentativaPublica(r), cartao_esgotado: await cartaoEsgotado(propostaId) });

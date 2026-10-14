@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { chavesLimite, cobrancaValida, gravarComRetentativa } from "./pagamento.ts";
+import { chavesLimite, cobrancaValida, gravarComRetentativa, lerParcelas } from "./pagamento.ts";
 
 const agora = Date.parse("2026-10-13T12:00:00Z");
 const criada = (minAtras: number) => new Date(agora - minAtras * 60_000).toISOString();
@@ -50,4 +50,12 @@ Deno.test("site vende só o plano: proposta com consultas não cobra", () => {
   if (!_tc(["nutri_4"]) || _tc([]) || _tc(null) || _tc([""])) throw new Error("temConsultas");
   for (const a of ["pagar_pix", "pagar_cartao", "tokenizar_cartao", "cartao_combinar"]) if (!_AC.has(a)) throw new Error(a);
   if (_AC.has("estado") || _AC.has("status_pagamento")) throw new Error("consulta bloqueada");
+});
+
+Deno.test("parcelas: escolha 1..12 passa inteira", () => {
+  for (const n of [1, 2, 6, 12]) assertEquals(lerParcelas(n), n);
+});
+
+Deno.test("parcelas: fora da faixa, fracionado ou não numérico vira nulo (o banco decide o padrão)", () => {
+  for (const v of [0, 13, -1, 1.5, "6", null, undefined]) assertEquals(lerParcelas(v), null);
 });

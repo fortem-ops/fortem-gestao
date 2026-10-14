@@ -4,7 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { CartaoPagamento2027 } from "./CartaoPagamento2027";
-import { checkout, lerCodigo, type SessaoCheckout } from "@/lib/checkoutSite2027";
+import { checkout, dividirCentavos, lerCodigo, type SessaoCheckout } from "@/lib/checkoutSite2027";
 import { modoPagamentoTela } from "@/lib/planosPagamentoTela";
 
 type TentativaTela = { id: string; tipo: "pix" | "cartao"; simulado: boolean; valor_centavos: number; total_proposta_centavos: number; parcelas: number; status: "pendente" | "aprovado" | "recusado" | "expirado"; expira_em: string | null };
@@ -107,6 +107,11 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
   const combinar = modo === "combinar";
   const recorrenciaPrevia = modo === "recorrencia_previa";
   const formCartao = modo === "cartao";
+  const [parcelasEscolhida, setParcelasEscolhida] = useState(r.parcelas_plano);
+  const escolherParcelas = formCartao && r.forma_plano === "cartao_parcelado";
+  const parcelasAtuais = escolherParcelas
+    ? dividirCentavos(r.plano_centavos + (r.forma_servicos ? 0 : r.servicos_centavos), parcelasEscolhida)
+    : (recorrencia ? p.parcelas.slice(0, 1) : p.parcelas);
   const ehStart = r.familia === "start_2027";
   const [avisando, setAvisando] = useState(false);
   const [erroCombinar, setErroCombinar] = useState("");
@@ -120,7 +125,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
   const linhas = [
     [C.revisao.frequencia, frequencias[codigo.frequencia] ?? codigo.frequencia],
     [C.revisao.periodo, r.familia === "start_2027" ? "Mensal, sem fidelidade" : "12 meses"],
-    [C.revisao.pagamento, `${forma} · ${recorrencia ? `${brl(p.parcelas[0])} por mês` : pix ? brl(r.plano_centavos) : descrever(p.parcelas)}`],
+    [C.revisao.pagamento, `${forma} · ${recorrencia ? `${brl(p.parcelas[0])} por mês` : pix ? brl(r.plano_centavos) : descrever(parcelasAtuais)}`],
     [C.revisao.acompanhamento, r.servicos.length ? r.servicos.map((s) => `${s.nome.replace(/\s*\(2027\)\s*$/, "")} · ${brl(s.valor_centavos)}`).join(", ") + (p.parcelas_servicos.length ? ` · ${r.forma_servicos === "pix_vista" ? C.pagamento.pix : descrever(p.parcelas_servicos)}` : "") : C.revisao.nenhum],
     [C.revisao.corrida, r.corrida_total_centavos ? `${r.corrida_periodo_meses} ${r.corrida_periodo_meses === 1 ? "mês" : "meses"} · ${brl(r.corrida_total_centavos)} · ${C.revisao.corridaParte}` : C.revisao.nenhum],
   ];
@@ -152,7 +157,8 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
           </> : recorrenciaPrevia ? <>
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.recorrenciaPrevia}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.primeiraRecorrencia}</p></div>
             <Button className={`${controle} mt-5 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>
-          </> : formCartao ? <CartaoPagamento2027 sessao={sessao} simulacao={p.cartao_real !== true} parcelas={recorrencia ? p.parcelas.slice(0, 1) : p.parcelas} onTravado={setTravado}
+          </> : formCartao ? <CartaoPagamento2027 sessao={sessao} simulacao={p.cartao_real !== true} parcelas={parcelasAtuais} parcelasEscolhida={escolherParcelas ? parcelasEscolhida : undefined}
+            onEscolherParcelas={escolherParcelas ? setParcelasEscolhida : undefined} onTravado={setTravado}
             onAprovado={(sim) => { setTravado(false); setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />
           : <PagamentoAtivo sessao={sessao} pix={pix} onAprovado={(sim) => { setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />}
         </>}

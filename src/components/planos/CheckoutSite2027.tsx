@@ -27,16 +27,14 @@ const NOME: Record<string, string> = { start_2027: "Start", power_2027: "Power",
 const FREQ: Record<string, string> = { "1x": "1x por semana", "2x": "2x por semana", "3x": "3x por semana", livre: "Livre" };
 const UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
 
-function descreverPagamento(r: Revisao) {
+export function descreverPagamento(r: Revisao) {
   if (r.forma_plano === "recorrencia") {
     const p = dividirCentavos(r.plano_centavos, r.parcelas_plano);
     return `Recorrência mensal no cartão: ${brl(p[0])} por mês${r.parcelas_plano > 1 ? `, ${r.parcelas_plano} cobranças` : ""}`;
   }
   if (r.forma_plano === "pix_vista") return `Pix à vista: ${brl(r.plano_centavos)}`;
   const comServicos = r.servicos_centavos > 0 && !r.forma_servicos;
-  const p = dividirCentavos(r.plano_centavos + (comServicos ? r.servicos_centavos : 0), r.parcelas_plano);
-  const iguais = p.every((v) => v === p[0]);
-  return `Cartão de crédito em ${r.parcelas_plano}x de ${brl(p[0])}${iguais ? "" : ` (última ${brl(p[p.length - 1])})`}${comServicos ? ", com as consultas" : ""}`;
+  return `Cartão de crédito em até ${r.parcelas_plano}x${comServicos ? ", com as consultas" : ""}`;
 }
 
 export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratante: cadastroUnico, previa = false, onAlterar, onSessaoInvalida }: {

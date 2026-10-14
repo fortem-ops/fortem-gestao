@@ -72,3 +72,9 @@ export const ACOES_COBRANCA = new Set(["cartao_combinar", "pagar_pix", "tokeniza
 export function temConsultas(v: unknown): boolean {
   return Array.isArray(v) && v.some((x) => typeof x === "string" && x.trim() !== "");
 }
+
+/** Parcelas escolhidas na tela de pagamento: inteiro 1..12; qualquer outra coisa vira nulo e o banco decide. */
+export function lerParcelas(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 12) return null;
+  return v;
+}
