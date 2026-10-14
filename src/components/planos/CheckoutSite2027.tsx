@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { PagamentoReservado2027, type TelaPagamento } from "./PagamentoReservado2027";
+import { ConsultasPagamentoPrevia2027, ResumoConsultasSeparadas } from './ConsultasPagamentoPrevia2027';
+import { consultasPrevia, consultasSeparadas } from '@/lib/consultasPrevia2027';
 import { etapaReservada, guardarConfirmacao } from "@/lib/checkoutReservado2027";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { isValidCpfDigits } from "@/lib/cpfValidation";
@@ -36,13 +38,14 @@ function descreverPagamento(r: Revisao) {
   return `Cartão de crédito em ${r.parcelas_plano}x de ${brl(p[0])}${iguais ? "" : ` (última ${brl(p[p.length - 1])})`}${comServicos ? ", com as consultas" : ""}`;
 }
 
-export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratante: cadastroUnico, onAlterar, onSessaoInvalida }: {
+export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratante: cadastroUnico, previa = false, onAlterar, onSessaoInvalida }: {
   sessao: SessaoCheckout; etapaInicial?: string; nome: string; email: string; contratante?: DadosContratante | null;
-  onAlterar: () => void; onSessaoInvalida: () => void;
+  previa?: boolean; onAlterar: () => void; onSessaoInvalida: () => void;
 }) {
   const [etapa, setEtapa] = useState<Etapa>("carregando");
   const [revisao, setRevisao] = useState<Revisao | null>(null);
   const [telaPagamento, setTelaPagamento] = useState<TelaPagamento | null>(null);
+  const [previaConsultas, setPreviaConsultas] = useState(false);
   const [erro, setErro] = useState("");
   const [pagoServidor, setPagoServidor] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -73,7 +76,11 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
   async function carregarRevisao() {
     setErro(""); setOcupado(true);
     try {
-      const estado = await checkout<{ etapa: string; aceite_id: string | null }>("estado", sessao);
+      const estado = await checkout<{ etapa: string; aceite_id: string | null; revisao: Revisao | null }>("estado", sessao);
+      if (previa && estado.aceite_id && estado.revisao && consultasSeparadas(estado.revisao)) {
+        await consultasPrevia(sessao);
+        setRevisao(estado.revisao); setPreviaConsultas(true); setEtapa('pagamento'); return;
+      }
       const destino = etapaReservada(estado.etapa, sessao.proposta_id, estado.aceite_id);
       setPagoServidor(estado.etapa === "paga");
       if (destino !== "revisao") {
@@ -169,6 +176,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
   );
 
   if (etapa === "carregando") return <p className="py-10 text-muted-foreground" role="status">{C.carregando}</p>;
+  if (previaConsultas && revisao) return <ConsultasPagamentoPrevia2027 sessao={sessao} revisao={revisao} />;
 
   if ((etapa === "pagamento" || etapa === "confirmacao") && telaPagamento) return <PagamentoReservado2027
     tela={telaPagamento} sessao={sessao} confirmacao={etapa === "confirmacao"} pagoServidor={pagoServidor} onAlterar={onAlterar}
@@ -188,7 +196,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
       [C.revisao.corrida, r.corrida_total_centavos ? `${r.corrida_periodo_meses === 1 ? "Mensal" : `${r.corrida_periodo_meses} meses`}: ${brl(r.corrida_total_centavos)}, ${C.revisao.corridaParte}` : C.revisao.nenhum],
     ] : [];
     return <section className="max-w-2xl"><p className="text-xs text-primary font-semibold uppercase mb-3">Passo 6 de 9</p><H sub={C.revisao.subtitulo}>{C.revisao.titulo}</H>
-      {r && <dl className="border-t border-border">{linhas.map(([k, v]) => <div key={k} className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 border-b border-border py-4 text-sm"><dt className="text-muted-foreground uppercase text-xs font-semibold pt-0.5">{k}</dt><dd>{v}</dd></div>)}
+      {r && consultasSeparadas(r) ? <ResumoConsultasSeparadas revisao={r} /> : r && <dl className="border-t border-border">{linhas.map(([k, v]) => <div key={k} className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 border-b border-border py-4 text-sm"><dt className="text-muted-foreground uppercase text-xs font-semibold pt-0.5">{k}</dt><dd>{v}</dd></div>)}
         <div className="flex justify-between gap-4 py-5 text-lg font-bold"><dt className="uppercase font-display">{C.revisao.total}</dt><dd>{brl(r.total_centavos)}</dd></div></dl>}
       <Erro />
       <p className="mt-2 text-sm text-muted-foreground">{C.revisao.avisoAceite}</p>
@@ -238,6 +246,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
 
   // etapa === "contrato"
   return <section className="max-w-3xl"><p className="text-xs text-primary font-semibold uppercase mb-3">Passo 7 de 9</p><H>{C.contrato.titulo}</H>
+    {revisao && consultasSeparadas(revisao) && <div className="mb-6"><ResumoConsultasSeparadas revisao={revisao} /></div>}
     <div ref={caixa} tabIndex={0} role="document" aria-label="Texto integral do contrato"
       onScroll={(e) => { if (rolouAteOFim(e.currentTarget)) setLido(true); }}
       className="h-[60vh] overflow-y-auto border border-border bg-card p-4 sm:p-6 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_h1]:font-display [&_h1]:text-lg [&_h1]:font-bold [&_h1]:uppercase [&_h1]:mb-3 [&_h2]:font-bold [&_h2]:uppercase [&_h2]:mt-5 [&_h2]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5"
