@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PACOTES_PUBLICOS } from '@/config/planosPublicoTextos';
 import { consultasPrevia, podeSimular, type ConsultaPrevia } from '@/lib/consultasPrevia2027';
+import { validarCartao, mascararNumeroCartao, mascararValidade } from '@/lib/cartaoPlanos2027';
 import { dividirCentavos, type SessaoCheckout } from '@/lib/checkoutSite2027';
 import type { RevisaoCheckout } from './PagamentoReservado2027';
 
@@ -66,11 +67,36 @@ export function ConsultasPagamentoPrevia2027({ sessao, revisao }: { sessao: Sess
           <h2 className="mt-7 font-display text-lg font-bold uppercase">2. Consultas · pagamento separado</h2>
           <p className="mt-2 text-sm">{e.forma === 'pix_vista' ? 'Pix próprio, disponível após o plano aprovado. Nenhum código real é gerado nesta prévia.' : 'Nova captura e autorização de cartão, podendo ser o mesmo cartão digitado novamente ou outro.'}</p>
           {e.consultas === 'recusado' && <p role="alert" className="mt-3 text-sm">Consultas recusadas. Retome somente este pagamento; o plano não será cobrado novamente.</p>}
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">{(['aprovado','recusado','desconhecido'] as const).map(resultado => <Button key={resultado} variant={resultado === 'aprovado' ? 'default' : 'outline'} className={controle} disabled={ocupado || !aceito || !podeSimular(e, 'consultas')} onClick={() => chamar('simular', { parte: 'consultas', resultado })}>Consultas · simular {resultado}</Button>)}</div>
+          {e.forma === 'pix_vista' ? <div className="mt-4 grid gap-3 sm:grid-cols-3">{(['aprovado','recusado','desconhecido'] as const).map(resultado => <Button key={resultado} variant={resultado === 'aprovado' ? 'default' : 'outline'} className={controle} disabled={ocupado || !aceito || !podeSimular(e, 'consultas')} onClick={() => chamar('simular', { parte: 'consultas', resultado })}>Consultas · simular {resultado}</Button>)}</div> : <CartaoConsultas desabilitado={ocupado || !aceito || !podeSimular(e, 'consultas')} parcelas={e.parcelas} valor={e.valor_centavos} onPagar={(cartao, cenario) => chamar('cartao', { cartao, cenario })} />}
+          {e.consultas === 'desconhecido' && e.forma !== 'pix_vista' && <div className="mt-4 grid gap-3 sm:grid-cols-2">{(['aprovado','recusado'] as const).map(c => <Button key={c} variant="outline" className={controle} disabled={ocupado} onClick={() => chamar('conciliar', { cenario: c })}>Conciliar · Rede responde {c}</Button>)}</div>}
           {completo && <p className="mt-5 text-sm">Simulação concluída: na compra real, a venda das consultas liberará os créditos por 12 meses. Nenhum crédito foi criado nesta prévia.</p>}
         </>}
       </div>
       <aside className="min-w-0 border-t border-border pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0"><h2 className="mb-4 font-display text-lg font-bold uppercase">Resumo dos dois pagamentos</h2><ResumoConsultasSeparadas revisao={revisao} /></aside>
     </div>
   </section>;
+}
+function CartaoConsultas({ desabilitado, parcelas, valor, onPagar }: { desabilitado: boolean; parcelas: number; valor: number; onPagar: (c: { numero: string; nome: string; mes: string; ano: string; cvv: string }, cenario: 'aprovado' | 'recusado' | 'desconhecido') => void }) {
+  const [c, setC] = useState({ numero: '', nome: '', validade: '', cvv: '' });
+  const [cenario, setCenario] = useState<'aprovado' | 'recusado' | 'desconhecido'>('aprovado');
+  const [erro, setErro] = useState('');
+  const v = dividirCentavos(valor, parcelas);
+  function enviar() {
+    const r = validarCartao(c);
+    if (!r.ok) { setErro(r.erro); return; }
+    setErro(''); setC({ numero: '', nome: '', validade: '', cvv: '' });
+    onPagar(r.cartao, cenario);
+  }
+  return <div className="mt-4 space-y-3">
+    <p className="text-sm font-bold">{parcelas}x de {brl(v[0] ?? 0)} para {brl(valor)} · sem desconto</p>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <label className="block text-sm sm:col-span-2">Número do cartão<input className="campo mt-2" inputMode="numeric" autoComplete="off" value={c.numero} disabled={desabilitado} onChange={ev => setC({ ...c, numero: mascararNumeroCartao(ev.target.value) })} /></label>
+      <label className="block text-sm sm:col-span-2">Nome impresso<input className="campo mt-2" autoComplete="off" value={c.nome} disabled={desabilitado} onChange={ev => setC({ ...c, nome: ev.target.value.toUpperCase() })} /></label>
+      <label className="block text-sm">Validade (MM/AA)<input className="campo mt-2" inputMode="numeric" autoComplete="off" value={c.validade} disabled={desabilitado} onChange={ev => setC({ ...c, validade: mascararValidade(ev.target.value) })} /></label>
+      <label className="block text-sm">CVV<input className="campo mt-2" inputMode="numeric" autoComplete="off" maxLength={4} value={c.cvv} disabled={desabilitado} onChange={ev => setC({ ...c, cvv: ev.target.value.replace(/\D/g, '') })} /></label>
+      <label className="block text-sm sm:col-span-2">Resposta simulada da Rede<select className="campo mt-2" value={cenario} disabled={desabilitado} onChange={ev => setCenario(ev.target.value as typeof cenario)}><option value="aprovado">Aprovado</option><option value="recusado">Recusado</option><option value="desconhecido">Sem resposta (desconhecido)</option></select></label>
+    </div>
+    {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
+    <Button className={`${controle} w-full`} disabled={desabilitado} onClick={enviar}>Pagar consultas no cartão (simulação)</Button>
+  </div>;
 }
