@@ -981,6 +981,13 @@
       "when": 1791985963473,
       "tag": "0139_consultas_recorrencia_f3_cartao",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1791989568203,
+      "tag": "0140_proposta_2027_sem_consultas",
+      "breakpoints": true
     }
   ]
 }

@@ -35,7 +35,7 @@ export const TEXTOS_PLANOS = {
   ],
   acompanhamento: {
     titulo: "Escolha o seu acompanhamento",
-    subtitulo: "Pacotes de consultas e Grupo de corrida, cobrados à parte do plano. Você também pode seguir sem nenhum serviço.",
+    subtitulo: "Grupo de corrida, cobrado à parte do plano. Nutrição e fisioterapia são combinadas com a equipe. Você também pode seguir sem nenhum serviço.",
     nutricaoNota: "Em todas as consultas são realizadas a averiguação de medidas antropométricas e da composição corporal e os ajustes no plano alimentar. As avaliações físicas incluem somente a avaliação de composição corporal, sem ajuste do plano alimentar.",
     fisioNota: "Em todas as consultas o atendimento é individualizado, 1 a 1, com acompanhamento personalizado.",
   },

@@ -66,3 +66,9 @@ export function cartaoRealElegivel(c: Record<string, any>): boolean {
   if (c?.forma_plano == null) return c?.forma_servicos === "cartao_parcelado" && Number(c.parcelas_servicos) >= 1 && Number(c.parcelas_servicos) <= 6;
   return false;
 }
+
+/** Ações que criam ou combinam cobrança: bloqueadas para propostas com consultas (site vende só o plano). */
+export const ACOES_COBRANCA = new Set(["cartao_combinar", "pagar_pix", "tokenizar_cartao", "pagar_cartao"]);
+export function temConsultas(v: unknown): boolean {
+  return Array.isArray(v) && v.some((x) => typeof x === "string" && x.trim() !== "");
+}

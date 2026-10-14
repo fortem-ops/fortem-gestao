@@ -9,7 +9,7 @@ import { lerDadosCartao } from "./cartao.ts";
 import { acessoRede } from "./cartao-rede.ts";
 import { depsReais } from "./deps-cartao.ts";
 import { acompanharCartaoReal, iniciarCartaoReal } from "./fluxo-cartao.ts";
-import { chavesLimite, cobrancaValida, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
+import { ACOES_COBRANCA, chavesLimite, cobrancaValida, temConsultas, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
 import {
   cpfDigitosValidos, hashTexto, montarVariaveisContrato, preencherContrato, semCpf, variaveisParaGuardar,
   type Contratante,
@@ -280,6 +280,11 @@ Deno.serve(async (req) => {
       const sim = await rpc("fn_checkout_2027_cartao_simulado", { p_proposta_id: propostaId }, propostaId);
       const real = (await rpc("fn_checkout_2027_cartao_real", { p_proposta_id: propostaId }, propostaId)) === true;
       return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real, cartao_simulado: sim === true && !real }, aceite_id: e.aceite_id });
+    }
+    if (ACOES_COBRANCA.has(acao)) {
+      // O site vende só o plano: proposta antiga com consultas nunca segue para cobrança.
+      const { data: pc } = await admin.from("propostas_planos_2027").select("servicos_codigos").eq("id", propostaId).maybeSingle();
+      if (temConsultas(pc?.servicos_codigos)) throw new Neutro("Consultas são contratadas com a equipe. Fale conosco pelo WhatsApp");
     }
     if (acao === "cartao_combinar") {
       // Cartão real não ligado: sem tentativa e sem "falhou"; avisa a equipe uma vez por proposta.
