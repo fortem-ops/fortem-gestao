@@ -1567,8 +1567,10 @@ export type Database = {
           created_at: string
           expira_em: string | null
           final_cartao: string | null
+          finalidade: string
           id: string
           motivo: string | null
+          obrigacao_avulsa_id: string | null
           parcelas: number
           proposta_id: string
           recorrencia: boolean
@@ -1588,8 +1590,10 @@ export type Database = {
           created_at?: string
           expira_em?: string | null
           final_cartao?: string | null
+          finalidade?: string
           id?: string
           motivo?: string | null
+          obrigacao_avulsa_id?: string | null
           parcelas?: number
           proposta_id: string
           recorrencia?: boolean
@@ -1609,8 +1613,10 @@ export type Database = {
           created_at?: string
           expira_em?: string | null
           final_cartao?: string | null
+          finalidade?: string
           id?: string
           motivo?: string | null
+          obrigacao_avulsa_id?: string | null
           parcelas?: number
           proposta_id?: string
           recorrencia?: boolean
@@ -1624,6 +1630,13 @@ export type Database = {
           valor_centavos?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "checkout_2027_tentativas_obrigacao_avulsa_id_fkey"
+            columns: ["obrigacao_avulsa_id"]
+            isOneToOne: false
+            referencedRelation: "planos_2027_pagamentos_avulsos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "checkout_2027_tentativas_proposta_id_fkey"
             columns: ["proposta_id"]
@@ -6557,6 +6570,115 @@ export type Database = {
             columns: ["tokenizacao_id"]
             isOneToOne: false
             referencedRelation: "rede_tokenizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planos_2027_pagamentos_avulsos: {
+        Row: {
+          aceite_plano_id: string
+          aceito_em: string
+          cancelamento_no_aceite: string | null
+          created_at: string
+          erro: string | null
+          finalidade: string
+          forma: string
+          id: string
+          itens: Json
+          origem: string
+          pago_em: string | null
+          parcelas: number
+          proposta_id: string
+          retomar_ate: string
+          revisao: number
+          simulado: boolean
+          status: string
+          tentativa_aprovada_id: string | null
+          termo_hash: string
+          termo_texto: string
+          termo_versao: number
+          updated_at: string
+          user_agent: string | null
+          valor_centavos: number
+          venda_ids: string[]
+          vendido_em: string | null
+        }
+        Insert: {
+          aceite_plano_id: string
+          aceito_em?: string
+          cancelamento_no_aceite?: string | null
+          created_at?: string
+          erro?: string | null
+          finalidade?: string
+          forma: string
+          id?: string
+          itens: Json
+          origem?: string
+          pago_em?: string | null
+          parcelas: number
+          proposta_id: string
+          retomar_ate?: string
+          revisao: number
+          simulado?: boolean
+          status?: string
+          tentativa_aprovada_id?: string | null
+          termo_hash: string
+          termo_texto: string
+          termo_versao?: number
+          updated_at?: string
+          user_agent?: string | null
+          valor_centavos: number
+          venda_ids?: string[]
+          vendido_em?: string | null
+        }
+        Update: {
+          aceite_plano_id?: string
+          aceito_em?: string
+          cancelamento_no_aceite?: string | null
+          created_at?: string
+          erro?: string | null
+          finalidade?: string
+          forma?: string
+          id?: string
+          itens?: Json
+          origem?: string
+          pago_em?: string | null
+          parcelas?: number
+          proposta_id?: string
+          retomar_ate?: string
+          revisao?: number
+          simulado?: boolean
+          status?: string
+          tentativa_aprovada_id?: string | null
+          termo_hash?: string
+          termo_texto?: string
+          termo_versao?: number
+          updated_at?: string
+          user_agent?: string | null
+          valor_centavos?: number
+          venda_ids?: string[]
+          vendido_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultas_tentativa_aprovada_fk"
+            columns: ["tentativa_aprovada_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_2027_tentativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_2027_pagamentos_avulsos_aceite_plano_id_fkey"
+            columns: ["aceite_plano_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_2027_aceites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_2027_pagamentos_avulsos_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_planos_2027"
             referencedColumns: ["id"]
           },
         ]
