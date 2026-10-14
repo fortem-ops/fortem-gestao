@@ -258,23 +258,41 @@
     }
   }
 
-  /* Página pública /planos 2027 — FORTEM Design System isolado. */
+  /* Página pública /planos 2027 — FORTEM Design System isolado (claro).
+     Marca: vermelho PANTONE 2034 C #E73C3E, Cool Grey 5 C #B1B3B3, preto/branco. */
   [data-planos2027="true"] {
-    --background: 0 0% 6%;
-    --foreground: 0 0% 96%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 96%;
-    --primary: 0 78% 50%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 97%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    /* #E73C3E — botão principal, etapa atual, preço, seleção */
+    --primary: 359 78% 57%;
     --primary-foreground: 0 0% 100%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 62%;
-    --border: 0 0% 20%;
-    --input: 0 0% 26%;
-    --ring: 0 78% 50%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 9%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 9%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 36%;
+    --destructive: 359 70% 42%;
+    --destructive-foreground: 0 0% 100%;
+    /* Cool Grey 5 C #B1B3B3 para bordas de campo; bordas de cartão mais suaves */
+    --border: 180 1% 85%;
+    --input: 180 1% 70%;
+    --ring: 359 78% 57%;
+    /* vermelho escurecido p/ texto pequeno (AA ≥ 4.5:1 no branco) */
+    --marca-texto: 359 70% 42%;
     --radius: 0px;
-    color-scheme: dark;
+    color-scheme: light;
     font-family: 'Archivo', sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
+  [data-planos2027="true"] .text-primary { color: hsl(var(--marca-texto)); }
+  [data-planos2027="true"] :is(h1,h2,h3,.text-2xl,.text-3xl,.text-4xl,.text-5xl).text-primary,
+  [data-planos2027="true"] .text-primary:is(.text-2xl,.text-3xl,.text-4xl,.text-5xl) { color: hsl(var(--primary)); }
   [data-planos2027="true"] .campo {
     display: block; width: 100%; border: 1px solid hsl(var(--input)); background: hsl(var(--card));
     padding: 0.75rem; font-size: 1rem; color: hsl(var(--foreground)); border-radius: 0;
