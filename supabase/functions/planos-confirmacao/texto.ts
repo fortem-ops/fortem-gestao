@@ -4,6 +4,7 @@ export type DadosEmail = {
   nome?: string | null; email?: string | null; whatsapp?: string | null; plano?: string | null; frequencia?: string | null;
   servicos?: string | null; pagamento_tipo?: string | null; parcelas?: number | null; total_centavos?: number | null;
   teste_admin?: boolean | null;
+  recorrencia?: { familia?: string | null; mensal_centavos: number; dia: number; mensalidades?: number | null; final_cartao?: string | null } | null;
 };
 
 export function mascararWhatsapp(w: string | null | undefined): string {
@@ -17,9 +18,18 @@ const brl = (c: number | null | undefined) =>
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
 
+/** Bloco da assinatura (mesmo texto da tela de confirmação). Só o final do cartão, nunca o número. */
+export function linhasRecorrencia(r: NonNullable<DadosEmail["recorrencia"]>): string[] {
+  const cartao = r.final_cartao && /^\d{4}$/.test(r.final_cartao) ? ` no cartão final ${r.final_cartao}` : " no cartão cadastrado";
+  return [
+    `Assinatura ativa. 1ª mensalidade de R$ ${brl(r.mensal_centavos)} paga hoje. Próximas cobranças automáticas todo dia ${r.dia}${cartao}.`,
+    r.familia === "start_2027" ? "Plano Start: renova mensalmente, cancele quando quiser." : `${r.mensalidades ?? 12} mensalidades.`,
+  ];
+}
+
 export function montarEmail(d: DadosEmail) {
   const primeiro = String(d.nome ?? "").trim().split(/\s+/)[0] || "você";
-  const forma = d.pagamento_tipo === "pix" ? "Pix à vista" : `Cartão de crédito em ${d.parcelas ?? 1}x`;
+  const forma = d.recorrencia ? "Cartão de crédito recorrente" : d.pagamento_tipo === "pix" ? "Pix à vista" : `Cartão de crédito em ${d.parcelas ?? 1}x`;
   const linhas = [
     `Olá, ${primeiro}.`, "",
     "Recebemos o seu pagamento. Obrigado por escolher a FORTEM.", "",
@@ -27,7 +37,7 @@ export function montarEmail(d: DadosEmail) {
     `Plano: ${[d.plano, d.frequencia].filter(Boolean).join(" ")}`,
     ...(d.servicos ? [`Serviços: ${d.servicos}`] : []),
     `Forma de pagamento: ${forma}`,
-    `Total: R$ ${brl(d.total_centavos)}`, "",
+    ...(d.recorrencia ? linhasRecorrencia(d.recorrencia) : [`Total: R$ ${brl(d.total_centavos)}`]), "",
     "Próximos passos",
     `Nossa equipe vai entrar em contato pelo WhatsApp ${mascararWhatsapp(d.whatsapp)} para agendar a sua ativação e o início do programa.`, "",
     "Se tiver alguma dúvida, basta responder este e-mail.", "",
