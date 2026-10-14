@@ -52,5 +52,5 @@
 - [ ] Compra real de teste de baixo valor (Pix, cartão 3x, Start recorrência) aguarda autorização do dono
 
 ## /planos visual claro + parcelas no pagamento
-- [ ] Visual claro só no /planos (marca #E73C3E, Cool Grey #B1B3B3, Archivo), portais incluídos, capturas antes/depois
+- [x] Visual claro só no /planos (marca #E73C3E, Cool Grey #B1B3B3, Archivo), portais incluídos, capturas antes/depois
 - [ ] Parcelas escolhidas no pagamento: migração + script de volta mostrados (aguarda aprovação para aplicar/publicar planos-checkout)
