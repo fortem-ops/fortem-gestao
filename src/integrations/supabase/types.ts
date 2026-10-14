@@ -6430,6 +6430,47 @@ export type Database = {
           },
         ]
       }
+      planos_2027_email_envios: {
+        Row: {
+          dados: Json
+          enviado_em: string | null
+          erro: string | null
+          evento: string
+          id: string
+          proposta_id: string
+          reservado_em: string
+          status: string
+        }
+        Insert: {
+          dados: Json
+          enviado_em?: string | null
+          erro?: string | null
+          evento: string
+          id?: string
+          proposta_id: string
+          reservado_em?: string
+          status?: string
+        }
+        Update: {
+          dados?: Json
+          enviado_em?: string | null
+          erro?: string | null
+          evento?: string
+          id?: string
+          proposta_id?: string
+          reservado_em?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_2027_email_envios_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_planos_2027"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos_2027_mensalidades: {
         Row: {
           baixa_manual_forma: string | null
@@ -10716,6 +10757,10 @@ export type Database = {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_email_completo: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
       fn_checkout_2027_email_dados: {
         Args: { p_proposta_id: string }
         Returns: Json
@@ -11409,6 +11454,14 @@ export type Database = {
           plano_id: string
           tipo: string
         }[]
+      }
+      fn_planos_email_reservar: {
+        Args: { p_evento: string; p_proposta_id: string }
+        Returns: Json
+      }
+      fn_planos_email_resultado: {
+        Args: { p_enviado: boolean; p_envio_id: string; p_erro?: string }
+        Returns: undefined
       }
       fn_planos_identificar: { Args: { p: Json }; Returns: Json }
       fn_planos_identificar_telefone: {

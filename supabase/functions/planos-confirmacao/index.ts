@@ -2,7 +2,9 @@
 // Envio uma vez por proposta (reserva atômica no banco); falha nunca desfaz a baixa.
 // Desligado por sistema_config.planos_email_confirmacao_ativo. Nunca registra CPF, e-mail completo ou chave.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { enviarResend } from "../_shared/resend.ts";
+import { enviarConfirmacao } from "./remetente.ts";
+import { executarEnvio, type RegistroEmail } from "./envio.ts";
+import type { DadosEmail } from "./texto.ts";
 import { decidirEnvio, montarEmail } from "./texto.ts";
 
 const cors = {
@@ -13,7 +15,7 @@ const cors = {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const sup = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const sup = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
 /** Chamada interna com a chave de serviço. O gateway pode trocar a chave por um JWT
  * de serviço no Authorization; por isso aceita a chave literal (Authorization ou apikey)
@@ -53,39 +55,43 @@ Deno.serve(async (req) => {
   const id = typeof body?.proposta_id === "string" && UUID.test(body.proposta_id) ? body.proposta_id : "";
   if (!id) return json(400, { ok: false });
 
-  // Rascunho (só admin): mostra o texto sem reservar nem enviar.
-  if (body?.acao === "rascunho") {
-    if (servico) return json(403, { ok: false });
-    const { data: d } = await sup.rpc("fn_checkout_2027_email_dados", { p_proposta_id: id });
-    if (!d) return json(200, { ok: false });
+  const acao = body?.acao ?? "enviar";
+  if (!["enviar", "rascunho", "reenviar", "teste_seguro"].includes(acao)) return json(400, { ok: false });
+  if (acao !== "enviar" && servico) return json(403, { ok: false });
+  if (acao === "rascunho") {
+    const { data: d, error } = await sup.rpc("fn_checkout_2027_email_completo", { p_proposta_id: id });
+    if (error || !d) return json(200, { ok: false, resultado: "aceite_indisponivel" });
     const e = montarEmail(d);
-    return json(200, { ok: true, assunto: e.assunto, texto: e.texto });
+    return json(200, { ok: true, assunto: e.assunto, texto: e.texto, html: e.html });
   }
-
-  const { data: d, error } = await sup.rpc("fn_checkout_2027_email_reservar", { p_proposta_id: id });
-  if (error) { await log("erro", `${id}: reservar falhou`); return json(200, { ok: false, resultado: "erro" }); }
-  if (!d) return json(200, { ok: true, resultado: "ja_enviado_ou_em_andamento" });
-
-  const { data: cfg } = await sup.from("sistema_config").select("valor").eq("chave", "planos_email_confirmacao_ativo").maybeSingle();
-  const ativa = String(cfg?.valor ?? "false").replace(/"/g, "") === "true";
-  const { data: testes } = await sup.from("alunos").select("email").eq("nome", "NICOLAS TESTE");
-  const decisao = decidirEnvio(d, ativa, (testes ?? []).map((t: any) => t.email).filter(Boolean));
-
-  if (decisao !== "enviar") {
-    // Libera a reserva para enviar depois (quando a chave for ligada) e registra o motivo.
-    await sup.rpc("fn_checkout_2027_email_resultado", { p_proposta_id: id, p_enviado: false, p_erro: decisao });
-    await log(decisao, `${id}: não enviado (${decisao})`);
-    const e = montarEmail(d);
-    return json(200, { ok: true, resultado: decisao, ...(decisao === "teste_rascunho" || (d.teste_admin && decisao === "desligado") ? { rascunho: { assunto: e.assunto, texto: e.texto } } : {}) });
+  const chaveReenvio = body?.idempotency_key;
+  if (acao === "reenviar" && (typeof chaveReenvio !== "string" || !UUID.test(chaveReenvio))) return json(400, { ok: false });
+  const evento = acao === "teste_seguro" ? "teste_seguro" : acao === "reenviar" ? `reenvio:${chaveReenvio}` : "inicial";
+  try {
+    const resposta = await executarEnvio({
+      reservar: async () => {
+        const { data, error } = await sup.rpc("fn_planos_email_reservar", { p_proposta_id: id, p_evento: evento });
+        if (error) throw new Error("reserva_falhou");
+        return data as RegistroEmail | null;
+      },
+      enviar: async (registro) => {
+        const d = registro.dados as DadosEmail;
+        const { data: cfg } = await sup.from("sistema_config").select("valor").eq("chave", "planos_email_confirmacao_ativo").maybeSingle();
+        const ativa = String(cfg?.valor ?? "false").replace(/"/g, "") === "true";
+        if (decidirEnvio(d, ativa, ["nicolas_ja@hotmail.com"]) !== "enviar" || !d.email || !d.contrato) return { ok: false, status: 0 };
+        if (evento !== "teste_seguro" && !d.ativada_em) return { ok: false, status: 0 };
+        const e = montarEmail(d);
+        return await enviarConfirmacao(d.email, e.assunto, e.html, e.texto, registro.idempotency_key);
+      },
+      resultado: async (envioId, ok, erro) => {
+        const { error } = await sup.rpc("fn_planos_email_resultado", { p_envio_id: envioId, p_enviado: ok, p_erro: erro });
+        if (error) throw new Error("resultado_falhou");
+        if (!ok) await log("falha_envio", `${id}: ${erro}`);
+      },
+    });
+    return json(200, resposta);
+  } catch {
+    await log("falha_envio", `${id}: confirmação indisponível; pagamento e ativação preservados`);
+    return json(200, { ok: false, resultado: "falha_envio" });
   }
-
-  const e = montarEmail(d);
-  const r = await enviarResend(d.email, e.assunto, e.html, e.texto);
-  if (r.ok) {
-    await sup.rpc("fn_checkout_2027_email_resultado", { p_proposta_id: id, p_enviado: true, p_erro: null });
-    return json(200, { ok: true, resultado: "enviado" });
-  }
-  await sup.rpc("fn_checkout_2027_email_resultado", { p_proposta_id: id, p_enviado: false, p_erro: `HTTP ${r.status}: ${r.mensagem}` });
-  await log("falha_envio", `${id}: Resend HTTP ${r.status}: ${r.mensagem}`);
-  return json(200, { ok: false, resultado: "falha_envio" });
 });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -29,6 +29,18 @@ function AtivacaoLinha({ p }: { p: Proposta }) {
   const { data: roles } = useUserRoles();
   const qc = useQueryClient();
   const [enviando, setEnviando] = useState(false);
+  const [reenvioId, setReenvioId] = useState<string | null>(null);
+  const email = useMutation({
+    mutationFn: async () => {
+      if (!roles?.isAdmin || !p.ativada_em) throw new Error("Acesso não permitido");
+      const key = reenvioId ?? crypto.randomUUID();
+      setReenvioId(key);
+      const { data, error } = await supabase.functions.invoke("planos-confirmacao", { body: { proposta_id: p.id, acao: "reenviar", idempotency_key: key } });
+      if (error || !data?.ok || data.resultado !== "enviado") throw new Error("Não foi possível reenviar. Confira a chave de envio e tente novamente.");
+    },
+    onSuccess: () => { toast.success("E-mail reenviado"); setReenvioId(null); },
+    onError: () => toast.error("Não foi possível reenviar. Confira a chave de envio e tente novamente."),
+  });
   const estado = estadoAtivacao(p);
   if (estado === "nao_paga") return null;
 
@@ -38,7 +50,11 @@ function AtivacaoLinha({ p }: { p: Proposta }) {
       const { data, error } = await (supabase.rpc as any)("fn_checkout_2027_ativar_admin", { p_proposta_id: p.id });
       if (error) throw error;
       if (data?.erro) toast.error(`Não foi possível ativar: ${data.erro}`);
-      else toast.success("Plano, contrato e créditos criados no perfil do aluno.");
+      else {
+        toast.success("Plano, contrato e créditos criados no perfil do aluno.");
+        const { data: confirmacao, error: erroEmail } = await supabase.functions.invoke("planos-confirmacao", { body: { proposta_id: p.id } });
+        if (erroEmail || !confirmacao?.ok) toast.warning("Plano ativado. O e-mail não foi enviado; tente o reenvio.");
+      }
       qc.invalidateQueries({ queryKey: ["propostas-planos-2027"] });
     } catch {
       toast.error("Não foi possível ativar agora.");
@@ -58,6 +74,7 @@ function AtivacaoLinha({ p }: { p: Proposta }) {
           {roles?.isAdmin && p.aluno_ativado_id && (
             <Link to={`/alunos/${p.aluno_ativado_id}?tab=contrato`} className="text-primary underline">Pagamentos e estornos</Link>
           )}
+          {roles?.isAdmin && <Button size="sm" variant="outline" disabled={email.isPending} onClick={() => email.mutate()}>{email.isPending ? "Enviando..." : "Reenviar e-mail"}</Button>}
         </>
       ) : (
         <>

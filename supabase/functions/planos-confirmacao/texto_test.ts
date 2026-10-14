@@ -5,7 +5,7 @@ const base = { nome: "Maria Souza", email: "m@x.com", whatsapp: "5551987651234",
 
 Deno.test("e-mail sem CPF, sem cartão, WhatsApp mascarado e total certo", () => {
   const e = montarEmail({ ...base, cpf_ultimos3: "041" } as any);
-  assertEquals(e.assunto, "FORTEM — pagamento confirmado");
+  assertEquals(e.assunto, "FORTEM — pagamento confirmado e contrato");
   assertEquals(e.texto.includes("041"), false);
   assertEquals(e.texto.includes("(51) 9****-1234"), true);
   assertEquals(e.texto.includes("Total: R$ 1.234,56"), true);
@@ -36,7 +36,7 @@ Deno.test("WhatsApp curto não vaza número", () => {
 Deno.test("recorrência: bloco da assinatura, sem total anual e sem dados sensíveis", () => {
   const e = montarEmail({ nome: "Ana Souza", plano: "Power", frequencia: "2x", pagamento_tipo: "cartao", parcelas: 1, total_centavos: 544680,
     recorrencia: { familia: "power_2027", mensal_centavos: 45390, dia: 14, mensalidades: 12, final_cartao: "4715" } });
-  if (!e.texto.includes("Assinatura ativa. 1ª mensalidade de R$ 453,90 paga hoje. Próximas cobranças automáticas todo dia 14 no cartão final 4715.")) throw new Error(e.texto);
+  if (!e.texto.includes("Assinatura ativa. 1ª mensalidade de R$ 453,90 paga. Próximas cobranças automáticas todo dia 14 no cartão final 4715.")) throw new Error(e.texto);
   if (!e.texto.includes("12 mensalidades.")) throw new Error("sem 12 mensalidades");
   if (e.texto.includes("Total:")) throw new Error("não deve mostrar total");
   const s = montarEmail({ nome: "Ana", plano: "Start", pagamento_tipo: "cartao", recorrencia: { familia: "start_2027", mensal_centavos: 49900, dia: 31, final_cartao: "12345678" } });
