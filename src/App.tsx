@@ -46,7 +46,7 @@ const MeusTreinos = lazyWithReload(() => import("./pages/MeusTreinos"));
 const PublicWorkout = lazyWithReload(() => import("./pages/PublicWorkout"));
 const Pipeline = lazyWithReload(() => import("./pages/Pipeline"));
 const Notificar = lazyWithReload(() => import("./pages/Notificar"));
-const Leads = lazyWithReload(() => import("./pages/Leads"));
+const Leads = lazyWithReload(() => import("./components/leads/LeadsRoute"));
 const Prospects = lazyWithReload(() => import("./pages/Prospects"));
 const InscricoesCorrida = lazyWithReload(() => import("./pages/corrida/InscricoesCorrida"));
 const PagamentoLink = lazyWithReload(() => import("./pages/PagamentoLink"));
@@ -70,6 +70,7 @@ const RelatoriosVendas = lazyWithReload(() => import("./pages/relatorios/Vendas"
 const RelatoriosFinanceiro = lazyWithReload(() => import("./pages/relatorios/Financeiro"));
 const CartoesCredito = lazyWithReload(() => import("./pages/financeiro/CartoesCredito"));
 const Contratos = lazyWithReload(() => import("./pages/financeiro/Contratos"));
+const PropostasContratos = lazyWithReload(() => import("./pages/financeiro/PropostasContratos"));
 const TemplatesContratos = lazyWithReload(() => import("./pages/financeiro/TemplatesContratos"));
 const Adquirente = lazyWithReload(() => import("./pages/financeiro/Adquirente"));
 const Previsibilidade = lazyWithReload(() => import("./pages/financeiro/Previsibilidade"));
@@ -443,6 +444,8 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route path="/leads/propostas" element={<Navigate to="/financeiro/propostas-contratos" replace />} />
+              <Route path="/leads/propostas-site" element={<Navigate to="/financeiro/propostas-contratos" replace />} />
               <Route
                 path="/prospects"
                 element={
@@ -657,6 +660,7 @@ const App = () => (
                   </Suspense>
                 }
               />
+              <Route path="/financeiro/propostas-contratos" element={<Suspense fallback={<RouteFallback />}><PropostasContratos /></Suspense>} />
 
               <Route
                 path="/financeiro/adquirente"

@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { propostasAccess } from "@/lib/propostasContratos";
 
 /** Botão de teste real só para admin, proposta de teste e modo real_baixo_valor. As travas reais ficam no banco. */
 export function podeMostrarTesteReal(p: { isAdmin: boolean; testeAdmin: boolean; modo?: string | null; cancelada: boolean }) {
@@ -26,6 +27,7 @@ const STATUS: Record<string, string> = {
 export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin = false }: { propostaId: string; familia: string; cancelada: boolean; testeAdmin?: boolean }) {
   const qc = useQueryClient();
   const { data: roles } = useUserRoles();
+  const { canManage } = propostasAccess(roles);
   const { data: modoTeste } = useQuery({
     queryKey: ["sistema-config", "planos_pagamento_modo_teste"],
     enabled: !!roles?.isAdmin && testeAdmin,
@@ -52,6 +54,7 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin 
   };
   const cancelar = useMutation({
     mutationFn: async () => {
+      if (!canManage) throw new Error("Ação exclusiva de administrador");
       const { error } = await supabase.rpc("fn_recorrencia_2027_cancelar", { p_proposta_id: propostaId });
       if (error) throw error;
     },
@@ -60,6 +63,7 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin 
   });
   const baixa = useMutation({
     mutationFn: async (id: string) => {
+      if (!canManage) throw new Error("Ação exclusiva de administrador");
       const { error } = await supabase.rpc("fn_recorrencia_2027_baixa_manual", { p_id: id, p_forma: "pix" });
       if (error) throw error;
     },
@@ -68,6 +72,7 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin 
   });
   const testeReal = useMutation({
     mutationFn: async () => {
+      if (!canManage) throw new Error("Ação exclusiva de administrador");
       const { data, error } = await supabase.functions.invoke("planos-recorrencia-diario", { body: { modo: "teste_real", proposta_id: propostaId } });
       if (error) throw error;
       return data as { ok?: boolean; resultado?: string; motivo?: string };
@@ -97,7 +102,7 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin 
             <span className="font-medium">{m.numero}ª</span> · {format(new Date(m.vencimento + "T12:00:00"), "dd/MM/yyyy")} · {brl(m.valor_centavos)} ·{" "}
             <span className={m.status === "inadimplente" || m.status === "desconhecido" ? "text-destructive" : ""}>{STATUS[m.status] ?? m.status}</span>
             {m.tentativas > 0 && m.status !== "pago" ? ` (${m.tentativas}/3)` : ""}
-            {["recusado", "inadimplente"].includes(m.status) && (
+            {canManage && ["recusado", "inadimplente"].includes(m.status) && (
               <Button size="sm" variant="link" className="h-auto p-0 ml-1 text-xs" disabled={baixa.isPending}
                 onClick={() => baixa.mutate(m.id)}>Recebido por Pix</Button>
             )}
@@ -108,7 +113,7 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin 
           </div>
         ))}
       </div>
-      {!cancelada && (
+      {canManage && !cancelada && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button size="sm" variant="outline" disabled={cancelar.isPending}>Cancelar assinatura</Button>

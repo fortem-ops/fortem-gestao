@@ -40,5 +40,5 @@
 - [x] Ativação 2027 — Fase A: vínculo do aluno, plano, contrato, créditos e documento a partir da proposta paga
 - [x] Ativação 2027 — Fase B: pagamentos, mensalidades espelho, Start do site, filtros de teste (limpeza da ativação de teste 5e8fb850 aguarda autorização)
 - [x] Ativação 2027 — Fase C: estorno pelo fluxo atual (cartão, mensalidade, Pix do site)
-- [ ] Ativação 2027 — Fase D: Financeiro > Propostas de contratos e remover aba de Leads (aguarda aprovação)
+- [x] Ativação 2027 — Fase D: Financeiro > Propostas de contratos; aba de Leads removida, favoritos redirecionados, coord/admin consulta e ações sensíveis só admin; navegação autenticada desktop/móvel verificada, sem ações financeiras.
 - [ ] Ativação 2027 — Fase E: contrato no corpo do e-mail ao aluno (aguarda aprovação)
