@@ -2,6 +2,7 @@
 // Anônimo só fala com esta função; ela chama fn_checkout_2027_* com service_role.
 // Nunca registra CPF, e-mail ou telefone; logs só com id da proposta.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { ANEXO1_ERROS, ErroAnexo, blocoAnexo, lerAnexo } from "./anexo1.ts";
 import { pagamentoReservado } from "../_shared/checkout-pagamento-reservado.ts";
 import { interCobFetch } from "../_shared/inter-cob.ts";
 import { genTxid } from "../_shared/inter.ts";
@@ -39,8 +40,16 @@ const NEUTRAS = [
   "Marque que você leu e aceita o contrato", "O contrato mudou. Leia a versão atual e aceite de novo",
   "Informe seu nome completo", "Informe um e-mail válido", "Pagamento por cartão indisponível no momento",
   "Pix indisponível no momento", "Confira os dados do cartão",
+  "A compra pelo site é só para maiores de 18 anos. Fale com a equipe FORTEM pelo WhatsApp", ...ANEXO1_ERROS,
 ];
 class Neutro extends Error {}
+
+/** Aceite com "Com restrições" no ANEXO I: a confirmação avisa que a equipe buscará o atestado. */
+async function anexoRestricao(aceiteId: string | null): Promise<boolean> {
+  if (!aceiteId) return false;
+  const { data } = await admin.from("propostas_2027_aceites").select("anexo").eq("id", aceiteId).maybeSingle();
+  return (data?.anexo as any)?.medical_status === "restricao";
+}
 
 async function softDescriptor(): Promise<string> {
   const { data } = await admin.from("sistema_config").select("valor").eq("chave", "planos_cartao_soft_descriptor").maybeSingle();
@@ -292,7 +301,7 @@ Deno.serve(async (req) => {
           teste_real_centavos = Math.min(base, teto);
         }
       }
-      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real, cartao_simulado: sim === true && !real, teste_real_centavos }, aceite_id: e.aceite_id });
+      return json(200, { revisao: { ...r, etapa: e.etapa }, pagamento: { ...pagamentoReservado(r, sim === true || real), cartao_real: real, cartao_simulado: sim === true && !real, teste_real_centavos }, aceite_id: e.aceite_id, anexo_restricao: await anexoRestricao(e.aceite_id) });
     }
     if (ACOES_COBRANCA.has(acao)) {
       // O site vende só o plano: proposta antiga com consultas nunca segue para cobrança.
@@ -416,11 +425,16 @@ Deno.serve(async (req) => {
       const g = await gerar(propostaId, chave, body?.contratante, ip);
       const exibido = typeof body?.hash_exibido === "string" ? body.hash_exibido : "";
       if (exibido !== g.hash) throw new Neutro("O contrato mudou. Leia a versão atual e aceite de novo");
+      // ANEXO I obrigatório: o bloco aceito entra no HTML guardado e no hash (e, por isso, no e-mail).
+      let ax;
+      try { ax = lerAnexo(body?.anexo, body?.anexo_assinatura); } catch (e) { if (e instanceof ErroAnexo) throw new Neutro(e.message); throw e; }
+      const htmlFinal = g.html + blocoAnexo(ax.anexo, String(g.r.contratante?.nome ?? ""), new Date());
       const res = await rpc("fn_checkout_2027_aceitar", {
         p_proposta_id: propostaId, p_chave: chave, p_ip: ip, p_user_agent: ua,
         p: {
-          li_e_aceito: body?.li_e_aceito === true, hash_exibido: exibido, conteudo_html: g.html,
+          li_e_aceito: body?.li_e_aceito === true, hash_exibido: await hashTexto(htmlFinal), conteudo_html: htmlFinal,
           template_id: g.r.template.id, template_versao: g.r.template.versao, variaveis: variaveisParaGuardar(g.vars),
+          anexo: ax.anexo, anexo_assinatura: ax.assinatura,
         },
       }, propostaId);
       return json(200, res);
