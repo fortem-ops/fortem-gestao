@@ -38,11 +38,10 @@ describe("tela de pagamento R2", () => {
     expect(modoPagamentoTela("recorrencia", { cartao_a_combinar: true })).toBe("combinar");
     expect(modoPagamentoTela("recorrencia", {})).toBe("combinar");
   });
-  it("recorrência nunca abre o formulário de cartão real, nem com cartao_real ligado", () => {
-    expect(modoPagamentoTela("recorrencia", { cartao_real: true })).toBe("combinar");
-  });
-  it("recorrência em simulação/prévia admin segue a prévia", () => {
-    expect(modoPagamentoTela("recorrencia", { cartao_simulado: true })).toBe("recorrencia_previa");
+  it("recorrência abre o cartão só quando o servidor libera (simulação ou trava da recorrência)", () => {
+    expect(modoPagamentoTela("recorrencia", { cartao_simulado: true })).toBe("cartao");
+    expect(modoPagamentoTela("recorrencia", { cartao_real: true })).toBe("cartao");
+    expect(modoPagamentoTela("recorrencia", { cartao_real: false, cartao_simulado: false })).toBe("combinar");
   });
   it("cartão parcelado e Pix mantêm o comportamento", () => {
     expect(modoPagamentoTela("cartao_parcelado", { cartao_real: true })).toBe("cartao");

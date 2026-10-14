@@ -1571,6 +1571,7 @@ export type Database = {
           motivo: string | null
           parcelas: number
           proposta_id: string
+          recorrencia: boolean
           ref: string | null
           simulado: boolean
           status: string
@@ -1591,6 +1592,7 @@ export type Database = {
           motivo?: string | null
           parcelas?: number
           proposta_id: string
+          recorrencia?: boolean
           ref?: string | null
           simulado?: boolean
           status?: string
@@ -1611,6 +1613,7 @@ export type Database = {
           motivo?: string | null
           parcelas?: number
           proposta_id?: string
+          recorrencia?: boolean
           ref?: string | null
           simulado?: boolean
           status?: string
@@ -10640,6 +10643,10 @@ export type Database = {
         Args: { p_proposta_id: string }
         Returns: string
       }
+      fn_checkout_2027_recorrencia_real: {
+        Args: { p_proposta_id: string }
+        Returns: boolean
+      }
       fn_checkout_2027_revisar: {
         Args: { p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
@@ -11400,6 +11407,10 @@ export type Database = {
         Args: { _data_inicio: string }
         Returns: string
       }
+      fn_recorrencia_2027_cronograma: {
+        Args: { p_tentativa_id: string }
+        Returns: number
+      }
       fn_recorrencia_2027_devidas: {
         Args: { p_hoje: string; p_limite?: number }
         Returns: {
@@ -11428,6 +11439,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      fn_recorrencia_2027_proximo_ciclo: {
+        Args: { p_proposta_id: string }
+        Returns: string
       }
       fn_recorrencia_2027_reservar: {
         Args: { p_id: string }

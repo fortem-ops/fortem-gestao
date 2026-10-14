@@ -7,8 +7,8 @@ export function modoPagamentoTela(
 ): ModoPagamentoTela {
   if (formaPlano === "pix_vista") return "pix";
   if (p.cartao_a_combinar === true) return "combinar";
-  // Recorrência no cartão: cobrança real só a partir da R3; aqui só simulação/prévia admin.
-  if (formaPlano === "recorrencia") return p.cartao_simulado === true ? "recorrencia_previa" : "combinar";
+  // Recorrência: formulário do cartão (1ª mensalidade) só com simulação ou com a trava do banco liberada; senão contato.
+  if (formaPlano === "recorrencia") return p.cartao_real === true || p.cartao_simulado === true ? "cartao" : "combinar";
   if (p.cartao_real === true || p.cartao_simulado === true) return "cartao";
   return "reservado";
 }

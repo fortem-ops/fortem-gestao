@@ -55,12 +55,14 @@ export async function tokenizar(a: Acesso, d: { numero: string; nome: string; me
 export const consultarToken = (a: Acesso, tokenizationId: string) =>
   chamar(`${TOKEN_URL[a.amb]}/${tokenizationId}`, a, "GET");
 
-/** Criptograma (compra única, subscription=false, igual à Loja) + transação. */
+/** Criptograma + transação. Compra única (1x–12x): subscription=false, igual à Loja.
+ * Recorrência (1ª mensalidade, iniciada pelo titular): subscription=true no criptograma e na transação. */
 export async function cobrar(a: Acesso, i: {
   tokenizationId: string; tokenCode: string; mes: string; ano: string; nome: string;
-  centavos: number; parcelas: number; reference: string; softDescriptor: string;
+  centavos: number; parcelas: number; reference: string; softDescriptor: string; subscription?: boolean;
 }) {
-  const c = await chamar(`${CRIPTO_URL[a.amb]}/${i.tokenizationId}`, a, "POST", { subscription: false });
+  const sub = i.subscription === true;
+  const c = await chamar(`${CRIPTO_URL[a.amb]}/${i.tokenizationId}`, a, "POST", { subscription: sub });
   const cripto = c.parsed?.cryptogramInfo?.tokenCryptogram ?? null;
   if (c.erroRede || c.httpStatus < 200 || c.httpStatus >= 300 || c.parsed?.returnCode !== "00" || !cripto) {
     return { etapa: "criptograma" as const, httpStatus: c.httpStatus, parsed: null, erroRede: false };
@@ -70,6 +72,7 @@ export async function cobrar(a: Acesso, i: {
     storageCard: "2", cardNumber: i.tokenCode, expirationMonth: i.mes, expirationYear: i.ano,
     cardholderName: i.nome, tokenCryptogram: cripto,
   };
+  if (sub) payload.subscription = true;
   if (i.softDescriptor) payload.softDescriptor = i.softDescriptor;
   const t = await chamar(`${REDE_URL[a.amb]}/transactions`, a, "POST", payload);
   return { etapa: "transacao" as const, ...t };

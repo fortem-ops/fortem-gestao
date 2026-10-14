@@ -3,7 +3,7 @@ import { aplicarConsultaToken } from "../_shared/planos-cartao-token.ts";
 import { cobrar, consultarPorReferencia, consultarToken, tokenizar, type Acesso } from "./cartao-rede.ts";
 import type { Deps, TentativaCartao } from "./fluxo-cartao.ts";
 
-const COLS = "id, proposta_id, status, motivo, valor_centavos, parcelas, simulado, tokenizacao_id, consultado_em, created_at, updated_at";
+const COLS = "id, proposta_id, status, motivo, valor_centavos, parcelas, simulado, recorrencia, tokenizacao_id, consultado_em, created_at, updated_at";
 
 export function depsReais(admin: any, acesso: Acesso, softDescriptor: string): Deps {
   const rpc = async (fn: string, args: Record<string, unknown>) => {
