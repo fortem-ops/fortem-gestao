@@ -393,20 +393,21 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const cpfHash = (student as any).cpf_hash as string | null | undefined;
   const cpfUltimos3 = (student as any).cpf_ultimos3 as string | null | undefined;
   const cpfDigits = cpfHash || ""; // usado apenas para habilitar/desabilitar seções de vínculo
+  // Anexo pelo CPF (balcão) ou pelo aluno (ex.: compra do site no cadastro de teste, sem CPF).
   const { data: legalAnnex } = useQuery({
-    queryKey: ["legal_annex_by_cpf_hash", cpfHash],
+    queryKey: ["legal_annex_by_cpf_hash", cpfHash, student.id],
     queryFn: async () => {
-      if (!cpfHash) return null;
+      const filtro = cpfHash ? `cpf_hash.eq.${cpfHash},aluno_id.eq.${student.id}` : `aluno_id.eq.${student.id}`;
       const { data } = await supabase
         .from("legal_annexes")
         .select("id, nome, cpf_ultimos3, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone")
-        .eq("cpf_hash", cpfHash)
+        .or(filtro)
         .order("signed_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       return (data as AnnexDetail | null) ?? null;
     },
-    enabled: !!cpfHash,
+    enabled: !!student.id,
   });
 
 
