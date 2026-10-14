@@ -1,0 +1,2 @@
+- Consultation F2 preview uses admin-authenticated simulation-only actions plus F1 acceptance RPCs; hypothetical states persist in the consultas-previa-f2 system_logs namespace, never payment/activation routines. Why: reloadable UI rehearsal without provider calls, financial records, emails or credit grants.
+- Require verified admin JWT, proposal previa/teste_admin, and server test mode simulacao on every action. Why: client flags cannot authorize access and real test mode must fail closed.
