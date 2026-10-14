@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { CartaoPagamento2027 } from "./CartaoPagamento2027";
 import { checkout, lerCodigo, type SessaoCheckout } from "@/lib/checkoutSite2027";
+import { modoPagamentoTela } from "@/lib/planosPagamentoTela";
 
 type TentativaTela = { id: string; tipo: "pix" | "cartao"; simulado: boolean; valor_centavos: number; total_proposta_centavos: number; parcelas: number; status: "pendente" | "aprovado" | "recusado" | "expirado"; expira_em: string | null };
 type RespostaPagamento = { tentativa: TentativaTela | null; pix_copia_cola?: string | null };
@@ -100,10 +101,13 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
   const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => { titulo.current?.focus(); }, [confirmacao]);
   const codigo = lerCodigo(r.plano_codigo);
-  const pix = r.forma_plano === "pix_vista";
+  const modo = modoPagamentoTela(r.forma_plano, p);
+  const pix = modo === "pix";
   const recorrencia = r.forma_plano === "recorrencia";
-  const combinar = !pix && p.cartao_a_combinar === true;
-  const formCartao = !pix && !recorrencia && !combinar && (p.cartao_real === true || p.cartao_simulado === true);
+  const combinar = modo === "combinar";
+  const recorrenciaPrevia = modo === "recorrencia_previa";
+  const formCartao = modo === "cartao";
+  const ehStart = r.familia === "start_2027";
   const [avisando, setAvisando] = useState(false);
   const [erroCombinar, setErroCombinar] = useState("");
   async function combinarComEquipe() {
@@ -137,25 +141,25 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
             {p.formas_permitidas.map((f) => <Button key={f} variant="outline" aria-pressed={true} className={`${controle} justify-start gap-3 border-primary bg-primary/10 px-4`}><span aria-hidden="true">{pix ? <QrCode /> : <CreditCard />}</span>{forma}</Button>)}
           </div>
           {!pix && !recorrencia && !formCartao && <label className="mt-5 block text-sm">{C.pagamento.parcelas}<select disabled value={p.parcelas.length} className="campo mt-2"><option value={p.parcelas.length}>{descrever(p.parcelas)}</option></select></label>}
-          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">{C.pagamento.escolhaAviso}</p>
+          {recorrencia && <p className="mt-5 text-sm leading-relaxed">{ehStart ? C.pagamento.recorrenciaStart : C.pagamento.recorrenciaPlano}</p>}
+          {/* A tela do cartão já mostra este aviso junto do parcelamento. */}
+          {!formCartao && <p className="mt-4 text-xs leading-relaxed text-muted-foreground">{C.pagamento.escolhaAviso}</p>}
           {combinar ? <>
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.cartaoAviso}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.combinar}</p></div>
             <Button className={`${controle} mt-5 w-full`} disabled={avisando} onClick={combinarComEquipe}>{C.pagamento.combinarBotao}</Button>
             {erroCombinar && <p role="alert" className="mt-4 text-sm font-semibold text-destructive">{erroCombinar}</p>}
-          </> : recorrencia ? <>
-            <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.cartaoAviso}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.primeiraRecorrencia}</p></div>
-            <p role="status" className="mt-5 text-sm font-semibold">{C.pagamento.reservado}</p>
-            <Button disabled className={`${controle} mt-4 w-full`}>{C.pagamento.pagar}</Button>
+          </> : recorrenciaPrevia ? <>
+            <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.recorrenciaPrevia}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.primeiraRecorrencia}</p></div>
+            <Button className={`${controle} mt-5 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>
           </> : formCartao ? <CartaoPagamento2027 sessao={sessao} simulacao={p.cartao_real !== true} parcelas={p.parcelas} onTravado={setTravado}
             onAprovado={(sim) => { setTravado(false); setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />
           : <PagamentoAtivo sessao={sessao} pix={pix} onAprovado={(sim) => { setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />}
-          {recorrencia && !combinar && <Button className={`${controle} mt-3 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>}
         </>}
       </div>
       <aside className="min-w-0 border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
         <h2 className="font-display text-lg font-bold uppercase">{C.pagamento.resumo}</h2>
         <p className="mt-5 font-display text-2xl font-bold uppercase">{nomes[r.familia] ?? r.familia}</p>
-        <dl className="mt-4 text-sm">{linhas.map(([k, v]) => <div key={k} className="border-b border-border py-3"><dt className="text-xs font-semibold uppercase text-muted-foreground">{k}</dt><dd className="mt-2 break-words leading-relaxed">{v}</dd></div>)}<div className="flex flex-wrap justify-between gap-3 py-5 font-bold"><dt className="font-display uppercase">{C.revisao.total}</dt><dd>{brl(r.total_centavos)}</dd></div></dl>
+        <dl className="mt-4 text-sm">{linhas.map(([k, v]) => <div key={k} className="border-b border-border py-3"><dt className="text-xs font-semibold uppercase text-muted-foreground">{k}</dt><dd className="mt-2 break-words leading-relaxed">{v}</dd></div>)}<div className="flex flex-wrap justify-between gap-3 py-5 font-bold"><dt className="font-display uppercase">{C.revisao.total}</dt><dd>{brl(r.total_centavos)}{ehStart && !r.servicos_centavos ? " /mês" : ""}</dd></div></dl>
         {!pago && !travado && <>
           <Button variant="outline" className={`${controle} w-full`} onClick={onAlterar}>{C.revisao.alterar}</Button>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{C.revisao.avisoAceite}</p>
