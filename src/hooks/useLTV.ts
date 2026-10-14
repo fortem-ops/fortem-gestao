@@ -70,6 +70,7 @@ async function fetchCobrancasPagas(): Promise<HistoricoPagamentoRow[]> {
       .from("cobrancas")
       .select("aluno_id, valor, data_pagamento, alunos(nome, status)")
       .eq("status", "pago")
+      .or("origem.is.null,origem.neq.teste_2027")
       .gte("data_pagamento", DATA_CORTE_SISTEMA_NOVO)
       .order("id")
       .range(from, from + 999);

@@ -139,6 +139,8 @@ async function processar(): Promise<Response> {
     .from("cobrancas" as any)
     .select("id, aluno_id, valor, data_vencimento")
     .eq("status", "atrasado")
+    // Mensalidades da assinatura do site (/planos) só geram aviso interno à equipe.
+    .is("mensalidade_2027_id", null)
     .gte("data_vencimento", new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
 
   for (const c of (cobrancasAtrasadas as any[]) ?? []) {
