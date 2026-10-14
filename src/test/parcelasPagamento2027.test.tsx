@@ -4,7 +4,8 @@ import { descreverPagamento } from "@/components/planos/CheckoutSite2027";
 import { CartaoPagamento2027 } from "@/components/planos/CartaoPagamento2027";
 import { PagamentoReservado2027, type TelaPagamento } from "@/components/planos/PagamentoReservado2027";
 import { PlanosPublico2027 } from "@/pages/PlanosPublico2027";
-import { dividirCentavos, type CatalogoPublico, type Familia2027, type Frequencia2027, type PlanoPublico } from "@/lib/planosPublico2027";
+import { dividirCentavos } from "@/lib/checkoutSite2027";
+import { type CatalogoPublico, type Familia2027, type Frequencia2027, type PlanoPublico } from "@/lib/planosPublico2027";
 
 const TOTAL = 514_800; // Power 2x anual: R$ 5.148,00 em centavos
 const sessao = { proposta_id: "00000000-0000-0000-0000-000000000001", chave_sessao: "a".repeat(64) };
