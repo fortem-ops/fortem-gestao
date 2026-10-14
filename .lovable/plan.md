@@ -1,55 +1,43 @@
-# Diagnóstico — "O contrato mudou" no Passo 6 (prévia admin, Power 2x + recorrência + consultas)
+# Correção: prévia presa em proposta antiga e "O contrato mudou" sem saída
 
-## O que já está confirmado (só leitura)
+## O que a leitura do código e do banco já mostra
+- **Retomada forçada:** ao abrir `/planos`, a página sempre retoma a proposta guardada no navegador (`restaurarSessao`), inclusive em `?previa=1`. Não existe botão para começar outra.
+- **Servidor ao "Alterar":** `fn_checkout_2027_alterar` já invalida o aceite, zera `aceite_id`, volta a etapa para `identificada` e grava uma revisão nova. Ele só recusa quando a etapa é `aguardando_pagamento`/`paga` ("Pagamento em andamento"). A invalidação no servidor está correta. O que fica velho é o lado da tela.
+- **Beco sem saída confirmado no código:** quando `tela_pagamento` recusa ("O contrato mudou"), a tela cai em `etapa="revisao"` com `revisao` vazia. TENTAR DE NOVO repete exatamente o mesmo caminho (`estado` → `tela_pagamento`) e falha de novo. Nunca chama `revisar` nem leva ao contrato.
+- **Estado da simulação das consultas não é zerado:** o "plano aprovado (simulado)" da tela plano + consultas fica guardado por proposta e não é limpo ao Alterar. Além disso, essa tela não tem botão Alterar. É por isso que o dono "fica na tela do pagamento".
+- As propostas do dono de hoje (`0db4b90d`, `86a61427`, ambas em contrato_aceito) e as minhas (`a6811b24`, `88afaa87`, `3a2efa3e`) ficam preservadas.
 
-**De onde vem a mensagem com o botão TENTAR DE NOVO.**
-O botão só aparece no Passo 6 quando a tela não conseguiu carregar o resumo (`revisao` vazio). Isso acontece só quando `carregarRevisao` falha antes de guardar o resumo. Há três caminhos possíveis no servidor:
+## Passo 1: reproduzir antes de corrigir (prova)
+Em `/planos?previa=1`, como admin, com dados de NICOLAS TESTE e tudo simulado:
+1. Uma proposta aceita em 12x sem consultas → Alterar para Power 2x + recorrência + Nutri 4+2 → registrar chamadas, etapa e chaves que diferem.
+2. Uma proposta aceita com recorrência + consultas e "plano aprovado" simulado → recarregar → Alterar → registrar se volta à tela das consultas com o estado antigo.
+3. Forçar a recusa de `tela_pagamento` → confirmar o loop de TENTAR DE NOVO.
+Se a causa não bater com o que está acima, paro e reporto antes do passo 2.
 
-1. `tela_pagamento` (planos-checkout):
-   ```text
-   if (!["contrato_aceito","aguardando_pagamento","falhou"].includes(e.etapa) || !e.aceite_id) -> "O contrato mudou..."
-   if (Object.keys(calcular).some(k => JSON.stringify(calcular[k]) !== JSON.stringify(e.revisao[k]))) -> "O contrato mudou..."
-   ```
-2. Qualquer função do banco cujo erro contenha esse texto. O servidor repassa à tela os erros da lista NEUTRAS e troca qualquer outro por uma mensagem genérica. As funções de início de pagamento (migrações 0103/0104/0112/0122) têm esse texto, mas não são chamadas nessa tela.
-3. A chamada da prévia das consultas (F2/F3) **não** pode gerar essa mensagem. Quando ela falha, a tela mostra a mensagem genérica, porque o erro não é do tipo `ErroCheckout`.
+## Passo 2: correção mínima (depois do passo 1)
+a) **Começar nova simulação (só na prévia)**
+- Em `?previa=1`, se houver proposta guardada, mostrar um aviso "Você tem uma simulação em andamento" com **Continuar** e **Começar nova simulação**. Não retomar automaticamente.
+- "Começar nova simulação" apaga a sessão e a marca de confirmação guardadas no navegador e volta ao Passo 1. A proposta nova nasce no cadastro, como hoje. A antiga fica no banco, sem ser apagada.
+- Também não retomar quando a proposta guardada não for de prévia, ou quando o servidor recusar o `estado`.
+- O público continua como está.
 
-**Conclusão parcial:** a mensagem que você viu veio de `tela_pagamento`. Ou seja, a tela **pulou o desvio da prévia das consultas** e seguiu pelo caminho normal de pagamento único. Esse desvio só roda com `previa` = verdadeiro, aceite registrado e resumo de recorrência com consultas.
+b) **Alterar e divergência sem beco**
+- **Servidor (`planos-checkout`, só `tela_pagamento`):** a recusa por divergência ou falta de aceite passa a devolver um código interno `refazer_revisao`. O texto mostrado continua o mesmo.
+- **Tela:** ao receber esse código, ou quando o estado não tem aceite, chamar `revisar` e ir ao Passo 6 com o resumo novo e o botão de seguir ao contrato. TENTAR DE NOVO só continua para falhas de rede.
+- **Alterar:** limpar a marca de confirmação guardada e o estado simulado das consultas daquela proposta. A limpeza usa uma nova ação admin em `planos-consultas-previa`, que só apaga os registros da prévia (`consultas-previa-f2`) dessa proposta.
+- **Tela plano + consultas:** ganha o botão Alterar, enquanto o plano não estiver pago de verdade.
+- Nada muda no cálculo, nos contratos, nos aceites nem nas regras de pagamento.
 
-**O que foi descartado:**
-- Catálogo inalterado desde 13/10. Valor do plano e das consultas conferem com o resumo guardado (544.680 + 162.000 = 706.680 centavos).
-- O texto do contrato não muda entre chamadas: o hash é calculado no aceite e não entra nessa conferência.
-- F1, F2 e F3 não mexeram em `fn_checkout_2027_calcular`, `_revisar`, `_estado` nem nos modelos de contrato.
-- O aceite específico das consultas é guardado à parte e não entra nessa conferência.
-- As duas últimas propostas de prévia (13:36 e 13:38) estão "contrato aceito", com resumo completo. Uma delas passou pela tela F2: 5 registros de simulação e 1 obrigação.
+## Passo 3: validação
+- **Antes e depois:** repetir os 3 cenários do passo 1. Esperado depois: nenhum loop, Alterar leva ao Passo 6 → contrato → novo aceite → pagamento, e "Começar nova simulação" cria uma proposta nova.
+- **Regressões:** público sem `previa` continua retomando e segue bloqueado em recorrência + consultas ("contato com a equipe"). Também conferir 12x combinado, Pix do plano, plano sem consultas e confirmação já paga.
+- **Testes novos (Vitest):** escolha retomar/nova na prévia; `refazer_revisao` leva à revisão; Alterar limpa a marca. Testes Deno do código de recusa. Rodar a suíte inteira.
+- Conferir no computador e no celular.
+- Depois, listar as propostas de teste criadas. Só apago com sua aprovação.
 
-## Causa provável (ainda não comprovada)
-1. **Mais provável:** o teste foi feito na versão publicada do site, que ainda não tem a tela F2/F3 (falta o Publish). Lá não existe o desvio, e o pagamento único rejeita recorrência com consultas.
-   - Pendente: confirmar por que a conferência de `tela_pagamento` dá diferença nesse caso.
-   - Pendente: confirmar se a versão publicada da função `planos-checkout` é igual à do código.
-2. **Alternativa:** a prévia perdeu `previa=1` (por exemplo, ao recarregar ou ao voltar por "Alterar"). Sem isso, a tela não entra no desvio.
+## Publicação
+- Funções `planos-checkout` e `planos-consultas-previa` são publicadas por mim. A mudança é só na resposta de recusa e na limpeza da prévia.
+- A tela precisa de Publish seu.
 
-## Regressão?
-- **Público:** visitante não chega a esse ponto, porque recorrência com consultas segue bloqueada em "contato com a equipe". Planos sem recorrência e o 12x combinado não passam por essa diferença.
-- **Antes da F2:** recorrência com consultas sempre terminava em `tela_pagamento`. Então o travamento provavelmente já existia antes, e a F2 só o contorna na prévia publicada. A confirmar no passo 1.
-
-## Plano (aguarda aprovação)
-1. **Reproduzir com prova:**
-   - Abrir `/planos?previa=1` como admin, na prévia e no endereço publicado.
-   - Criar uma proposta de prévia de teste, sem pagamento, com Power 2x, recorrência e Nutri 4+2.
-   - Registrar qual chamada devolve a mensagem e qual chave da conferência difere.
-   - Conferir a versão publicada da função `planos-checkout` e se a tela entra no desvio.
-   - Isso grava só uma proposta de prévia de teste, igual aos testes da F2.
-2. **Correção mínima, conforme a causa confirmada:**
-   - Se for falta de Publish: nenhuma mudança no código, só publicar o aplicativo.
-   - Se `previa` se perder: guardar a marca de prévia junto da sessão, conferida de novo no servidor, e passá-la ao reabrir a tela.
-   - Se a conferência de `tela_pagamento` falhar de verdade: corrigir só a comparação, ignorando campos que não são do cálculo, sem mexer no hash do contrato.
-3. **Validar:**
-   - Fluxo Power 2x com recorrência e consultas chega ao contrato e ao pagamento da prévia.
-   - Público continua bloqueado.
-   - 12x combinado e planos sem consultas não mudam.
-   - Rodar os testes completos.
-
-## Detalhes técnicos
-- Exibição: `src/components/planos/CheckoutSite2027.tsx` (`carregarRevisao`, desvio `previa && aceite_id && consultasSeparadas`; "Tentar de novo" quando `revisao` é nulo).
-- Mensagem repassada por `rpc()`/`NEUTRAS` em `supabase/functions/planos-checkout/index.ts`.
-- Nenhuma alteração em chaves, crons, flags ou banco nesta etapa.
+## Fora do escopo
+Sem cobrança real, e-mail real, chaves, crons ou flags. Banco sem migração. Público continua bloqueado. F4 e F5 não entram.
