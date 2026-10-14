@@ -967,6 +967,13 @@
       "when": 1791983735855,
       "tag": "0137_consultas_recorrencia_f1_isolamento",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1791983853551,
+      "tag": "0138_consultas_recorrencia_f1_grants_restritos",
+      "breakpoints": true
     }
   ]
 }
