@@ -6372,11 +6372,14 @@ export type Database = {
       }
       planos_2027_mensalidades: {
         Row: {
+          baixa_manual_forma: string | null
+          baixa_manual_por: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
           id: string
           motivo: string | null
+          notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
           proposta_id: string
@@ -6392,11 +6395,14 @@ export type Database = {
           vencimento: string
         }
         Insert: {
+          baixa_manual_forma?: string | null
+          baixa_manual_por?: string | null
           competencia: string
           contrato_id?: string | null
           created_at?: string
           id?: string
           motivo?: string | null
+          notificacao_inadimplencia_id?: string | null
           numero: number
           pago_em?: string | null
           proposta_id: string
@@ -6412,11 +6418,14 @@ export type Database = {
           vencimento: string
         }
         Update: {
+          baixa_manual_forma?: string | null
+          baixa_manual_por?: string | null
           competencia?: string
           contrato_id?: string | null
           created_at?: string
           id?: string
           motivo?: string | null
+          notificacao_inadimplencia_id?: string | null
           numero?: number
           pago_em?: string | null
           proposta_id?: string
@@ -7789,6 +7798,8 @@ export type Database = {
           aceite_id: string | null
           aluno_id: string | null
           aluno_suspeito_id: string | null
+          assinatura_cancelada_em: string | null
+          assinatura_cancelada_por: string | null
           chave_sessao_hash: string | null
           configuracao: Json
           consentimento_contato_em: string | null
@@ -7846,6 +7857,8 @@ export type Database = {
           aceite_id?: string | null
           aluno_id?: string | null
           aluno_suspeito_id?: string | null
+          assinatura_cancelada_em?: string | null
+          assinatura_cancelada_por?: string | null
           chave_sessao_hash?: string | null
           configuracao?: Json
           consentimento_contato_em?: string | null
@@ -7903,6 +7916,8 @@ export type Database = {
           aceite_id?: string | null
           aluno_id?: string | null
           aluno_suspeito_id?: string | null
+          assinatura_cancelada_em?: string | null
+          assinatura_cancelada_por?: string | null
           chave_sessao_hash?: string | null
           configuracao?: Json
           consentimento_contato_em?: string | null
@@ -10657,6 +10672,8 @@ export type Database = {
           aceite_id: string | null
           aluno_id: string | null
           aluno_suspeito_id: string | null
+          assinatura_cancelada_em: string | null
+          assinatura_cancelada_por: string | null
           chave_sessao_hash: string | null
           configuracao: Json
           consentimento_contato_em: string | null
@@ -11407,6 +11424,14 @@ export type Database = {
         Args: { _data_inicio: string }
         Returns: string
       }
+      fn_recorrencia_2027_baixa_manual: {
+        Args: { p_forma: string; p_id: string }
+        Returns: string
+      }
+      fn_recorrencia_2027_cancelar: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
       fn_recorrencia_2027_cronograma: {
         Args: { p_tentativa_id: string }
         Returns: number
@@ -11414,11 +11439,14 @@ export type Database = {
       fn_recorrencia_2027_devidas: {
         Args: { p_hoje: string; p_limite?: number }
         Returns: {
+          baixa_manual_forma: string | null
+          baixa_manual_por: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
           id: string
           motivo: string | null
+          notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
           proposta_id: string
@@ -11440,6 +11468,78 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      fn_recorrencia_2027_devidas_simulacao: {
+        Args: { p_hoje: string; p_proposta_id: string }
+        Returns: {
+          baixa_manual_forma: string | null
+          baixa_manual_por: string | null
+          competencia: string
+          contrato_id: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          notificacao_inadimplencia_id: string | null
+          numero: number
+          pago_em: string | null
+          proposta_id: string
+          proxima_tentativa_em: string | null
+          referencia: string | null
+          simulado: boolean
+          status: string
+          tentativas: number
+          tid: string | null
+          tokenizacao_id: string
+          updated_at: string
+          valor_centavos: number
+          vencimento: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "planos_2027_mensalidades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      fn_recorrencia_2027_inadimplente_aviso: {
+        Args: { p_id: string }
+        Returns: string
+      }
+      fn_recorrencia_2027_incertas: {
+        Args: { p_proposta_id?: string; p_simulado: boolean }
+        Returns: {
+          baixa_manual_forma: string | null
+          baixa_manual_por: string | null
+          competencia: string
+          contrato_id: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          notificacao_inadimplencia_id: string | null
+          numero: number
+          pago_em: string | null
+          proposta_id: string
+          proxima_tentativa_em: string | null
+          referencia: string | null
+          simulado: boolean
+          status: string
+          tentativas: number
+          tid: string | null
+          tokenizacao_id: string
+          updated_at: string
+          valor_centavos: number
+          vencimento: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "planos_2027_mensalidades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      fn_recorrencia_2027_pode_cobrar: {
+        Args: { p_id: string }
+        Returns: string
+      }
       fn_recorrencia_2027_proximo_ciclo: {
         Args: { p_proposta_id: string }
         Returns: string
@@ -11447,11 +11547,14 @@ export type Database = {
       fn_recorrencia_2027_reservar: {
         Args: { p_id: string }
         Returns: {
+          baixa_manual_forma: string | null
+          baixa_manual_por: string | null
           competencia: string
           contrato_id: string | null
           created_at: string
           id: string
           motivo: string | null
+          notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
           proposta_id: string
