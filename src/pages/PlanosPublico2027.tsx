@@ -133,7 +133,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   const parcelasPlano = resumo?.plano.parcelas ?? [];
   const primeira = parcelasPlano[0];
   const consultasParcela = primeira?.servicos ?? 0;
-  const separado = formaEfetiva === 'recorrencia' && totalConsultas > 0;
+  const separado = catalogo.previa && formaEfetiva === 'recorrencia' && totalConsultas > 0;
   const resumoSeparado = resumo && item ? <ResumoConsultasSeparadas revisao={{ etapa: 'escolha', familia, plano_codigo: item.codigo, forma_plano: formaEfetiva, parcelas_plano: parcelasPlano.length, plano_centavos: Math.round(resumo.totalPlano * 100), servicos: servicosEscolhidos.map(s => ({ codigo: s.codigo, nome: s.nome, valor_centavos: Math.round(s.valor * 100) })), servicos_centavos: Math.round(totalConsultas * 100), forma_servicos: formaServicos, parcelas_servicos: parcelasServicos, corrida_periodo_meses: null, corrida_total_centavos: null, total_centavos: Math.round(resumo.totalGeral * 100) }} /> : null;
   const detalhesConteudo = resumo && ref && <div className="space-y-6 text-sm leading-relaxed">
     {separado && resumoSeparado}
