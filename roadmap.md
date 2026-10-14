@@ -44,4 +44,5 @@
 - [x] Ativação 2027 — Fase E: e-mail único com comprovante/contrato aceito, reenvio admin, 9 testes de e-mail e 892 testes gerais; ensaios Power Pix/Start recorrência e envio seguro único, sem ativação/baixa.
 - [ ] Fase E — comprovar recebimento na caixa de teste (aguarda confirmação do dono) e e-mail após compra real ativada (aguarda compra real autorizada).
 - [x] Consultas + recorrência — F1: obrigação/snapshot, finalidade, aceite, reservas/estados, liberação pós-pagamento e cancelamento somente admin; ensaios SQL desfeitos, 892 Vitest + 42 Deno; contagens/chaves/crons preservados; bloqueio público mantido e permissões conferidas após restrição explícita.
-- [ ] Consultas + recorrência — F2–F5 aguardam aprovação separada; sem liberação pública nesta rodada.
+- [ ] Consultas + recorrência — F2 aprovada: tela de prévia admin com dois pagamentos simulados, aceite F1, estados persistidos no servidor e regressões desktop/móvel; sem ativação financeira ou liberação pública.
+- [ ] Consultas + recorrência — F3–F5 aguardam aprovação separada; sem liberação pública nesta rodada.
