@@ -8,7 +8,7 @@ O site vende só o plano (Start, Power, Pro): cartão parcelado, recorrência e 
 - Cron novo das mensalidades 2027 ativo às 08:00 de Brasília. Cron antigo inativo (conferir de novo no go-live).
 - O passo 4 de 5 da página ("Acompanhamento") hoje lista os pacotes com preço. Esses preços também aparecem no resumo, nos detalhes, na barra do celular e no pagamento.
 - A proposta nasce direto no banco (`fn_proposta_plano_2027_criar`) e recebe a lista de consultas que o navegador envia.
-- **Contato:** o número usado na página de planos é `WHATSAPP_FORTEM = 5135199451`, sem o 55 do Brasil. O da página da Corrida é `555135199451`. O primeiro deve abrir o WhatsApp errado, então proponho usar **+55 51 3519-9451** (`555135199451`) nos dois lugares. Confirme se é esse o número oficial.
+- **Contato:** confirmado com o dono — número oficial **+55 51 3519-9451** (`555135199451`), já aplicado em todo o projeto (`WHATSAPP_FORTEM` e página da Corrida). Mensagem pré-preenchida do aviso de consultas: "Olá! Quero incluir nutrição ou fisioterapia no plano {plano}" (mesma ideia do exemplo do dono, citando o plano escolhido).
 
 ## 1. Página pública (só tela)
 - O passo "Acompanhamento" passa a ser um aviso: "Quer incluir nutrição ou fisioterapia? Fale com a equipe", com botão de WhatsApp e mensagem pronta com o plano escolhido. Nenhum pacote para escolher e nenhum preço.
@@ -47,7 +47,7 @@ Formas: Pix à vista, cartão 3x e recorrência Start (1ª mensalidade).
 - Uma compra pública de verdade cobra o valor cheio. Não existe ensaio público de baixo valor.
 - O cron só foi provado com zero mensalidades devidas. A 1ª cobrança automática real só acontece um mês depois da 1ª venda com recorrência.
 - Confirmar o recebimento do e-mail da Fase E na caixa de teste.
-- Corrigir o número do WhatsApp (item acima).
+- O aviso de consultas usa o número oficial já confirmado (`555135199451`); verificado por teste automático.
 
 ## 5. Regressões e conferência
 - Testes automáticos:
