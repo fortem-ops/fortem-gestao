@@ -2,6 +2,7 @@
 
 - [ ] ANEXO I no checkout /planos: migração `scripts/anexo1-checkout.PROPOSTA.sql` + volta preparadas (aguarda aprovação do texto); depois ensaio desfeito → função → tela (cópia do /assinar, restrição sem atestado + aviso, menores de 18 bloqueados) → testes → deploy da função junto do Publish.
 - [x] Expirar e2538616 (lixo de teste autorizado).
+- [ ] Limpeza das propostas de teste (só DEPOIS do ANEXO I): listar; backup + rollback; apagar só sem pagamento/ativação/Rede/cobrança, com dependentes; preservar e listar as pagas (07289404, Pix R$1 de 13/10…); sem tocar sistema_config, tokenizações, cron, balcão.
 
 - [x] Expirar somente a proposta pública 8f9441a2 e invalidar sua sessão; outra proposta real aberta com aceite: e2538616 (preservada).
 - [x] Atualizar confirmação do Passo 9 com ativação automática e WhatsApp; 915 Vitest + 30 Deno passaram.
