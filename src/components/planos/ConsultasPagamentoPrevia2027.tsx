@@ -83,7 +83,7 @@ function CartaoConsultas({ desabilitado, parcelas, valor, onPagar }: { desabilit
   const v = dividirCentavos(valor, parcelas);
   function enviar() {
     const r = validarCartao(c);
-    if (!r.ok) { setErro(r.erro); return; }
+    if (r.ok === false) { setErro(r.erro); return; }
     setErro(''); setC({ numero: '', nome: '', validade: '', cvv: '' });
     onPagar(r.cartao, cenario);
   }
