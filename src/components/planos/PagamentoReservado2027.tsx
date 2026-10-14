@@ -18,7 +18,7 @@ export type RevisaoCheckout = {
 };
 export type TelaPagamento = {
   revisao: RevisaoCheckout; aceite_id: string;
-  pagamento: { reservado: boolean; cartao_a_combinar?: boolean; cartao_real?: boolean; cartao_simulado?: boolean; validade_pix_segundos: number; formas_permitidas: string[]; parcelas: number[]; parcelas_servicos: number[] };
+  pagamento: { reservado: boolean; cartao_a_combinar?: boolean; cartao_real?: boolean; cartao_simulado?: boolean; teste_real_centavos?: number | null; validade_pix_segundos: number; formas_permitidas: string[]; parcelas: number[]; parcelas_servicos: number[] };
 };
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const nomes: Record<string, string> = { start_2027: "Start", power_2027: "Power", pro_2027: "Pro" };
@@ -113,6 +113,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
     ? dividirCentavos(r.plano_centavos + (r.forma_servicos ? 0 : r.servicos_centavos), parcelasEscolhida)
     : (recorrencia ? p.parcelas.slice(0, 1) : p.parcelas);
   const ehStart = r.familia === "start_2027";
+  const testeReal = formCartao && p.cartao_real === true && (p.teste_real_centavos ?? 0) > 0 ? p.teste_real_centavos! : null;
   const [avisando, setAvisando] = useState(false);
   const [erroCombinar, setErroCombinar] = useState("");
   async function combinarComEquipe() {
@@ -125,7 +126,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
   const linhas = [
     [C.revisao.frequencia, frequencias[codigo.frequencia] ?? codigo.frequencia],
     [C.revisao.periodo, r.familia === "start_2027" ? "Mensal, sem fidelidade" : "12 meses"],
-    [C.revisao.pagamento, `${forma} · ${recorrencia ? `${brl(p.parcelas[0])} por mês` : pix ? brl(r.plano_centavos) : descrever(parcelasAtuais)}`],
+    [C.revisao.pagamento, testeReal ? `${forma} · ${C.pagamento.testeRealResumo(brl(testeReal))}` : `${forma} · ${recorrencia ? `${brl(p.parcelas[0])} por mês` : pix ? brl(r.plano_centavos) : descrever(parcelasAtuais)}`],
     [C.revisao.acompanhamento, r.servicos.length ? r.servicos.map((s) => `${s.nome.replace(/\s*\(2027\)\s*$/, "")} · ${brl(s.valor_centavos)}`).join(", ") + (p.parcelas_servicos.length ? ` · ${r.forma_servicos === "pix_vista" ? C.pagamento.pix : descrever(p.parcelas_servicos)}` : "") : C.revisao.nenhum],
     [C.revisao.corrida, r.corrida_total_centavos ? `${r.corrida_periodo_meses} ${r.corrida_periodo_meses === 1 ? "mês" : "meses"} · ${brl(r.corrida_total_centavos)} · ${C.revisao.corridaParte}` : C.revisao.nenhum],
   ];
@@ -158,7 +159,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.recorrenciaPrevia}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.primeiraRecorrencia}</p></div>
             <Button className={`${controle} mt-5 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>
           </> : formCartao ? <CartaoPagamento2027 sessao={sessao} simulacao={p.cartao_real !== true} parcelas={parcelasAtuais} parcelasEscolhida={escolherParcelas ? parcelasEscolhida : undefined}
-            onEscolherParcelas={escolherParcelas ? setParcelasEscolhida : undefined} onTravado={setTravado}
+            onEscolherParcelas={escolherParcelas ? setParcelasEscolhida : undefined} onTravado={setTravado} testeReal={formCartao && p.cartao_real === true ? p.teste_real_centavos ?? null : null} valorCheio={r.total_centavos}
             onAprovado={(sim) => { setTravado(false); setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />
           : <PagamentoAtivo sessao={sessao} pix={pix} onAprovado={(sim) => { setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />}
         </>}
