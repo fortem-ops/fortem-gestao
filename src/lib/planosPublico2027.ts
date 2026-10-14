@@ -39,8 +39,15 @@ export type CatalogoPublico = {
   corrida: CorridaPublica[];
 };
 
-/** WhatsApp de atendimento (mesmo número da página anterior de planos). */
-export const WHATSAPP_FORTEM = "5135199451";
+/** WhatsApp oficial de atendimento (+55 51 3519-9451), com o código do país. */
+export const WHATSAPP_FORTEM = "555135199451";
+
+/** Consultas fora do site: a equipe fecha e lança no balcão. Simulação F2/F3 fica dormente. */
+export const CONSULTAS_NO_SITE = false;
+
+export function linkConsultasEquipe(plano: string): string {
+  return `https://wa.me/${WHATSAPP_FORTEM}?text=${encodeURIComponent(`Olá! Quero incluir nutrição ou fisioterapia no plano ${plano}.`)}`;
+}
 
 export const FAMILIAS: Familia2027[] = ["start_2027", "power_2027", "pro_2027"];
 export const FREQUENCIAS: Frequencia2027[] = ["1x", "2x", "3x", "livre"];
