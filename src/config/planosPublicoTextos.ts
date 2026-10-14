@@ -195,9 +195,11 @@ export const TEXTOS_CHECKOUT = {
       `Assinatura ativa. 1ª mensalidade de ${mensal} paga hoje. Próximas cobranças automáticas todo dia ${dia} no cartão cadastrado. ${start ? "Renova mensalmente, cancele quando quiser." : "12 mensalidades."}`,
     titulo: "Proposta registrada", tituloPago: "Pagamento confirmado", status: "Aguardando pagamento", passo: "Passo 9 de 9",
     texto: "Seu contrato foi aceito. Nenhum pagamento foi realizado.",
-    textoAprovado: "Seu contrato foi aceito e o pagamento foi aprovado. A equipe FORTEM ativa seu plano e fala com você.",
+    textoAprovado: "Seu plano foi ativado. Enviamos a confirmação para o seu e-mail (veja também o spam).",
     proximos: "Próximos passos", equipe: "A equipe FORTEM acompanha sua proposta e orienta você para concluir o pagamento quando estiver disponível.",
-    equipePago: "Recebemos o seu pagamento. A equipe FORTEM entra em contato pelo WhatsApp para ativar o seu plano e agendar o início.",
+    equipePago: "Qualquer dúvida, fale com a equipe FORTEM pelo WhatsApp.",
+    whatsappBotao: "Fale com a equipe FORTEM",
+    whatsappUrl: "https://wa.me/555135199451",
   },
   previaLogin: {
     titulo: "Prévia de admin", texto: "Prévia de admin: entre no sistema com a sua conta de administrador neste endereço para continuar.",

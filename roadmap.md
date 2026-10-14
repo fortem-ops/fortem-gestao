@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Expirar somente a proposta pública 8f9441a2 e invalidar sua sessão; outra proposta real aberta com aceite: e2538616 (preservada).
+- [x] Atualizar confirmação do Passo 9 com ativação automática e WhatsApp; 915 Vitest + 30 Deno passaram.
+
 - [x] Checkout /planos — 2D-2: Pagamento reservado e Confirmação; 48 testes, prévia móvel/desktop, retomada e recusa anônima verificadas; contagens preservadas.
 - [x] Pagamentos P0+P1+P2 em simulação (Pix à vista, cartão 12x)
 - [ ] P3 webhook do Pix (aguarda aprovação)

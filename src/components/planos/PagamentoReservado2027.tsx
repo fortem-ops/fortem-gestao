@@ -141,6 +141,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
           <h2 className="mt-7 font-display text-lg font-bold uppercase">{C.confirmacao.proximos}</h2>
           {recorrencia && (pago || aprovado) && <p className="mt-3 text-sm leading-relaxed">{C.confirmacao.assinatura(brl(p.parcelas[0] ?? 0), new Date().getDate(), ehStart)}</p>}
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{pago ? C.confirmacao.equipePago : C.confirmacao.equipe}</p>
+          {pago && <Button asChild className={`${controle} mt-7 w-full`}><a href={C.confirmacao.whatsappUrl} target="_blank" rel="noopener noreferrer">{C.confirmacao.whatsappBotao}</a></Button>}
           {!pago && <Button variant="outline" className={`${controle} mt-7 w-full`} onClick={onVoltar}>{C.pagamento.voltar}</Button>}
         </> : <>
           <h2 className="font-display text-lg font-bold uppercase">{C.pagamento.forma}</h2>
