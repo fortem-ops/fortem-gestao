@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] ANEXO I no checkout /planos: migração `scripts/anexo1-checkout.PROPOSTA.sql` + volta preparadas (aguarda aprovação do texto); depois ensaio desfeito → função → tela (cópia do /assinar, restrição sem atestado + aviso, menores de 18 bloqueados) → testes → deploy da função junto do Publish.
+- [x] ANEXO I: migração 0142 aplicada e conferida; função, tela e ficha prontas; ensaio desfeito e testes OK.
+- [ ] ANEXO I: publicar `planos-checkout` no momento do Publish do dono (aguarda o dono).
 - [x] Expirar e2538616 (lixo de teste autorizado).
 - [ ] Limpeza das propostas de teste (só DEPOIS do ANEXO I): listar; backup + rollback; apagar só sem pagamento/ativação/Rede/cobrança, com dependentes; preservar e listar as pagas (07289404, Pix R$1 de 13/10…); sem tocar sistema_config, tokenizações, cron, balcão.
 
