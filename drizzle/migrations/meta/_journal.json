@@ -974,6 +974,13 @@
       "when": 1791983853551,
       "tag": "0138_consultas_recorrencia_f1_grants_restritos",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1791985963473,
+      "tag": "0139_consultas_recorrencia_f3_cartao",
+      "breakpoints": true
     }
   ]
 }

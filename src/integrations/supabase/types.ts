@@ -11133,6 +11133,22 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_consultas_2027_cartao_liquidado: {
+        Args: {
+          p_autorizacao: string
+          p_nsu: string
+          p_parcelas: number
+          p_return_code: string
+          p_tentativa_id: string
+          p_tid: string
+          p_valor_centavos: number
+        }
+        Returns: Json
+      }
+      fn_consultas_2027_cartao_resultado: {
+        Args: { p_motivo: string; p_status: string; p_tentativa_id: string }
+        Returns: Json
+      }
       fn_consultas_2027_estado: {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: Json
