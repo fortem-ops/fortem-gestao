@@ -6559,6 +6559,24 @@ export type Database = {
         }
         Relationships: []
       }
+      planos_recorrencia_cron_hash: {
+        Row: {
+          criado_em: string
+          id: number
+          sha256: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: number
+          sha256: string
+        }
+        Update: {
+          criado_em?: string
+          id?: number
+          sha256?: string
+        }
+        Relationships: []
+      }
       planos_turnstile_passes: {
         Row: {
           consumido_em: string | null

@@ -16,3 +16,4 @@
 - Subdirectories may have their own AGENTS.md; read it before changing files there.
 - Checkout /planos rules live in `supabase/functions/planos-checkout/AGENTS.md`.
 - Cadastro único /planos: identificação e dados do contrato num só formulário; CPF obrigatório. Preenchimento automático só após código de e-mail validado (`planos-codigo` enviar/validar/dados_verificados, resposta igual para qualquer CPF) ou prévia de admin conferida no servidor; proposta nasce no envio do cadastro por `fn_proposta_plano_2027_criar`, que infere o tipo pelo vínculo. Por quê: ninguém vê ou atrela dados de outra pessoa só sabendo um CPF.
+- O cron planos-recorrencia-diario autentica por `x-cron-secret` (valor só no cofre do banco, hash em `planos_recorrencia_cron_hash`), válido apenas para o modo real; por quê: a chave de serviço não fica disponível para o job e o cron nunca pode simular nem fazer teste real.

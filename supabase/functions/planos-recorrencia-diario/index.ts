@@ -6,10 +6,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { acessoRede, cobrar, consultarPorReferencia, type Acesso } from "../_shared/planos-cartao-rede.ts";
 import { mapearConsulta, mapearTransacao, motivoRecusa, validadeToken } from "../_shared/planos-cartao.ts";
 import { executar, executarTesteReal, type DepsRec, type Mensalidade } from "./fluxo.ts";
+import { modoCronPermitido, segredoConfere } from "./cron.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (status: number, body: unknown) =>
@@ -24,6 +25,14 @@ async function ehServico(bearer: string, apikey: string): Promise<boolean> {
   if (bearer.split(".").length !== 3) return false;
   const { data, error } = await sup.auth.getClaims(bearer);
   return !error && data?.claims?.role === "service_role";
+}
+// x-cron-secret: segredo dedicado da rotina diária (guardado no cofre do banco; aqui só o hash SHA-256).
+// Vale SOMENTE para o modo real normal; nunca para simulação/teste real; nunca registrado em log.
+async function ehCron(segredo: string): Promise<boolean> {
+  if (!segredo || segredo.length < 32 || segredo.length > 256) return false;
+  const { data } = await sup.from("planos_recorrencia_cron_hash").select("sha256").eq("id", 1).maybeSingle();
+  if (!data?.sha256) return false;
+  return segredoConfere(segredo, data.sha256);
 }
 async function ehAdmin(bearer: string): Promise<boolean> {
   if (!bearer) return false;
@@ -130,10 +139,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json(405, { ok: false });
   const bearer = req.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
+  const cronSecret = req.headers.get("x-cron-secret");
+  const body = await req.json().catch(() => ({}));
+  if (cronSecret !== null) {
+    // Caminho exclusivo do cron: só modo real normal.
+    if (!(await ehCron(cronSecret))) return json(401, { ok: false });
+    if (!modoCronPermitido(body)) return json(403, { ok: false, erro: "cron só executa o modo real" });
+    return await modoReal();
+  }
   const servico = await ehServico(bearer, req.headers.get("apikey") ?? "");
   const admin = !servico && (await ehAdmin(bearer));
   if (!servico && !admin) return json(401, { ok: false });
-  const body = await req.json().catch(() => ({}));
 
   try {
     if (body?.modo === "simulacao") {
@@ -160,8 +176,17 @@ Deno.serve(async (req) => {
       await log("teste_real", `teste real: ${r.ok ? r.resultado : r.motivo}`, { proposta_id: pid, ...r });
       return json(200, r);
     }
-    // Modo real: só a chave de serviço (rotina diária, quando existir).
+    // Modo real: chave de serviço (ou o cron, tratado acima).
     if (!servico) return json(403, { ok: false, erro: "admin só executa simulação" });
+    return await modoReal();
+  } catch (e) {
+    await log("erro", String((e as Error)?.message ?? "erro").slice(0, 200));
+    return json(500, { ok: false });
+  }
+});
+
+async function modoReal(): Promise<Response> {
+  try {
     const hoje = hojeSP();
     const { data: flag } = await sup.from("sistema_config").select("valor").eq("chave", "planos_recorrencia_ativa").maybeSingle();
     if (String(flag?.valor ?? "false").replace(/"/g, "") !== "true") {
@@ -177,4 +202,4 @@ Deno.serve(async (req) => {
     await log("erro", String((e as Error)?.message ?? "erro").slice(0, 200));
     return json(500, { ok: false });
   }
-});
+}
