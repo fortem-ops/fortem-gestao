@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Switch } from "@/components/ui/switch";
 import { CadastroContratante2027, type DadosContratante } from "@/components/planos/CadastroContratante2027";
 import { CheckoutSite2027 } from "@/components/planos/CheckoutSite2027";
+import { ResumoConsultasSeparadas } from '@/components/planos/ConsultasPagamentoPrevia2027';
 import { checkout, ErroCheckout, iniciarCheckoutPublico, restaurarSessao, salvarSessao, type SessaoCheckout } from "@/lib/checkoutSite2027";
 import { Check, ArrowLeft, CircleHelp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,7 +133,10 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   const parcelasPlano = resumo?.plano.parcelas ?? [];
   const primeira = parcelasPlano[0];
   const consultasParcela = primeira?.servicos ?? 0;
+  const separado = formaEfetiva === 'recorrencia' && totalConsultas > 0;
+  const resumoSeparado = resumo && item ? <ResumoConsultasSeparadas revisao={{ etapa: 'escolha', familia, plano_codigo: item.codigo, forma_plano: formaEfetiva, parcelas_plano: parcelasPlano.length, plano_centavos: Math.round(resumo.totalPlano * 100), servicos: servicosEscolhidos.map(s => ({ codigo: s.codigo, nome: s.nome, valor_centavos: Math.round(s.valor * 100) })), servicos_centavos: Math.round(totalConsultas * 100), forma_servicos: formaServicos, parcelas_servicos: parcelasServicos, corrida_periodo_meses: null, corrida_total_centavos: null, total_centavos: Math.round(resumo.totalGeral * 100) }} /> : null;
   const detalhesConteudo = resumo && ref && <div className="space-y-6 text-sm leading-relaxed">
+    {separado && resumoSeparado}
     {familia !== "start_2027" && passo < 4 && <p>{T.resumoAnual(brl(encontrarItem(catalogo, familia, freq, "cartao_parcelado")?.valor ?? 0))}</p>}
     <div><h3 className="font-bold text-lg">{nome} · {frequencia}</h3><p className="mt-2 text-muted-foreground">{familia === "start_2027" ? "Plano mensal, sem fidelidade." : `Fidelidade de ${ref.fidelidade_meses} meses, ${ref.licenca_dias} dias de trancamento e ${ref.avaliacoes_funcionais} ${ref.avaliacoes_funcionais === 1 ? "avaliação funcional" : "avaliações funcionais"}.`}</p></div>
     <div className="space-y-3 border-t border-border pt-5"><h3 className="font-display font-bold uppercase">{T.detalhes.adicionais}</h3>{servicosEscolhidos.length ? servicosEscolhidos.map((s) => <div key={s.codigo} className="flex justify-between gap-4"><span>{nomeServico(s)}</span><strong className="shrink-0">{brl(s.valor)}</strong></div>) : <p className="text-muted-foreground">Nenhum</p>}<div className="flex justify-between gap-4 font-bold"><span>{T.detalhes.consultas}</span><span>{brl(totalConsultas)}</span></div>{corridaEscolhida && <p>Grupo de corrida · {periodoLabel(corridaPeriodo ?? 1)}: {brl(corridaEscolhida.valor)} à parte ({brl(corridaEscolhida.valor / (corridaPeriodo ?? 1))} por mês).</p>}</div>
@@ -147,7 +151,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
     {catalogo.previa && <div className="bg-primary text-primary-foreground text-center text-xs font-semibold py-2 px-4">Prévia — itens ainda não estão à venda</div>}
     <header className="border-b border-border"><div className="mx-auto max-w-6xl px-4 sm:px-8 py-5 flex items-center justify-between"><span className="font-display text-xl font-black">FORTEM</span><span className="text-xs uppercase">Monte seu plano</span></div></header>
     <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-6 pb-48 lg:pb-12">
-      {sessao && !alterando ? <CheckoutSite2027 key={`${sessao.proposta_id}-${etapaSessao}`} sessao={sessao} etapaInicial={etapaSessao} contratante={contratante}
+      {sessao && !alterando ? <CheckoutSite2027 key={`${sessao.proposta_id}-${etapaSessao}`} sessao={sessao} etapaInicial={etapaSessao} contratante={contratante} previa={catalogo.previa}
         nome={contato.nome || "Do seu cadastro"} email={contato.email || "Do seu cadastro"}
         onAlterar={() => { setAlterando(true); setContratante(null); ir(0); }}
         onSessaoInvalida={() => { setSessao(null); setEtapaSessao(undefined); ir(0); }} />
@@ -173,6 +177,7 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
             <div className="border-t border-border pt-5 text-sm leading-relaxed"><h2 className="font-bold mb-2">{P.consultas}</h2><p className="text-muted-foreground">{familia === "start_2027" ? P.consultasStart : formaEfetiva === "cartao_parcelado" ? P.consultasPlano : P.consultasExplicacao}</p></div>
             {totalConsultas > 0 && formaEfetiva !== "cartao_parcelado" && <div className="space-y-3"><div className="grid grid-cols-2 gap-3"><Opcao ativo={formaServicos === "cartao_parcelado"} onClick={() => setFormaServicos("cartao_parcelado")}>{P.cartaoConsultas}</Opcao><Opcao ativo={formaServicos === "pix_vista"} onClick={() => setFormaServicos("pix_vista")}>{P.pix_vista}</Opcao></div>{formaServicos === "cartao_parcelado" && <label className="block text-sm">Parcelas das consultas<select aria-label="Parcelas das consultas" className="campo mt-2" value={parcelasServicos} onChange={(e) => setParcelasServicos(Number(e.target.value))}>{Array.from({ length: 6 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}x</option>)}</select></label>}</div>}
             <div className="border-t border-border pt-5 text-sm leading-relaxed"><h2 className="font-bold mb-2">Grupo de corrida</h2><p className="text-muted-foreground">{P.corridaExplicacao}</p></div>
+            {separado && resumoSeparado}
           </section>}
           </>}
           <div className="hidden lg:flex mt-8 gap-3">{(passo > 0 || cadastro) && <Button variant="outline" size="icon" className="rounded-none" aria-label="Voltar" onClick={() => cadastro ? setCadastro(false) : ir(passo - 1)}><ArrowLeft /></Button>}{!cadastro && <Button disabled={!ref} className="rounded-none h-auto py-3 px-6 font-bold uppercase" onClick={() => passo === 4 ? abrirCadastro() : ir(passo + 1)}>{passo === 4 ? T.detalhes.continuar : "Continuar"}</Button>}</div>
