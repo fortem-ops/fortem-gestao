@@ -16,8 +16,8 @@ const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency"
 const vazio = { numero: "", nome: "", validade: "", cvv: "" };
 
 /** Cartão no /planos: real (Rede, pelo servidor) ou simulação da prévia admin (nada é enviado). */
-export function CartaoPagamento2027({ sessao, simulacao, parcelas, onAprovado, onTravado, chamar = checkout }: {
-  sessao: SessaoCheckout; simulacao: boolean; parcelas: number[];
+export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscolhida, onEscolherParcelas, onAprovado, onTravado, chamar = checkout }: {
+  sessao: SessaoCheckout; simulacao: boolean; parcelas: number[]; parcelasEscolhida?: number; onEscolherParcelas?: (n: number) => void;
   onAprovado: (simulado: boolean) => void; onTravado: (travado: boolean) => void;
   chamar?: typeof checkout;
 }) {
@@ -52,7 +52,8 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, onAprovado, o
     setCampos(vazio);
     setOcupado(true);
     try {
-      const corpo = simulacao ? { ...sessao, simular: simular ?? "aprovado" } : { ...sessao, cartao: v.cartao };
+      const parcelasEnvio = onEscolherParcelas ? parcelasEscolhida ?? parcelas.length : null;
+      const corpo = { ...sessao, ...(parcelasEnvio ? { parcelas: parcelasEnvio } : {}), ...(simulacao ? { simular: simular ?? "aprovado" } : { cartao: v.cartao }) };
       aplicar(await chamar<Resposta>(simulacao ? "pagar_cartao" : "tokenizar_cartao", corpo));
     } catch (err) {
       setErro(err instanceof Error ? err.message : C.erroGenerico);
@@ -83,9 +84,16 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, onAprovado, o
             onChange={(e) => setCampos((c) => ({ ...c, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))} /></label>
       </div>
       <label className="block text-sm">{C.cartao.parcelas}
-        <select className="campo mt-2" value={n} onChange={() => {}} aria-describedby="cartao-parcelas-aviso">
-          <option value={n}>{resumoParcelas}</option>
-        </select></label>
+        {onEscolherParcelas ? <>
+          <select className="campo mt-2" value={parcelasEscolhida ?? n} onChange={(e) => onEscolherParcelas(Number(e.target.value))} aria-describedby="cartao-parcelas-aviso">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((k) => <option key={k} value={k}>{k}x</option>)}
+          </select>
+          <span className="mt-2 block font-bold">{resumoParcelas}</span>
+        </> : <>
+          <select className="campo mt-2" value={n} onChange={() => {}} aria-describedby="cartao-parcelas-aviso">
+            <option value={n}>{resumoParcelas}</option>
+          </select>
+        </>}</label>
       <p id="cartao-parcelas-aviso" className="text-xs text-muted-foreground">{C.pagamento.escolhaAviso}</p>
       <p className="flex gap-2 text-xs text-muted-foreground"><LockKeyhole aria-hidden="true" className="size-4 shrink-0" />{simulacao ? C.cartao.simulacaoAviso : C.cartao.seguro}</p>
       {simulacao ? <div className="grid gap-3 sm:grid-cols-2">

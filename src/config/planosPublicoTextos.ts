@@ -147,7 +147,7 @@ export const TEXTOS_CHECKOUT = {
     cartao: "Cartão de crédito", recorrencia: "Cartão recorrente", pix: "Pix à vista",
     reservado: "O pagamento será liberado em breve",
     cartaoAviso: "Você não precisa informar dados de cartão agora.",
-    escolhaAviso: "A forma e as parcelas seguem o contrato aceito. Para mudar, altere sua escolha e aceite o contrato novamente.",
+    escolhaAviso: "Escolha as parcelas do cartão aqui. A forma segue o contrato aceito; para mudar o plano, altere a escolha e aceite o contrato de novo.",
     pagar: "Pagar — reservado", continuar: "Seguir para confirmação",
     pixCodigo: "QR Code ainda não disponível", pixCopia: "Pix Copia e Cola — reservado",
     pixValidade: "Validade do Pix quando liberado",
