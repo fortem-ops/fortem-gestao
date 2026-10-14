@@ -74,7 +74,7 @@ describe("parcelas escolhidas na etapa final de pagamento", () => {
     expect(descreverPagamento({ forma_plano: "pix_vista", parcelas_plano: 1, plano_centavos: TOTAL,
       servicos_centavos: 0, forma_servicos: null } as never)).toMatch(/Pix à vista: R\$\s*5\.148,00/);
     expect(descreverPagamento({ forma_plano: "recorrencia", parcelas_plano: 12, plano_centavos: 35390,
-      servicos_centavos: 0, forma_servicos: null } as never)).toMatch(/Recorrência mensal no cartão: R\$\s*353,90 por mês, 12 cobranças/);
+      servicos_centavos: 0, forma_servicos: null } as never)).toMatch(/Recorrência mensal no cartão: R\$\s*29,49 por mês, 12 cobranças/);
   });
 
   it("tela final: seletor ativo 1–12 começando em 12x com valor por parcela", () => {
