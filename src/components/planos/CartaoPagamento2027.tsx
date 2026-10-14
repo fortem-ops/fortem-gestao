@@ -16,8 +16,10 @@ const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency"
 const vazio = { numero: "", nome: "", validade: "", cvv: "" };
 
 /** Cartão no /planos: real (Rede, pelo servidor) ou simulação da prévia admin (nada é enviado). */
-export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscolhida, onEscolherParcelas, onAprovado, onTravado, chamar = checkout }: {
+export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscolhida, onEscolherParcelas, onAprovado, onTravado, chamar = checkout, testeReal, valorCheio }: {
   sessao: SessaoCheckout; simulacao: boolean; parcelas: number[]; parcelasEscolhida?: number; onEscolherParcelas?: (n: number) => void;
+  /** Teste real armado (só proposta de teste admin): valor em centavos que o servidor vai cobrar, sempre 1x. */
+  testeReal?: number | null; valorCheio?: number;
   onAprovado: (simulado: boolean) => void; onTravado: (travado: boolean) => void;
   chamar?: typeof checkout;
 }) {
