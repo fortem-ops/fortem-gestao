@@ -11,7 +11,7 @@ import { consultaSegura, estadoToken } from "../_shared/planos-cartao-token.ts";
 
 export type TentativaCartao = {
   id: string; proposta_id: string; status: string; motivo: string | null; valor_centavos: number; parcelas: number;
-  simulado: boolean; tokenizacao_id: string | null; consultado_em: string | null; created_at: string; updated_at: string;
+  simulado: boolean; recorrencia?: boolean; tokenizacao_id: string | null; consultado_em: string | null; created_at: string; updated_at: string;
 };
 type Resp = { httpStatus: number; parsed: any; erroRede: boolean };
 
@@ -19,7 +19,7 @@ export type Deps = {
   rede: {
     tokenizar(d: DadosCartao): Promise<{ ok: boolean; tokenizationId: string | null }>;
     consultarToken(tokenizationId: string): Promise<Resp>;
-    cobrar(i: { tokenizationId: string; tokenCode: string; mes: string; ano: string; nome: string; centavos: number; parcelas: number; reference: string; softDescriptor: string }): Promise<Resp & { etapa: "criptograma" | "transacao" }>;
+    cobrar(i: { tokenizationId: string; tokenCode: string; mes: string; ano: string; nome: string; centavos: number; parcelas: number; reference: string; softDescriptor: string; subscription?: boolean }): Promise<Resp & { etapa: "criptograma" | "transacao" }>;
     consultarPorReferencia(reference: string): Promise<Resp>;
   };
   db: {
@@ -103,6 +103,7 @@ async function avancarToken(deps: Deps, t: TentativaCartao, nome: string | null,
   const r = await deps.rede.cobrar({
     tokenizationId: reg.tokenization_id, tokenCode: reg.token_code, mes: val.mes, ano: val.ano, nome,
     centavos: t.valor_centavos, parcelas: t.parcelas, reference: referencia(t.id), softDescriptor: deps.softDescriptor,
+    subscription: t.recorrencia === true,
   });
   if (r.etapa === "criptograma") { await deps.db.resultado(t.id, "recusado", "criptograma"); return true; }
   const res = mapearTransacao({ erroRede: r.erroRede, httpStatus: r.httpStatus, returnCode: r.parsed?.returnCode ?? null });
