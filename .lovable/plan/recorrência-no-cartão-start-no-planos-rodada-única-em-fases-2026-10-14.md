@@ -71,7 +71,7 @@ Cadastro → Revisão → Contrato (recorrência) → Pagamento (cartão) → Co
 4. Avisar o aluno na recusa por WhatsApp/e-mail? **Só aviso interno nesta rodada.**
 5. Power/Pro inadimplente: créditos continuam? **Sim, só cobrança pela equipe.**
 6. Cancelamento do Start: só pela equipe (botão admin) nesta rodada? **Sim.**
-7. Horário do cron novo: **05:00**, depois da renovação das 03:00?
+7. Horário do cron novo: **08:00 America/Sao_Paulo = 11:00 UTC** (`0 11 * * *`), decidido pelo dono.
 8. Troca de cartão após recusa: link para nova tokenização? **Fica para a próxima rodada; equipe resolve.**
 
 ## Riscos
