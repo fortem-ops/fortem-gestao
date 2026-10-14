@@ -1,27 +1,55 @@
-# F3 — Cartão das consultas (com plano em recorrência) + 2 ajustes da F2
+# Diagnóstico — "O contrato mudou" no Passo 6 (prévia admin, Power 2x + recorrência + consultas)
 
-## Ajustes visuais da F2
-1. Espaço vazio entre "R$ … por mês · 12 cobranças" e "Pagamento das consultas": localizar o elemento oculto/aviso vazio que reserva altura e remover a margem sobrando (desktop e celular).
-2. Bloco CONSULTAS: mostrar "6x de R$ 270,00 (total R$ 1.620,00)" conforme as parcelas escolhidas, atualizando na hora; sobra de centavos na última parcela (mesma regra das vendas 2027).
+## O que já está confirmado (só leitura)
 
-## F3 — Cartão das consultas
-- Segunda tokenização e captura na Rede, separadas da do plano: novo cartão digitado (pode ser o mesmo), compra iniciada pelo titular, criptograma próprio por transação, 1 a 6x, sem desconto.
-- Valor sempre o congelado na obrigação das consultas (servidor), nunca o enviado pela tela.
-- Só libera depois do plano pago/ativado; retomável por 7 dias com preço e aceite congelados; após o prazo ou cancelamento do plano, exige novo aceite (regras da F1).
-- Uma reserva por proposta + obrigação das consultas: clique duplo, recarregar ou repetir não gera segunda cobrança. Resultado desconhecido bloqueia nova tentativa até conciliar por consulta à Rede pela referência.
-- Ao aprovar: espelhar em pagamentos da Rede e na cobrança da consulta, no padrão existente. NÃO cria venda, créditos, ativação nem e-mail (isso é F5).
-- Habilitado somente na prévia admin (sessão admin conferida no servidor, proposta de prévia/teste). Visitante segue vendo "contato com a equipe".
-- Nesta entrega: só simulação (Rede simulada) e ensaios no banco desfeitos ao final. Teste real (máx. R$ 1,00) apenas quando você pedir depois — fica travado.
-- Nada de número completo/CVV/CPF em registros; só bandeira e 4 últimos.
+**De onde vem a mensagem com o botão TENTAR DE NOVO.**
+O botão só aparece no Passo 6 quando a tela não conseguiu carregar o resumo (`revisao` vazio). Isso acontece só quando `carregarRevisao` falha antes de guardar o resumo. Há três caminhos possíveis no servidor:
 
-## Não muda
-Chaves, crons, flags, cron antigo de recorrência, planos sem recorrência, 12x combinado, Pix do plano, Loja, Corrida.
+1. `tela_pagamento` (planos-checkout):
+   ```text
+   if (!["contrato_aceito","aguardando_pagamento","falhou"].includes(e.etapa) || !e.aceite_id) -> "O contrato mudou..."
+   if (Object.keys(calcular).some(k => JSON.stringify(calcular[k]) !== JSON.stringify(e.revisao[k]))) -> "O contrato mudou..."
+   ```
+2. Qualquer função do banco cujo erro contenha esse texto. O servidor repassa à tela os erros da lista NEUTRAS e troca qualquer outro por uma mensagem genérica. As funções de início de pagamento (migrações 0103/0104/0112/0122) têm esse texto, mas não são chamadas nessa tela.
+3. A chamada da prévia das consultas (F2/F3) **não** pode gerar essa mensagem. Quando ela falha, a tela mostra a mensagem genérica, porque o erro não é do tipo `ErroCheckout`.
 
-## Testes
-Simulação: aprovado, recusado, desconhecido (bloqueio), repetição sem duplicar, antes do plano pago (recusa), prazo de 7 dias vencido (novo aceite), não-admin/público (recusa). Regressões completas + conferência visual desktop/celular.
+**Conclusão parcial:** a mensagem que você viu veio de `tela_pagamento`. Ou seja, a tela **pulou o desvio da prévia das consultas** e seguiu pelo caminho normal de pagamento único. Esse desvio só roda com `previa` = verdadeiro, aceite registrado e resumo de recorrência com consultas.
+
+**O que foi descartado:**
+- Catálogo inalterado desde 13/10. Valor do plano e das consultas conferem com o resumo guardado (544.680 + 162.000 = 706.680 centavos).
+- O texto do contrato não muda entre chamadas: o hash é calculado no aceite e não entra nessa conferência.
+- F1, F2 e F3 não mexeram em `fn_checkout_2027_calcular`, `_revisar`, `_estado` nem nos modelos de contrato.
+- O aceite específico das consultas é guardado à parte e não entra nessa conferência.
+- As duas últimas propostas de prévia (13:36 e 13:38) estão "contrato aceito", com resumo completo. Uma delas passou pela tela F2: 5 registros de simulação e 1 obrigação.
+
+## Causa provável (ainda não comprovada)
+1. **Mais provável:** o teste foi feito na versão publicada do site, que ainda não tem a tela F2/F3 (falta o Publish). Lá não existe o desvio, e o pagamento único rejeita recorrência com consultas.
+   - Pendente: confirmar por que a conferência de `tela_pagamento` dá diferença nesse caso.
+   - Pendente: confirmar se a versão publicada da função `planos-checkout` é igual à do código.
+2. **Alternativa:** a prévia perdeu `previa=1` (por exemplo, ao recarregar ou ao voltar por "Alterar"). Sem isso, a tela não entra no desvio.
+
+## Regressão?
+- **Público:** visitante não chega a esse ponto, porque recorrência com consultas segue bloqueada em "contato com a equipe". Planos sem recorrência e o 12x combinado não passam por essa diferença.
+- **Antes da F2:** recorrência com consultas sempre terminava em `tela_pagamento`. Então o travamento provavelmente já existia antes, e a F2 só o contorna na prévia publicada. A confirmar no passo 1.
+
+## Plano (aguarda aprovação)
+1. **Reproduzir com prova:**
+   - Abrir `/planos?previa=1` como admin, na prévia e no endereço publicado.
+   - Criar uma proposta de prévia de teste, sem pagamento, com Power 2x, recorrência e Nutri 4+2.
+   - Registrar qual chamada devolve a mensagem e qual chave da conferência difere.
+   - Conferir a versão publicada da função `planos-checkout` e se a tela entra no desvio.
+   - Isso grava só uma proposta de prévia de teste, igual aos testes da F2.
+2. **Correção mínima, conforme a causa confirmada:**
+   - Se for falta de Publish: nenhuma mudança no código, só publicar o aplicativo.
+   - Se `previa` se perder: guardar a marca de prévia junto da sessão, conferida de novo no servidor, e passá-la ao reabrir a tela.
+   - Se a conferência de `tela_pagamento` falhar de verdade: corrigir só a comparação, ignorando campos que não são do cálculo, sem mexer no hash do contrato.
+3. **Validar:**
+   - Fluxo Power 2x com recorrência e consultas chega ao contrato e ao pagamento da prévia.
+   - Público continua bloqueado.
+   - 12x combinado e planos sem consultas não mudam.
+   - Rodar os testes completos.
 
 ## Detalhes técnicos
-- Reaproveitar `_shared/planos-cartao-rede.ts` (tokenizar/cobrar/consultarPorReferencia) e o fluxo de `planos-checkout/fluxo-cartao.ts` com dependências injetáveis; nova ação na função de prévia das consultas (`cartao_consultas`, `status_consultas`), referência própria distinta da do plano.
-- Tentativas com finalidade `consultas` (coluna criada na F1) e trava atômica por obrigação; liquidação por RPC dedicada que só espelha (`pagamentos_rede`/`cobrancas`) e marca a obrigação paga.
-- Possível migração pequena só se a RPC de espelho das consultas não existir na F1 (ensaiada em transação desfeita, com script de reversão).
-- Publish: a função de prévia precisa ser publicada; a tela precisa de Publish do app.
+- Exibição: `src/components/planos/CheckoutSite2027.tsx` (`carregarRevisao`, desvio `previa && aceite_id && consultasSeparadas`; "Tentar de novo" quando `revisao` é nulo).
+- Mensagem repassada por `rpc()`/`NEUTRAS` em `supabase/functions/planos-checkout/index.ts`.
+- Nenhuma alteração em chaves, crons, flags ou banco nesta etapa.
