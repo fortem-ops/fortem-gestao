@@ -59,7 +59,7 @@ Deno.serve(async req => {
       if (e.consultas === 'desconhecido' || e.consultas === 'aprovado') throw new Error('Pagamento simulado em conciliação ou concluído');
       if (!b.termo_hash) throw new Error('Leia e aceite o termo das consultas');
       const a = await invoke('fn_consultas_2027_aceitar', { ...base, p_forma: forma, p_parcelas: parcelas, p_hash: b.termo_hash, p_user_agent: (req.headers.get('user-agent') ?? '').slice(0, 512) });
-      if (a.obrigacao_id !== e.obrigacao_id) e = { ...e, consultas: 'pendente', obrigacao_id: a.obrigacao_id };
+      if (a.obrigacao_id !== e.obrigacao_id) e = { ...e, consultas: 'pendente', obrigacao_id: a.obrigacao_id, tentativa: undefined };
       await gravar();
     }
     if (b.acao === 'simular') {
