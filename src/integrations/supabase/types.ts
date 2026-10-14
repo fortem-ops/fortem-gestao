@@ -6367,6 +6367,84 @@ export type Database = {
           },
         ]
       }
+      planos_2027_mensalidades: {
+        Row: {
+          competencia: string
+          contrato_id: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          numero: number
+          pago_em: string | null
+          proposta_id: string
+          proxima_tentativa_em: string | null
+          referencia: string | null
+          simulado: boolean
+          status: string
+          tentativas: number
+          tid: string | null
+          tokenizacao_id: string
+          updated_at: string
+          valor_centavos: number
+          vencimento: string
+        }
+        Insert: {
+          competencia: string
+          contrato_id?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          numero: number
+          pago_em?: string | null
+          proposta_id: string
+          proxima_tentativa_em?: string | null
+          referencia?: string | null
+          simulado?: boolean
+          status?: string
+          tentativas?: number
+          tid?: string | null
+          tokenizacao_id: string
+          updated_at?: string
+          valor_centavos: number
+          vencimento: string
+        }
+        Update: {
+          competencia?: string
+          contrato_id?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          numero?: number
+          pago_em?: string | null
+          proposta_id?: string
+          proxima_tentativa_em?: string | null
+          referencia?: string | null
+          simulado?: boolean
+          status?: string
+          tentativas?: number
+          tid?: string | null
+          tokenizacao_id?: string
+          updated_at?: string
+          valor_centavos?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_2027_mensalidades_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_planos_2027"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_2027_mensalidades_tokenizacao_id_fkey"
+            columns: ["tokenizacao_id"]
+            isOneToOne: false
+            referencedRelation: "rede_tokenizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos_catalogo: {
         Row: {
           atividade: string
@@ -11320,6 +11398,74 @@ export type Database = {
       fn_proposta_plano_2027_criar: { Args: { p: Json }; Returns: Json }
       fn_proxima_renovacao_from: {
         Args: { _data_inicio: string }
+        Returns: string
+      }
+      fn_recorrencia_2027_devidas: {
+        Args: { p_hoje: string; p_limite?: number }
+        Returns: {
+          competencia: string
+          contrato_id: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          numero: number
+          pago_em: string | null
+          proposta_id: string
+          proxima_tentativa_em: string | null
+          referencia: string | null
+          simulado: boolean
+          status: string
+          tentativas: number
+          tid: string | null
+          tokenizacao_id: string
+          updated_at: string
+          valor_centavos: number
+          vencimento: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "planos_2027_mensalidades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      fn_recorrencia_2027_reservar: {
+        Args: { p_id: string }
+        Returns: {
+          competencia: string
+          contrato_id: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          numero: number
+          pago_em: string | null
+          proposta_id: string
+          proxima_tentativa_em: string | null
+          referencia: string | null
+          simulado: boolean
+          status: string
+          tentativas: number
+          tid: string | null
+          tokenizacao_id: string
+          updated_at: string
+          valor_centavos: number
+          vencimento: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "planos_2027_mensalidades"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fn_recorrencia_2027_resultado: {
+        Args: {
+          p_hoje: string
+          p_id: string
+          p_motivo: string
+          p_resultado: string
+          p_tid: string
+        }
         Returns: string
       }
       fn_renomear_nivel_exercicio: {
