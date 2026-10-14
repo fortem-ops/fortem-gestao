@@ -2,6 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRoles } from "@/hooks/useUserRoles";
+
+/** Botão de teste real só para admin, proposta de teste e modo real_baixo_valor. As travas reais ficam no banco. */
+export function podeMostrarTesteReal(p: { isAdmin: boolean; testeAdmin: boolean; modo?: string | null; cancelada: boolean }) {
+  return p.isAdmin && p.testeAdmin && p.modo === "real_baixo_valor" && !p.cancelada;
+}
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,8 +23,18 @@ const STATUS: Record<string, string> = {
 };
 
 /** Mensalidades da assinatura no cartão (planos 2027 do site) + ações da equipe. */
-export function AssinaturaSite2027({ propostaId, familia, cancelada }: { propostaId: string; familia: string; cancelada: boolean }) {
+export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin = false }: { propostaId: string; familia: string; cancelada: boolean; testeAdmin?: boolean }) {
   const qc = useQueryClient();
+  const { data: roles } = useUserRoles();
+  const { data: modoTeste } = useQuery({
+    queryKey: ["sistema-config", "planos_pagamento_modo_teste"],
+    enabled: !!roles?.isAdmin && testeAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("sistema_config").select("valor").eq("chave", "planos_pagamento_modo_teste").maybeSingle();
+      return String(data?.valor ?? "").replace(/"/g, "");
+    },
+  });
+  const podeTesteReal = podeMostrarTesteReal({ isAdmin: !!roles?.isAdmin, testeAdmin, modo: modoTeste, cancelada });
   const { data = [] } = useQuery({
     queryKey: ["mensalidades-2027", propostaId],
     queryFn: async () => {
@@ -32,6 +48,7 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada }: { propost
   const atualizar = () => {
     qc.invalidateQueries({ queryKey: ["mensalidades-2027", propostaId] });
     qc.invalidateQueries({ queryKey: ["propostas-planos-2027"] });
+    qc.invalidateQueries({ queryKey: ["sistema-config", "planos_pagamento_modo_teste"] });
   };
   const cancelar = useMutation({
     mutationFn: async () => {
@@ -49,8 +66,22 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada }: { propost
     onSuccess: () => { toast.success("Mensalidade marcada como paga"); atualizar(); },
     onError: (e: any) => toast.error(e?.message ?? "Não foi possível dar baixa"),
   });
+  const testeReal = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("planos-recorrencia-diario", { body: { modo: "teste_real", proposta_id: propostaId } });
+      if (error) throw error;
+      return data as { ok?: boolean; resultado?: string; motivo?: string };
+    },
+    onSuccess: (r) => {
+      if (r?.ok) toast.success(`Teste real: ${r.resultado ?? "concluído"}`);
+      else toast.error(`Teste não executado: ${r?.motivo ?? "recusado"}`);
+      atualizar();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Não foi possível executar o teste"),
+  });
 
   if (data.length === 0) return null;
+  const primeiraPendente = data.find((m) => m.status === "pendente")?.id;
   const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
@@ -69,6 +100,10 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada }: { propost
             {["recusado", "inadimplente"].includes(m.status) && (
               <Button size="sm" variant="link" className="h-auto p-0 ml-1 text-xs" disabled={baixa.isPending}
                 onClick={() => baixa.mutate(m.id)}>Recebido por Pix</Button>
+            )}
+            {podeTesteReal && m.id === primeiraPendente && (
+              <Button size="sm" variant="link" className="h-auto p-0 ml-1 text-xs" disabled={testeReal.isPending}
+                onClick={() => testeReal.mutate()}>Cobrar mensalidade de teste (R$ 1,00)</Button>
             )}
           </div>
         ))}

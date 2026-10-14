@@ -9,7 +9,7 @@ type Proposta = {
   id: string; nome: string; whatsapp: string; email: string; plano_codigo: string; familia: string; frequencia: string;
   forma_plano: string; parcelas_plano: number; servicos_codigos: string[]; forma_servicos: string | null;
   parcelas_servicos: number | null; corrida: boolean; corrida_valor_mensal: number | null; valor_total_centavos: number;
-  status: string; previa: boolean; assinatura_cancelada_em: string | null; aluno_id: string | null; lead_erro: string | null; created_at: string;
+  status: string; previa: boolean; teste_admin?: boolean; assinatura_cancelada_em: string | null; aluno_id: string | null; lead_erro: string | null; created_at: string;
 };
 
 const FORMA: Record<string, string> = { recorrencia: "Recorrência mensal no cartão", cartao_parcelado: "Cartão", pix_vista: "Pix à vista" };
@@ -60,7 +60,7 @@ export function PropostasSite2027() {
           </div>
         </div>
         {p.forma_plano === "recorrencia" && (
-          <AssinaturaSite2027 propostaId={p.id} familia={p.familia} cancelada={!!p.assinatura_cancelada_em} />
+          <AssinaturaSite2027 propostaId={p.id} familia={p.familia} cancelada={!!p.assinatura_cancelada_em} testeAdmin={!!p.teste_admin} />
         )}
         </div>
       ))}
