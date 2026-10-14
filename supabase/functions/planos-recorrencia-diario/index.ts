@@ -3,8 +3,8 @@
 // Admin verificado → só simulação de uma proposta (resultado escolhido, data escolhida), sem chamar a Rede.
 // Sem cron nesta fase. Nunca registra número, CVV, CPF ou nome do titular.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { acessoRede, cobrar, consultarPorReferencia, type Acesso } from "../planos-checkout/cartao-rede.ts";
-import { mapearConsulta, mapearTransacao, motivoRecusa, validadeToken } from "../planos-checkout/cartao.ts";
+import { acessoRede, cobrar, consultarPorReferencia, type Acesso } from "../_shared/planos-cartao-rede.ts";
+import { mapearConsulta, mapearTransacao, motivoRecusa, validadeToken } from "../_shared/planos-cartao.ts";
 import { executar, type DepsRec, type Mensalidade } from "./fluxo.ts";
 
 const cors = {
