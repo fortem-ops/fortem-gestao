@@ -27,7 +27,7 @@ const NOME: Record<string, string> = { start_2027: "Start", power_2027: "Power",
 const FREQ: Record<string, string> = { "1x": "1x por semana", "2x": "2x por semana", "3x": "3x por semana", livre: "Livre" };
 const UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
 
-function descreverPagamento(r: Revisao) {
+export function descreverPagamento(r: Revisao) {
   if (r.forma_plano === "recorrencia") {
     const p = dividirCentavos(r.plano_centavos, r.parcelas_plano);
     return `Recorrência mensal no cartão: ${brl(p[0])} por mês${r.parcelas_plano > 1 ? `, ${r.parcelas_plano} cobranças` : ""}`;

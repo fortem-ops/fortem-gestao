@@ -9,7 +9,7 @@ import { lerDadosCartao } from "./cartao.ts";
 import { acessoRede } from "./cartao-rede.ts";
 import { depsReais } from "./deps-cartao.ts";
 import { acompanharCartaoReal, iniciarCartaoReal } from "./fluxo-cartao.ts";
-import { ACOES_COBRANCA, chavesLimite, cobrancaValida, temConsultas, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, tentativaPublica, type Tentativa } from "./pagamento.ts";
+import { ACOES_COBRANCA, chavesLimite, cobrancaValida, temConsultas, gravarComRetentativa, PIX_EXPIRACAO_S, resultadoCartaoSimulado, resultadoPixSimulado, statusInterParaTentativa, lerParcelas, tentativaPublica, type Tentativa } from "./pagamento.ts";
 import {
   cpfDigitosValidos, hashTexto, montarVariaveisContrato, preencherContrato, semCpf, variaveisParaGuardar,
   type Contratante,
@@ -71,11 +71,6 @@ function lerContratante(c: any): Omit<Contratante, "nome" | "email"> & { nome: s
   };
 }
 
-/** Parcelas escolhidas na tela de pagamento: inteiro 1..12; qualquer outra coisa vira nulo e o banco decide. */
-function lerParcelas(v: unknown): number | null {
-  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 12) return null;
-  return v;
-}
 
 
 /** Gera o texto do contrato inteiramente no servidor. */
