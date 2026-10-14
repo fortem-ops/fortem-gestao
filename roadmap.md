@@ -50,3 +50,7 @@
 - [x] Prévia /planos: escolha Continuar/Começar nova simulação, Alterar após aceite sem beco (volta ao Passo 6), simulação das consultas reiniciada a cada novo aceite. Conferência visual aguarda sessão admin.
 - [x] Go-live venda de planos: site vende só plano, consultas via equipe (WhatsApp 555135199451), servidor recusa consultas (migração 0140, rollback em scripts/proposta-sem-consultas.rollback.sql), simulação F2/F3 dormente; F3–F5 pausadas
 - [ ] Compra real de teste de baixo valor (Pix, cartão 3x, Start recorrência) aguarda autorização do dono
+
+## /planos visual claro + parcelas no pagamento
+- [ ] Visual claro só no /planos (marca #E73C3E, Cool Grey #B1B3B3, Archivo), portais incluídos, capturas antes/depois
+- [ ] Parcelas escolhidas no pagamento: migração + script de volta mostrados (aguarda aprovação para aplicar/publicar planos-checkout)
