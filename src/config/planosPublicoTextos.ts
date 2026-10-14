@@ -188,6 +188,8 @@ export const TEXTOS_CHECKOUT = {
     esgotadoTexto: "O limite de tentativas com cartão foi atingido. Sua proposta continua guardada: a equipe FORTEM pode ajudar a concluir o pagamento pelo WhatsApp.",
   },
   confirmacao: {
+    assinatura: (mensal: string, dia: number, start: boolean) =>
+      `Assinatura ativa. 1ª mensalidade de ${mensal} paga hoje. Próximas cobranças automáticas todo dia ${dia} no cartão cadastrado. ${start ? "Renova mensalmente, cancele quando quiser." : "12 mensalidades."}`,
     titulo: "Proposta registrada", tituloPago: "Pagamento confirmado", status: "Aguardando pagamento", passo: "Passo 9 de 9",
     texto: "Seu contrato foi aceito. Nenhum pagamento foi realizado.",
     textoAprovado: "Seu contrato foi aceito e o pagamento foi aprovado. A equipe FORTEM ativa seu plano e fala com você.",

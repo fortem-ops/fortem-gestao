@@ -133,6 +133,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
         {confirmacao ? <>
           <div role="status" className="flex items-center gap-3 border-y border-border py-5"><ClipboardCheck className="size-6 shrink-0 text-primary" /><strong className="font-display uppercase">{aprovado === "simulado" ? C.pagamento.aprovadoSimulado : pago ? C.pagamento.aprovado : C.confirmacao.status}</strong></div>
           <h2 className="mt-7 font-display text-lg font-bold uppercase">{C.confirmacao.proximos}</h2>
+          {recorrencia && (pago || aprovado) && <p className="mt-3 text-sm leading-relaxed">{C.confirmacao.assinatura(brl(p.parcelas[0] ?? 0), new Date().getDate(), ehStart)}</p>}
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{pago ? C.confirmacao.equipePago : C.confirmacao.equipe}</p>
           {!pago && <Button variant="outline" className={`${controle} mt-7 w-full`} onClick={onVoltar}>{C.pagamento.voltar}</Button>}
         </> : <>
@@ -151,7 +152,7 @@ export function PagamentoReservado2027({ tela, sessao, confirmacao, pagoServidor
           </> : recorrenciaPrevia ? <>
             <div className="mt-6 border-y border-border py-6"><LockKeyhole aria-hidden="true" className="mb-4 size-7 text-muted-foreground" /><p className="text-sm">{C.pagamento.recorrenciaPrevia}</p><p className="mt-3 text-sm text-muted-foreground">{C.pagamento.primeiraRecorrencia}</p></div>
             <Button className={`${controle} mt-5 w-full`} onClick={onConfirmar}>{C.pagamento.continuar}</Button>
-          </> : formCartao ? <CartaoPagamento2027 sessao={sessao} simulacao={p.cartao_real !== true} parcelas={p.parcelas} onTravado={setTravado}
+          </> : formCartao ? <CartaoPagamento2027 sessao={sessao} simulacao={p.cartao_real !== true} parcelas={recorrencia ? p.parcelas.slice(0, 1) : p.parcelas} onTravado={setTravado}
             onAprovado={(sim) => { setTravado(false); setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />
           : <PagamentoAtivo sessao={sessao} pix={pix} onAprovado={(sim) => { setAprovado(sim ? "simulado" : "real"); onConfirmar(); }} />}
         </>}
