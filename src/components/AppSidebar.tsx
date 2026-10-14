@@ -99,6 +99,7 @@ const lojaItems = [
 /* ─── Financeiro ─── */
 const financeiroItems = [
   { title: "Contratos", url: "/financeiro/contratos", icon: FileSignature },
+  { title: "Propostas de contratos", url: "/financeiro/propostas-contratos", icon: FileCheck2 },
   { title: "Previsibilidade", url: "/financeiro/previsibilidade", icon: TrendingUp },
   { title: "Receitas", url: "/financeiro/receitas", icon: HandCoins },
   { title: "Conciliação Bancária", url: "/financeiro/conciliacao-bancaria", icon: CheckSquare },

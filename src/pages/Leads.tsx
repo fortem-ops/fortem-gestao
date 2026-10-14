@@ -17,8 +17,6 @@ import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDia
 import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton";
 import { ConvertToAlunoButton } from "@/components/leads/ConvertToAlunoButton";
 import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
-import { PropostasSite2027 } from "@/components/leads/PropostasSite2027";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { waMeLink, formatDaysAgo, LEAD_STAGE_NAMES } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
@@ -229,13 +227,6 @@ export default function Leads() {
         </div>
       </div>
 
-      <Tabs defaultValue="leads">
-        <TabsList>
-          <TabsTrigger value="leads">Leads</TabsTrigger>
-          <TabsTrigger value="propostas">Propostas do site</TabsTrigger>
-        </TabsList>
-        <TabsContent value="propostas" className="mt-4"><PropostasSite2027 /></TabsContent>
-        <TabsContent value="leads" className="mt-4 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground">Total de leads</p>
@@ -381,8 +372,6 @@ export default function Leads() {
       </AlertDialog>
 
 
-        </TabsContent>
-      </Tabs>
 
       <NewLeadDialog open={openNew} onOpenChange={setOpenNew} />
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />
