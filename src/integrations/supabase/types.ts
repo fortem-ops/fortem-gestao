@@ -3772,6 +3772,57 @@ export type Database = {
           },
         ]
       }
+      estornos_pix_site: {
+        Row: {
+          cobranca_id: string
+          created_at: string
+          created_by: string | null
+          devolucao_id: string
+          e2e_id: string | null
+          id: string
+          idempotency_key: string
+          motivo: string | null
+          proposta_id: string | null
+          retorno: Json | null
+          status: string
+          txid: string | null
+          updated_at: string
+          valor_centavos: number
+        }
+        Insert: {
+          cobranca_id: string
+          created_at?: string
+          created_by?: string | null
+          devolucao_id: string
+          e2e_id?: string | null
+          id?: string
+          idempotency_key: string
+          motivo?: string | null
+          proposta_id?: string | null
+          retorno?: Json | null
+          status?: string
+          txid?: string | null
+          updated_at?: string
+          valor_centavos: number
+        }
+        Update: {
+          cobranca_id?: string
+          created_at?: string
+          created_by?: string | null
+          devolucao_id?: string
+          e2e_id?: string | null
+          id?: string
+          idempotency_key?: string
+          motivo?: string | null
+          proposta_id?: string | null
+          retorno?: Json | null
+          status?: string
+          txid?: string | null
+          updated_at?: string
+          valor_centavos?: number
+        }
+        Relationships: []
+      }
       exercicio_articulacoes: {
         Row: {
           articulacao_key: string
@@ -11038,6 +11089,25 @@ export type Database = {
           _raw: Json
           _return_code: string
           _return_message: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      fn_estorno_pix_site_reservar: {
+        Args: {
+          _cobranca_id: string
+          _idempotency_key: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      fn_estorno_pix_site_resultado: {
+        Args: {
+          _e2e: string
+          _estorno_id: string
+          _motivo: string
+          _retorno: Json
+          _status: string
           _user_id: string
         }
         Returns: Json

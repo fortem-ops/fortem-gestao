@@ -1041,7 +1041,7 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
                   c.status === "pago" &&
                   totalEstornado >= Number(c.valor) - 0.001;
                 const podeEstornar =
-                  isAdmin && c.gateway === "rede" && !!c.tid &&
+                  isAdmin && (c.gateway === "rede" || (c.gateway === "inter_pix" && !!c.origem)) && !!c.tid &&
                   (c.status === "pago" || estornoParcial) &&
                   totalEstornado < Number(c.valor) - 0.001;
 

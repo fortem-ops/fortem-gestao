@@ -10,6 +10,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { executarRefundRede, loadRedeSecrets, redeBaseUrl } from "../_shared/rede-refund.ts";
+import { interCobFetch } from "../_shared/inter-cob.ts";
+import { bloqueioTeste, devolverPixSite } from "./pix-site.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +50,49 @@ Deno.serve(async (req) => {
   if (motivo.length < 10) return erro("Informe o motivo do estorno (mínimo 10 caracteres)");
   if (tipo === "parcial" && (!valorInformado || !isFinite(valorInformado) || valorInformado <= 0)) {
     return erro("Informe um valor de estorno maior que zero");
+  }
+
+  // Origem/meio sempre do banco: cobrança de TESTE exige confirmação explícita; Pix só do site.
+  const { data: cobInfo } = await supabase.from("cobrancas")
+    .select("id, gateway, origem").eq("id", cobrancaId).maybeSingle();
+  if (!cobInfo) return erro("Cobrança não encontrada", 404);
+  const bloqueio = bloqueioTeste(cobInfo.origem, body.confirmar_teste === true);
+  if (bloqueio) return erro(bloqueio, 409, { exige_confirmacao_teste: true });
+
+  if (cobInfo.gateway === "inter_pix") {
+    if (!cobInfo.origem) return erro("Pix de cobrança antiga não pode ser devolvido por aqui", 400);
+    if (tipo !== "total") return erro("Devolução de Pix do site é sempre do valor total", 400);
+    const r = await devolverPixSite({
+      reservar: async () => {
+        const { data, error } = await supabase.rpc("fn_estorno_pix_site_reservar", {
+          _cobranca_id: cobrancaId, _idempotency_key: idempotencyKey, _user_id: user.id,
+        });
+        if (error) return { ok: false, erro: "Não foi possível iniciar a devolução" };
+        return data as any;
+      },
+      consultarE2e: async (txid) => {
+        const c = await interCobFetch(`/pix/v2/cob/${txid}`, { method: "GET" });
+        return c.data?.pix?.[0]?.endToEndId ?? null;
+      },
+      devolver: (e2e, devId, valor) =>
+        interCobFetch(`/pix/v2/pix/${e2e}/devolucao/${devId}`, { method: "PUT", json: { valor } }),
+      resultado: async (id, st, e2e, retorno) => {
+        await supabase.rpc("fn_estorno_pix_site_resultado", {
+          _estorno_id: id, _status: st, _e2e: e2e, _retorno: retorno ?? {}, _motivo: motivo, _user_id: user.id,
+        });
+      },
+    });
+    if (!r.ok) return erro(r.erro, r.http, { duplicado: r.duplicado === true });
+    return new Response(JSON.stringify({
+      success: true,
+      comprovante: {
+        pagamento_id: r.estorno_id, cobranca_id: cobrancaId, aluno_id: r.aluno_id, numero_ciclo: r.numero_ciclo,
+        valor_estornado: r.valor, valor_original: r.valor, total_estornado: r.valor, saldo_restante: 0,
+        integral: true, cobranca_status: "estornado", tid: r.e2e, nsu: r.devolucao_id, authorization_code: null,
+        return_code: null, return_message: r.status_inter ?? null, motivo,
+        executado_em: new Date().toISOString(), executado_por: user.id,
+      },
+    }), { status: 200, headers });
   }
 
   // Saldo e TID sempre do banco — nada do cliente.
