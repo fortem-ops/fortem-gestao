@@ -6,10 +6,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { acessoRede, cobrar, consultarPorReferencia, type Acesso } from "../_shared/planos-cartao-rede.ts";
 import { mapearConsulta, mapearTransacao, motivoRecusa, validadeToken } from "../_shared/planos-cartao.ts";
 import { executar, executarTesteReal, type DepsRec, type Mensalidade } from "./fluxo.ts";
+import { modoCronPermitido, segredoConfere } from "./cron.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (status: number, body: unknown) =>
