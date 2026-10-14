@@ -7968,6 +7968,9 @@ export type Database = {
       propostas_2027_aceites: {
         Row: {
           aceito_em: string
+          anexo: Json | null
+          anexo_assinatura: string | null
+          anexo_versao: string | null
           conteudo_html: string
           created_at: string
           hash_texto: string
@@ -7986,6 +7989,9 @@ export type Database = {
         }
         Insert: {
           aceito_em?: string
+          anexo?: Json | null
+          anexo_assinatura?: string | null
+          anexo_versao?: string | null
           conteudo_html: string
           created_at?: string
           hash_texto: string
@@ -8004,6 +8010,9 @@ export type Database = {
         }
         Update: {
           aceito_em?: string
+          anexo?: Json | null
+          anexo_assinatura?: string | null
+          anexo_versao?: string | null
           conteudo_html?: string
           created_at?: string
           hash_texto?: string
@@ -10811,6 +10820,10 @@ export type Database = {
       fn_checkout_2027_alterar: {
         Args: { p: Json; p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
+      }
+      fn_checkout_2027_anexo_gravar: {
+        Args: { p_proposta_id: string }
+        Returns: string
       }
       fn_checkout_2027_ativar: {
         Args: { p_proposta_id: string }
