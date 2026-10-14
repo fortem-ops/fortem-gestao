@@ -49,6 +49,6 @@ BEGIN
  PERFORM set_config('request.jwt.claim.sub',a::text,true);
  IF public.fn_recorrencia_2027_cancelar(p.id)->>'resultado'<>'cancelada' THEN RAISE EXCEPTION 'admin não cancelou'; END IF;
  IF (SELECT count(*) FROM public.creditos_aluno WHERE origem_id=ANY(ids) AND ativo)<>3 THEN RAISE EXCEPTION 'cancelamento retirou consultas'; END IF;
- IF public.has_function_privilege('anon','public.fn_consultas_2027_reservar(uuid,text)','EXECUTE') OR public.has_function_privilege('authenticated','public.fn_consultas_2027_reservar(uuid,text)','EXECUTE') THEN RAISE EXCEPTION 'RPC pública'; END IF;
+ IF pg_catalog.has_function_privilege('anon','public.fn_consultas_2027_reservar(uuid,text)','EXECUTE') OR pg_catalog.has_function_privilege('authenticated','public.fn_consultas_2027_reservar(uuid,text)','EXECUTE') THEN RAISE EXCEPTION 'RPC pública'; END IF;
 END $test$;
 ROLLBACK;
