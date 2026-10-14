@@ -7817,14 +7817,20 @@ export type Database = {
       propostas_planos_2027: {
         Row: {
           aceite_id: string | null
+          aluno_ativado_id: string | null
           aluno_id: string | null
           aluno_suspeito_id: string | null
           assinatura_cancelada_em: string | null
           assinatura_cancelada_por: string | null
+          ativacao_erro: string | null
+          ativacao_erro_em: string | null
+          ativacao_vinculo: string | null
+          ativada_em: string | null
           chave_sessao_hash: string | null
           configuracao: Json
           consentimento_contato_em: string | null
           contratante: Json | null
+          contrato_id: string | null
           corrida: boolean
           corrida_valor_mensal: number | null
           cpf_cifrado: string | null
@@ -7846,6 +7852,7 @@ export type Database = {
           id: string
           lead_erro: string | null
           nome: string
+          notificacao_ativacao_id: string | null
           notificacao_cartao_combinar_id: string | null
           notificacao_cartao_divergente_id: string | null
           notificacao_cartao_recusado_id: string | null
@@ -7869,6 +7876,7 @@ export type Database = {
           tipo_identificacao: string
           updated_at: string
           valor_total_centavos: number
+          venda_id: string | null
           verificacao_id: string | null
           verificacao_vinculo: string
           vinculo_por_telefone: boolean
@@ -7876,14 +7884,20 @@ export type Database = {
         }
         Insert: {
           aceite_id?: string | null
+          aluno_ativado_id?: string | null
           aluno_id?: string | null
           aluno_suspeito_id?: string | null
           assinatura_cancelada_em?: string | null
           assinatura_cancelada_por?: string | null
+          ativacao_erro?: string | null
+          ativacao_erro_em?: string | null
+          ativacao_vinculo?: string | null
+          ativada_em?: string | null
           chave_sessao_hash?: string | null
           configuracao?: Json
           consentimento_contato_em?: string | null
           contratante?: Json | null
+          contrato_id?: string | null
           corrida?: boolean
           corrida_valor_mensal?: number | null
           cpf_cifrado?: string | null
@@ -7905,6 +7919,7 @@ export type Database = {
           id?: string
           lead_erro?: string | null
           nome: string
+          notificacao_ativacao_id?: string | null
           notificacao_cartao_combinar_id?: string | null
           notificacao_cartao_divergente_id?: string | null
           notificacao_cartao_recusado_id?: string | null
@@ -7928,6 +7943,7 @@ export type Database = {
           tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos: number
+          venda_id?: string | null
           verificacao_id?: string | null
           verificacao_vinculo?: string
           vinculo_por_telefone?: boolean
@@ -7935,14 +7951,20 @@ export type Database = {
         }
         Update: {
           aceite_id?: string | null
+          aluno_ativado_id?: string | null
           aluno_id?: string | null
           aluno_suspeito_id?: string | null
           assinatura_cancelada_em?: string | null
           assinatura_cancelada_por?: string | null
+          ativacao_erro?: string | null
+          ativacao_erro_em?: string | null
+          ativacao_vinculo?: string | null
+          ativada_em?: string | null
           chave_sessao_hash?: string | null
           configuracao?: Json
           consentimento_contato_em?: string | null
           contratante?: Json | null
+          contrato_id?: string | null
           corrida?: boolean
           corrida_valor_mensal?: number | null
           cpf_cifrado?: string | null
@@ -7964,6 +7986,7 @@ export type Database = {
           id?: string
           lead_erro?: string | null
           nome?: string
+          notificacao_ativacao_id?: string | null
           notificacao_cartao_combinar_id?: string | null
           notificacao_cartao_divergente_id?: string | null
           notificacao_cartao_recusado_id?: string | null
@@ -7987,6 +8010,7 @@ export type Database = {
           tipo_identificacao?: string
           updated_at?: string
           valor_total_centavos?: number
+          venda_id?: string | null
           verificacao_id?: string | null
           verificacao_vinculo?: string
           vinculo_por_telefone?: boolean
@@ -10565,6 +10589,18 @@ export type Database = {
         Args: { p: Json; p_chave: string; p_ip: string; p_proposta_id: string }
         Returns: Json
       }
+      fn_checkout_2027_ativar: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_ativar_admin: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
+      fn_checkout_2027_ativar_seguro: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
       fn_checkout_2027_ativo: { Args: never; Returns: boolean }
       fn_checkout_2027_calcular: {
         Args: { p_proposta_id: string }
@@ -10691,14 +10727,20 @@ export type Database = {
         Args: { p_chave: string; p_proposta_id: string }
         Returns: {
           aceite_id: string | null
+          aluno_ativado_id: string | null
           aluno_id: string | null
           aluno_suspeito_id: string | null
           assinatura_cancelada_em: string | null
           assinatura_cancelada_por: string | null
+          ativacao_erro: string | null
+          ativacao_erro_em: string | null
+          ativacao_vinculo: string | null
+          ativada_em: string | null
           chave_sessao_hash: string | null
           configuracao: Json
           consentimento_contato_em: string | null
           contratante: Json | null
+          contrato_id: string | null
           corrida: boolean
           corrida_valor_mensal: number | null
           cpf_cifrado: string | null
@@ -10720,6 +10762,7 @@ export type Database = {
           id: string
           lead_erro: string | null
           nome: string
+          notificacao_ativacao_id: string | null
           notificacao_cartao_combinar_id: string | null
           notificacao_cartao_divergente_id: string | null
           notificacao_cartao_recusado_id: string | null
@@ -10743,6 +10786,7 @@ export type Database = {
           tipo_identificacao: string
           updated_at: string
           valor_total_centavos: number
+          venda_id: string | null
           verificacao_id: string | null
           verificacao_vinculo: string
           vinculo_por_telefone: boolean
@@ -11706,6 +11750,17 @@ export type Database = {
       fn_validar_link_cartao: { Args: { p_token: string }; Returns: Json }
       fn_validar_link_contrato: { Args: { p_token: string }; Returns: Json }
       fn_venda_2027_criar: { Args: { p: Json }; Returns: Json }
+      fn_venda_2027_gravar: {
+        Args: {
+          p: Json
+          p_canal: string
+          p_origem: string
+          p_sem_cobrancas: boolean
+          p_teste: boolean
+          p_uid: string
+        }
+        Returns: Json
+      }
       fn_venda_servicos_2027_criar: { Args: { p: Json }; Returns: Json }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       get_webhook_secret: { Args: never; Returns: string }

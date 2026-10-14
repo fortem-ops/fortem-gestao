@@ -897,6 +897,13 @@
       "when": 1791974562573,
       "tag": "0127_planos_recorrencia_cron_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1791977182738,
+      "tag": "0128_ativacao_2027_fase_a",
+      "breakpoints": true
     }
   ]
 }

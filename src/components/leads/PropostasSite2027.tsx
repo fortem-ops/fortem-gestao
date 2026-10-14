@@ -1,8 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { waMeLink } from "@/lib/pipeline";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { estadoAtivacao, podeAtivarAgora } from "@/lib/ativacao2027";
 import { AssinaturaSite2027 } from "./AssinaturaSite2027";
 
 type Proposta = {
@@ -10,10 +16,56 @@ type Proposta = {
   forma_plano: string; parcelas_plano: number; servicos_codigos: string[]; forma_servicos: string | null;
   parcelas_servicos: number | null; corrida: boolean; corrida_valor_mensal: number | null; valor_total_centavos: number;
   status: string; previa: boolean; teste_admin?: boolean; assinatura_cancelada_em: string | null; aluno_id: string | null; lead_erro: string | null; created_at: string;
+  pago_em?: string | null; ativada_em?: string | null; aluno_ativado_id?: string | null; ativacao_erro?: string | null;
 };
 
 const FORMA: Record<string, string> = { recorrencia: "Recorrência mensal no cartão", cartao_parcelado: "Cartão", pix_vista: "Pix à vista" };
 const FAM: Record<string, string> = { start_2027: "Start", power_2027: "Power", pro_2027: "Pro" };
+
+/** Situação da ativação (plano, contrato e créditos no perfil) + botão "Ativar agora" para admin. */
+function AtivacaoLinha({ p }: { p: Proposta }) {
+  const { data: roles } = useUserRoles();
+  const qc = useQueryClient();
+  const [enviando, setEnviando] = useState(false);
+  const estado = estadoAtivacao(p);
+  if (estado === "nao_paga") return null;
+
+  const ativar = async () => {
+    setEnviando(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)("fn_checkout_2027_ativar_admin", { p_proposta_id: p.id });
+      if (error) throw error;
+      if (data?.erro) toast.error(`Não foi possível ativar: ${data.erro}`);
+      else toast.success("Plano, contrato e créditos criados no perfil do aluno.");
+      qc.invalidateQueries({ queryKey: ["propostas-planos-2027"] });
+    } catch {
+      toast.error("Não foi possível ativar agora.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      {estado === "ativada" ? (
+        <>
+          <Badge variant="outline">{p.teste_admin ? "Ativada (teste)" : "Ativada"}</Badge>
+          {p.aluno_ativado_id && (
+            <Link to={`/alunos/${p.aluno_ativado_id}`} className="text-primary underline">Abrir perfil do aluno</Link>
+          )}
+        </>
+      ) : (
+        <>
+          <Badge variant="destructive">Paga — ativação pendente</Badge>
+          {p.ativacao_erro && <span className="text-muted-foreground">{p.ativacao_erro}</span>}
+          {podeAtivarAgora({ isAdmin: !!roles?.isAdmin, ...p }) && (
+            <Button size="sm" onClick={ativar} disabled={enviando}>{enviando ? "Ativando..." : "Ativar agora"}</Button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 /** Propostas enviadas pela página pública /planos. Assinatura no cartão: equipe cancela ou dá baixa manual; a venda é feita no VendaDialog. */
 export function PropostasSite2027() {
@@ -59,6 +111,7 @@ export function PropostasSite2027() {
             <a href={waMeLink(p.whatsapp, `Olá ${p.nome.split(" ")[0]}, aqui é da FORTEM sobre o plano que você montou no site.`) ?? undefined} target="_blank" rel="noreferrer" className="text-sm text-primary underline">WhatsApp</a>
           </div>
         </div>
+        <AtivacaoLinha p={p} />
         {p.forma_plano === "recorrencia" && (
           <AssinaturaSite2027 propostaId={p.id} familia={p.familia} cancelada={!!p.assinatura_cancelada_em} testeAdmin={!!p.teste_admin} />
         )}
