@@ -45,4 +45,5 @@
 - [ ] Fase E — comprovar recebimento na caixa de teste (aguarda confirmação do dono) e e-mail após compra real ativada (aguarda compra real autorizada).
 - [x] Consultas + recorrência — F1: obrigação/snapshot, finalidade, aceite, reservas/estados, liberação pós-pagamento e cancelamento somente admin; ensaios SQL desfeitos, 892 Vitest + 42 Deno; contagens/chaves/crons preservados; bloqueio público mantido e permissões conferidas após restrição explícita.
 - [x] Consultas + recorrência — F2: blocos PLANO/CONSULTAS, aceite F1 e simulação admin-only publicada; recusa, retomada após recarregar, bloqueio desconhecido e desktop/móvel verificados com NICOLAS TESTE; 904 testes passaram. Criada uma obrigação de teste, sem venda/crédito/cobrança/mensalidade/tentativa financeira/e-mail; controles preservados. Estado hipotético em logs exclusivos de prévia, não destinado à conciliação real (F3–F5).
-- [ ] Consultas + recorrência — F3–F5 aguardam aprovação separada; sem liberação pública nesta rodada.
+- [x] Consultas + recorrência — F3 (cartão das consultas) em simulação na prévia admin + ajustes F2.
+- [ ] Consultas + recorrência — teste real do cartão das consultas (máx. R$ 1,00) aguarda pedido do dono; F4–F5 aguardam aprovação.

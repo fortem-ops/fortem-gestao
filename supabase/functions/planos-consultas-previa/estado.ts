@@ -1,5 +1,5 @@
 export type StatusPrevia = 'pendente' | 'aprovado' | 'recusado' | 'desconhecido';
-export type EstadoPrevia = { plano: StatusPrevia; consultas: StatusPrevia; obrigacao_id: string | null };
+export type EstadoPrevia = { plano: StatusPrevia; consultas: StatusPrevia; obrigacao_id: string | null; tentativa?: { id: string; status: string; ref: string } };
 export const inicial = (): EstadoPrevia => ({ plano: 'pendente', consultas: 'pendente', obrigacao_id: null });
 export function autorizarPrevia(admin: boolean, previa: boolean, teste: boolean, simulacao: boolean) {
   return admin && previa && teste && simulacao;
