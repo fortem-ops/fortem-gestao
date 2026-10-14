@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] ANEXO I no checkout /planos: migração `scripts/anexo1-checkout.PROPOSTA.sql` + volta preparadas (aguarda aprovação do texto); depois ensaio desfeito → função → tela (cópia do /assinar, restrição sem atestado + aviso, menores de 18 bloqueados) → testes → deploy da função junto do Publish.
+- [x] Expirar e2538616 (lixo de teste autorizado).
+
 - [x] Expirar somente a proposta pública 8f9441a2 e invalidar sua sessão; outra proposta real aberta com aceite: e2538616 (preservada).
 - [x] Atualizar confirmação do Passo 9 com ativação automática e WhatsApp; 915 Vitest + 30 Deno passaram.
 
