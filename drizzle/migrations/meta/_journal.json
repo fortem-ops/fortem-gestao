@@ -855,6 +855,13 @@
       "when": 1791969138646,
       "tag": "0121_recorrencia_2027_r1",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1791970133557,
+      "tag": "0122_recorrencia_2027_r3",
+      "breakpoints": true
     }
   ]
 }
