@@ -8,9 +8,11 @@ interface MedicalEvaluationProps {
   attestFile: File | null;
   onFileChange: (file: File | null) => void;
   error?: string;
+  /** Checkout do site: sem envio de atestado; mostra este aviso no lugar do upload. */
+  avisoSemAtestado?: string;
 }
 
-const MedicalEvaluation = ({ status, onStatusChange, attestFile, onFileChange, error }: MedicalEvaluationProps) => {
+const MedicalEvaluation = ({ status, onStatusChange, attestFile, onFileChange, error, avisoSemAtestado }: MedicalEvaluationProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -41,13 +43,17 @@ const MedicalEvaluation = ({ status, onStatusChange, attestFile, onFileChange, e
                 : "Possuo limitações atestadas por médico que não impedem a prática"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {opt === "ok" ? "Estou apto(a) sem restrições" : "Requer upload de atestado médico"}
+              {opt === "ok" ? "Estou apto(a) sem restrições" : avisoSemAtestado ? "A equipe FORTEM recebe o atestado depois" : "Requer upload de atestado médico"}
             </p>
           </div>
         </button>
       ))}
 
-      {status === "restricao" && (
+      {status === "restricao" && avisoSemAtestado && (
+        <p role="status" className="ml-9 mt-2 text-sm text-foreground">{avisoSemAtestado}</p>
+      )}
+
+      {status === "restricao" && !avisoSemAtestado && (
         <div className="ml-9 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
           <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => onFileChange(e.target.files?.[0] || null)} />
           <button
