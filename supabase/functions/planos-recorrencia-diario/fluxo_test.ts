@@ -110,3 +110,21 @@ Deno.test("erro inesperado na cobrança vira desconhecido (não recobra)", async
   assertEquals(l[0].status, "desconhecido");
   assertEquals(b.chamadasRede.length, 1);
 });
+
+import { executarTesteReal } from "./fluxo.ts";
+Deno.test("teste real: banco recusa a reserva → nenhuma chamada à Rede", async () => {
+  for (const motivo of ["recorrencia_desligada", "modo_simulacao", "proposta_nao_teste", "teto_teste"]) {
+    let chamadas = 0;
+    const r = await executarTesteReal({ cobrar: async () => { chamadas++; return { res: "aprovado" }; }, resultado: async () => "pago" },
+      async () => ({ ok: false, motivo }), "2026-11-14");
+    assertEquals(r.ok, false); assertEquals(r.motivo, motivo); assertEquals(chamadas, 0);
+  }
+});
+Deno.test("teste real: reserva permitida → 1 cobrança e resultado com dados da Rede", async () => {
+  const vistos: any[] = [];
+  const r = await executarTesteReal({
+    cobrar: async () => ({ res: "aprovado", tid: "T1", rede: { nsu: "N", returnCode: "00" } }),
+    resultado: async (...a) => { vistos.push(a); return "pago"; },
+  }, async () => ({ ok: true, mensalidade: linha("a", { simulado: false, valor_centavos: 100, status: "processando", tentativas: 1 }) }), "2026-11-14");
+  assertEquals(r.ok, true); assertEquals(vistos.length, 1); assertEquals(vistos[0][5].returnCode, "00");
+});
