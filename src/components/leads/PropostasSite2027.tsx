@@ -6,6 +6,8 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { waMeLink } from "@/lib/pipeline";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { estadoAtivacao, podeAtivarAgora } from "@/lib/ativacao2027";
@@ -53,6 +55,9 @@ function AtivacaoLinha({ p }: { p: Proposta }) {
           {p.aluno_ativado_id && (
             <Link to={`/alunos/${p.aluno_ativado_id}`} className="text-primary underline">Abrir perfil do aluno</Link>
           )}
+          {roles?.isAdmin && p.aluno_ativado_id && (
+            <Link to={`/alunos/${p.aluno_ativado_id}?tab=contrato`} className="text-primary underline">Pagamentos e estornos</Link>
+          )}
         </>
       ) : (
         <>
@@ -69,6 +74,8 @@ function AtivacaoLinha({ p }: { p: Proposta }) {
 
 /** Propostas enviadas pela página pública /planos. Assinatura no cartão: equipe cancela ou dá baixa manual; a venda é feita no VendaDialog. */
 export function PropostasSite2027() {
+  const [busca, setBusca] = useState("");
+  const [status, setStatus] = useState("todos");
   const { data = [], isLoading } = useQuery({
     queryKey: ["propostas-planos-2027"],
     queryFn: async () => {
@@ -84,10 +91,26 @@ export function PropostasSite2027() {
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (data.length === 0) return <p className="text-sm text-muted-foreground">Nenhuma proposta recebida pelo site ainda.</p>;
+  const term = busca.trim().toLocaleLowerCase("pt-BR");
+  const filtered = data.filter((p) => (!term || p.nome.toLocaleLowerCase("pt-BR").includes(term)) &&
+    (status === "todos" || (status === "ativada" ? !!p.ativada_em : status === "pendente" ? !!p.pago_em && !p.ativada_em : !p.pago_em)));
 
   return (
     <div className="space-y-3">
-      {data.map((p) => (
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Input aria-label="Buscar proposta por nome" placeholder="Buscar por nome..." value={busca} onChange={(e) => setBusca(e.target.value)} className="sm:max-w-sm" />
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger aria-label="Status da ativação" className="sm:w-64"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as propostas</SelectItem>
+            <SelectItem value="nao_paga">Não pagas</SelectItem>
+            <SelectItem value="pendente">Pagas — ativação pendente</SelectItem>
+            <SelectItem value="ativada">Ativadas</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {filtered.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma proposta encontrada.</p>}
+      {filtered.map((p) => (
         <div key={p.id} className="glass-card rounded-lg p-4">
         <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
           <div className="min-w-0">
