@@ -72,6 +72,10 @@ Deno.serve(async (req) => {
       reservar: async () => {
         const { data, error } = await sup.rpc("fn_planos_email_reservar", { p_proposta_id: id, p_evento: evento });
         if (error) throw new Error("reserva_falhou");
+        if (!data) {
+          const { data: completo, error: erroContrato } = await sup.rpc("fn_checkout_2027_email_completo", { p_proposta_id: id });
+          if (erroContrato || !completo) throw new Error("aceite_indisponivel");
+        }
         return data as RegistroEmail | null;
       },
       enviar: async (registro) => {
