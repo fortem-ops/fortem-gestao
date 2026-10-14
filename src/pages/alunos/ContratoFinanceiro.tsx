@@ -173,7 +173,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
   // Multas de cancelamento ainda em aberto (numero_ciclo 999 = cobrança fora do ciclo).
   const multasAbertas = cobrancasHistorico.filter(
-    (cb) => cb.numero_ciclo === 999 && cb.status === "pendente",
+    (cb) => cb.numero_ciclo === 999 && (cb.status === "pendente" || cb.status === "atrasado"),
   );
 
   // Mensalidades pagas de todos os contratos (fallback quando não há venda registrada).

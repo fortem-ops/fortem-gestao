@@ -57,3 +57,21 @@ O anexo do site é uma cópia do `/assinar` de hoje. O que o cliente preencher a
 - Extrair o núcleo de validação/gravação de `submit-legal-annex` para `_shared/legal-annex.ts`, usado pelas duas funções, sem mudar o comportamento de `/assinar`.
 - O anexo pendente fica no aceite (`propostas_2027_aceites.anexo jsonb` + `anexo_versao`). A assinatura fica no armazenamento privado com caminho por proposta. O CPF nunca é gravado em JSON ou log.
 - `fn_checkout_2027_contrato_gerar` adiciona o bloco do ANEXO I ao HTML com hash; `fn_checkout_2027_ativar` chama a gravação.
+
+---
+
+# NOVO PLANO — Pix Automático: solicitação de confirmação sempre falha (achado de monitoramento)
+
+Somente plano. Nada implementado.
+
+## Diagnóstico (confirmado)
+O pedido de autorização de Pix Automático enviado ao aluno é recusado pelo Banco Inter com erro 400: faltam `conta` e `ispbParticipante` do pagador no bloco `destinatario`. Hoje o sistema envia só CPF e nome (`supabase/functions/_shared/pix-rec.ts`, função `solicitarConfirmacao`). Resultado: nenhum pedido chega ao aluno e a equipe vê só "Falha ao solicitar confirmação".
+
+## O que será feito
+1. **Guardar os dados bancários do pagador:** novas colunas em `alunos` (ou `pix_recorrencias`) para conta e código do banco (ISPB) do aluno — campos opcionais, preenchidos pela equipe.
+2. **Na tela de recorrência Pix:** campos para a equipe informar conta e banco do aluno antes de pedir a autorização; sem esses dados, o botão avisa o que falta em vez de chamar o Inter.
+3. **Na função:** incluir `conta` e `ispbParticipante` no `destinatario`; validar antes de chamar o Inter e devolver mensagem clara quando faltar dado.
+4. **Testes:** ensaio sem chamada real ao Inter; regressão da criação de recorrência.
+
+## Fora de escopo
+Nenhuma chamada real ao Inter, nenhuma cobrança, nenhuma mudança em cron, chaves ou na integração antiga.
