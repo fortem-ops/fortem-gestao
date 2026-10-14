@@ -2,13 +2,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { autorizarPrevia, avancar, inicial, type EstadoPrevia } from './estado.ts';
+import { cobrarConsultas, conciliarConsultas, redeSimulada, validarCartao, type Db } from './cartao.ts';
 
 const schema = z.object({
   proposta_id: z.string().uuid(), chave_sessao: z.string().regex(/^[a-f0-9]{64}$/i),
-  acao: z.enum(['estado', 'termo', 'aceitar', 'simular']),
+  acao: z.enum(['estado', 'termo', 'aceitar', 'simular', 'cartao', 'conciliar']),
   forma: z.enum(['cartao_parcelado', 'pix_vista']).optional(), parcelas: z.number().int().min(1).max(6).optional(),
   termo_hash: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
   parte: z.enum(['plano', 'consultas']).optional(), resultado: z.enum(['aprovado', 'recusado', 'desconhecido']).optional(),
+  cenario: z.enum(['aprovado', 'recusado', 'desconhecido']).optional(),
+  cartao: z.object({ numero: z.string().max(23), nome: z.string().max(60), mes: z.string().max(2), ano: z.string().max(4), cvv: z.string().max(4) }).optional(),
 });
 const responder = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 const url = Deno.env.get('SUPABASE_URL');
@@ -61,7 +64,36 @@ Deno.serve(async req => {
     }
     if (b.acao === 'simular') {
       if (!b.parte || !b.resultado) throw new Error('Resultado inválido');
+      if (b.parte === 'consultas' && obligation?.forma === 'cartao_parcelado') throw new Error('Consultas no cartão: use o formulário do cartão');
       e = avancar(e, b.parte, b.resultado, !!obligation && e.obrigacao_id === obligation.id, estadoF1.novo_aceite_exigido === true);
+      await gravar();
+    }
+    if (b.acao === 'cartao' || b.acao === 'conciliar') {
+      // Prévia: Rede simulada e reserva espelhada no estado da simulação. Nada vai à Rede nem a tabelas financeiras.
+      if (!obligation || e.obrigacao_id !== obligation.id || estadoF1.novo_aceite_exigido === true) throw new Error('Leia e aceite as condições atuais das consultas');
+      const o = { id: obligation.id, valor_centavos: obligation.valor_centavos, parcelas: obligation.parcelas, forma: obligation.forma, status: e.consultas === 'aprovado' ? 'pago' : e.consultas };
+      const db: Db = {
+        reservar: async () => {
+          if (!e.tentativa || e.tentativa.status === 'recusado') e = { ...e, tentativa: { id: crypto.randomUUID(), status: 'pendente', ref: 'consultas:' + crypto.randomUUID() } };
+          return { tentativa_id: e.tentativa!.id, reutilizada: false };
+        },
+        tentativa: async id => e.tentativa?.id === id ? e.tentativa : null,
+        resultado: async (_id, status) => { e = { ...e, tentativa: { ...e.tentativa!, status }, consultas: status === 'processando' ? e.consultas : status }; },
+        liquidar: async (_id, a) => {
+          if (a.centavos !== o.valor_centavos || a.parcelas !== o.parcelas) { e = { ...e, consultas: 'desconhecido', tentativa: { ...e.tentativa!, status: 'desconhecido' } }; return; }
+          e = { ...e, consultas: 'aprovado', tentativa: { ...e.tentativa!, status: 'aprovado' } };
+        },
+      };
+      const rede = redeSimulada(b.cenario ?? 'aprovado');
+      if (b.acao === 'cartao') {
+        const cartao = validarCartao(b.cartao ?? {});
+        if (!cartao) throw new Error('Confira os dados do cartão');
+        const r = await cobrarConsultas(o, e.plano === 'aprovado', cartao, rede, db);
+        if (r.resultado === 'bloqueado') throw new Error(r.motivo);
+      } else {
+        if (e.consultas !== 'desconhecido' || !e.tentativa) throw new Error('Nada a conciliar');
+        await conciliarConsultas(o, e.tentativa.id, e.tentativa.ref, rede, db);
+      }
       await gravar();
     }
     const f1 = await invoke('fn_consultas_2027_estado', base);
