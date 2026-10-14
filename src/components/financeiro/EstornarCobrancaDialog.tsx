@@ -23,6 +23,8 @@ interface Props {
     valor: number;
     data_pagamento?: string | null;
     tid?: string | null;
+    gateway?: string | null;
+    origem?: string | null;
   };
   alunoNome: string;
   onEstornado: (c: ComprovanteEstorno) => void;
@@ -35,6 +37,9 @@ export function EstornarCobrancaDialog({ open, onOpenChange, cobranca, alunoNome
   const [tipo, setTipo] = useState<"total" | "parcial">("total");
   const [valorParcial, setValorParcial] = useState("");
   const [motivo, setMotivo] = useState("");
+  const ehPix = cobranca.gateway === "inter_pix";
+  const ehTeste = cobranca.origem === "teste_2027";
+  const [confirmouTeste, setConfirmouTeste] = useState(false);
   // Uma chave por abertura do diálogo: impede que duplo clique gere dois estornos.
   const idempotencyKey = useMemo(
     () => (open ? crypto.randomUUID() : ""),
@@ -49,7 +54,8 @@ export function EstornarCobrancaDialog({ open, onOpenChange, cobranca, alunoNome
       ? disponivel > 0
       : Number.isFinite(valorNumerico) && valorNumerico > 0 && valorNumerico <= disponivel + 0.001;
 
-  const podeConfirmar = !isLoading && valorValido && motivo.trim().length >= 10 && !estornar.isPending;
+  const podeConfirmar = !isLoading && valorValido && motivo.trim().length >= 10 && !estornar.isPending &&
+    (!ehTeste || confirmouTeste) && (!ehPix || tipo === "total");
 
   const confirmar = async () => {
     if (!podeConfirmar) return;
@@ -60,6 +66,7 @@ export function EstornarCobrancaDialog({ open, onOpenChange, cobranca, alunoNome
         valor: tipo === "parcial" ? Number(valorNumerico.toFixed(2)) : undefined,
         motivo: motivo.trim(),
         idempotencyKey,
+        confirmarTeste: ehTeste && confirmouTeste,
       });
       toast.success("Estorno confirmado pela operadora");
       onOpenChange(false);
@@ -81,8 +88,15 @@ export function EstornarCobrancaDialog({ open, onOpenChange, cobranca, alunoNome
 
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 flex gap-2 text-sm">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-          <span>Esta ação devolve dinheiro real ao aluno e não pode ser desfeita.</span>
+          <span>Esta ação devolve dinheiro real ao aluno e não pode ser desfeita.{ehPix ? " A devolução Pix é sempre do valor total." : ""}</span>
         </div>
+
+        {ehTeste && (
+          <label className="rounded-lg border border-destructive p-3 flex gap-2 text-sm items-start">
+            <input type="checkbox" className="mt-1" checked={confirmouTeste} onChange={(e) => setConfirmouTeste(e.target.checked)} />
+            <span><b>Cobrança de TESTE.</b> Confirmo que quero devolver dinheiro real de um teste.</span>
+          </label>
+        )}
 
         {isLoading ? (
           <Skeleton className="h-28 w-full" />
@@ -116,8 +130,8 @@ export function EstornarCobrancaDialog({ open, onOpenChange, cobranca, alunoNome
                 <RadioGroupItem value="total" id="estorno-total" />
                 <Label htmlFor="estorno-total" className="font-normal">Total ({brl(disponivel)})</Label>
               </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="parcial" id="estorno-parcial" />
+              <div className={`flex items-center gap-2 ${ehPix ? "hidden" : ""}`}>
+                <RadioGroupItem value="parcial" id="estorno-parcial" disabled={ehPix} />
                 <Label htmlFor="estorno-parcial" className="font-normal">Parcial</Label>
               </div>
             </RadioGroup>

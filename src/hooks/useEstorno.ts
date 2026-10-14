@@ -155,6 +155,7 @@ export function useEstornarCobranca() {
       valor?: number;
       motivo: string;
       idempotencyKey: string;
+      confirmarTeste?: boolean;
     }): Promise<ComprovanteEstorno> => {
       const { data, error } = await supabase.functions.invoke("estornar-cobranca", {
         body: {
@@ -163,6 +164,7 @@ export function useEstornarCobranca() {
           valor: input.valor,
           motivo: input.motivo,
           idempotency_key: input.idempotencyKey,
+          confirmar_teste: input.confirmarTeste === true,
         },
       });
 
