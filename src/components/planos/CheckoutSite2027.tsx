@@ -1,3 +1,4 @@
+import { CONSULTAS_NO_SITE } from '@/lib/planosPublico2027';
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { PagamentoReservado2027, type TelaPagamento } from "./PagamentoReservado2027";
@@ -77,7 +78,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
     setErro(""); setOcupado(true);
     try {
       const estado = await checkout<{ etapa: string; aceite_id: string | null; revisao: Revisao | null }>("estado", sessao);
-      if (previa && estado.aceite_id && estado.revisao && consultasSeparadas(estado.revisao)) {
+      if (CONSULTAS_NO_SITE && previa && estado.aceite_id && estado.revisao && consultasSeparadas(estado.revisao)) {
         await consultasPrevia(sessao);
         setRevisao(estado.revisao); setPreviaConsultas(true); setEtapa('pagamento'); return;
       }
