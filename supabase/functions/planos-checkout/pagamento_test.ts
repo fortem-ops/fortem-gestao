@@ -44,3 +44,10 @@ Deno.test("registro: falha duas vezes devolve false (gera aviso + log + mensagem
   assertEquals(await gravarComRetentativa(async () => { n++; throw new Error("x"); }), false);
   assertEquals(n, 2);
 });
+
+import { ACOES_COBRANCA as _AC, temConsultas as _tc } from "./pagamento.ts";
+Deno.test("site vende só o plano: proposta com consultas não cobra", () => {
+  if (!_tc(["nutri_4"]) || _tc([]) || _tc(null) || _tc([""])) throw new Error("temConsultas");
+  for (const a of ["pagar_pix", "pagar_cartao", "tokenizar_cartao", "cartao_combinar"]) if (!_AC.has(a)) throw new Error(a);
+  if (_AC.has("estado") || _AC.has("status_pagamento")) throw new Error("consulta bloqueada");
+});
