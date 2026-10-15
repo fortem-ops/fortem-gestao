@@ -73,3 +73,103 @@ Ordem de entrega (cada etapa precisa de aprovação):
 Em todas as etapas: nenhuma cobrança real, nenhuma mudança de flag ou cron, balcão e legado intactos.
 
 Estimativa: E1 ~2–3 créditos, E2 ~3–4, E3 ~3–4, E4 ~5–7, E5 ~3–4, E6 ~2–3. Total ~18–25 créditos.
+
+---
+---
+
+# Plano 2 de 2 — Pix Automático como recorrência no /planos (Start, Power, Pro)
+
+Somente plano. O Plano 1 continua pendente e não será implementado. Nada de flags, dados, contratos ou cobranças muda.
+
+## A) Viabilidade no Inter
+O que o código e os testes de 13 e 15/10 já mostram:
+- Já usamos estas chamadas: criar recorrência, pedir a confirmação ao aluno pelo app do banco (jornada 1), criar a cobrança de cada mês, cancelar e ler os avisos do banco.
+- Correção sobre a mensagem: o teste com QR de 13/10 também passou pela **jornada 2**. A recorrência de NICOLAS TESTE voltou do Inter como `APROVADA` e marcada como jornada 2 (QR só com a autorização). Ou seja, a conta já aceita jornada 2.
+- Campos já usados: `vinculo` (objeto, contrato, devedor), `calendario` (data de início, data de fim, periodicidade MENSAL), `valor` (valor fixo ou valor mínimo do recebedor) e `politicaRetentativa` (`PERMITE_3R_7D` = até 3 novas tentativas em 7 dias).
+- O limite de valor que o dono vê no app do banco é o **valor máximo definido pelo pagador**. A FORTEM não controla esse teto.
+- Cada mensalidade precisa ser criada **pelo menos 2 dias antes** do vencimento. A regra é do Banco Central, e o Inter já recusou uma cobrança com prazo menor.
+- Confirmações chegam pelos avisos do banco já registrados (pix, rec, cobr), com consulta ao Inter como reserva.
+
+O que ainda não está provado:
+- **Jornada 3** (QR que paga a 1ª mensalidade na hora e já autoriza a recorrência): o Banco Central prevê essa jornada no guia ([2](https://www.bcb.gov.br/content/estabilidadefinanceira/pix/automatico/guia_pix_automatico.pdf)), mas não está confirmado que a conta do Inter aceita. A documentação pública do Inter ([1](https://developers.inter.co/references/pix-automatico)) não deixou isso claro na leitura.
+  - Teste proposto (precisa da aprovação do dono): NICOLAS TESTE, um único QR com cobrança imediata de **R$ 1,00** ligada à autorização da recorrência, paga pelo dono no app.
+  - Esperado: o pagamento é liquidado e a recorrência fica `APROVADA` como jornada 3.
+  - Se o Inter recusar, ficamos com o plano B, sem custo.
+
+**Plano B (sem jornada 3):** um único QR de jornada 2 (autorização), mais um **Pix comum à vista** para a 1ª mensalidade, que já existe no /planos. O plano só ativa quando a 1ª mensalidade for paga **e** a autorização estiver aprovada.
+- Risco: o cliente autoriza e não paga, ou paga e não autoriza.
+- Tratamento: uma tela mostra as duas pendências. Depois de 24 h:
+  - sem pagamento: a autorização é cancelada e a proposta expira;
+  - pago sem autorização: o plano ativa como **Pix mensal manual** e a equipe é avisada.
+
+## B) Como fica no checkout
+- Nova opção "Pix Automático (recorrência)" nos 3 planos, com o mesmo preço do cartão em recorrência (taxa: ver D). Cartão, Pix à vista e 12x ficam como estão.
+- Fluxo: escolha → cadastro → contrato + ANEXO I → tela Pix com QR/copia e cola e aviso do limite → acompanhamento ("autorização ✔ / 1ª mensalidade ✔") → ativação pela mesma rotina de hoje (`fn_checkout_2027_ativar`) → e-mail.
+- Aviso de limite: "Se você definir um limite no app do banco, ele precisa ser de pelo menos R$ X (o valor da mensalidade)". Se o limite ficar abaixo, a mensalidade falha e conta como inadimplência.
+- O que acontece em cada caso:
+  - QR expirado: gera um novo QR com o mesmo aceite por até 24 h.
+  - Cliente cancela a autorização no banco: o plano continua até o fim do ciclo pago, a equipe recebe um aviso interno e oferece cartão ou Pix manual.
+  - Autorizou e não pagou: segue a regra do plano A ou do plano B.
+- Reuso: `pix_recorrencias` e `pix_cobrancas` ganham o vínculo `proposta_id`; a tabela de mensalidades 2027 ganha uma origem "pix_automatico". A baixa usa a rotina idempotente que já existe.
+
+## C) Cobranças seguintes
+- Rotina diária nova, separada do cartão, que **só cria** a cobrança de cada mensalidade 3 dias antes do vencimento. A margem de 1 dia sobre o mínimo de 2 cobre falhas.
+  - Uma cobrança por mensalidade, sem repetir: se o resultado for incerto, consulta antes de recriar.
+  - Retentativas: as do próprio banco (3 tentativas em 7 dias). A FORTEM não cobra nada além disso.
+- Situação de cada mensalidade: liquidada → paga; rejeitada ou expirada → inadimplente. Inadimplente leva a suspensão de acesso (§4), aviso interno e encargos do Plano 1 só quando a equipe decidir.
+  - Start: segue a regra atual (sem pagamento até D+3, não abre novo ciclo).
+  - Power e Pro: os créditos são mantidos.
+- Aviso ao aluno: o próprio banco notifica antes do débito. A FORTEM não manda e-mail por mensalidade (mesma regra de hoje).
+- Para a equipe: cada mensalidade aparece no financeiro, no contrato e na previsibilidade com a forma "Pix Automático", mais o estado da autorização no perfil do aluno.
+
+## D) Contrato (texto proposto para validação jurídica)
+- Os 3 modelos de recorrência ganham uma versão nova, só para vendas novas, que já cita cartão ou Pix Automático. Não precisa de um modelo separado: o §1 atual já fala em "cartão de crédito ou PIX Automático". Por isso, a forma `pix_recorrencia` usa o mesmo modelo `cartao_recorrencia`.
+- Cláusulas propostas:
+  > §6º Na modalidade PIX Automático, o ALUNO autoriza, em sua instituição financeira, débitos mensais em favor da CONTRATADA no valor da mensalidade, nas datas de vencimento, pelo prazo do contrato. Ele declara ciência de que eventual limite de valor fixado por ele em sua instituição não poderá ser inferior à mensalidade.
+  >
+  > §7º O cancelamento da autorização pelo ALUNO junto à sua instituição financeira não implica rescisão contratual. O ALUNO deverá indicar outra forma de pagamento, sob pena de inadimplência, aplicando-se o §4º e os encargos do §5º.
+  >
+  > §8º A rescisão antecipada segue a Cláusula de cancelamento (multa de 25%, 20% ou 15% sobre as parcelas vincendas), igual para cartão e PIX Automático.
+- **Decisão pendente do dono: taxa de recorrência de R$ 24,90 no Pix Automático.**
+  - Cobrar: preço igual ao do cartão. Ex.: Pro 3x R$ 623,90 por mês, R$ 7.486,80 em 12 meses.
+  - Não cobrar: Pix fica R$ 24,90 por mês mais barato. Ex.: R$ 599,00 por mês, R$ 7.188,00 em 12 meses, ou R$ 298,80 a menos no ano. O texto do §2 passaria a citar a taxa só no cartão.
+
+## E) Liberação em etapas e segurança
+- Novas flags, todas **desligadas**: `planos_pix_automatico_ativo`, mais uma por plano (Start, Power, Pro). Ordem sugerida: Start → Power → Pro, cada etapa com decisão do dono.
+- Testes só em NICOLAS TESTE, por simulação ou com no máximo R$ 1,00 real e só com autorização.
+- Reversão: desligar a flag esconde a opção na hora. Autorizações já criadas continuam e podem ser canceladas pela equipe. Migrações sempre com script de volta.
+
+## F) Riscos, aprovações, testes, ordem e créditos
+Riscos:
+- Jornada 3 sem suporte no Inter (plano B).
+- Limite do pagador abaixo da mensalidade.
+- Autorização cancelada no banco.
+- Perder o prazo de 2 dias (rotina com margem e alerta).
+- Avisos do banco com nomes diferentes (já tratado no webhook).
+- A integração antiga, com credenciais perdidas, não pode ser usada.
+
+Aprovações do dono:
+1. Teste real de R$ 1 da jornada 3.
+2. Plano A ou B.
+3. Taxa de R$ 24,90.
+4. Texto do §6–§8.
+5. Ordem de liberação.
+6. Horário da rotina diária.
+
+Testes:
+- Vitest e Deno: escolha da forma, prazo de 2 dias, sem repetição, estados de autorização, ativação apenas com as duas confirmações.
+- Ensaio de banco em transação desfeita.
+- Tela no computador e no celular.
+- Regressões: cartão, Pix à vista, 12x e balcão.
+
+Ordem de entrega (cada etapa com aprovação):
+- **P1** — Teste da jornada 3 (R$ 1).
+- **P2** — Banco: vínculos e flags, com script de volta.
+- **P3** — Função de criar QR, acompanhar e ativar.
+- **P4** — Tela do checkout.
+- **P5** — Rotina diária e conciliação.
+- **P6** — Telas da equipe.
+- **P7** — Versão nova do contrato, junto com o §5 do Plano 1.
+- **P8** — Liberação do Start.
+
+Estimativa: P1 ~2, P2 ~3, P3 ~5–7, P4 ~4–5, P5 ~5–6, P6 ~3–4, P7 ~2, P8 ~1. Total ~25–30 créditos.
