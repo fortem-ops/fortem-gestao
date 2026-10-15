@@ -2,6 +2,7 @@ import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
 import { extrairEventos, statusRec, statusCobr, podeAtualizarRec, mascararCpf } from "./eventos.ts";
 import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
 import { ehCobrancaPlanos, baixarPixProposta } from "./planos-baixa.ts";
+import { ehTxidFesta, baixarPixFesta } from "../_shared/festa-pix.ts";
 
 
 async function notifyAdmins(params: {
@@ -90,6 +91,12 @@ Deno.serve(async (req) => {
     for (const ev of pixRecebidos) {
       const txid: string | undefined = ev?.txid;
       if (!txid) continue;
+      // --- Festa 10 anos: caminho isolado em _shared/festa-pix.ts ---
+      if (ehTxidFesta(txid)) {
+        await baixarPixFesta(sup, txid, ev?.valor, "webhook");
+        pixTratados.add(txid);
+        continue;
+      }
       const { data: cob } = await sup
         .from("pix_cobrancas")
         .select("id, pedido_id, corrida_venda_id, proposta_id")
