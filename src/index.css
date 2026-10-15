@@ -217,35 +217,35 @@
     backdrop-filter: none;
   }
 
-  /* Landing pública FORTEM 10 anos — tema premium isolado. */
+  /* Landing pública FORTEM 10 anos — tema escuro da marca, isolado. */
   [data-festa="10anos"] {
-    --background: 220 21% 7%;
-    --foreground: 0 0% 96%;
-    --card: 220 17% 10%;
-    --card-foreground: 0 0% 96%;
-    --popover: 220 17% 10%;
-    --popover-foreground: 0 0% 96%;
-    --primary: 0 72% 54%;
+    --background: 0 0% 5.5%;        /* #0e0e0e */
+    --foreground: 0 0% 100%;
+    --card: 0 0% 10.2%;             /* #1a1a1a */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 10.2%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 359 67% 47%;         /* #c8282a — botão de ação */
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 16%;
-    --secondary-foreground: 0 0% 94%;
-    --muted: 220 12% 18%;
-    --muted-foreground: 220 8% 65%;
-    --accent: 220 14% 18%;
-    --accent-foreground: 0 0% 96%;
-    --border: 220 12% 22%;
-    --input: 220 12% 25%;
-    --ring: 0 72% 54%;
-    --radius: 0.25rem;
+    --festa-marca: 359 78% 57%;     /* #e73c3e — vermelho da marca */
+    --secondary: 0 0% 10.2%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10.2%;
+    --muted-foreground: 180 1% 70%; /* #b1b3b3 */
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 100%;
+    --border: 180 1% 29%;           /* #4a4b4b */
+    --input: 180 1% 29%;
+    --ring: 359 78% 57%;
+    --destructive: 359 78% 64%;
+    --radius: 0rem;
     color-scheme: dark;
-    font-family: 'Manrope', sans-serif;
-  }
-  [data-festa="10anos"] h1,
-  [data-festa="10anos"] h2,
-  [data-festa="10anos"] h3,
-  [data-festa="10anos"] .font-display {
     font-family: 'Archivo', sans-serif;
   }
+  [data-festa="10anos"] * { border-radius: 0 !important; box-shadow: none !important; }
+  [data-festa="10anos"] .festa-marca { color: hsl(var(--festa-marca)); }
+  [data-festa="10anos"] .festa-marca-bg { background-color: hsl(var(--festa-marca)); }
+  [data-festa="10anos"] .festa-marca-border { border-color: hsl(var(--festa-marca)); }
 
   @media (prefers-reduced-motion: reduce) {
     [data-festa="10anos"] *,
