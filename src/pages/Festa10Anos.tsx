@@ -4,6 +4,8 @@ import { festa10AnosConfig as cfg } from "@/config/festa10anos";
 import { brlCentavos } from "@/lib/festa10anos";
 import { Seo } from "@/components/Seo";
 import FestaConfirmacaoForm from "@/components/festa/FestaConfirmacaoForm";
+import FestaFotosAno from "@/components/festa/FestaFotosAno";
+import { agruparFotosPorAno, carregarFestaFotos, type FestaFoto } from "@/lib/festaFotos";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 
 /** Duas cantoneiras em diagonal (superior esquerda e inferior direita). */
@@ -32,6 +34,8 @@ export default function Festa10Anos() {
     if (!error && typeof data === "number") setTotalConfirmados(data);
   }, []);
   useEffect(() => { carregarTotal(); }, [carregarTotal]);
+  const [fotosDb, setFotosDb] = useState<Record<string, FestaFoto[]> | null>(null);
+  useEffect(() => { carregarFestaFotos().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); }, []);
 
   const local = `${cfg.local.endereco} · ${cfg.horario} · confirmações ${cfg.prazoTexto}`;
 
