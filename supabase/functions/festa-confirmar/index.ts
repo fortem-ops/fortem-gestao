@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { FESTA_PRAZO_FIM, criarPixFesta, conferirPixFesta } from "../_shared/festa-pix.ts";
+import { FESTA_PRAZO_FIM, criarPixFesta, conferirPixFesta, cancelarPixFesta } from "../_shared/festa-pix.ts";
 
 const CONVIDADO = 7000;
 const ACOMPANHANTE = 9000;
@@ -127,6 +127,31 @@ Deno.serve(async (req) => {
       if (!r.ok) return jsonResponse({ erro: "Não foi possível gerar o código PIX agora." }, 502);
       await sup.from("festa_eventos").insert({ confirmacao_id: c.id, acao: "pix_gerado_equipe", usuario_id: uid });
       return jsonResponse({ copia_e_cola: r.copia_e_cola });
+    }
+
+    if (acao === "cancelar_equipe") {
+      const uid = await gestao(req);
+      if (!uid) return jsonResponse({ erro: "Sem permissão." }, 403);
+      const { data: c } = await sup.from("festa_confirmacoes").select("*").eq("id", String(body?.id ?? "")).maybeSingle();
+      if (!c) return jsonResponse({ erro: "Confirmação não encontrada." }, 404);
+      const novoQr = body?.novo_qr === true;
+      if (c.status === "aguardando_pagamento" && c.txid) {
+        const r = await cancelarPixFesta(sup, c, uid);
+        if (r.pago) return jsonResponse({ erro: "Este PIX já foi pago. A presença foi confirmada." }, 409);
+        if (!r.ok) return jsonResponse({ erro: "Não foi possível cancelar o PIX no banco agora. Nada foi alterado." }, 502);
+      }
+      if (novoQr) {
+        if (c.status !== "aguardando_pagamento" || c.total_centavos <= 0) return jsonResponse({ erro: "Confirmação sem pagamento pendente." }, 400);
+        const r = await criarPixFesta(sup, { ...c, txid: null });
+        if (!r.ok) return jsonResponse({ erro: "PIX antigo cancelado, mas não foi possível gerar o novo agora." }, 502);
+        await sup.from("festa_eventos").insert({ confirmacao_id: c.id, acao: "pix_gerado_equipe", usuario_id: uid });
+        return jsonResponse({ ok: true, copia_e_cola: r.copia_e_cola });
+      }
+      if (c.status !== "cancelado") {
+        await sup.from("festa_confirmacoes").update({ status: "cancelado" }).eq("id", c.id);
+        await sup.from("festa_eventos").insert({ confirmacao_id: c.id, acao: "cancelado_equipe", usuario_id: uid });
+      }
+      return jsonResponse({ ok: true });
     }
 
     if (acao === "confirmar") {
