@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const STATUS: Record<string, string> = { aguardando_pagamento: "Aguardando pagamento", confirmado: "Pago", isento: "Isento", cancelado: "Cancelado" };
@@ -65,6 +66,29 @@ export default function FestaConfirmacoes() {
   }, [itens, busca, fStatus, fVinculo, fOrigem]);
 
   const r = useMemo(() => resumoFesta(itens), [itens]);
+  const [cancelar, setCancelar] = useState<{ c: ConfirmacaoFesta; novoQr: boolean } | null>(null);
+  const { data: semConfirmacao = [] } = useQuery({
+    queryKey: ["festa-pagamentos-sem-confirmacao"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("festa_eventos").select("id, acao, detalhes, criado_em")
+        .in("acao", ["pagamento_sem_confirmacao", "pagamento_em_cancelada"]).order("criado_em", { ascending: false });
+      if (error) throw error;
+      return data as { id: string; acao: string; detalhes: any; criado_em: string }[];
+    },
+  });
+  const cancelarPix = useMutation({
+    mutationFn: async ({ c, novoQr }: { c: ConfirmacaoFesta; novoQr: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("festa-confirmar", { body: { acao: "cancelar_equipe", id: c.id, novo_qr: novoQr } });
+      if (error || !data?.ok) {
+        let msg = "Não foi possível cancelar o PIX agora.";
+        try { msg = (await (error as any)?.context?.json())?.erro ?? data?.erro ?? msg; } catch { /* mantém padrão */ }
+        throw new Error(msg);
+      }
+      return novoQr;
+    },
+    onSuccess: async (novoQr) => { setCancelar(null); setDetalhe(null); await invalidar(); toast.success(novoQr ? "PIX anterior cancelado e novo código gerado." : "PIX cancelado e confirmação cancelada."); },
+    onError: async (e: any) => { setCancelar(null); await invalidar(); toast.error(e?.message); },
+  });
   const invalidar = () => qc.invalidateQueries({ queryKey: ["festa-confirmacoes"] });
 
   const salvar = useMutation({
@@ -82,6 +106,10 @@ export default function FestaConfirmacoes() {
       let id = e.id;
       if (id) {
         const atual = itens.find((x) => x.id === id);
+        if (e.status === "cancelado" && atual?.status !== "cancelado") {
+          const { data, error } = await supabase.functions.invoke("festa-confirmar", { body: { acao: "cancelar_equipe", id } });
+          if (error || !data?.ok) throw new Error("pix");
+        }
         const manterPagamento = atual?.status === "confirmado" && e.status === "confirmado";
         const { error } = await supabase.from("festa_confirmacoes").update(manterPagamento ? { ...base, pago_em: atual!.pago_em, pago_valor_centavos: atual!.pago_valor_centavos, pagamento_forma: atual!.pagamento_forma } : base).eq("id", id);
         if (error) throw error;
@@ -99,7 +127,7 @@ export default function FestaConfirmacoes() {
       }
     },
     onSuccess: async () => { setEdit(null); await invalidar(); toast.success("Confirmação salva."); },
-    onError: (e: any) => toast.error(e?.code === "23505" ? "Já existe uma confirmação ativa para este WhatsApp." : "Não foi possível salvar."),
+    onError: (e: any) => toast.error(e?.code === "23505" ? "Já existe uma confirmação ativa para este WhatsApp." : e?.message === "pix" ? "Não foi possível cancelar o PIX no banco. Nada foi alterado." : "Não foi possível salvar."),
   });
 
   const mudarStatus = useMutation({
@@ -151,6 +179,15 @@ export default function FestaConfirmacoes() {
           <Button onClick={() => setEdit(novaEdicao())}><Plus className="mr-2 h-4 w-4" />Adicionar manualmente</Button>
         </div>
       </header>
+
+      {semConfirmacao.length > 0 && (
+        <Card className="border-status-warning p-4 text-sm">
+          <p className="font-medium">Valores a conciliar: PIX recebido sem confirmação ativa</p>
+          <ul className="mt-2 space-y-1 text-muted-foreground">
+            {semConfirmacao.map((ev) => <li key={ev.id}>{format(new Date(ev.detalhes?.recebido_em ?? ev.criado_em), "dd/MM/yy HH:mm")} · {ev.detalhes?.valor_centavos != null ? brlCentavos(ev.detalhes.valor_centavos) : "valor não informado"} · txid {ev.detalhes?.txid}{ev.acao === "pagamento_em_cancelada" ? " · confirmação cancelada" : ""}</li>)}
+          </ul>
+        </Card>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5"><p className="text-sm text-muted-foreground">Pessoas confirmadas</p><p className="mt-1 text-3xl font-bold">{r.pessoasConfirmadas}</p></Card>
@@ -206,15 +243,33 @@ export default function FestaConfirmacoes() {
               <Button variant="outline" onClick={() => { const d = detalhe; setDetalhe(null); setEdit({ id: d.id, nome: d.nome, whatsapp: fone(d.whatsapp), email: d.email ?? "", vinculo: d.vinculo, consumo: d.consumo ?? [], intolerancias: d.intolerancias ?? [], acompanhantes: d.festa_acompanhantes.map((a) => ({ nome: a.nome, consumo: a.consumo ?? [], intolerancias: a.intolerancias ?? [] })), status: d.status, pagamento_forma: d.pagamento_forma ?? "", observacao: d.observacao ?? "" }); }}>Editar</Button>
               {detalhe.status === "aguardando_pagamento" && <>
                 <Button onClick={() => mudarStatus.mutate({ c: detalhe, status: "confirmado", forma: "manual" })}>Marcar como pago (fora do PIX)</Button>
+                {detalhe.total_centavos > 0 && <Button variant="outline" onClick={() => setCancelar({ c: detalhe, novoQr: true })}>Cancelar PIX e gerar novo</Button>}
                 {detalhe.total_centavos > 0 && <Button variant="outline" onClick={() => enviarWhats(detalhe)}><MessageCircle className="mr-2 h-4 w-4" />Enviar PIX por WhatsApp</Button>}
               </>}
               {detalhe.status !== "cancelado"
-                ? <Button variant="destructive" onClick={() => mudarStatus.mutate({ c: detalhe, status: "cancelado" })}>Cancelar</Button>
+                ? <Button variant="destructive" onClick={() => setCancelar({ c: detalhe, novoQr: false })}>{detalhe.status === "aguardando_pagamento" && detalhe.total_centavos > 0 ? "Cancelar PIX e confirmação" : "Cancelar"}</Button>
                 : <Button variant="outline" onClick={() => mudarStatus.mutate({ c: detalhe, status: "aguardando_pagamento" })}>Reativar</Button>}
             </DialogFooter>
           </>}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!cancelar} onOpenChange={(o) => !o && !cancelarPix.isPending && setCancelar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{cancelar?.novoQr ? "Cancelar o PIX e gerar um novo?" : "Cancelar esta confirmação?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {cancelar?.novoQr
+                ? `O código PIX atual de ${cancelar.c.nome} será cancelado no banco e um novo será gerado. Quem tiver o código antigo não conseguirá mais pagar.`
+                : `A confirmação de ${cancelar?.c.nome} será cancelada${cancelar?.c.status === "aguardando_pagamento" ? " e o PIX pendente será cancelado no banco" : ""}. Fica registrado quem fez e quando.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelarPix.isPending}>Voltar</AlertDialogCancel>
+            <AlertDialogAction disabled={cancelarPix.isPending} onClick={(e) => { e.preventDefault(); if (cancelar) cancelarPix.mutate(cancelar); }}>{cancelarPix.isPending ? "Cancelando…" : "Confirmar"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Adicionar / editar */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
