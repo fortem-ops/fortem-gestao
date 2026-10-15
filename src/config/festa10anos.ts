@@ -4,13 +4,16 @@
  */
 
 import festa2016 from "@/assets/festa-2016.jpg.asset.json";
+import festa2017a from "@/assets/festa-2017-1.jpg.asset.json";
+import festa2017b from "@/assets/festa-2017-2.jpg.asset.json";
+
+export type MarcoFoto = { url: string; alt?: string };
 
 export type MarcoAno = {
   ano: string;
   marcos: string[];
-  /** URL da foto do ano. Vazio = bloco discreto "foto em breve". */
-  foto?: string;
-  fotoAlt?: string;
+  /** Fotos do ano. Vazio = bloco discreto "foto em breve". */
+  fotos?: MarcoFoto[];
   /** Proporção do bloco da foto (ex.: "aspect-square"). Padrão: "aspect-[4/3]". */
   fotoProporcao?: string;
 };
@@ -56,11 +59,17 @@ export const festa10AnosConfig = {
       {
         ano: "2016",
         marcos: ["16 de outubro: primeira loja alugada, com 25 m², na galeria do Shopping Independência.", "7 de novembro: constituída a empresa."],
-        foto: festa2016.url,
-        fotoAlt: "A primeira sede da FORTEM em obras, em 2016",
+        fotos: [{ url: festa2016.url, alt: "A primeira sede da FORTEM em obras, em 2016" }],
         fotoProporcao: "aspect-square",
       },
-      { ano: "2017", marcos: ["4 de janeiro: abertura das portas.", "Dezembro: 85 alunos atendidos."] },
+      {
+        ano: "2017",
+        marcos: ["4 de janeiro: abertura das portas.", "Dezembro: 85 alunos atendidos."],
+        fotos: [
+          { url: festa2017a.url, alt: "Alunos em treino funcional na sede da FORTEM, 2017" },
+          { url: festa2017b.url, alt: "Alunos fazendo agachamento com barra na FORTEM, 2017" },
+        ],
+      },
       { ano: "2018", marcos: ["Nova loja, com mais 60 m².", "Início da equipe: contratação de professores e de um administrador.", "Nova modalidade: Circuito Funcional."] },
       { ano: "2019", marcos: ["Nova loja, com mais 25 m².", "Expansão do quadro de funcionários."] },
       { ano: "2020", marcos: ["Pandemia: de 120 alunos ativos, passamos para 40.", "Entrega da primeira loja."] },
