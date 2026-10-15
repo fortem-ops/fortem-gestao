@@ -181,7 +181,7 @@ export default function FestaConfirmacoes() {
       </header>
 
       {semConfirmacao.length > 0 && (
-        <Card className="border-status-warning p-4 text-sm">
+        <Card className="status-warning p-4 text-sm">
           <p className="font-medium">Valores a conciliar: PIX recebido sem confirmação ativa</p>
           <ul className="mt-2 space-y-1 text-muted-foreground">
             {semConfirmacao.map((ev) => <li key={ev.id}>{format(new Date(ev.detalhes?.recebido_em ?? ev.criado_em), "dd/MM/yy HH:mm")} · {ev.detalhes?.valor_centavos != null ? brlCentavos(ev.detalhes.valor_centavos) : "valor não informado"} · txid {ev.detalhes?.txid}{ev.acao === "pagamento_em_cancelada" ? " · confirmação cancelada" : ""}</li>)}
