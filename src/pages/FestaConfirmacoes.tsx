@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FestaFotosAdmin from "@/components/festa/FestaFotosAdmin";
 
 const STATUS: Record<string, string> = { aguardando_pagamento: "Aguardando pagamento", confirmado: "Pago", isento: "Isento", cancelado: "Cancelado" };
 const STATUS_COR: Record<string, string> = { aguardando_pagamento: "status-warning", confirmado: "status-active", isento: "status-info", cancelado: "" };
@@ -180,6 +182,13 @@ export default function FestaConfirmacoes() {
         </div>
       </header>
 
+      <Tabs defaultValue="confirmacoes">
+      <TabsList>
+        <TabsTrigger value="confirmacoes">Confirmações</TabsTrigger>
+        <TabsTrigger value="fotos">Fotos da história</TabsTrigger>
+      </TabsList>
+      <TabsContent value="fotos" className="mt-4"><FestaFotosAdmin /></TabsContent>
+      <TabsContent value="confirmacoes" className="mt-4 space-y-6">
       {semConfirmacao.length > 0 && (
         <Card className="status-warning p-4 text-sm">
           <p className="font-medium">Valores a conciliar: PIX recebido sem confirmação ativa</p>
@@ -305,6 +314,8 @@ export default function FestaConfirmacoes() {
           </>}
         </DialogContent>
       </Dialog>
+      </TabsContent>
+      </Tabs>
     </div>
   );
 }

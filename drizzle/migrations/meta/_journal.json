@@ -1009,6 +1009,13 @@
       "when": 1792069475419,
       "tag": "0143_festa_10anos_confirmacoes_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1792074534180,
+      "tag": "0144_festa_fotos",
+      "breakpoints": true
     }
   ]
 }
