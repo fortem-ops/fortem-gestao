@@ -89,12 +89,8 @@ export default function Festa10Anos() {
                 <ul className="space-y-3 md:pt-2">
                   {a.marcos.map((m) => <li key={m} className="border-l-2 border-border pl-4 leading-relaxed">{m}</li>)}
                 </ul>
-                {a.fotos?.length ? (
-                  <div className="flex flex-col gap-3">
-                    {a.fotos.map((f) => (
-                      <img key={f.url} src={f.url} alt={f.alt ?? `FORTEM em ${a.ano}`} loading="lazy" className={`${a.fotoProporcao ?? "aspect-[4/3]"} w-full object-cover`} />
-                    ))}
-                  </div>
+                {(fotosDb?.[a.ano] ?? (fotosDb ? undefined : a.fotos))?.length ? (
+                  <FestaFotosAno ano={a.ano} fotos={(fotosDb?.[a.ano] ?? a.fotos)!} proporcao={a.fotoProporcao} />
                 ) : (
                   <div className="flex aspect-[4/3] w-full items-center justify-center border border-border bg-card">
                     <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Foto em breve</span>
