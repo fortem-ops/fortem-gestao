@@ -1002,6 +1002,13 @@
       "when": 1791997169788,
       "tag": "0142_anexo1_checkout_planos",
       "breakpoints": true
+    },
+    {
+      "idx": 143,
+      "version": "7",
+      "when": 1792069475419,
+      "tag": "0143_festa_10anos_confirmacoes_v2",
+      "breakpoints": true
     }
   ]
 }
