@@ -62,3 +62,7 @@
 ## /planos visual claro + parcelas no pagamento
 - [x] Visual claro só no /planos (marca #E73C3E, Cool Grey #B1B3B3, Archivo), portais incluídos, capturas antes/depois
 - [ ] Parcelas escolhidas no pagamento: migração + script de volta mostrados (aguarda aprovação para aplicar/publicar planos-checkout)
+
+- [x] Festa 10 anos (/10anos): página, formulário, contador, tela da equipe e PIX Inter.
+- [ ] Festa 10 anos: primeiro PIX real (aguarda teste do dono) e fotos da linha do tempo.
+- [ ] Plano 1 (encargos por atraso) e Plano 2 (Pix Automático no /planos): aguardam aprovação do dono.
