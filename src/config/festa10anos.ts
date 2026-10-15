@@ -59,7 +59,7 @@ export const festa10AnosConfig = {
       { ano: "2023–2024", marcos: ["Ampliação de serviços: avaliação funcional e venda de produtos."] },
       { ano: "2025", marcos: ["Novos formatos de venda de planos.", "Início do Grupo de Corrida."] },
       { ano: "2026", marcos: ["Implementação interna de novo sistema de prescrição de treinos.", "Ampliação estrutural da área de treinamento: mais 12 m².", "App do aluno."] },
-    ] satisfies MarcoAno[],
+    ] as MarcoAno[],
   },
   festa: {
     titulo: "UMA NOITE PARA CELEBRAR",
