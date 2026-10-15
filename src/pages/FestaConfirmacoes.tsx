@@ -314,6 +314,8 @@ export default function FestaConfirmacoes() {
           </>}
         </DialogContent>
       </Dialog>
+      </TabsContent>
+      </Tabs>
     </div>
   );
 }
