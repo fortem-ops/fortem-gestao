@@ -52,11 +52,19 @@ export default function Festa10Anos() {
 
       {/* Hero */}
       <section id="topo" className="px-5 py-16 sm:px-8 sm:py-24 lg:py-28">
-        <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.3fr_1fr]">
-          <div>
+        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-10 sm:gap-x-8 lg:grid-cols-[1.3fr_1fr] lg:gap-x-14 lg:gap-y-8">
+          <div className="col-start-1 row-start-1">
             <Rotulo>{cfg.hero.selo}</Rotulo>
-            <h1 className="mt-5 text-[4.2rem] font-black leading-[0.85] sm:text-8xl lg:text-[9rem]">{cfg.dataCurta}</h1>
-            <p className="mt-8 text-2xl font-extrabold uppercase tracking-[0.06em] sm:text-3xl">{cfg.hero.titulo}</p>
+            <h1 className="mt-5 text-[2.9rem] font-black leading-[0.85] sm:text-8xl lg:text-[9rem]">{cfg.dataCurta}</h1>
+          </div>
+          <div className="relative mx-auto aspect-square w-[5rem] self-center sm:w-[9rem] lg:row-span-2 lg:w-full lg:max-w-[26rem]">
+            <Cantoneiras />
+            <div className="festa-marca-bg flex h-full w-full items-center justify-center">
+              <span className="text-[2.4rem] font-black leading-none text-foreground sm:text-[6rem] lg:text-[13rem]">10</span>
+            </div>
+          </div>
+          <div className="col-span-2 row-start-2 lg:col-span-1 lg:col-start-1 lg:row-start-2">
+            <p className="text-2xl font-extrabold uppercase tracking-[0.06em] sm:text-3xl">{cfg.hero.titulo}</p>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">{cfg.hero.texto}</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <a href="#confirmar" className={btnPrim}>Confirmar presença</a>
@@ -64,14 +72,9 @@ export default function Festa10Anos() {
             </div>
             <p className="mt-8 text-sm text-muted-foreground">{local}</p>
           </div>
-          <div className="relative mx-auto aspect-square w-full max-w-[22rem] lg:max-w-[26rem]">
-            <Cantoneiras />
-            <div className="festa-marca-bg flex h-full w-full items-center justify-center">
-              <span className="text-[11rem] font-black leading-none text-foreground sm:text-[13rem]">10</span>
-            </div>
-          </div>
         </div>
       </section>
+
 
       {/* História */}
       <section id="historia" className="scroll-mt-16 border-t border-border px-5 py-20 sm:px-8 sm:py-28">
