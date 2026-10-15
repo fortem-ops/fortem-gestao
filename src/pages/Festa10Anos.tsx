@@ -85,7 +85,7 @@ export default function Festa10Anos() {
           <ol className="mt-14 max-w-5xl border-t border-border">
             {cfg.historia.anos.map((a) => (
               <li key={a.ano} className="grid gap-5 border-b border-border py-8 md:grid-cols-[12.5rem_1fr_22rem] md:items-center md:gap-10">
-                <p className="text-5xl font-black festa-marca sm:text-6xl">{a.ano}</p>
+                <p className="whitespace-nowrap text-5xl font-black festa-marca sm:text-6xl">{a.ano}</p>
                 <ul className="space-y-3 md:pt-2">
                   {a.marcos.map((m) => <li key={m} className="border-l-2 border-border pl-4 leading-relaxed">{m}</li>)}
                 </ul>
