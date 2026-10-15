@@ -244,7 +244,7 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
       </div>
 
       <div className="border-t border-border pt-7">
-        <label htmlFor="festa-voucher" className="text-sm font-medium">Voucher (cupom de desconto, se houver)</label>
+        <label htmlFor="festa-voucher" className="text-sm font-medium">Voucher</label>
         <div className="mt-2 flex gap-2">
           <Input id="festa-voucher" maxLength={40} autoComplete="off" value={voucher} onChange={(e) => { setVoucher(e.target.value); setVoucherOk(null); setVoucherMsg(""); }} className="h-12" />
           <Button type="button" variant="outline" className="h-12" disabled={!voucher.trim() || aplicando} onClick={aplicarVoucher}>{aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aplicar</Button>
