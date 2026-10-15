@@ -4097,6 +4097,39 @@ export type Database = {
           },
         ]
       }
+      festa_fotos: {
+        Row: {
+          alt: string | null
+          ano: string
+          caminho: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          ordem: number
+          url: string
+        }
+        Insert: {
+          alt?: string | null
+          ano: string
+          caminho?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          ordem?: number
+          url: string
+        }
+        Update: {
+          alt?: string | null
+          ano?: string
+          caminho?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          ordem?: number
+          url?: string
+        }
+        Relationships: []
+      }
       festa_rate_limit: {
         Row: {
           chave: string
