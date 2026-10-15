@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       const { data: c, error } = await sup.from("festa_confirmacoes").insert({
         nome: d.nome, whatsapp, email: d.email || null, vinculo: d.vinculo,
         consumo: d.consumo, intolerancias: d.intolerancias,
-        acompanhantes: [], total_pessoas: 1 + d.acompanhantes.length,
+        acompanhantes: d.acompanhantes.map((a) => a.nome), total_pessoas: 1 + d.acompanhantes.length,
         status: v ? "isento" : "aguardando_pagamento", origem: "site",
         voucher_id: v?.id ?? null, total_centavos: total, acesso_hash: await sha256(acesso),
       }).select("*").single();

@@ -73,7 +73,7 @@ export default function FestaConfirmacoes() {
       const total = e.status === "isento" ? 0 : calcularTotalFesta(n);
       const base = {
         nome: e.nome.trim(), whatsapp: `55${e.whatsapp.replace(/\D/g, "").replace(/^55(?=\d{11}$)/, "")}`, email: e.email.trim() || null, vinculo: e.vinculo,
-        consumo: e.consumo, intolerancias: e.intolerancias, status: e.status, total_pessoas: 1 + n, total_centavos: total,
+        consumo: e.consumo, intolerancias: e.intolerancias, status: e.status, total_pessoas: 1 + n, acompanhantes: e.acompanhantes.map((a) => a.nome.trim()), total_centavos: total,
         observacao: e.observacao.trim() || null,
         pagamento_forma: e.status === "confirmado" ? (e.pagamento_forma || "manual") : null,
         pago_em: e.status === "confirmado" ? new Date().toISOString() : null,
@@ -88,7 +88,7 @@ export default function FestaConfirmacoes() {
         const { error: e2 } = await supabase.from("festa_acompanhantes").delete().eq("confirmacao_id", id);
         if (e2) throw e2;
       } else {
-        const { data, error } = await supabase.from("festa_confirmacoes").insert({ ...base, origem: "manual", acompanhantes: [], criado_por: user!.id }).select("id").single();
+        const { data, error } = await supabase.from("festa_confirmacoes").insert({ ...base, origem: "manual", criado_por: user!.id }).select("id").single();
         if (error) throw error;
         id = data.id;
         await supabase.from("festa_eventos").insert({ confirmacao_id: id, acao: "criado_manual", usuario_id: user!.id });
