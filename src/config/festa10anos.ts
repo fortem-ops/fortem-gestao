@@ -27,7 +27,7 @@ export const festa10AnosConfig = {
   },
   /** Último dia para confirmar (fecha às 23:59:59 de Brasília). */
   prazoIso: "2026-11-08",
-  prazoTexto: "até 8 de novembro",
+  prazoTexto: "até 6 de novembro",
   limiteAcompanhantes: 3,
   valores: {
     convidadoCentavos: 7000,
