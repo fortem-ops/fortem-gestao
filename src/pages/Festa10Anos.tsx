@@ -82,9 +82,9 @@ export default function Festa10Anos() {
           <Rotulo>Nossa história</Rotulo>
           <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">{cfg.historia.titulo}</h2>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">{cfg.historia.texto}</p>
-          <ol className="mt-14 border-t border-border">
+          <ol className="mt-14 max-w-5xl border-t border-border">
             {cfg.historia.anos.map((a) => (
-              <li key={a.ano} className="grid gap-5 border-b border-border py-8 md:grid-cols-[11rem_1fr_20rem] md:items-center md:gap-10">
+              <li key={a.ano} className="grid gap-5 border-b border-border py-8 md:grid-cols-[11rem_1fr_22rem] md:items-center md:gap-10">
                 <p className="text-5xl font-black festa-marca sm:text-6xl">{a.ano}</p>
                 <ul className="space-y-3 md:pt-2">
                   {a.marcos.map((m) => <li key={m} className="border-l-2 border-border pl-4 leading-relaxed">{m}</li>)}
