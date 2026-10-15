@@ -47,7 +47,8 @@ export async function criarPixFesta(sup: any, conf: { id: string; nome: string; 
 export async function baixarPixFesta(sup: any, txid: string, valorRecebido: number | string | null | undefined, fonte: string) {
   const { data: conf } = await sup.from("festa_confirmacoes")
     .select("id, status, total_centavos").eq("txid", txid).maybeSingle();
-  if (!conf) { console.log("[festa-pix] txid não encontrado", txid); return { ok: false, motivo: "nao_encontrado" }; }
+  if (!conf) { await registrarSemConfirmacao(sup, txid, valorRecebido, fonte, "pagamento_sem_confirmacao"); return { ok: true, motivo: "sem_confirmacao" }; }
+  if (conf.status === "cancelado") { await registrarSemConfirmacao(sup, txid, valorRecebido, fonte, "pagamento_em_cancelada", conf.id); return { ok: true, motivo: "cancelada" }; }
   if (conf.status !== "aguardando_pagamento") return { ok: true, motivo: "ja_tratado" };
   const centavos = Math.round(Number(valorRecebido) * 100);
   if (!Number.isFinite(centavos) || centavos !== conf.total_centavos) {
@@ -71,4 +72,38 @@ export async function conferirPixFesta(sup: any, txid: string) {
     return baixarPixFesta(sup, txid, valor, "consulta");
   }
   return { ok: true, motivo: d?.status ?? "desconhecido" };
+}
+
+/** Pagamento sem confirmação ativa: não confirma nada, só registra (uma vez por txid) para a equipe conciliar. */
+async function registrarSemConfirmacao(sup: any, txid: string, valor: unknown, fonte: string, acao: string, confirmacaoId: string | null = null) {
+  const { data: ja } = await sup.from("festa_eventos").select("id").eq("acao", acao).eq("detalhes->>txid", txid).limit(1);
+  if (ja?.length) return;
+  const centavos = Math.round(Number(valor) * 100);
+  await sup.from("festa_eventos").insert({
+    confirmacao_id: confirmacaoId, acao,
+    detalhes: { txid, valor_centavos: Number.isFinite(centavos) ? centavos : null, recebido_em: new Date().toISOString(), fonte },
+  });
+}
+
+/** Cancela no Inter a cobrança pendente (REMOVIDA_PELO_USUARIO_RECEBEDOR). Se já tiver sido paga, dá baixa e avisa. */
+export async function cancelarPixFesta(sup: any, conf: { id: string; txid: string | null }, uid: string) {
+  if (!conf.txid) return { ok: true as const, pago: false };
+  const { status, data } = await interCobFetch(`/pix/v2/cob/${conf.txid}`, { method: "GET" });
+  const atual = (data as any)?.status;
+  if (status < 300 && atual === "CONCLUIDA") {
+    await conferirPixFesta(sup, conf.txid);
+    return { ok: false as const, pago: true };
+  }
+  if (status < 300 && atual === "ATIVA") {
+    const r = await interCobFetch(`/pix/v2/cob/${conf.txid}`, { method: "PATCH", json: { status: "REMOVIDA_PELO_USUARIO_RECEBEDOR" } });
+    if (r.status >= 300) {
+      console.error("[festa-pix] cancelar erro", r.status, String(r.raw ?? "").slice(0, 300));
+      return { ok: false as const, pago: false };
+    }
+  } else if (status >= 300 && status !== 404) {
+    return { ok: false as const, pago: false };
+  }
+  await sup.from("festa_confirmacoes").update({ pix_copia_e_cola: null, pix_expira_em: null }).eq("id", conf.id);
+  await sup.from("festa_eventos").insert({ confirmacao_id: conf.id, acao: "pix_cancelado", usuario_id: uid, detalhes: { txid: conf.txid, status_inter_antes: atual ?? null } });
+  return { ok: true as const, pago: false };
 }
