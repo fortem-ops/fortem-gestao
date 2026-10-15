@@ -84,13 +84,13 @@ export default function Festa10Anos() {
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">{cfg.historia.texto}</p>
           <ol className="mt-14 border-t border-border">
             {cfg.historia.anos.map((a) => (
-              <li key={a.ano} className="grid gap-5 border-b border-border py-8 md:grid-cols-[11rem_1fr_16rem] md:items-start md:gap-10">
+              <li key={a.ano} className="grid gap-5 border-b border-border py-8 md:grid-cols-[11rem_1fr_20rem] md:items-center md:gap-10">
                 <p className="text-5xl font-black festa-marca sm:text-6xl">{a.ano}</p>
                 <ul className="space-y-3 md:pt-2">
                   {a.marcos.map((m) => <li key={m} className="border-l-2 border-border pl-4 leading-relaxed">{m}</li>)}
                 </ul>
                 {a.foto ? (
-                  <img src={a.foto} alt={a.fotoAlt ?? `FORTEM em ${a.ano}`} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                  <img src={a.foto} alt={a.fotoAlt ?? `FORTEM em ${a.ano}`} loading="lazy" className={`${a.fotoProporcao ?? "aspect-[4/3]"} w-full object-cover`} />
                 ) : (
                   <div className="flex aspect-[4/3] w-full items-center justify-center border border-border bg-card">
                     <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Foto em breve</span>
