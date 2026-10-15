@@ -3943,36 +3943,205 @@ export type Database = {
         }
         Relationships: []
       }
+      festa_acompanhantes: {
+        Row: {
+          confirmacao_id: string
+          consumo: string[]
+          criado_em: string
+          id: string
+          intolerancias: string[]
+          nome: string
+        }
+        Insert: {
+          confirmacao_id: string
+          consumo?: string[]
+          criado_em?: string
+          id?: string
+          intolerancias?: string[]
+          nome: string
+        }
+        Update: {
+          confirmacao_id?: string
+          consumo?: string[]
+          criado_em?: string
+          id?: string
+          intolerancias?: string[]
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festa_acompanhantes_confirmacao_id_fkey"
+            columns: ["confirmacao_id"]
+            isOneToOne: false
+            referencedRelation: "festa_confirmacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       festa_confirmacoes: {
         Row: {
+          acesso_hash: string | null
           acompanhantes: Json
+          atualizado_em: string
+          atualizado_por: string | null
+          consumo: string[]
           criado_em: string
+          criado_por: string | null
           email: string | null
           id: string
+          intolerancias: string[]
           nome: string
+          observacao: string | null
+          origem: string
+          pagamento_forma: string | null
+          pago_em: string | null
+          pago_valor_centavos: number | null
+          pix_copia_e_cola: string | null
+          pix_expira_em: string | null
+          status: string
+          total_centavos: number
           total_pessoas: number
+          txid: string | null
           vinculo: string
+          voucher_id: string | null
           whatsapp: string
         }
         Insert: {
+          acesso_hash?: string | null
           acompanhantes?: Json
+          atualizado_em?: string
+          atualizado_por?: string | null
+          consumo?: string[]
           criado_em?: string
+          criado_por?: string | null
           email?: string | null
           id?: string
+          intolerancias?: string[]
           nome: string
+          observacao?: string | null
+          origem?: string
+          pagamento_forma?: string | null
+          pago_em?: string | null
+          pago_valor_centavos?: number | null
+          pix_copia_e_cola?: string | null
+          pix_expira_em?: string | null
+          status?: string
+          total_centavos?: number
           total_pessoas: number
+          txid?: string | null
           vinculo: string
+          voucher_id?: string | null
           whatsapp: string
         }
         Update: {
+          acesso_hash?: string | null
           acompanhantes?: Json
+          atualizado_em?: string
+          atualizado_por?: string | null
+          consumo?: string[]
           criado_em?: string
+          criado_por?: string | null
           email?: string | null
           id?: string
+          intolerancias?: string[]
           nome?: string
+          observacao?: string | null
+          origem?: string
+          pagamento_forma?: string | null
+          pago_em?: string | null
+          pago_valor_centavos?: number | null
+          pix_copia_e_cola?: string | null
+          pix_expira_em?: string | null
+          status?: string
+          total_centavos?: number
           total_pessoas?: number
+          txid?: string | null
           vinculo?: string
+          voucher_id?: string | null
           whatsapp?: string
+        }
+        Relationships: []
+      }
+      festa_eventos: {
+        Row: {
+          acao: string
+          confirmacao_id: string | null
+          criado_em: string
+          detalhes: Json | null
+          id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          confirmacao_id?: string | null
+          criado_em?: string
+          detalhes?: Json | null
+          id?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          confirmacao_id?: string | null
+          criado_em?: string
+          detalhes?: Json | null
+          id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festa_eventos_confirmacao_id_fkey"
+            columns: ["confirmacao_id"]
+            isOneToOne: false
+            referencedRelation: "festa_confirmacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      festa_rate_limit: {
+        Row: {
+          chave: string
+          criado_em: string
+        }
+        Insert: {
+          chave: string
+          criado_em?: string
+        }
+        Update: {
+          chave?: string
+          criado_em?: string
+        }
+        Relationships: []
+      }
+      festa_vouchers: {
+        Row: {
+          ativo: boolean
+          codigo_hash: string
+          criado_em: string
+          desconto_pct: number
+          descricao: string | null
+          id: string
+          usos: number
+          usos_max: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_hash: string
+          criado_em?: string
+          desconto_pct?: number
+          descricao?: string | null
+          id?: string
+          usos?: number
+          usos_max?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo_hash?: string
+          criado_em?: string
+          desconto_pct?: number
+          descricao?: string | null
+          id?: string
+          usos?: number
+          usos_max?: number | null
         }
         Relationships: []
       }
@@ -11378,6 +11547,8 @@ export type Database = {
         }
         Returns: string
       }
+      fn_festa_gestao: { Args: { _uid: string }; Returns: boolean }
+      fn_festa_total_confirmados: { Args: never; Returns: number }
       fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }
       fn_fin_somar_dias_uteis: {

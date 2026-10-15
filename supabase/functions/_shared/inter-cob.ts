@@ -1,7 +1,7 @@
 // Shared helpers for the Banco Inter "Pix Completo" integration (loja / cobrança imediata).
 // Uses its own app credentials (INTER_COB_*) and its own token cache table (inter_cob_tokens).
 // Does NOT touch the legacy "Pix Automático" integration in _shared/inter.ts.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const BASE_URL = (Deno.env.get("INTER_BASE_URL") ?? "").replace(/\/$/, "");
 const CONTA = Deno.env.get("INTER_CONTA_CORRENTE") ?? "";
