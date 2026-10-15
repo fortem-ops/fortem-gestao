@@ -90,7 +90,7 @@ export default function Festa10Anos() {
                   {a.marcos.map((m) => <li key={m} className="border-l-2 border-border pl-4 leading-relaxed">{m}</li>)}
                 </ul>
                 {a.foto ? (
-                  <img src={a.foto} alt={a.fotoAlt ?? `FORTEM em ${a.ano}`} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                  <img src={a.foto} alt={a.fotoAlt ?? `FORTEM em ${a.ano}`} loading="lazy" className={`${a.fotoProporcao ?? "aspect-[4/3]"} w-full object-cover`} />
                 ) : (
                   <div className="flex aspect-[4/3] w-full items-center justify-center border border-border bg-card">
                     <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Foto em breve</span>

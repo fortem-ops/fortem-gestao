@@ -3,12 +3,16 @@
  * Valores aqui são só para exibição: o servidor recalcula total e prazo por conta própria.
  */
 
+import festa2016 from "@/assets/festa-2016.jpg.asset.json";
+
 export type MarcoAno = {
   ano: string;
   marcos: string[];
   /** URL da foto do ano. Vazio = bloco discreto "foto em breve". */
   foto?: string;
   fotoAlt?: string;
+  /** Proporção do bloco da foto (ex.: "aspect-square"). Padrão: "aspect-[4/3]". */
+  fotoProporcao?: string;
 };
 
 export type OpcaoConsumo = "nao_alcoolico" | "chope" | "drink";
@@ -49,7 +53,13 @@ export const festa10AnosConfig = {
     texto:
       "Uma história construída por pessoas. De uma sala de 25 m² na galeria do Shopping Independência a um centro de treinamento, nutrição e reabilitação.",
     anos: [
-      { ano: "2016", marcos: ["16 de outubro: primeira loja alugada, com 25 m², na galeria do Shopping Independência.", "7 de novembro: constituída a empresa."] },
+      {
+        ano: "2016",
+        marcos: ["16 de outubro: primeira loja alugada, com 25 m², na galeria do Shopping Independência.", "7 de novembro: constituída a empresa."],
+        foto: festa2016.url,
+        fotoAlt: "A primeira sede da FORTEM em obras, em 2016",
+        fotoProporcao: "aspect-square",
+      },
       { ano: "2017", marcos: ["4 de janeiro: abertura das portas.", "Dezembro: 85 alunos atendidos."] },
       { ano: "2018", marcos: ["Nova loja, com mais 60 m².", "Início da equipe: contratação de professores e de um administrador.", "Nova modalidade: Circuito Funcional."] },
       { ano: "2019", marcos: ["Nova loja, com mais 25 m².", "Expansão do quadro de funcionários."] },
