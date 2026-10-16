@@ -42,13 +42,17 @@ const labelMesCurto = (mes: string) => {
   return `${m.charAt(0).toUpperCase()}${m.slice(1)}/${format(d, "yy")}`;
 };
 
-function useMesesFuturos(data: RecebivelRow[]) {
+type ModoData = "vencimento" | "recebimento";
+const dataRef = (r: RecebivelRow, modo: ModoData) =>
+  (modo === "vencimento" && !r.ja_cobrado ? r.data_vencimento ?? r.data_recebimento_prevista : r.data_recebimento_prevista) ?? "";
+
+function useMesesFuturos(data: RecebivelRow[], modo: ModoData = "recebimento") {
   return useMemo(() => {
     const atual = format(new Date(), "yyyy-MM");
     const totais = new Map<string, number>();
     let ultimo = atual;
     for (const r of data) {
-      const m = (r.data_recebimento_prevista ?? "").slice(0, 7);
+      const m = dataRef(r, modo).slice(0, 7);
       if (!m) continue;
       totais.set(m, (totais.get(m) ?? 0) + num(r.valor_liquido));
       if (m > ultimo) ultimo = m;
@@ -59,7 +63,7 @@ function useMesesFuturos(data: RecebivelRow[]) {
       meses.push({ mes: m, total: totais.get(m) ?? 0 });
     }
     return meses;
-  }, [data]);
+  }, [data, modo]);
 }
 
 function MesesBar({ meses, ativo, onSelect, comTodos }: {
@@ -87,7 +91,8 @@ export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
   const { data = [], isLoading } = useRecebiveisPrevistos();
   const [ini, setIni] = useState(() => (mes ? limitesMes(mes).ini : ""));
   const [fim, setFim] = useState(() => (mes ? limitesMes(mes).fim : ""));
-  const meses = useMesesFuturos(data);
+  const [modo, setModo] = useState<ModoData>("vencimento");
+  const meses = useMesesFuturos(data, modo);
   const mesAtivo = !ini && !fim ? null
     : meses.find((m) => { const l = limitesMes(m.mes); return l.ini === ini && l.fim === fim; })?.mes ?? "__manual";
   const selecionarMes = (m: string | null) => {
@@ -106,7 +111,7 @@ export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return data.filter((r) => {
-      const d = r.data_recebimento_prevista ?? "";
+      const d = dataRef(r, modo);
       if (ini && d < ini) return false;
       if (fim && d > fim) return false;
       if (origem !== "todos" && r.origem !== origem) return false;
@@ -114,7 +119,7 @@ export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
       if (q && !(r.aluno_nome ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [data, ini, fim, origem, forma, busca]);
+  }, [data, ini, fim, origem, forma, busca, modo]);
 
   const exportRows = useMemo(() => filtradas.map((r) => ({
     data_recebimento_prevista: dataBR(r.data_recebimento_prevista),
@@ -147,6 +152,14 @@ export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2 text-sm" role="group" aria-label="Ver por">
+        <span className="text-muted-foreground">Ver por:</span>
+        <Button size="sm" variant={modo === "vencimento" ? "default" : "outline"} aria-pressed={modo === "vencimento"} onClick={() => setModo("vencimento")}>Vencimento</Button>
+        <Button size="sm" variant={modo === "recebimento" ? "default" : "outline"} aria-pressed={modo === "recebimento"} onClick={() => setModo("recebimento")}>Recebimento</Button>
+        <span className="text-xs text-muted-foreground">
+          {modo === "vencimento" ? "Mês em que o valor é cobrado do aluno." : "Mês em que o dinheiro cai na conta (cartão cai ~30 dias depois)."}
+        </span>
+      </div>
       <MesesBar meses={meses} ativo={mesAtivo} onSelect={selecionarMes} comTodos />
       <Card className="glass-card">
         <CardContent className="pt-4 flex flex-wrap items-end gap-3">
