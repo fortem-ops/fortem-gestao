@@ -1107,6 +1107,13 @@
       "when": 1792190239582,
       "tag": "0157_previsibilidade_recebidos_invoker",
       "breakpoints": true
+    },
+    {
+      "idx": 158,
+      "version": "7",
+      "when": 1792190751361,
+      "tag": "0158_receitas_sync_automaticas",
+      "breakpoints": true
     }
   ]
 }
