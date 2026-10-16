@@ -1072,6 +1072,13 @@
       "when": 1792187311912,
       "tag": "0152_previsibilidade_cartao_servicos_e_vinculo_venda",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1792187363293,
+      "tag": "0153_previsibilidade_cartao_limita_forma_nula",
+      "breakpoints": true
     }
   ]
 }
