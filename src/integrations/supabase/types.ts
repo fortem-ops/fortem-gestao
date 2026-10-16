@@ -1699,13 +1699,6 @@ export type Database = {
             foreignKeyName: "ciclos_credito_cobranca_id_fkey"
             columns: ["cobranca_id"]
             isOneToOne: false
-            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
-            referencedColumns: ["cobranca_id"]
-          },
-          {
-            foreignKeyName: "ciclos_credito_cobranca_id_fkey"
-            columns: ["cobranca_id"]
-            isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_mensalidades"
             referencedColumns: ["cobranca_id"]
           },
@@ -4634,13 +4627,6 @@ export type Database = {
             foreignKeyName: "inadimplencias_cobranca_id_fkey"
             columns: ["cobranca_id"]
             isOneToOne: false
-            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
-            referencedColumns: ["cobranca_id"]
-          },
-          {
-            foreignKeyName: "inadimplencias_cobranca_id_fkey"
-            columns: ["cobranca_id"]
-            isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_mensalidades"
             referencedColumns: ["cobranca_id"]
           },
@@ -5855,13 +5841,6 @@ export type Database = {
             columns: ["cobranca_id"]
             isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_cartao_parcelado"
-            referencedColumns: ["cobranca_id"]
-          },
-          {
-            foreignKeyName: "pagamentos_rede_cobranca_id_fkey"
-            columns: ["cobranca_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
             referencedColumns: ["cobranca_id"]
           },
           {
@@ -10026,13 +10005,6 @@ export type Database = {
             foreignKeyName: "vendas_cobranca_id_fkey"
             columns: ["cobranca_id"]
             isOneToOne: false
-            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
-            referencedColumns: ["cobranca_id"]
-          },
-          {
-            foreignKeyName: "vendas_cobranca_id_fkey"
-            columns: ["cobranca_id"]
-            isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_mensalidades"
             referencedColumns: ["cobranca_id"]
           },
@@ -10388,13 +10360,6 @@ export type Database = {
             columns: ["cobranca_id"]
             isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_cartao_parcelado"
-            referencedColumns: ["cobranca_id"]
-          },
-          {
-            foreignKeyName: "inadimplencias_cobranca_id_fkey"
-            columns: ["cobranca_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
             referencedColumns: ["cobranca_id"]
           },
           {
@@ -10959,36 +10924,7 @@ export type Database = {
           valor_bruto: number | null
           valor_liquido: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "cobrancas_aluno_id_fkey"
-            columns: ["aluno_id"]
-            isOneToOne: false
-            referencedRelation: "alunos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cobrancas_aluno_id_fkey"
-            columns: ["aluno_id"]
-            isOneToOne: false
-            referencedRelation: "v_tecnico_alertas"
-            referencedColumns: ["aluno_id"]
-          },
-          {
-            foreignKeyName: "cobrancas_contrato_id_fkey"
-            columns: ["contrato_id"]
-            isOneToOne: false
-            referencedRelation: "contratos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cobrancas_contrato_id_fkey"
-            columns: ["contrato_id"]
-            isOneToOne: false
-            referencedRelation: "vw_contratos_vencendo"
-            referencedColumns: ["contrato_id"]
-          },
-        ]
+        Relationships: []
       }
       vw_recebiveis_previstos_mensalidades: {
         Row: {
