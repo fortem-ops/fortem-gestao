@@ -1016,6 +1016,13 @@
       "when": 1792074534180,
       "tag": "0144_festa_fotos",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1792161457119,
+      "tag": "0145_fix_link_contrato_gen_random_bytes",
+      "breakpoints": true
     }
   ]
 }
