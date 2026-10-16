@@ -37,6 +37,7 @@ const SERIES = [
 ] as const;
 
 export default function Previsibilidade() {
+  const [mes, setMes] = useState<string | null>(null);
   return (
     <div className="space-y-4">
       <div>
@@ -53,8 +54,8 @@ export default function Previsibilidade() {
         </TabsList>
         <TabsContent value="geral"><VisaoGeral /></TabsContent>
         <TabsContent value="dias"><DiasUteis /></TabsContent>
-        <TabsContent value="calendario"><CalendarioCaixa /></TabsContent>
-        <TabsContent value="recebiveis"><RecebiveisList /></TabsContent>
+        <TabsContent value="calendario"><CalendarioCaixa mes={mes} onMes={setMes} /></TabsContent>
+        <TabsContent value="recebiveis"><RecebiveisList mes={mes} onMes={setMes} /></TabsContent>
         <TabsContent value="risco"><RiscoCarteira /></TabsContent>
       </Tabs>
     </div>
