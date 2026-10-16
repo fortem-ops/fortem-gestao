@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Heart, ImagePlus, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +22,17 @@ export default function FestaFotosAdmin() {
   const { data: fotos = [], isLoading } = useQuery({ queryKey: ["festa-fotos"], queryFn: carregarFestaFotos });
   const porAno = agruparFotosPorAno(fotos);
   const atualizar = () => qc.invalidateQueries({ queryKey: ["festa-fotos"] });
+  const { data: inter = {} } = useQuery({ queryKey: ["festa-fotos-inter"], queryFn: async () => {
+    const { data, error } = await supabase.rpc("fn_festa_fotos_interacoes" as any, {});
+    if (error) throw error; return (data ?? {}) as Record<string, { curtidas: number; comentarios: { id: string; nome: string; texto: string }[] }>;
+  } });
+  const [apagarCom, setApagarCom] = useState<{ id: string; texto: string } | null>(null);
+  async function confirmarApagarCom() {
+    if (!apagarCom) return;
+    const { error } = await supabase.from("festa_fotos_comentarios").delete().eq("id", apagarCom.id);
+    if (error) toast.error("Não foi possível apagar."); else toast.success("Comentário apagado.");
+    setApagarCom(null); qc.invalidateQueries({ queryKey: ["festa-fotos-inter"] });
+  }
 
   async function enviar(ano: string, files: FileList | null) {
     if (!files?.length) return;
@@ -95,6 +106,18 @@ export default function FestaFotosAdmin() {
                     <img src={f.url} alt={f.alt ?? ""} className="aspect-[4/3] w-full bg-muted object-contain" />
                     <Input defaultValue={f.alt ?? ""} placeholder="Descrição da foto" aria-label={`Descrição da foto ${i + 1} de ${ano}`}
                       onBlur={(e) => { if ((e.target.value.trim() || null) !== f.alt) salvarAlt.mutate({ id: f.id, alt: e.target.value }); }} />
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><Heart className="h-4 w-4" />{inter[f.id]?.curtidas ?? 0}</span>
+                      <span className="inline-flex items-center gap-1"><MessageCircle className="h-4 w-4" />{inter[f.id]?.comentarios.length ?? 0}</span>
+                    </div>
+                    {(inter[f.id]?.comentarios ?? []).length > 0 && (
+                      <ul className="max-h-40 space-y-1 overflow-y-auto text-sm">
+                        {inter[f.id].comentarios.map((c) => (
+                          <li key={c.id} className="flex items-start gap-2"><span className="flex-1 break-words"><strong>{c.nome}</strong> {c.texto}</span>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="Apagar comentário" onClick={() => setApagarCom(c)}><Trash2 className="h-3.5 w-3.5" /></Button></li>
+                        ))}
+                      </ul>
+                    )}
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" aria-label="Mover para antes" disabled={i === 0} onClick={() => mover(lista, i, -1)}><ArrowUp className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" aria-label="Mover para depois" disabled={i === lista.length - 1} onClick={() => mover(lista, i, 1)}><ArrowDown className="h-4 w-4" /></Button>
@@ -107,6 +130,18 @@ export default function FestaFotosAdmin() {
           </Card>
         );
       })}
+      <AlertDialog open={!!apagarCom} onOpenChange={(o) => !o && setApagarCom(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar este comentário?</AlertDialogTitle>
+            <AlertDialogDescription>Ele sai da página da festa na hora.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarApagarCom}>Apagar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={!!remover} onOpenChange={(o) => !o && setRemover(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
