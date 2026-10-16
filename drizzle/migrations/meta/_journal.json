@@ -1058,6 +1058,13 @@
       "when": 1792185663822,
       "tag": "0150_previsibilidade_cartao_parcelado",
       "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1792186976004,
+      "tag": "0151_previsibilidade_cartao_mesmo_dia_mais_um",
+      "breakpoints": true
     }
   ]
 }
