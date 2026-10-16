@@ -32,10 +32,68 @@ function OrigemBadge({ origem }: { origem: string }) {
 
 const LIMITE = 500;
 
-export function RecebiveisList() {
+const limitesMes = (mes: string) => {
+  const d = new Date(`${mes}-01T12:00:00`);
+  return { ini: format(startOfMonth(d), "yyyy-MM-dd"), fim: format(endOfMonth(d), "yyyy-MM-dd") };
+};
+const labelMesCurto = (mes: string) => {
+  const d = new Date(`${mes}-01T12:00:00`);
+  const m = format(d, "MMMM", { locale: ptBR });
+  return `${m.charAt(0).toUpperCase()}${m.slice(1)}/${format(d, "yy")}`;
+};
+
+function useMesesFuturos(data: RecebivelRow[]) {
+  return useMemo(() => {
+    const atual = format(new Date(), "yyyy-MM");
+    const totais = new Map<string, number>();
+    let ultimo = atual;
+    for (const r of data) {
+      const m = (r.data_recebimento_prevista ?? "").slice(0, 7);
+      if (!m) continue;
+      totais.set(m, (totais.get(m) ?? 0) + num(r.valor_liquido));
+      if (m > ultimo) ultimo = m;
+    }
+    const meses: { mes: string; total: number }[] = [];
+    for (let d = startOfMonth(new Date()); format(d, "yyyy-MM") <= ultimo; d = addMonths(d, 1)) {
+      const m = format(d, "yyyy-MM");
+      meses.push({ mes: m, total: totais.get(m) ?? 0 });
+    }
+    return meses;
+  }, [data]);
+}
+
+function MesesBar({ meses, ativo, onSelect, comTodos }: {
+  meses: { mes: string; total: number }[]; ativo: string | null; onSelect: (m: string | null) => void; comTodos?: boolean;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Meses">
+      {comTodos && (
+        <Button size="sm" variant={ativo === null ? "default" : "outline"} onClick={() => onSelect(null)} className="shrink-0">Todos</Button>
+      )}
+      {meses.map((m) => (
+        <Button key={m.mes} size="sm" variant={ativo === m.mes ? "default" : "outline"} onClick={() => onSelect(m.mes)}
+          className="shrink-0 h-auto py-1.5 flex flex-col items-start leading-tight" aria-pressed={ativo === m.mes}>
+          <span>{labelMesCurto(m.mes)}</span>
+          <span className="text-[11px] opacity-80">{compacto(m.total)}</span>
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+export interface MesProps { mes: string | null; onMes: (m: string | null) => void }
+
+export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
   const { data = [], isLoading } = useRecebiveisPrevistos();
-  const [ini, setIni] = useState("");
-  const [fim, setFim] = useState("");
+  const [ini, setIni] = useState(() => (mes ? limitesMes(mes).ini : ""));
+  const [fim, setFim] = useState(() => (mes ? limitesMes(mes).fim : ""));
+  const meses = useMesesFuturos(data);
+  const mesAtivo = !ini && !fim ? null
+    : meses.find((m) => { const l = limitesMes(m.mes); return l.ini === ini && l.fim === fim; })?.mes ?? "__manual";
+  const selecionarMes = (m: string | null) => {
+    if (m) { const l = limitesMes(m); setIni(l.ini); setFim(l.fim); } else { setIni(""); setFim(""); }
+    onMes?.(m);
+  };
   const [origem, setOrigem] = useState("todos");
   const [forma, setForma] = useState("todas");
   const [busca, setBusca] = useState("");
@@ -89,6 +147,7 @@ export function RecebiveisList() {
 
   return (
     <div className="space-y-4">
+      <MesesBar meses={meses} ativo={mesAtivo} onSelect={selecionarMes} comTodos />
       <Card className="glass-card">
         <CardContent className="pt-4 flex flex-wrap items-end gap-3">
           <div><Label className="text-xs">De</Label><Input type="date" value={ini} onChange={(e) => setIni(e.target.value)} className="h-9" /></div>
@@ -175,8 +234,12 @@ export function RecebiveisList() {
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
-export function CalendarioCaixa() {
-  const [mesRef, setMesRef] = useState(() => startOfMonth(new Date()));
+export function CalendarioCaixa({ mes, onMes }: Partial<MesProps> = {}) {
+  const [mesLocal, setMesLocal] = useState(() => startOfMonth(mes ? new Date(`${mes}-01T12:00:00`) : new Date()));
+  const mesRef = mesLocal;
+  const setMesRef = (fn: (d: Date) => Date) => {
+    const n = fn(mesLocal); setMesLocal(n); onMes?.(format(n, "yyyy-MM"));
+  };
   const inicio = format(startOfMonth(mesRef), "yyyy-MM-dd");
   const fim = format(endOfMonth(mesRef), "yyyy-MM-dd");
   const { data: dias = [] } = useDiaADiaPrevisibilidade(inicio, fim);
@@ -184,6 +247,15 @@ export function CalendarioCaixa() {
   const [sel, setSel] = useState<string | null>(null);
 
   const porDia = useMemo(() => new Map(dias.map((d) => [d.dia, d])), [dias]);
+  const meses = useMesesFuturos(recebiveis);
+  const valorDia = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of recebiveis) {
+      const d = r.data_recebimento_prevista;
+      if (d) m.set(d, (m.get(d) ?? 0) + num(r.valor_liquido));
+    }
+    return m;
+  }, [recebiveis]);
   const ultimo = endOfMonth(mesRef).getDate();
   const offset = getDay(startOfMonth(mesRef));
   const celulas: (string | null)[] = [
@@ -205,6 +277,7 @@ export function CalendarioCaixa() {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+      <MesesBar meses={meses} ativo={format(mesRef, "yyyy-MM")} onSelect={(m) => m && setMesRef(() => startOfMonth(new Date(`${m}-01T12:00:00`)))} />
 
       <Card className="glass-card">
         <CardContent className="pt-4">
@@ -215,7 +288,7 @@ export function CalendarioCaixa() {
             {celulas.map((dia, i) => {
               if (!dia) return <div key={`v${i}`} className="min-h-20 rounded-md bg-muted/10" />;
               const d = porDia.get(dia);
-              const valor = num(d?.previsto_liquido);
+              const valor = valorDia.get(dia) ?? 0;
               const util = d ? d.dia_util : true;
               const tem = valor > 0;
               return (
