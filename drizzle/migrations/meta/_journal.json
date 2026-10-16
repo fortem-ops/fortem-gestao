@@ -1030,6 +1030,13 @@
       "when": 1792163060980,
       "tag": "0146_venda_delete_links_pagamento",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1792164533262,
+      "tag": "0147_festa_fotos_interacoes",
+      "breakpoints": true
     }
   ]
 }
