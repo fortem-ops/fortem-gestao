@@ -1044,6 +1044,13 @@
       "when": 1792184207785,
       "tag": "0148_reabilitacao_tarefas_conclusao_por_data",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1792184834657,
+      "tag": "0149_venda_paga_baixa_cobrancas",
+      "breakpoints": true
     }
   ]
 }
