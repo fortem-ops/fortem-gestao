@@ -184,3 +184,22 @@ describe("resolverAlvo — escopo Aquecimento x Parte Principal", () => {
     });
   });
 });
+
+describe("Potência: força prefere Parte Principal", () => {
+  const t: TaxonomiaGrupo[] = [
+    { nome: "Aquecimento", categorias: [{ nome: "Potência - AQ", sigla: "POT", subcategorias: ["Saltos - quedas", "Wall Drills"] }] },
+    { nome: "Parte Principal", categorias: [{ nome: "Potência", subcategorias: ["Saltos - quedas", "Hops"] }] },
+  ];
+  it("subcategoria duplicada sem escopo vai para Parte Principal", () => {
+    expect(resolverAlvo("Saltos - quedas", t)).toMatchObject({ grupo: "Parte Principal", categoria: "Potência" });
+  });
+  it("categoria Potência resolve em Parte Principal", () => {
+    expect(resolverAlvo("Potência", t)).toMatchObject({ grupo: "Parte Principal", categoria: "Potência" });
+  });
+  it("subcategoria só do Aquecimento continua resolvendo", () => {
+    expect(resolverAlvo("Wall Drills", t)).toMatchObject({ grupo: "Aquecimento", categoria: "Potência - AQ" });
+  });
+  it("bloco de aquecimento POT continua no Aquecimento", () => {
+    expect(resolverAlvo("POT", t, { grupoPreferido: "Aquecimento" })).toMatchObject({ grupo: "Aquecimento", categoria: "Potência - AQ" });
+  });
+});

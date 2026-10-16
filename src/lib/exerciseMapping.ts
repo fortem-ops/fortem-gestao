@@ -240,14 +240,16 @@ export function resolverAlvo(
     return { ...escopo, label: escopo.categoria };
   }
 
-  // 3) nome livre: subcategoria → categoria → grupo
-  const asSub = acharSub(value, tree);
+  // 3) nome livre (seção FORÇA): subcategoria → categoria → grupo,
+  //    preferindo "Parte Principal" quando o nome existe também no Aquecimento.
+  const pref = GRUPO_PARTE_PRINCIPAL;
+  const asSub = acharSub(value, tree, pref);
   if (asSub) return { ...asSub, subcategoria: value, label: value };
-  const asCat = acharCategoria(value, tree);
+  const asCat = acharCategoria(value, tree, pref);
   if (asCat) return { ...asCat, label: asCat.categoria };
   const asGrupo = tree.find((g) => eq(g.nome, value));
   if (asGrupo) return { grupo: asGrupo.nome, label: asGrupo.nome };
-  const porSigla = acharCategoriaPorSigla(upper, tree);
+  const porSigla = acharCategoriaPorSigla(upper, tree, pref);
   if (porSigla) return { ...porSigla, label: porSigla.categoria };
   return { grupo: value, label: value };
 }
