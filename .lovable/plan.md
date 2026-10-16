@@ -8,7 +8,7 @@
 
 ## Regra proposta
 
-- Quando uma venda com modalidade **cartão parcelado**, **cartão à vista** ou **Pix à vista** fica Paga (na criação ou ao mudar o status), todas as parcelas pendentes ou atrasadas daquele contrato passam a **Pago**, com a data da venda.
+- Quando uma venda com modalidade **cartão em até 12x** ou **pagamento à vista** (cartão, Pix ou dinheiro) fica Paga (na criação ou ao mudar o status), todas as parcelas pendentes ou atrasadas daquele contrato passam a **Pago**, com a data da venda.
 - Recorrência, mensalidades e vendas sem modalidade definida continuam como hoje: só a parcela paga recebe baixa.
 - Multas de cancelamento, cobranças canceladas e cobranças já pagas não mudam.
 - Se a venda voltar a Pendente, nada é desfeito automaticamente.
@@ -19,7 +19,7 @@
 
 ## Detalhes técnicos
 
-- Trigger `AFTER INSERT OR UPDATE OF status_pagamento ON vendas`, quando passa para `pago` e `modalidade_pagamento in ('cartao_parcelado','cartao_credito','pix_avista')`. O contrato vem por `cobranca_id` ou pelo mais recente de `aluno_id + plano_id`. Faz `UPDATE cobrancas SET status='pago', data_pagamento=data_venda` onde `status in ('pendente','atrasado')` e `numero_ciclo<>999`, e registra em `system_logs`.
+- Trigger `AFTER INSERT OR UPDATE OF status_pagamento ON vendas`, quando passa para `pago` e `modalidade_pagamento in ('cartao_parcelado','cartao_credito','pix_avista','pix','dinheiro')`. O contrato vem por `cobranca_id` ou pelo mais recente de `aluno_id + plano_id`. Faz `UPDATE cobrancas SET status='pago', data_pagamento=data_venda` onde `status in ('pendente','atrasado')` e `numero_ciclo<>999`, e registra em `system_logs`.
 - Não chama Inter nem Rede. É idempotente.
 - Backup em `scripts/baixa-venda-parcelada.backup.sql`, com rollback.
 - Teste da regra: parcelado zera as pendências; venda com modalidade "pendente" não muda nada.
