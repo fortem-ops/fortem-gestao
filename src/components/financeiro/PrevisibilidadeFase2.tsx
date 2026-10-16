@@ -161,7 +161,11 @@ export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm" role="group" aria-label="Ver por">
+      <div className="flex items-center gap-2 text-sm">
+        <Switch id="incluir-recebidos" checked={incluirRecebidos} onCheckedChange={setIncluirRecebidos} />
+        <Label htmlFor="incluir-recebidos" className="text-sm">Incluir já recebidos no mês atual</Label>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label="Ver por">
         <span className="text-muted-foreground">Ver por:</span>
         <Button size="sm" variant={modo === "vencimento" ? "default" : "outline"} aria-pressed={modo === "vencimento"} onClick={() => setModo("vencimento")}>Vencimento</Button>
         <Button size="sm" variant={modo === "recebimento" ? "default" : "outline"} aria-pressed={modo === "recebimento"} onClick={() => setModo("recebimento")}>Recebimento</Button>
@@ -230,7 +234,7 @@ export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
                   <TableCell className="py-1.5 whitespace-nowrap">{dataBR(r.data_recebimento_prevista)}</TableCell>
                   <TableCell className="py-1.5">{r.aluno_nome ?? "—"}</TableCell>
                   <TableCell className="py-1.5"><OrigemBadge origem={r.origem} /></TableCell>
-                  <TableCell className="py-1.5">{r.descricao ?? "—"}{r.ja_cobrado ? <span className="ml-2 text-xs text-primary">Já cobrado</span> : null}</TableCell>
+                  <TableCell className="py-1.5">{r.descricao ?? "—"}{r.recebido ? <span className="ml-2 text-xs text-primary">Recebido</span> : r.ja_cobrado ? <span className="ml-2 text-xs text-primary">Já cobrado</span> : null}</TableCell>
                   <TableCell className="py-1.5">
                     {labelFormaPagamento(r.forma_pagamento)}
                     {r.bandeira && <span className="text-xs text-muted-foreground"> · {r.bandeira.toUpperCase()}</span>}
