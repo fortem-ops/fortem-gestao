@@ -1051,6 +1051,13 @@
       "when": 1792184834657,
       "tag": "0149_venda_paga_baixa_cobrancas",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1792185663822,
+      "tag": "0150_previsibilidade_cartao_parcelado",
+      "breakpoints": true
     }
   ]
 }

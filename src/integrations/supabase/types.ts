@@ -1692,6 +1692,20 @@ export type Database = {
             foreignKeyName: "ciclos_credito_cobranca_id_fkey"
             columns: ["cobranca_id"]
             isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_cartao_parcelado"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "ciclos_credito_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "ciclos_credito_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_mensalidades"
             referencedColumns: ["cobranca_id"]
           },
@@ -4613,6 +4627,20 @@ export type Database = {
             foreignKeyName: "inadimplencias_cobranca_id_fkey"
             columns: ["cobranca_id"]
             isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_cartao_parcelado"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_mensalidades"
             referencedColumns: ["cobranca_id"]
           },
@@ -5821,6 +5849,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cobrancas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_rede_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_cartao_parcelado"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_rede_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
+            referencedColumns: ["cobranca_id"]
           },
           {
             foreignKeyName: "pagamentos_rede_cobranca_id_fkey"
@@ -9977,6 +10019,20 @@ export type Database = {
             foreignKeyName: "vendas_cobranca_id_fkey"
             columns: ["cobranca_id"]
             isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_cartao_parcelado"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "vendas_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "vendas_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_mensalidades"
             referencedColumns: ["cobranca_id"]
           },
@@ -10326,6 +10382,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cobrancas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_cartao_parcelado"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_futuros_cartao"
+            referencedColumns: ["cobranca_id"]
           },
           {
             foreignKeyName: "inadimplencias_cobranca_id_fkey"
@@ -10826,6 +10896,100 @@ export type Database = {
           },
         ]
       }
+      vw_recebiveis_previstos_cartao_parcelado: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          bandeira: string | null
+          cobranca_id: string | null
+          contrato_id: string | null
+          data_recebimento_prevista: string | null
+          numero_parcela: number | null
+          origem: string | null
+          plano_tipo: string | null
+          taxa_percentual: number | null
+          total_parcelas: number | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
+        ]
+      }
+      vw_recebiveis_previstos_futuros_cartao: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          bandeira: string | null
+          cobranca_id: string | null
+          contrato_id: string | null
+          data_recebimento_prevista: string | null
+          numero_parcela: number | null
+          origem: string | null
+          plano_tipo: string | null
+          taxa_percentual: number | null
+          total_parcelas: number | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
+        ]
+      }
       vw_recebiveis_previstos_mensalidades: {
         Row: {
           adquirente: string | null
@@ -10963,6 +11127,7 @@ export type Database = {
           descricao: string | null
           forma_pagamento: string | null
           id: string | null
+          ja_cobrado: boolean | null
           origem: string | null
           taxa_percentual: number | null
           valor_bruto: number | null
