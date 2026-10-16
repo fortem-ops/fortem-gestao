@@ -1086,6 +1086,13 @@
       "when": 1792188161826,
       "tag": "0154_previsibilidade_kpis_por_vencimento",
       "breakpoints": true
+    },
+    {
+      "idx": 155,
+      "version": "7",
+      "when": 1792188596926,
+      "tag": "0155_previsibilidade_projecao",
+      "breakpoints": true
     }
   ]
 }
