@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/relatorios/KpiCard";
 import { CalendarDays, Clock, AlertCircle, TrendingUp, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import {
-  useKpisPrevisibilidade, useResumoMensalPrevisibilidade, useDiaADiaPrevisibilidade,
+  useResumoMensalPrevisibilidade, useDiaADiaPrevisibilidade,
   useRecebiveisPrevistos, useProjecaoPrevisibilidade, type RecebivelRow,
 } from "@/hooks/usePrevisibilidade";
 import { Switch } from "@/components/ui/switch";
@@ -73,7 +73,6 @@ type Janela = { chave: string; titulo: string; filtro: (r: RecebivelRow) => bool
 const dataBR = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—");
 
 function VisaoGeral() {
-  const { data: k } = useKpisPrevisibilidade();
   const { data: resumo = [] } = useResumoMensalPrevisibilidade();
   const { data: recebiveis = [] } = useRecebiveisPrevistos();
   const [projecaoOn, setProjecaoOn] = useState(false);
