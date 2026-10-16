@@ -1,0 +1,1 @@
+ALTER VIEW public.vw_recebidos_periodo SET (security_invoker = true);
