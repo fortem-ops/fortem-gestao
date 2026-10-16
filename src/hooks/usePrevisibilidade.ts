@@ -82,6 +82,7 @@ export interface RecebivelRow {
   data_vencimento: string | null;
   data_recebimento_prevista: string | null;
   bandeira_de_cartao_salvo?: boolean | null;
+  ja_cobrado?: boolean | null;
 }
 
 export function useRecebiveisPrevistos() {
