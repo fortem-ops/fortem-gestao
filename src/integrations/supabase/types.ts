@@ -10861,6 +10861,25 @@ export type Database = {
           },
         ]
       }
+      vw_recebidos_periodo: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          bandeira: string | null
+          data_recebimento_prevista: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          forma_pagamento: string | null
+          id: string | null
+          ja_cobrado: boolean | null
+          origem: string | null
+          recebido: boolean | null
+          taxa_percentual: number | null
+          valor_bruto: number | null
+          valor_liquido: number | null
+        }
+        Relationships: []
+      }
       vw_recebiveis_previstos_cartao_parcelado: {
         Row: {
           aluno_id: string | null
