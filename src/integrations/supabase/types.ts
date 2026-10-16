@@ -4130,6 +4130,67 @@ export type Database = {
         }
         Relationships: []
       }
+      festa_fotos_comentarios: {
+        Row: {
+          created_at: string
+          foto_id: string
+          id: string
+          ip_hash: string | null
+          nome: string
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          foto_id: string
+          id?: string
+          ip_hash?: string | null
+          nome: string
+          texto: string
+        }
+        Update: {
+          created_at?: string
+          foto_id?: string
+          id?: string
+          ip_hash?: string | null
+          nome?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festa_fotos_comentarios_foto_id_fkey"
+            columns: ["foto_id"]
+            isOneToOne: false
+            referencedRelation: "festa_fotos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      festa_fotos_curtidas: {
+        Row: {
+          created_at: string
+          foto_id: string
+          visitante_id: string
+        }
+        Insert: {
+          created_at?: string
+          foto_id: string
+          visitante_id: string
+        }
+        Update: {
+          created_at?: string
+          foto_id?: string
+          visitante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festa_fotos_curtidas_foto_id_fkey"
+            columns: ["foto_id"]
+            isOneToOne: false
+            referencedRelation: "festa_fotos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       festa_rate_limit: {
         Row: {
           chave: string
@@ -11579,6 +11640,10 @@ export type Database = {
           p_whatsapp: string
         }
         Returns: string
+      }
+      fn_festa_fotos_interacoes: {
+        Args: { _visitante?: string }
+        Returns: Json
       }
       fn_festa_gestao: { Args: { _uid: string }; Returns: boolean }
       fn_festa_total_confirmados: { Args: never; Returns: number }

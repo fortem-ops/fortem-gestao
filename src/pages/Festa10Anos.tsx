@@ -6,6 +6,7 @@ import { Seo } from "@/components/Seo";
 import FestaConfirmacaoForm from "@/components/festa/FestaConfirmacaoForm";
 import FestaFotosAno from "@/components/festa/FestaFotosAno";
 import { agruparFotosPorAno, carregarFestaFotos, type FestaFoto } from "@/lib/festaFotos";
+import { carregarInteracoes, type FestaInteracao } from "@/lib/festaInteracoes";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 
 /** Duas cantoneiras em diagonal (superior esquerda e inferior direita). */
@@ -36,6 +37,10 @@ export default function Festa10Anos() {
   useEffect(() => { carregarTotal(); }, [carregarTotal]);
   const [fotosDb, setFotosDb] = useState<Record<string, FestaFoto[]> | null>(null);
   useEffect(() => { carregarFestaFotos().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); }, []);
+
+  const [interacoes, setInteracoes] = useState<Record<string, FestaInteracao>>({});
+  useEffect(() => { carregarInteracoes().then(setInteracoes).catch(() => {}); }, []);
+  const onInteracao = useCallback((id: string, i: FestaInteracao) => setInteracoes((m) => ({ ...m, [id]: i })), []);
 
   const local = `${cfg.local.endereco} · ${cfg.horario} · confirmações ${cfg.prazoTexto}`;
 
@@ -94,7 +99,7 @@ export default function Festa10Anos() {
                   {a.marcos.map((m) => <li key={m} className="border-l-2 border-border pl-4 leading-relaxed">{m}</li>)}
                 </ul>
                 {(fotosDb?.[a.ano] ?? (fotosDb ? undefined : a.fotos))?.length ? (
-                  <FestaFotosAno ano={a.ano} fotos={(fotosDb?.[a.ano] ?? a.fotos)!} proporcao={a.fotoProporcao} />
+                  <FestaFotosAno ano={a.ano} fotos={(fotosDb?.[a.ano] ?? a.fotos)!} proporcao={a.fotoProporcao} interacoes={interacoes} onInteracao={onInteracao} />
                 ) : (
                   <div className="flex aspect-[4/3] w-full items-center justify-center border border-border bg-card">
                     <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Foto em breve</span>
