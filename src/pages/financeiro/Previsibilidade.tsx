@@ -81,9 +81,9 @@ function VisaoGeral() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KpiCard label="A receber este mês" value={brl(num(k?.mes_atual_liquido))} icon={Wallet} />
-        <KpiCard label="Próximos 30 dias" value={brl(num(k?.proximos_30_liquido))} icon={Clock} />
-        <KpiCard label="Próximos 60 dias" value={brl(num(k?.proximos_60_liquido))} icon={Clock} />
-        <KpiCard label="Próximos 90 dias" value={brl(num(k?.proximos_90_liquido))} icon={TrendingUp} />
+        <KpiCard label="Próximos 30 dias" value={brl(num(k?.proximos_30_liquido))} icon={Clock} hint="Valores a cobrar, já sem a taxa" />
+        <KpiCard label="Próximos 60 dias" value={brl(num(k?.proximos_60_liquido))} icon={Clock} hint="Valores a cobrar, já sem a taxa" />
+        <KpiCard label="Próximos 90 dias" value={brl(num(k?.proximos_90_liquido))} icon={TrendingUp} hint="Valores a cobrar, já sem a taxa" />
         <KpiCard
           label="Em atraso"
           value={brl(num(k?.em_atraso_bruto))}

@@ -1079,6 +1079,13 @@
       "when": 1792187363293,
       "tag": "0153_previsibilidade_cartao_limita_forma_nula",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1792188161826,
+      "tag": "0154_previsibilidade_kpis_por_vencimento",
+      "breakpoints": true
     }
   ]
 }
