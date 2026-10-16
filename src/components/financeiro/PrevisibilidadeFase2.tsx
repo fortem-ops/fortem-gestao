@@ -149,7 +149,7 @@ export function RecebiveisList() {
                   <TableCell className="py-1.5 whitespace-nowrap">{dataBR(r.data_recebimento_prevista)}</TableCell>
                   <TableCell className="py-1.5">{r.aluno_nome ?? "—"}</TableCell>
                   <TableCell className="py-1.5"><OrigemBadge origem={r.origem} /></TableCell>
-                  <TableCell className="py-1.5">{r.descricao ?? "—"}</TableCell>
+                  <TableCell className="py-1.5">{r.descricao ?? "—"}{r.ja_cobrado ? <span className="ml-2 text-xs text-primary">Já cobrado</span> : null}</TableCell>
                   <TableCell className="py-1.5">
                     {labelFormaPagamento(r.forma_pagamento)}
                     {r.bandeira && <span className="text-xs text-muted-foreground"> · {r.bandeira.toUpperCase()}</span>}
@@ -259,7 +259,7 @@ export function CalendarioCaixa() {
                   <TableRow key={r.id}>
                     <TableCell className="py-1.5">{r.aluno_nome ?? "—"}</TableCell>
                     <TableCell className="py-1.5"><OrigemBadge origem={r.origem} /></TableCell>
-                    <TableCell className="py-1.5">{r.descricao ?? "—"}</TableCell>
+                    <TableCell className="py-1.5">{r.descricao ?? "—"}{r.ja_cobrado ? <span className="ml-2 text-xs text-primary">Já cobrado</span> : null}</TableCell>
                     <TableCell className="py-1.5 text-right">{brl(num(r.valor_liquido))}</TableCell>
                   </TableRow>
                 ))}
