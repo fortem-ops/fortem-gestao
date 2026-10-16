@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExportMenu } from "@/components/relatorios/ExportMenu";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
-import { useDiaADiaPrevisibilidade, useRecebiveisPrevistos, useContratosVencendo, type RecebivelRow } from "@/hooks/usePrevisibilidade";
+import { useDiaADiaPrevisibilidade, useRecebiveisPrevistos, useRecebidosMes, useContratosVencendo, type RecebivelRow } from "@/hooks/usePrevisibilidade";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const num = (v: unknown) => Number(v ?? 0) || 0;
@@ -44,30 +44,34 @@ const labelMesCurto = (mes: string) => {
 
 type ModoData = "vencimento" | "recebimento";
 const dataRef = (r: RecebivelRow, modo: ModoData) =>
-  (modo === "vencimento" && !r.ja_cobrado ? r.data_vencimento ?? r.data_recebimento_prevista : r.data_recebimento_prevista) ?? "";
+  (modo === "vencimento" && !r.ja_cobrado && !r.recebido ? r.data_vencimento ?? r.data_recebimento_prevista : r.data_recebimento_prevista) ?? "";
+
+type MesTotal = { mes: string; total: number; recebido?: number };
 
 function useMesesFuturos(data: RecebivelRow[], modo: ModoData = "recebimento") {
   return useMemo(() => {
     const atual = format(new Date(), "yyyy-MM");
     const totais = new Map<string, number>();
+    const recebidos = new Map<string, number>();
     let ultimo = atual;
     for (const r of data) {
       const m = dataRef(r, modo).slice(0, 7);
       if (!m) continue;
       totais.set(m, (totais.get(m) ?? 0) + num(r.valor_liquido));
+      if (r.recebido) recebidos.set(m, (recebidos.get(m) ?? 0) + num(r.valor_liquido));
       if (m > ultimo) ultimo = m;
     }
-    const meses: { mes: string; total: number }[] = [];
+    const meses: MesTotal[] = [];
     for (let d = startOfMonth(new Date()); format(d, "yyyy-MM") <= ultimo; d = addMonths(d, 1)) {
       const m = format(d, "yyyy-MM");
-      meses.push({ mes: m, total: totais.get(m) ?? 0 });
+      meses.push({ mes: m, total: totais.get(m) ?? 0, recebido: recebidos.get(m) ?? 0 });
     }
     return meses;
   }, [data, modo]);
 }
 
 function MesesBar({ meses, ativo, onSelect, comTodos }: {
-  meses: { mes: string; total: number }[]; ativo: string | null; onSelect: (m: string | null) => void; comTodos?: boolean;
+  meses: MesTotal[]; ativo: string | null; onSelect: (m: string | null) => void; comTodos?: boolean;
 }) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Meses">
@@ -79,6 +83,7 @@ function MesesBar({ meses, ativo, onSelect, comTodos }: {
           className="shrink-0 h-auto py-1.5 flex flex-col items-start leading-tight" aria-pressed={ativo === m.mes}>
           <span>{labelMesCurto(m.mes)}</span>
           <span className="text-[11px] opacity-80">{compacto(m.total)}</span>
+          {m.recebido ? <span className="text-[10px] opacity-70">{compacto(m.recebido)} recebido</span> : null}
         </Button>
       ))}
     </div>
@@ -88,7 +93,11 @@ function MesesBar({ meses, ativo, onSelect, comTodos }: {
 export interface MesProps { mes: string | null; onMes: (m: string | null) => void }
 
 export function RecebiveisList({ mes, onMes }: Partial<MesProps> = {}) {
-  const { data = [], isLoading } = useRecebiveisPrevistos();
+  const { data: previstos = [], isLoading: l1 } = useRecebiveisPrevistos();
+  const { data: recebidos = [], isLoading: l2 } = useRecebidosMes();
+  const [incluirRecebidos, setIncluirRecebidos] = useState(true);
+  const data = useMemo(() => (incluirRecebidos ? [...recebidos, ...previstos] : previstos), [incluirRecebidos, recebidos, previstos]);
+  const isLoading = l1 || (incluirRecebidos && l2);
   const [ini, setIni] = useState(() => (mes ? limitesMes(mes).ini : ""));
   const [fim, setFim] = useState(() => (mes ? limitesMes(mes).fim : ""));
   const [modo, setModo] = useState<ModoData>("vencimento");
