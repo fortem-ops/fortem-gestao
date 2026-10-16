@@ -108,6 +108,27 @@ export function useRecebiveisPrevistos() {
   });
 }
 
+export interface ProjecaoRow {
+  mes: string;
+  renovacao_liquido: Num;
+  vendas_novas_liquido: Num;
+  taxa_renovacao: Num;
+  media_vendas_novas: Num;
+  taxa_cartao: Num;
+}
+
+export function useProjecaoPrevisibilidade(enabled: boolean) {
+  return useQuery({
+    queryKey: ["previsibilidade-projecao"],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await rpc("fn_previsibilidade_projecao");
+      if (error) throw error;
+      return (data ?? []) as ProjecaoRow[];
+    },
+  });
+}
+
 export interface ContratoVencendoRow {
   contrato_id: string;
   aluno_id: string | null;

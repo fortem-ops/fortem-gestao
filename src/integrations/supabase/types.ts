@@ -12151,6 +12151,17 @@ export type Database = {
           proximos_90_liquido: number
         }[]
       }
+      fn_previsibilidade_projecao: {
+        Args: never
+        Returns: {
+          media_vendas_novas: number
+          mes: string
+          renovacao_liquido: number
+          taxa_cartao: number
+          taxa_renovacao: number
+          vendas_novas_liquido: number
+        }[]
+      }
       fn_previsibilidade_resumo_mensal: {
         Args: never
         Returns: {

@@ -12,8 +12,14 @@ import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/components/relatorios/KpiCard";
 import { CalendarDays, Clock, AlertCircle, TrendingUp, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import {
-  useKpisPrevisibilidade, useResumoMensalPrevisibilidade, useDiaADiaPrevisibilidade,
+  useResumoMensalPrevisibilidade, useDiaADiaPrevisibilidade,
+  useRecebiveisPrevistos, useProjecaoPrevisibilidade, type RecebivelRow,
 } from "@/hooks/usePrevisibilidade";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ExportMenu } from "@/components/relatorios/ExportMenu";
+import { somaProjecaoJanela, limiteJanela } from "@/lib/previsibilidadeProjecao";
 import { CalendarioCaixa, RecebiveisList, RiscoCarteira } from "@/components/financeiro/PrevisibilidadeFase2";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -62,34 +68,90 @@ export default function Previsibilidade() {
   );
 }
 
+type Janela = { chave: string; titulo: string; filtro: (r: RecebivelRow) => boolean; bruto?: boolean };
+
+const dataBR = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—");
+
 function VisaoGeral() {
-  const { data: k } = useKpisPrevisibilidade();
   const { data: resumo = [] } = useResumoMensalPrevisibilidade();
+  const { data: recebiveis = [] } = useRecebiveisPrevistos();
+  const [projecaoOn, setProjecaoOn] = useState(false);
+  const { data: projecao = [] } = useProjecaoPrevisibilidade(projecaoOn);
+  const [aberta, setAberta] = useState<Janela | null>(null);
   const meses = useMemo(proximos12Meses, []);
+  const hoje = format(new Date(), "yyyy-MM-dd");
+  const mesAtual = hoje.slice(0, 7);
+
+  const janelas = useMemo(() => {
+    const ate = (dias: number) => {
+      const lim = limiteJanela(hoje, dias);
+      return (r: RecebivelRow) => !!r.data_vencimento && r.data_vencimento >= hoje && r.data_vencimento <= lim;
+    };
+    return {
+      mes: { chave: "mes", titulo: "A receber este mês", filtro: (r: RecebivelRow) => (r.data_recebimento_prevista ?? "").startsWith(mesAtual) },
+      d30: { chave: "d30", titulo: "Próximos 30 dias", filtro: ate(30) },
+      d60: { chave: "d60", titulo: "Próximos 60 dias", filtro: ate(60) },
+      d90: { chave: "d90", titulo: "Próximos 90 dias", filtro: ate(90) },
+      d365: { chave: "d365", titulo: "Total (1 ano)", filtro: ate(365) },
+      atraso: { chave: "atraso", titulo: "Em atraso", bruto: true,
+        filtro: (r: RecebivelRow) => !r.ja_cobrado && !!r.data_vencimento && r.data_vencimento < hoje },
+    } satisfies Record<string, Janela>;
+  }, [hoje, mesAtual]);
+
+  const soma = (j: Janela) => recebiveis.filter(j.filtro).reduce((s, r) => s + num(j.bruto ? r.valor_bruto : r.valor_liquido), 0);
+  const proj = (dias: number) => (projecaoOn ? somaProjecaoJanela(projecao, hoje, dias) : 0);
+  const projMes = projecaoOn ? projecao.filter((p) => p.mes === mesAtual).reduce((s, p) => s + num(p.renovacao_liquido) + num(p.vendas_novas_liquido), 0) : 0;
+  const extra = (v: number) => (projecaoOn && v > 0 ? `+ ${brl(v)} projeção` : undefined);
 
   const chartData = useMemo(() => meses.map((mes) => {
-    const row: Record<string, number | string> = { mes, label: labelMes(mes), mensalidade: 0, servico: 0, produto: 0 };
+    const row: Record<string, number | string> = { mes, label: labelMes(mes), mensalidade: 0, servico: 0, produto: 0, projecao: 0 };
     resumo.filter((r) => r.mes === mes).forEach((r) => {
       row[r.origem] = num(row[r.origem]) + num(r.total_liquido);
     });
+    if (projecaoOn) {
+      const p = projecao.find((x) => x.mes === mes);
+      row.projecao = num(p?.renovacao_liquido) + num(p?.vendas_novas_liquido);
+    }
     return row;
-  }), [meses, resumo]);
+  }), [meses, resumo, projecao, projecaoOn]);
 
-  const atrasoQtd = num(k?.em_atraso_qtd);
+  const atrasoLista = recebiveis.filter(janelas.atraso.filtro);
+  const info = projecao[0];
+  const itens = aberta ? recebiveis.filter(aberta.filtro) : [];
+  const exportRows = itens.map((r) => ({
+    data: dataBR(aberta?.chave === "mes" ? r.data_recebimento_prevista : r.data_vencimento),
+    aluno: r.aluno_nome ?? "", descricao: r.descricao ?? "", origem: r.origem,
+    ja_cobrado: r.ja_cobrado ? "Sim" : "Não",
+    valor: num(aberta?.bruto ? r.valor_bruto : r.valor_liquido).toFixed(2).replace(".", ","),
+  }));
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard label="A receber este mês" value={brl(num(k?.mes_atual_liquido))} icon={Wallet} />
-        <KpiCard label="Próximos 30 dias" value={brl(num(k?.proximos_30_liquido))} icon={Clock} hint="Valores a cobrar, já sem a taxa" />
-        <KpiCard label="Próximos 60 dias" value={brl(num(k?.proximos_60_liquido))} icon={Clock} hint="Valores a cobrar, já sem a taxa" />
-        <KpiCard label="Próximos 90 dias" value={brl(num(k?.proximos_90_liquido))} icon={TrendingUp} hint="Valores a cobrar, já sem a taxa" />
+      <Card className="glass-card">
+        <CardContent className="p-4 flex flex-wrap items-center gap-3">
+          <Switch id="projecao" checked={projecaoOn} onCheckedChange={setProjecaoOn} />
+          <Label htmlFor="projecao" className="font-medium">Projeção de vendas</Label>
+          <span className="text-xs text-muted-foreground">
+            {projecaoOn && info
+              ? `Taxa de renovação ${(num(info.taxa_renovacao) * 100).toFixed(0)}% · Média de vendas novas ${brl(num(info.media_vendas_novas))}/mês (últimos 6 meses) · já sem a taxa de ${num(info.taxa_cartao).toFixed(2).replace(".", ",")}%`
+              : "Desligada: os cartões mostram só o que já está lançado."}
+          </span>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        <KpiCard label="A receber este mês" value={brl(soma(janelas.mes))} icon={Wallet} extra={extra(projMes)} onClick={() => setAberta(janelas.mes)} />
+        <KpiCard label="Próximos 30 dias" value={brl(soma(janelas.d30))} icon={Clock} hint="Valores a cobrar, já sem a taxa" extra={extra(proj(30))} onClick={() => setAberta(janelas.d30)} />
+        <KpiCard label="Próximos 60 dias" value={brl(soma(janelas.d60))} icon={Clock} hint="Valores a cobrar, já sem a taxa" extra={extra(proj(60))} onClick={() => setAberta(janelas.d60)} />
+        <KpiCard label="Próximos 90 dias" value={brl(soma(janelas.d90))} icon={TrendingUp} hint="Valores a cobrar, já sem a taxa" extra={extra(proj(90))} onClick={() => setAberta(janelas.d90)} />
+        <KpiCard label="Total (1 ano)" value={brl(soma(janelas.d365))} icon={CalendarDays} hint="Valores a cobrar, já sem a taxa" extra={extra(proj(365))} onClick={() => setAberta(janelas.d365)} />
         <KpiCard
           label="Em atraso"
-          value={brl(num(k?.em_atraso_bruto))}
-          tone={atrasoQtd > 0 ? "danger" : "default"}
+          value={brl(soma(janelas.atraso))}
+          tone={atrasoLista.length > 0 ? "danger" : "default"}
           icon={AlertCircle}
-          hint={`${atrasoQtd} cobrança(s)`}
+          hint={`${atrasoLista.length} cobrança(s)`}
+          onClick={() => setAberta(janelas.atraso)}
         />
       </div>
 
@@ -110,14 +172,49 @@ function VisaoGeral() {
                 {SERIES.map((s) => (
                   <Bar key={s.key} dataKey={s.key} name={s.label} stackId="a" fill={s.color} />
                 ))}
+                {projecaoOn && <Bar dataKey="projecao" name="Projeção" stackId="a" fill="hsl(var(--muted-foreground))" fillOpacity={0.5} />}
               </BarChart>
             </ResponsiveContainer>
           </div>
           <p className="text-xs text-muted-foreground">
             Valores líquidos de taxa. Contratos anuais que vencem sem renovação lançada aparecem como queda na carteira — isso é esperado, não é um erro.
+            {projecaoOn && " A barra cinza é projeção (renovações esperadas + média de vendas novas), não valor lançado."}
           </p>
         </CardContent>
       </Card>
+
+      <Dialog open={!!aberta} onOpenChange={(o) => !o && setAberta(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>{aberta?.titulo}</DialogTitle></DialogHeader>
+          <div className="flex justify-between items-center">
+            <p className="text-sm">{itens.length} item(ns) · Total: <strong>{brl(itens.reduce((s, r) => s + num(aberta?.bruto ? r.valor_bruto : r.valor_liquido), 0))}</strong></p>
+            <ExportMenu filename={`previsibilidade-${aberta?.chave ?? ""}`} rows={exportRows}
+              columns={[{ key: "data", label: "Data" }, { key: "aluno", label: "Aluno" }, { key: "descricao", label: "Descrição" },
+                { key: "origem", label: "Origem" }, { key: "ja_cobrado", label: "Já cobrado" }, { key: "valor", label: "Valor" }]} />
+          </div>
+          <div className="max-h-[60vh] overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead><TableHead>Aluno</TableHead><TableHead>Descrição</TableHead>
+                  <TableHead className="text-right">{aberta?.bruto ? "Valor" : "Valor líquido"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {itens.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="py-1.5 whitespace-nowrap">{dataBR(aberta?.chave === "mes" ? r.data_recebimento_prevista : r.data_vencimento)}</TableCell>
+                    <TableCell className="py-1.5">{r.aluno_nome ?? "—"}</TableCell>
+                    <TableCell className="py-1.5">{r.descricao ?? "—"}{r.ja_cobrado ? <Badge variant="outline" className="ml-2">Já cobrado</Badge> : null}</TableCell>
+                    <TableCell className="py-1.5 text-right">{brl(num(aberta?.bruto ? r.valor_bruto : r.valor_liquido))}</TableCell>
+                  </TableRow>
+                ))}
+                {itens.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nenhum item</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
