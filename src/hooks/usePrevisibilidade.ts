@@ -83,6 +83,23 @@ export interface RecebivelRow {
   data_recebimento_prevista: string | null;
   bandeira_de_cartao_salvo?: boolean | null;
   ja_cobrado?: boolean | null;
+  recebido?: boolean | null;
+}
+
+/** Já pago/recebido no mês atual (até hoje). */
+export function useRecebidosMes() {
+  return useQuery({
+    queryKey: ["previsibilidade-recebidos-mes"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from as any)("vw_recebidos_periodo")
+        .select("*")
+        .order("data_recebimento_prevista", { ascending: true })
+        .limit(5000);
+      if (error) throw error;
+      return (data ?? []) as RecebivelRow[];
+    },
+  });
 }
 
 export function useRecebiveisPrevistos() {
