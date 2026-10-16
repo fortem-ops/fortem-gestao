@@ -290,6 +290,7 @@ export function CalendarioCaixa({ mes, onMes }: Partial<MesProps> = {}) {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">O calendário mostra o dia em que o dinheiro cai na conta. Cobranças no cartão caem cerca de 30 dias depois do vencimento.</p>
       <MesesBar meses={meses} ativo={format(mesRef, "yyyy-MM")} onSelect={(m) => m && setMesRef(() => startOfMonth(new Date(`${m}-01T12:00:00`)))} />
 
       <Card className="glass-card">
