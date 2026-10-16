@@ -8764,6 +8764,8 @@ export type Database = {
           id: string
           observacao: string | null
           origem: string
+          origem_id: string | null
+          origem_tabela: string | null
           recorrente: boolean
           status: string
           updated_at: string
@@ -8784,6 +8786,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          origem_id?: string | null
+          origem_tabela?: string | null
           recorrente?: boolean
           status?: string
           updated_at?: string
@@ -8804,6 +8808,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          origem_id?: string | null
+          origem_tabela?: string | null
           recorrente?: boolean
           status?: string
           updated_at?: string
@@ -12214,6 +12220,7 @@ export type Database = {
         Args: { _data_inicio: string }
         Returns: string
       }
+      fn_receitas_sync_automaticas: { Args: never; Returns: undefined }
       fn_recorrencia_2027_baixa_manual: {
         Args: { p_forma: string; p_id: string }
         Returns: string
