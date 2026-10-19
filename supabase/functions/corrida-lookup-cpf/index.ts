@@ -60,13 +60,14 @@ Deno.serve(async (req) => {
     // --- lookup ---
     const hash = await cpfHashFromRaw(digits);
 
-    const { data: aluno, error: alunoErr } = await admin
+    const { data: candidatos, error: alunoErr } = await admin
       .from("alunos")
-      .select("id, nome, email, telefone, data_nascimento, cep, logradouro, numero, complemento, bairro, cidade, uf")
+      .select("id, nome, status, email, telefone, data_nascimento, cep, logradouro, numero, complemento, bairro, cidade, uf")
       .eq("cpf_hash", hash)
-      .eq("status", "ativo")
-      .limit(1)
-      .maybeSingle();
+      .in("status", ["ativo", "inativo"])
+      .limit(5);
+    const aluno =
+      (candidatos ?? []).find((a) => a.status === "ativo") ?? (candidatos ?? [])[0] ?? null;
 
     if (alunoErr) throw alunoErr;
     if (!aluno) return json(200, { found: false });
