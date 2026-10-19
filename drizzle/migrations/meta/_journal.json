@@ -1114,6 +1114,13 @@
       "when": 1792190751361,
       "tag": "0158_receitas_sync_automaticas",
       "breakpoints": true
+    },
+    {
+      "idx": 159,
+      "version": "7",
+      "when": 1792414574984,
+      "tag": "0159_reativar_contrato",
+      "breakpoints": true
     }
   ]
 }

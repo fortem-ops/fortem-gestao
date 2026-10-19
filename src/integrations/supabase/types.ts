@@ -12220,6 +12220,10 @@ export type Database = {
         Args: { _data_inicio: string }
         Returns: string
       }
+      fn_reativar_contrato: {
+        Args: { _contrato_id: string; _motivo?: string; _nova_data_fim: string }
+        Returns: Json
+      }
       fn_receitas_sync_automaticas: { Args: never; Returns: undefined }
       fn_recorrencia_2027_baixa_manual: {
         Args: { p_forma: string; p_id: string }
