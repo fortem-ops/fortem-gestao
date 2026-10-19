@@ -25,7 +25,7 @@ export function periodoEfetivo(rota: Rota | null, periodo: Periodo): Periodo {
 export function maxParcelasPeriodo(rota: Rota | null, periodo: Periodo): number {
   const p = periodoEfetivo(rota, periodo);
   if (p === "semestral") return MAX_PARCELAS_SEMESTRAL;
-  return rota === "prospect" ? 12 : 10;
+  return 12;
 }
 
 

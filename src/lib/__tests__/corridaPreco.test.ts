@@ -88,7 +88,7 @@ describe("calcularResumoCorrida — plano", () => {
     expect(r.hoje).toBe(1200);
     expect(r.recorrente).toBe(0);
     expect(r.linhas[0].label).toContain("Plano Anual");
-    expect(r.linhas[0].nota).toContain("10x");
+    expect(r.linhas[0].nota).toContain("12x");
   });
 
   it("somente_corrida também é sempre anual", () => {
