@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  maxParcelasPeriodo,
   calcularResumoCorrida,
   dataProva,
   nomePlanoExibicao,
@@ -88,7 +89,7 @@ describe("calcularResumoCorrida — plano", () => {
     expect(r.hoje).toBe(1200);
     expect(r.recorrente).toBe(0);
     expect(r.linhas[0].label).toContain("Plano Anual");
-    expect(r.linhas[0].nota).toContain("12x");
+    expect(r.linhas[0].nota).toContain("10x");
   });
 
   it("somente_corrida também é sempre anual", () => {
@@ -320,5 +321,16 @@ describe("calcularResumoCorrida — sem provas", () => {
     const r = calcularResumoCorrida(params({ oferta: ofertaBase({ cortesia }), incluirNb: false }))!;
     expect(r.hoje).toBe(1200);
     expect(r.linhas).toHaveLength(1);
+  });
+});
+
+describe("maxParcelasPeriodo — anual em 12x", () => {
+  it("anual permite 12x para aluno, só corrida e prospect", () => {
+    expect(maxParcelasPeriodo("aluno", "anual")).toBe(12);
+    expect(maxParcelasPeriodo("somente_corrida", "anual")).toBe(12);
+    expect(maxParcelasPeriodo("prospect", "anual")).toBe(12);
+  });
+  it("semestral segue em 6x", () => {
+    expect(maxParcelasPeriodo("aluno", "semestral")).toBe(6);
   });
 });
