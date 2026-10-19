@@ -649,8 +649,6 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       </Card>
 
 
-      {/* Dialog de rescisão */}
-      {rescContrato && (
         <Dialog open={!!reativarContrato} onOpenChange={(o) => !o && setReativarContrato(null)}>
           <DialogContent>
             <DialogHeader>
