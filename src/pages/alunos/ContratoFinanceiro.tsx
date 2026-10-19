@@ -72,6 +72,7 @@ import { EstornarCobrancaDialog } from "@/components/financeiro/EstornarCobranca
 import { ComprovanteEstornoDialog } from "@/components/financeiro/ComprovanteEstornoDialog";
 import { useEstornosDoContrato, useMeuNome, type EstornoRegistro } from "@/hooks/useEstorno";
 import type { ComprovanteEstornoDados } from "@/lib/estornoPdf";
+import { ultimoDiaDoMes, novaDataFimValida } from "@/lib/reativarContrato";
 
 
 
@@ -113,6 +114,31 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const [baixaLoading, setBaixaLoading] = useState(false);
   const [excluirCobranca, setExcluirCobranca] = useState<any | null>(null);
   const [excluirLoading, setExcluirLoading] = useState(false);
+  const [reativarContrato, setReativarContrato] = useState<Contrato | null>(null);
+  const [reativarData, setReativarData] = useState(ultimoDiaDoMes());
+  const [reativarMotivo, setReativarMotivo] = useState("");
+  const [reativarLoading, setReativarLoading] = useState(false);
+
+  async function confirmarReativacao() {
+    if (!reativarContrato) return;
+    setReativarLoading(true);
+    const { error } = await supabase.rpc("fn_reativar_contrato" as any, {
+      _contrato_id: reativarContrato.id,
+      _nova_data_fim: reativarData,
+      _motivo: reativarMotivo || null,
+    });
+    setReativarLoading(false);
+    if (error) {
+      toast({ title: "Não foi possível reativar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Contrato reativado", description: `Novo término: ${fmtDate(reativarData)}` });
+    setReativarContrato(null);
+    qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
+    qc.invalidateQueries({ queryKey: ["aluno_display_status", alunoId] });
+    qc.invalidateQueries({ queryKey: ["planos"] });
+    qc.invalidateQueries();
+  }
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-aluno", alunoId],
@@ -528,9 +554,24 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                       </Badge>
                     )}
                   </div>
-                  <span className="font-medium">
-                    {valores.recorrente ? `${fmt(valores.parcela)}/mês` : `${fmt(valores.total)} total`}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {podeCancelar && c.status === "encerrado" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setReativarData(ultimoDiaDoMes());
+                          setReativarMotivo("");
+                          setReativarContrato(c);
+                        }}
+                      >
+                        Reativar contrato
+                      </Button>
+                    )}
+                    <span className="font-medium">
+                      {valores.recorrente ? `${fmt(valores.parcela)}/mês` : `${fmt(valores.total)} total`}
+                    </span>
+                  </div>
                 </div>
                 {todas.length > 0 && (
                   <ul className="space-y-1 border-t pt-2">
