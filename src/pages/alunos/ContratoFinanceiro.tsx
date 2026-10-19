@@ -651,6 +651,40 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
       {/* Dialog de rescisão */}
       {rescContrato && (
+        <Dialog open={!!reativarContrato} onOpenChange={(o) => !o && setReativarContrato(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reativar contrato</DialogTitle>
+              <DialogDescription>
+                O contrato e o plano voltam a ficar ativos até a nova data. Nenhuma cobrança é criada ou alterada.
+                Término atual: {fmtDate(reativarContrato?.data_fim ?? null)}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="reativar-data">Nova data de término</Label>
+                <Input id="reativar-data" type="date" value={reativarData} onChange={(e) => setReativarData(e.target.value)} />
+                {!novaDataFimValida(reativarData, reativarContrato?.data_fim ?? null) && (
+                  <p className="text-xs text-destructive">A data precisa ser depois do término atual.</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="reativar-motivo">Motivo (opcional)</Label>
+                <Input id="reativar-motivo" value={reativarMotivo} onChange={(e) => setReativarMotivo(e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReativarContrato(null)} disabled={reativarLoading}>Voltar</Button>
+              <Button
+                onClick={confirmarReativacao}
+                disabled={reativarLoading || !novaDataFimValida(reativarData, reativarContrato?.data_fim ?? null)}
+              >
+                {reativarLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Confirmar reativação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <RescisaoDialog
           contrato={rescContrato}
           open={!!rescContrato}
