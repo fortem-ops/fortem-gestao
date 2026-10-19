@@ -11128,6 +11128,14 @@ export type Database = {
             Args: { p_agenda_servico_id: string; p_data: string }
             Returns: Json
           }
+      fn_agendar_servico_equipe: {
+        Args: {
+          p_agenda_servico_id: string
+          p_aluno_id: string
+          p_data: string
+        }
+        Returns: Json
+      }
       fn_agendar_treino: {
         Args: { p_data: string; p_slot_id: string }
         Returns: Json
