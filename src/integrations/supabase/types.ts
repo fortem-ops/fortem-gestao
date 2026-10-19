@@ -4778,6 +4778,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ipca_indices: {
+        Row: {
+          atualizado_em: string
+          fonte: string
+          mes: string
+          variacao: number
+        }
+        Insert: {
+          atualizado_em?: string
+          fonte: string
+          mes: string
+          variacao: number
+        }
+        Update: {
+          atualizado_em?: string
+          fonte?: string
+          mes?: string
+          variacao?: number
+        }
+        Relationships: []
+      }
       knowledge_articles: {
         Row: {
           aliases: string[] | null

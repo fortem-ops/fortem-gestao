@@ -1170,6 +1170,13 @@
       "when": 1792423779038,
       "tag": "0166_fn_registrar_motivo_edicao_cobranca",
       "breakpoints": true
+    },
+    {
+      "idx": 167,
+      "version": "7",
+      "when": 1792425043964,
+      "tag": "0167_ipca_indices_cache",
+      "breakpoints": true
     }
   ]
 }
