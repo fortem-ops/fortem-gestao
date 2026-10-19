@@ -23,3 +23,16 @@ describe("horários livres para agendar pela equipe", () => {
     expect(r.map((h) => h.id)).toEqual(["b"]);
   });
 });
+
+import { podeSelecionarMais, saldoRestante } from "@/lib/horariosLivresServico";
+describe("seleção múltipla de horários", () => {
+  it("não permite passar do saldo", () => {
+    expect(podeSelecionarMais(3, false, 2)).toBe(true);
+    expect(podeSelecionarMais(3, false, 3)).toBe(false);
+    expect(saldoRestante(3, false, 2)).toBe(1);
+  });
+  it("ilimitado não bloqueia", () => {
+    expect(podeSelecionarMais(0, true, 10)).toBe(true);
+    expect(saldoRestante(0, true, 10)).toBeNull();
+  });
+});
