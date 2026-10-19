@@ -683,6 +683,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+      {/* Dialog de rescisão */}
+      {rescContrato && (
         <RescisaoDialog
           contrato={rescContrato}
           open={!!rescContrato}
