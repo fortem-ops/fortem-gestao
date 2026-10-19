@@ -43,7 +43,7 @@ async function passeOk(passe: unknown): Promise<boolean> {
 // Nunca registra o código, o e-mail completo nem a chave em log.
 async function logEnvio(acao: string, mensagem: string, detalhes: Record<string, unknown>) {
   try {
-    await admin.from("system_logs").insert({ modulo: "planos-codigo", acao, mensagem, detalhes });
+    await admin.from("system_logs").insert({ modulo: "planos-codigo", acao, mensagem, payload: detalhes });
   } catch { /* log nunca bloqueia o envio */ }
 }
 
