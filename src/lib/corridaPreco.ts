@@ -17,7 +17,7 @@ export const MAX_PARCELAS_SEMESTRAL = 6;
  * Nas demais rotas, "mensal" cai para o plano anual (comportamento histórico).
  */
 export function periodoEfetivo(rota: Rota | null, periodo: Periodo): Periodo {
-  if (rota === "prospect") return periodo;
+  if (rota === "prospect" || rota === "somente_corrida") return periodo;
   return periodo === "mensal" ? "anual" : periodo;
 }
 

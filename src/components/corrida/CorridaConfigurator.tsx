@@ -517,7 +517,7 @@ const CorridaConfigurator = () => {
         <h3 className="font-display text-xl font-bold mb-4">{tituloRota()}</h3>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {rota === "prospect" && (
+          {(rota === "prospect" || rota === "somente_corrida") && (
             <Pill active={periodo === "mensal"} onClick={() => setPeriodo("mensal")}>
               Mensal
             </Pill>
