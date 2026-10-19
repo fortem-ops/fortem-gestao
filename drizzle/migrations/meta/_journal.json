@@ -1121,6 +1121,13 @@
       "when": 1792414574984,
       "tag": "0159_reativar_contrato",
       "breakpoints": true
+    },
+    {
+      "idx": 160,
+      "version": "7",
+      "when": 1792415429291,
+      "tag": "0160_reativar_contrato_audit_update",
+      "breakpoints": true
     }
   ]
 }
