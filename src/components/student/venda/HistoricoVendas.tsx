@@ -485,7 +485,7 @@ export function HistoricoVendas({ alunoId }: Props) {
                     <Textarea rows={2} value={editMotivo} onChange={(e) => setEditMotivo(e.target.value)} placeholder="Obrigatório ao mudar data, item ou valor" />
                   </div>
                   {editing.status_pagamento === "pago" && (
-                    <p className="text-xs text-status-warning">
+                    <p className="text-xs rounded px-2 py-1 status-warning">
                       Venda já paga: isto corrige só o registro da venda. Nada é cobrado ou estornado, e contrato, parcelas em Cobranças, créditos e comissão não mudam — ajuste-os à mão se precisar.
                     </p>
                   )}
