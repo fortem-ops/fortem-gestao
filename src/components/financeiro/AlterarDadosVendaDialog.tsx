@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/table";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   open: boolean;
@@ -59,16 +61,21 @@ const statusLabel = (status: string) =>
           ? "Cancelado"
           : status;
 
-const editavel = (status: string) => status === "pendente" || status === "atrasado";
+const emAberto = (status: string) => status === "pendente" || status === "atrasado";
 
 export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobrancas }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [linhas, setLinhas] = useState<LinhaEdicao[]>([]);
   const [saving, setSaving] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const { data: roles } = useUserRoles();
+  const editavel = (status: string) => emAberto(status) || (status === "pago" && !!roles?.isCoordAdmin);
+  const mudou = (l: LinhaEdicao) => l.data_vencimento !== l.origData || Number(l.valor) !== Number(l.origValor);
 
   useEffect(() => {
     if (!open) return;
+    setMotivo("");
     setLinhas(
       cobrancas.map((c) => ({
         id: c.id,
@@ -91,17 +98,18 @@ export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobran
     return null;
   };
 
+  const pagasAlteradas = linhas.filter((l) => l.status === "pago" && editavel(l.status) && mudou(l));
+  const faltaMotivo = pagasAlteradas.length > 0 && motivo.trim().length < 3;
   const temErro = linhas.some((l) => erroLinha(l) !== null);
 
   const update = (id: string, patch: Partial<LinhaEdicao>) =>
     setLinhas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
   const handleSalvar = async () => {
-    if (temErro) return;
+    if (temErro || faltaMotivo) return;
     const alteradas = linhas.filter(
       (l) =>
-        editavel(l.status) &&
-        (l.data_vencimento !== l.origData || Number(l.valor) !== Number(l.origValor)),
+        editavel(l.status) && mudou(l),
     );
     if (!alteradas.length) {
       onOpenChange(false);
@@ -111,6 +119,14 @@ export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobran
     try {
       const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
       for (const l of alteradas) {
+        if (l.status === "pago") {
+          const { error } = await supabase
+            .from("cobrancas")
+            .update({ data_vencimento: l.data_vencimento, valor: Number(l.valor) } as any)
+            .eq("id", l.id);
+          if (error) throw error;
+          continue;
+        }
         const novoStatus = l.data_vencimento >= hoje ? "pendente" : "atrasado";
         const { error } = await supabase
           .from("cobrancas")
@@ -120,6 +136,13 @@ export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobran
         if (novoStatus === "pendente") {
           await (supabase as any).from("inadimplencias").delete().eq("cobranca_id", l.id);
         }
+      }
+      if (pagasAlteradas.length) {
+        const { error } = await (supabase as any).rpc("fn_registrar_motivo_edicao_cobranca", {
+          p_cobranca_ids: pagasAlteradas.map((l) => l.id),
+          p_motivo: motivo.trim(),
+        });
+        if (error) throw error;
       }
       qc.invalidateQueries({ queryKey: ["cobrancas-contrato", contratoId] });
       qc.invalidateQueries({ queryKey: ["inadimplentes"] });
@@ -138,7 +161,7 @@ export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobran
         <DialogHeader>
           <DialogTitle>Alterar dados da venda</DialogTitle>
           <DialogDescription>
-            Edite vencimento e valor das cobranças em aberto deste contrato.
+            Edite vencimento e valor das cobranças deste contrato.
           </DialogDescription>
         </DialogHeader>
 
@@ -192,11 +215,21 @@ export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobran
           </Table>
         </div>
 
+        {pagasAlteradas.length > 0 && (
+          <div className="space-y-2 rounded-md border border-border p-3">
+            <p className="text-xs rounded px-2 py-1 status-warning">
+              Parcela já paga: isto corrige só o registro. Nada é cobrado nem estornado no cartão ou Pix, e ela continua Paga.
+            </p>
+            <label className="text-sm font-medium">Motivo da alteração</label>
+            <Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Obrigatório para alterar parcelas pagas" />
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSalvar} disabled={saving || temErro} className="gap-1">
+          <Button onClick={handleSalvar} disabled={saving || temErro || faltaMotivo} className="gap-1">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Salvar alterações
           </Button>
