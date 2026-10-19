@@ -11701,6 +11701,16 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      fn_editar_venda_dados: {
+        Args: {
+          p_catalogo_id: string
+          p_data_venda: string
+          p_motivo: string
+          p_valor: number
+          p_venda_id: string
+        }
+        Returns: undefined
+      }
       fn_estoque_movimentar: {
         Args: {
           p_motivo: string

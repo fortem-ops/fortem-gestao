@@ -1156,6 +1156,13 @@
       "when": 1792423071699,
       "tag": "0164_festa_fotos_leitura_so_gestao",
       "breakpoints": true
+    },
+    {
+      "idx": 165,
+      "version": "7",
+      "when": 1792423447117,
+      "tag": "0165_fn_editar_venda_dados",
+      "breakpoints": true
     }
   ]
 }
