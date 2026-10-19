@@ -20,6 +20,7 @@ import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
 import { HorarioFixoManager } from "./HorarioFixoManager";
+import { AgendarServicoDialog } from "./AgendarServicoDialog";
 
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,6 +69,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [addUsageService, setAddUsageService] = useState("");
   const [addUsageDate, setAddUsageDate] = useState(new Date().toISOString().split("T")[0]);
   const [vendaOpen, setVendaOpen] = useState(false);
+  const [agendarOpen, setAgendarOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelDate, setCancelDate] = useState(new Date().toISOString().split("T")[0]);
   const [cancelMotivo, setCancelMotivo] = useState("");
@@ -413,7 +415,15 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
 
 
-        <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
+        {isCoordAdmin && (
+        <div className="flex justify-end">
+          <Button size="sm" className="gap-1" onClick={() => setAgendarOpen(true)}>
+            <Calendar className="w-4 h-4" /> Agendar serviço
+          </Button>
+          <AgendarServicoDialog alunoId={student.id} open={agendarOpen} onOpenChange={setAgendarOpen} />
+        </div>
+      )}
+      <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
 
         <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
       </div>
@@ -695,6 +705,14 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         </DialogContent>
       </Dialog>
 
+      {isCoordAdmin && (
+        <div className="flex justify-end">
+          <Button size="sm" className="gap-1" onClick={() => setAgendarOpen(true)}>
+            <Calendar className="w-4 h-4" /> Agendar serviço
+          </Button>
+          <AgendarServicoDialog alunoId={student.id} open={agendarOpen} onOpenChange={setAgendarOpen} />
+        </div>
+      )}
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
 
       {/* Horário Fixo */}
