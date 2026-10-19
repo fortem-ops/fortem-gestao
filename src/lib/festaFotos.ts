@@ -22,3 +22,10 @@ export async function carregarFestaFotos(): Promise<FestaFoto[]> {
   }
   return fotos;
 }
+
+/** Fotos para a página pública: lidas no servidor, sem acesso direto do visitante. */
+export async function carregarFestaFotosPublico(): Promise<FestaFoto[]> {
+  const { data, error } = await supabase.functions.invoke("festa-fotos-publico", { body: {} });
+  if (error) throw error;
+  return ((data as { fotos?: FestaFoto[] })?.fotos ?? []) as FestaFoto[];
+}

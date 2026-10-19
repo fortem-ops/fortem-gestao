@@ -5,7 +5,7 @@ import { brlCentavos } from "@/lib/festa10anos";
 import { Seo } from "@/components/Seo";
 import FestaConfirmacaoForm from "@/components/festa/FestaConfirmacaoForm";
 import FestaFotosAno from "@/components/festa/FestaFotosAno";
-import { agruparFotosPorAno, carregarFestaFotos, type FestaFoto } from "@/lib/festaFotos";
+import { agruparFotosPorAno, carregarFestaFotosPublico, type FestaFoto } from "@/lib/festaFotos";
 import { carregarInteracoes, type FestaInteracao } from "@/lib/festaInteracoes";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 
@@ -36,7 +36,7 @@ export default function Festa10Anos() {
   }, []);
   useEffect(() => { carregarTotal(); }, [carregarTotal]);
   const [fotosDb, setFotosDb] = useState<Record<string, FestaFoto[]> | null>(null);
-  useEffect(() => { carregarFestaFotos().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); }, []);
+  useEffect(() => { carregarFestaFotosPublico().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); }, []);
 
   const [interacoes, setInteracoes] = useState<Record<string, FestaInteracao>>({});
   useEffect(() => { carregarInteracoes().then(setInteracoes).catch(() => {}); }, []);
