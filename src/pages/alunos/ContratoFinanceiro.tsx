@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/select";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { RescisaoDialog } from "@/components/contratos/RescisaoDialog";
 import { AlterarDadosVendaDialog } from "@/components/financeiro/AlterarDadosVendaDialog";
 import { AlterarTipoCobrancaDialog } from "@/components/financeiro/AlterarTipoCobrancaDialog";
@@ -129,10 +130,10 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     });
     setReativarLoading(false);
     if (error) {
-      toast({ title: "Não foi possível reativar", description: error.message, variant: "destructive" });
+      sonnerToast.error("Não foi possível reativar", { description: error.message });
       return;
     }
-    toast({ title: "Contrato reativado", description: `Novo término: ${fmtDate(reativarData)}` });
+    sonnerToast.success("Contrato reativado", { description: `Novo término: ${fmtDate(reativarData)}` });
     setReativarContrato(null);
     qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
     qc.invalidateQueries({ queryKey: ["aluno_display_status", alunoId] });
