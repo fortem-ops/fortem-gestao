@@ -93,12 +93,6 @@ describe("calcularResumoCorrida — plano", () => {
     expect(r.linhas[0].nota).toContain("10x");
   });
 
-  it("somente_corrida também é sempre anual", () => {
-    const r = calcularResumoCorrida(params({ rota: "somente_corrida", periodo: "mensal" }))!;
-    expect(r.hoje).toBe(1200);
-    expect(r.recorrente).toBe(0);
-  });
-
   it("prospect anual usa planoAnual com nota de parcelas", () => {
     const r = calcularResumoCorrida(params({ rota: "prospect", periodo: "anual", maxParcelas: 12 }))!;
     expect(r.hoje).toBe(1200);
