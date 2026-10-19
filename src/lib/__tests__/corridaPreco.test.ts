@@ -313,3 +313,12 @@ describe("calcularResumoCorrida — cenário completo", () => {
     expect(r.linhas[0].label).toBe("Assessoria de Corrida Fortem — Mensal");
   });
 });
+
+describe("calcularResumoCorrida — sem provas", () => {
+  it("anual com incluirNb false não soma a NB", () => {
+    const cortesia = item({ tipo: "cortesia_nb", descricao: "Inscrição NB", valor: 150 });
+    const r = calcularResumoCorrida(params({ oferta: ofertaBase({ cortesia }), incluirNb: false }))!;
+    expect(r.hoje).toBe(1200);
+    expect(r.linhas).toHaveLength(1);
+  });
+});

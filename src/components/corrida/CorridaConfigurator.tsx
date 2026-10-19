@@ -165,6 +165,7 @@ const CorridaConfigurator = () => {
   const [distanciaCortesia, setDistanciaCortesia] = useState<Distancia>("5K");
   const [kitNivel, setKitNivel] = useState<string | null>(null);
   const [mipoa, setMipoa] = useState(false);
+  const [incluirNb, setIncluirNb] = useState(true);
   const [distanciaMipoa, setDistanciaMipoa] = useState<Distancia>("5K");
   const [avaliacao, setAvaliacao] = useState(false);
   // somente_provas: seleção múltipla
@@ -195,6 +196,7 @@ const CorridaConfigurator = () => {
     setNome(n);
     setKitNivel(null);
     setMipoa(false);
+    setIncluirNb(true);
     setDistanciaMipoa("5K");
     setAvaliacao(false);
     setDistanciaCortesia("5K");
@@ -277,11 +279,11 @@ const CorridaConfigurator = () => {
       });
       return lista;
     }
-    const descontoNbAtivo = descontoNbElegivel && periodoEfetivo(rota, periodo) === "anual";
+    const descontoNbAtivo = incluirNb && descontoNbElegivel && periodoEfetivo(rota, periodo) === "anual";
     if (descontoNbAtivo) lista.push({ prova: "NB", distancia: distanciaCortesia });
     if (mipoa) lista.push({ prova: "MIPOA", distancia: distanciaMipoa });
     return lista;
-  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel, descontoNbElegivel]);
+  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel, descontoNbElegivel, incluirNb]);
 
   /* --------------------------- Etapas --------------------------- */
 
@@ -391,8 +393,9 @@ const CorridaConfigurator = () => {
         avaliacao,
         provasSel,
         maxParcelas,
+        incluirNb,
       }),
-    [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, maxParcelas],
+    [incluirNb, oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, maxParcelas],
   );
 
   const tituloRota = () => {
@@ -568,7 +571,16 @@ const CorridaConfigurator = () => {
           </p>
         ) : (
           oferta.cortesia && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <>
+            <Toggle
+              active={incluirNb}
+              onClick={() => setIncluirNb((v) => !v)}
+              title="Incluir inscrição NB 42k 2027 (50% OFF)"
+              subtitle={`de ${brl(NB_INSCRICAO_VALOR_CHEIO)} por ${brl(Number(oferta.cortesia.valor))}`}
+              price={brl(Number(oferta.cortesia.valor))}
+            />
+            {incluirNb && (
+            <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <p className="flex items-center gap-2 font-semibold">
                   <Gift className="w-4 h-4 text-primary" /> Inscrição NB 42k 2027 com 50% OFF
@@ -599,7 +611,19 @@ const CorridaConfigurator = () => {
                 </span>
               </div>
             </div>
+            )}
+            </>
           )
+        )}
+
+        {(incluirNb || mipoa) && (
+          <button
+            type="button"
+            className="mt-4 text-sm underline text-muted-foreground"
+            onClick={() => { setIncluirNb(false); setMipoa(false); }}
+          >
+            Não quero incluir provas
+          </button>
         )}
 
         {oferta.mipoaItem && (
@@ -812,7 +836,7 @@ const CorridaConfigurator = () => {
 
   const payloadPedido = useMemo(() => {
     const descontoNbAtivo =
-      descontoNbElegivel && rota !== "somente_provas" && periodoEfetivo(rota, periodo) === "anual";
+      incluirNb && descontoNbElegivel && rota !== "somente_provas" && periodoEfetivo(rota, periodo) === "anual";
     return {
       rota,
       alunoId,
@@ -833,7 +857,7 @@ const CorridaConfigurator = () => {
         recorrente_mensal: resumo?.recorrente ?? 0,
       },
     } as Record<string, unknown>;
-  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo, descontoNbElegivel]);
+  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo, descontoNbElegivel, incluirNb]);
 
   const renderPagamento = () => {
     const temInscricao = provasPedido.length > 0;

@@ -120,6 +120,7 @@ export interface ResumoParams {
   avaliacao: boolean;
   provasSel: Record<ProvaKey, { ativo: boolean; distancia: Distancia }>;
   maxParcelas: number;
+  incluirNb?: boolean;
 }
 
 export interface ResumoLinha {
@@ -146,6 +147,7 @@ export function calcularResumoCorrida(params: ResumoParams): ResumoCorrida | nul
     avaliacao,
     provasSel,
     maxParcelas,
+    incluirNb = true,
   } = params;
 
   if (!oferta || !rota) return null;
@@ -191,7 +193,7 @@ export function calcularResumoCorrida(params: ResumoParams): ResumoCorrida | nul
         hoje += Number(p.valor);
       }
     }
-    const descontoNbAtivo = oferta.cortesia && efetivo === "anual";
+    const descontoNbAtivo = incluirNb && oferta.cortesia && efetivo === "anual";
     if (descontoNbAtivo) {
       const c = oferta.cortesia!;
       const valorDescontoNb = c.isento ? 0 : Number(c.valor);
