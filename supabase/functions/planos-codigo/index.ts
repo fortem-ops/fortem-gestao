@@ -41,9 +41,19 @@ async function passeOk(passe: unknown): Promise<boolean> {
 
 // Envio do código de identificação via Resend (domínio soufortem.com.br verificado).
 // Nunca registra o código, o e-mail completo nem a chave em log.
-async function enviarEmail(to: string, assunto: string, html: string) {
+async function logEnvio(acao: string, mensagem: string, detalhes: Record<string, unknown>) {
+  try {
+    await admin.from("system_logs").insert({ modulo: "planos-codigo", acao, mensagem, payload: detalhes });
+  } catch { /* log nunca bloqueia o envio */ }
+}
+
+async function enviarEmail(to: string, assunto: string, html: string, verificacaoId: string) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  if (!apiKey) throw new Error("email_indisponivel");
+  const base = { verificacao_id: verificacaoId, email_mascarado: mascararEmail(to) };
+  if (!apiKey) {
+    await logEnvio("falha_envio_email", "Envio do código sem chave do Resend", { ...base, status: null });
+    throw new Error("email_indisponivel");
+  }
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -61,13 +71,11 @@ async function enviarEmail(to: string, assunto: string, html: string) {
     let msg = "erro_resend";
     try { msg = String(JSON.parse(corpo)?.message ?? msg).slice(0, 300); } catch { /* mantém msg genérica */ }
     console.error("[planos-codigo] falha no envio do código", { status: r.status });
-    await admin.from("system_logs").insert({
-      modulo: "planos-codigo",
-      acao: "falha_envio_email",
-      mensagem: `Resend recusou o envio do código (HTTP ${r.status}): ${msg}`,
-    });
+    await logEnvio("falha_envio_email", `Resend recusou o envio do código (HTTP ${r.status}): ${msg}`, { ...base, status: r.status });
     throw new Error("email_indisponivel");
   }
+  const resendId = await r.json().then((j) => String(j?.id ?? "")).catch(() => "");
+  await logEnvio("codigo_enviado", "Resend aceitou o envio do código", { ...base, status: r.status, resend_id: resendId || null });
 }
 
 async function enviarCodigo(body: any, ip: string): Promise<Envio | { enviado: false; motivo: "captcha" }> {
@@ -100,7 +108,7 @@ async function enviarCodigo(body: any, ip: string): Promise<Envio | { enviado: f
       });
       if (error) throw new Error("falha_registro");
       const { assunto, html } = corpoEmailCodigo(codigo);
-      await enviarEmail(email, assunto, html);
+      await enviarEmail(email, assunto, html, id);
       console.log("[planos-codigo] código enviado", { verificacao_id: id });
       return { enviado: true, verificacao_id: id, email_mascarado: mascararEmail(email) };
     }

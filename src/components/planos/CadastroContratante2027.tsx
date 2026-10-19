@@ -45,6 +45,12 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
   const [passe, setPasse] = useState<string | null>(null);
   const [tsAtivo, setTsAtivo] = useState(false);
   const [reinicio, setReinicio] = useState(0);
+  const [espera, setEspera] = useState(0);
+  useEffect(() => {
+    if (espera <= 0) return;
+    const t = setTimeout(() => setEspera((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [espera]);
   useEffect(() => { if (erro && tsAtivo) setReinicio((n) => n + 1); }, [erro, tsAtivo]);
   const falta = !previa && tsAtivo && !passe;
 
@@ -70,7 +76,7 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
       if (data?.motivo === "limitado") { setAviso(T.identificacao.limitado); return; }
       if (data?.motivo === "captcha") { setAviso(T.cadastro.verificacao); setReinicio((n) => n + 1); return; }
       setD((x) => ({ ...x, cpf: cpfBusca }));
-      if (data?.enviado && data.verificacao_id) setAguardandoCodigo(data.verificacao_id);
+      if (data?.enviado && data.verificacao_id) { setAguardandoCodigo(data.verificacao_id); setCodigo(""); setEspera(60); }
       else setAviso(T.cadastro.semCodigo);
     } catch { setAviso(T.cadastro.semCodigo); }
     finally { setOcupado(false); }
@@ -133,12 +139,18 @@ export function CadastroContratante2027({ previa, onSubmit, enviando, erro }: { 
       {aguardandoCodigo && !preenchido && <div className="space-y-3">
         <p className="text-sm">{T.cadastro.enviado}</p>
         <label className="block text-sm">{T.identificacao.codigoLabel}<input aria-label={T.identificacao.codigoLabel} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))} className="campo mt-1 tracking-[0.4em] sm:max-w-[220px]" /></label>
+        <p className="text-sm text-muted-foreground">Não encontrou? Confira Spam e Promoções e procure por FORTEM.</p>
         <div className="flex flex-wrap gap-3">
           <Button type="button" className="rounded-none" disabled={ocupado || codigo.length !== 6} onClick={validar}>{T.identificacao.validar}</Button>
+          <Button type="button" variant="outline" className="rounded-none" disabled={ocupado || espera > 0} onClick={buscar}>{espera > 0 ? `Reenviar código (${espera} s)` : "Reenviar código"}</Button>
           <Button type="button" variant="outline" className="rounded-none" disabled={ocupado} onClick={() => { setAguardandoCodigo(null); setCodigo(""); setAviso(T.cadastro.semCodigo); }}>{T.identificacao.nao}</Button>
         </div>
       </div>}
       {aviso && <p role="status" className="text-sm text-muted-foreground">{aviso}</p>}
+      {!preenchido && <div className="space-y-2 text-sm text-muted-foreground">
+        <p>Sem o código, você pode seguir preenchendo seus dados abaixo normalmente. Se preferir, fale com a equipe.</p>
+        <Button asChild variant="outline" className="rounded-none"><a href="https://wa.me/555135199451" target="_blank" rel="noopener noreferrer">Falar com a equipe no WhatsApp</a></Button>
+      </div>}
     </section>
 
     <form onSubmit={enviar} className="grid gap-4" noValidate>
