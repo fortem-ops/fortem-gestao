@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  periodoEfetivo,
   maxParcelasPeriodo,
   calcularResumoCorrida,
   dataProva,
@@ -90,12 +91,6 @@ describe("calcularResumoCorrida — plano", () => {
     expect(r.recorrente).toBe(0);
     expect(r.linhas[0].label).toContain("Plano Anual");
     expect(r.linhas[0].nota).toContain("10x");
-  });
-
-  it("somente_corrida também é sempre anual", () => {
-    const r = calcularResumoCorrida(params({ rota: "somente_corrida", periodo: "mensal" }))!;
-    expect(r.hoje).toBe(1200);
-    expect(r.recorrente).toBe(0);
   });
 
   it("prospect anual usa planoAnual com nota de parcelas", () => {
@@ -332,5 +327,23 @@ describe("maxParcelasPeriodo — anual em 12x", () => {
   });
   it("semestral segue em 6x", () => {
     expect(maxParcelasPeriodo("aluno", "semestral")).toBe(6);
+  });
+});
+
+describe("só corrida — Mensal", () => {
+  it("somente_corrida mantém mensal; aluno continua anual", () => {
+    expect(periodoEfetivo("somente_corrida", "mensal")).toBe("mensal");
+    expect(periodoEfetivo("aluno", "mensal")).toBe("anual");
+  });
+  it("só corrida mensal soma R$ 200 hoje e R$ 200 recorrente", () => {
+    const r = calcularResumoCorrida(
+      params({
+        rota: "somente_corrida",
+        periodo: "mensal",
+        oferta: ofertaBase({ planoMensal: { nome: "Corrida - Sem Plano", periodo_meses: 1, valor: 200 } }),
+      }),
+    )!;
+    expect(r.hoje).toBe(200);
+    expect(r.recorrente).toBe(200);
   });
 });

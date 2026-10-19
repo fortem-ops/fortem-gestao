@@ -310,7 +310,7 @@ Deno.serve(async (req) => {
       const periodo: "mensal" | "semestral" | "anual" =
         periodoBody === "semestral"
           ? "semestral"
-          : rota === "prospect" && periodoBody === "mensal"
+          : (rota === "prospect" || rota === "somente_corrida") && periodoBody === "mensal"
             ? "mensal"
             : "anual";
       const periodoMeses = periodo === "mensal" ? 1 : periodo === "semestral" ? 6 : 12;
@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
 
       formaPagamento = periodo === "mensal" ? "cartao_recorrencia" : "cartao_parcelado";
       const maxParcelas = periodo === "semestral" ? 6 : 12;
-      if (rota === "prospect" && periodo === "mensal") {
+      if (periodo === "mensal") {
         parcelas = 1;
       } else {
         // valor vindo do cliente é validado contra o máximo da rota
