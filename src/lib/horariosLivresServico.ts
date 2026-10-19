@@ -47,3 +47,14 @@ export function horariosLivresNoDia(
     })
     .sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio));
 }
+
+/** Saldo restante depois dos horários já selecionados (null = ilimitado). */
+export function saldoRestante(saldo: number, ilimitado: boolean, selecionados: number): number | null {
+  if (ilimitado) return null;
+  return Math.max(0, saldo - selecionados);
+}
+
+/** Pode marcar mais um horário sem passar do saldo? */
+export function podeSelecionarMais(saldo: number, ilimitado: boolean, selecionados: number): boolean {
+  return ilimitado || selecionados < saldo;
+}

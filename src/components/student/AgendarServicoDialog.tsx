@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { saldoTotalPorAtividade, SERVICOS_PLANO } from "@/lib/creditosServicos";
-import { horariosLivresNoDia, type HorarioGrade } from "@/lib/horariosLivresServico";
+import { horariosLivresNoDia, podeSelecionarMais, saldoRestante, type HorarioGrade } from "@/lib/horariosLivresServico";
+import { X } from "lucide-react";
 
 const ERROS: Record<string, string> = {
   sem_creditos: "O aluno não tem créditos disponíveis para este serviço.",
@@ -27,7 +28,7 @@ export function AgendarServicoDialog({ alunoId, open, onOpenChange }: { alunoId:
   const qc = useQueryClient();
   const [servico, setServico] = useState<string>("");
   const [dia, setDia] = useState<string>("");
-  const [horarioId, setHorarioId] = useState<string>("");
+  const [selecionados, setSelecionados] = useState<{ dia: string; horarioId: string; h: HorarioGrade }[]>([]);
 
   const dias = useMemo(() => Array.from({ length: DIAS }, (_, i) => addDays(new Date(), i)), [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const inicio = format(dias[0], "yyyy-MM-dd");
@@ -98,44 +99,69 @@ export function AgendarServicoDialog({ alunoId, open, onOpenChange }: { alunoId:
   }, [dias, grade, extras]);
 
   const saldoSel = servico ? saldos[servico] : undefined;
+  const ilim = !!saldoSel?.ilimitado;
+  const saldoNum = saldoSel?.saldo ?? 0;
+  const restante = saldoRestante(saldoNum, ilim, selecionados.length);
+  const isSel = (d: string, id: string) => selecionados.some((s) => s.dia === d && s.horarioId === id);
+  const toggle = (d: string, h: HorarioGrade) => {
+    if (isSel(d, h.id)) setSelecionados((s) => s.filter((x) => !(x.dia === d && x.horarioId === h.id)));
+    else if (podeSelecionarMais(saldoNum, ilim, selecionados.length)) setSelecionados((s) => [...s, { dia: d, horarioId: h.id, h }]);
+  };
 
   const agendar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("fn_agendar_servico_equipe", {
-        p_aluno_id: alunoId, p_agenda_servico_id: horarioId, p_data: dia,
-      });
-      if (error) throw error;
-      const r = data as any;
-      if (!r?.ok) throw new Error(r?.erro || "erro");
-      return r as { id: string };
+      const ordenados = [...selecionados].sort((a, b) => (a.dia + a.h.horario_inicio).localeCompare(b.dia + b.h.horario_inicio));
+      const ok: string[] = [];
+      const falhas: string[] = [];
+      for (const s of ordenados) {
+        const rotulo = `${format(new Date(s.dia + "T12:00:00"), "dd/MM")} ${s.h.horario_inicio.slice(0, 5)}`;
+        try {
+          const { data, error } = await supabase.rpc("fn_agendar_servico_equipe", {
+            p_aluno_id: alunoId, p_agenda_servico_id: s.horarioId, p_data: s.dia,
+          });
+          if (error) throw error;
+          const r = data as any;
+          if (!r?.ok) throw new Error(r?.erro || "erro");
+          ok.push(r.id);
+        } catch (e: any) {
+          falhas.push(`${rotulo} — ${ERROS[e.message] || "erro ao agendar"}`);
+        }
+      }
+      return { ok, falhas };
     },
-    onSuccess: (r) => {
-      // Mesmo disparo usado pela Agenda de Serviços (mensagem ao profissional)
-      supabase.functions.invoke("whatsapp-disparo-agenda", { body: { evento: "agendamento_criado", agenda_id: r.id } })
-        .then(({ error }) => { if (error) toast.warning("Agendado, mas o WhatsApp ao profissional não foi enviado."); })
-        .catch(() => toast.warning("Agendado, mas o WhatsApp ao profissional não foi enviado."));
-      toast.success("Serviço agendado", { description: "1 crédito debitado." });
+    onSuccess: ({ ok, falhas }) => {
+      for (const id of ok) {
+        supabase.functions.invoke("whatsapp-disparo-agenda", { body: { evento: "agendamento_criado", agenda_id: id } })
+          .then(({ error }) => { if (error) toast.warning("Agendado, mas um WhatsApp ao profissional não foi enviado."); })
+          .catch(() => toast.warning("Agendado, mas um WhatsApp ao profissional não foi enviado."));
+      }
       qc.invalidateQueries();
-      setHorarioId(""); setDia(""); setServico("");
-      onOpenChange(false);
+      if (falhas.length === 0) {
+        toast.success(`${ok.length} agendamento(s) feito(s)`, { description: `${ok.length} crédito(s) debitado(s).` });
+        setSelecionados([]); setDia(""); setServico("");
+        onOpenChange(false);
+      } else {
+        toast.error(`${ok.length} agendado(s), ${falhas.length} não agendado(s)`, { description: falhas.join("\n"), duration: 12000 });
+        setSelecionados([]);
+      }
     },
-    onError: (e: any) => toast.error(ERROS[e.message] || "Não foi possível agendar. Tente novamente."),
+    onError: () => toast.error("Não foi possível agendar. Tente novamente."),
   });
 
   const diasComVaga = dias.filter((d) => (porDia[format(d, "yyyy-MM-dd")]?.length ?? 0) > 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Agendar serviço</DialogTitle>
-          <DialogDescription>Horários livres da Agenda de Serviços nos próximos {DIAS} dias.</DialogDescription>
+          <DialogDescription>Marque um ou mais horários livres nos próximos {DIAS} dias e confirme uma vez.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>Serviço</Label>
-            <Select value={servico} onValueChange={(v) => { setServico(v); setDia(""); setHorarioId(""); }}>
+            <Select value={servico} onValueChange={(v) => { setServico(v); setDia(""); setSelecionados([]); }}>
               <SelectTrigger><SelectValue placeholder={opcoes.length ? "Escolha o serviço" : "Sem créditos de serviço"} /></SelectTrigger>
               <SelectContent>
                 {opcoes.map((o) => (
@@ -156,10 +182,10 @@ export function AgendarServicoDialog({ alunoId, open, onOpenChange }: { alunoId:
                 <div className="flex flex-wrap gap-2">
                   {diasComVaga.map((d) => {
                     const k = format(d, "yyyy-MM-dd");
+                    const n = selecionados.filter((s) => s.dia === k).length;
                     return (
-                      <Button key={k} type="button" size="sm" variant={dia === k ? "default" : "outline"}
-                        onClick={() => { setDia(k); setHorarioId(""); }}>
-                        {format(d, "EEE dd/MM", { locale: ptBR })}
+                      <Button key={k} type="button" size="sm" variant={dia === k ? "default" : "outline"} onClick={() => setDia(k)}>
+                        {format(d, "EEE dd/MM", { locale: ptBR })}{n > 0 ? ` (${n})` : ""}
                       </Button>
                     );
                   })}
@@ -170,30 +196,50 @@ export function AgendarServicoDialog({ alunoId, open, onOpenChange }: { alunoId:
 
           {dia && (
             <div className="space-y-1.5">
-              <Label>Horário</Label>
+              <Label>Horários</Label>
               <div className="grid gap-2">
-                {(porDia[dia] ?? []).map((h) => (
-                  <Button key={h.id} type="button" variant={horarioId === h.id ? "default" : "outline"} className="justify-between"
-                    onClick={() => setHorarioId(h.id)}>
-                    <span>{h.horario_inicio.slice(0, 5)}–{h.horario_fim.slice(0, 5)}</span>
-                    <span className="text-xs opacity-80">{extras?.nomes[h.profissional_id ?? ""] ?? "Profissional"}{h.local ? ` · ${h.local}` : ""}</span>
-                  </Button>
-                ))}
+                {(porDia[dia] ?? []).map((h) => {
+                  const sel = isSel(dia, h.id);
+                  const bloq = !sel && !podeSelecionarMais(saldoNum, ilim, selecionados.length);
+                  return (
+                    <Button key={h.id} type="button" variant={sel ? "default" : "outline"} className="justify-between"
+                      disabled={bloq} onClick={() => toggle(dia, h)}>
+                      <span>{h.horario_inicio.slice(0, 5)}–{h.horario_fim.slice(0, 5)}</span>
+                      <span className="text-xs opacity-80">{extras?.nomes[h.profissional_id ?? ""] ?? "Profissional"}{h.local ? ` · ${h.local}` : ""}</span>
+                    </Button>
+                  );
+                })}
               </div>
+            </div>
+          )}
+
+          {selecionados.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Selecionados ({selecionados.length})</Label>
+              <ul className="space-y-1">
+                {[...selecionados].sort((a, b) => (a.dia + a.h.horario_inicio).localeCompare(b.dia + b.h.horario_inicio)).map((s) => (
+                  <li key={s.dia + s.horarioId} className="flex items-center justify-between rounded border border-border px-2 py-1 text-sm">
+                    <span>{format(new Date(s.dia + "T12:00:00"), "EEE dd/MM", { locale: ptBR })} · {s.h.horario_inicio.slice(0, 5)} · {extras?.nomes[s.h.profissional_id ?? ""] ?? "Profissional"}</span>
+                    <Button type="button" size="icon" variant="ghost" className="h-6 w-6" aria-label="Remover"
+                      onClick={() => toggle(s.dia, s.h)}><X className="h-4 w-4" /></Button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
           {saldoSel && (
             <p className="text-xs text-muted-foreground">
-              Saldo de {servico}: {saldoSel.ilimitado ? "ilimitado" : `${saldoSel.saldo} crédito(s)`}. Ao confirmar, 1 crédito é debitado.
+              Saldo de {servico}: {ilim ? "ilimitado" : `${saldoNum} crédito(s) → restam ${restante} após confirmar`}.
+              {!ilim && restante === 0 && selecionados.length > 0 ? " Saldo esgotado nesta seleção." : ""}
             </p>
           )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!horarioId || !dia || agendar.isPending} onClick={() => agendar.mutate()}>
-            {agendar.isPending ? "Agendando..." : "Confirmar agendamento"}
+          <Button disabled={selecionados.length === 0 || agendar.isPending} onClick={() => agendar.mutate()}>
+            {agendar.isPending ? "Agendando..." : `Confirmar ${selecionados.length || ""} agendamento${selecionados.length > 1 ? "s" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
