@@ -12427,6 +12427,10 @@ export type Database = {
         Args: { p_proposta_id: string }
         Returns: Json
       }
+      fn_registrar_motivo_edicao_cobranca: {
+        Args: { p_cobranca_ids: string[]; p_motivo: string }
+        Returns: undefined
+      }
       fn_renomear_nivel_exercicio: {
         Args: {
           p_categoria: string
