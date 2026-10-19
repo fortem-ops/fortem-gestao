@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { History, RefreshCw, Pencil, CreditCard, Undo2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
@@ -209,6 +211,20 @@ export function HistoricoVendas({ alunoId }: Props) {
   const [editParcelas, setEditParcelas] = useState(1);
   const [editStatus, setEditStatus] = useState<string>("pendente");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [editData, setEditData] = useState("");
+  const [editCatalogo, setEditCatalogo] = useState<string | null>(null);
+  const [editValor, setEditValor] = useState(0);
+  const [editMotivo, setEditMotivo] = useState("");
+  const { data: catalogoItens = [] } = useQuery({
+    queryKey: ["catalogo-edicao-venda", editing?.tipo],
+    enabled: !!editing,
+    queryFn: async () => {
+      const tabela = editing?.tipo === "plano" ? "planos_catalogo" : "servicos_catalogo";
+      const { data, error } = await (supabase as any).from(tabela).select("id, nome, valor").order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; valor: number }[];
+    },
+  });
   const [cobrandoVenda, setCobrandoVenda] = useState<any | null>(null);
 
   function openEdit(v: any) {
@@ -217,13 +233,32 @@ export function HistoricoVendas({ alunoId }: Props) {
     setEditForma(v.forma_pagamento ?? null);
     setEditParcelas(Number(v.parcelas || 1));
     setEditStatus(v.status_pagamento ?? "pendente");
+    setEditData(v.data_venda ?? "");
+    setEditCatalogo(v.catalogo_id ?? null);
+    setEditValor(Number(v.valor || 0));
+    setEditMotivo("");
   }
 
   async function saveEdit() {
     if (!editing) return;
     setSavingEdit(true);
     try {
-      const valor = Number(editing.valor || 0);
+      const mudouDados =
+        editData !== (editing.data_venda ?? "") ||
+        editCatalogo !== (editing.catalogo_id ?? null) ||
+        Number(editValor) !== Number(editing.valor || 0);
+      if (mudouDados) {
+        if (editMotivo.trim().length < 3) throw new Error("Informe o motivo da alteração.");
+        const { error: e1 } = await (supabase as any).rpc("fn_editar_venda_dados", {
+          p_venda_id: editing.id,
+          p_data_venda: editData,
+          p_catalogo_id: editCatalogo,
+          p_valor: Number(editValor),
+          p_motivo: editMotivo.trim(),
+        });
+        if (e1) throw e1;
+      }
+      const valor = Number(editValor || 0);
       const valorFinal = Math.max(0, valor - (editDesconto || 0));
       const { error } = await (supabase as any).from("vendas").update({
         desconto: editDesconto || 0,
@@ -415,8 +450,50 @@ export function HistoricoVendas({ alunoId }: Props) {
                 <span className="font-medium text-foreground">{editing.nome_snapshot}</span> · {formatBRL(Number(editing.valor || 0))}
               </div>
 
+              {!["cancelado", "estornado"].includes(editing.status_pagamento) && (
+                <div className="space-y-3 rounded-md border border-border p-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Data da venda</label>
+                      <Input type="date" value={editData} onChange={(e) => setEditData(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Valor cheio (R$)</label>
+                      <Input type="number" min={0} step="0.01" value={editValor} onChange={(e) => setEditValor(Number(e.target.value))} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Item vendido</label>
+                    <Select
+                      value={editCatalogo ?? undefined}
+                      onValueChange={(id) => {
+                        setEditCatalogo(id);
+                        const it = catalogoItens.find((c) => c.id === id);
+                        if (it) setEditValor(Number(it.valor || 0));
+                      }}
+                    >
+                      <SelectTrigger><SelectValue placeholder={editing.nome_snapshot} /></SelectTrigger>
+                      <SelectContent>
+                        {catalogoItens.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.nome} · {formatBRL(Number(c.valor || 0))}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Motivo da alteração</label>
+                    <Textarea rows={2} value={editMotivo} onChange={(e) => setEditMotivo(e.target.value)} placeholder="Obrigatório ao mudar data, item ou valor" />
+                  </div>
+                  {editing.status_pagamento === "pago" && (
+                    <p className="text-xs text-status-warning">
+                      Venda já paga: isto corrige só o registro da venda. Nada é cobrado ou estornado, e contrato, parcelas em Cobranças, créditos e comissão não mudam — ajuste-os à mão se precisar.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <PaymentFields
-                valorBase={Number(editing.valor || 0)}
+                valorBase={Number(editValor || 0)}
                 desconto={editDesconto}
                 onDescontoChange={setEditDesconto}
                 formaPagamentoSlug={editForma}
