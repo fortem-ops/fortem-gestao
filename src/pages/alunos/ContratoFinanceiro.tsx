@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MensalidadesAtraso2027 } from "@/components/financeiro/ValorAtualizadoAtraso";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
