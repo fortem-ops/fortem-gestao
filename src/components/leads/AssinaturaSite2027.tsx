@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { propostasAccess } from "@/lib/propostasContratos";
+import { mensalidadeEmAtraso } from "@/lib/encargosAtraso";
+import { ValorAtualizadoAtraso, hojeIso } from "@/components/financeiro/ValorAtualizadoAtraso";
 
 /** Botão de teste real só para admin, proposta de teste e modo real_baixo_valor. As travas reais ficam no banco. */
 export function podeMostrarTesteReal(p: { isAdmin: boolean; testeAdmin: boolean; modo?: string | null; cancelada: boolean }) {
@@ -102,6 +104,7 @@ export function AssinaturaSite2027({ propostaId, familia, cancelada, testeAdmin 
             <span className="font-medium">{m.numero}ª</span> · {format(new Date(m.vencimento + "T12:00:00"), "dd/MM/yyyy")} · {brl(m.valor_centavos)} ·{" "}
             <span className={m.status === "inadimplente" || m.status === "desconhecido" ? "text-destructive" : ""}>{STATUS[m.status] ?? m.status}</span>
             {m.tentativas > 0 && m.status !== "pago" ? ` (${m.tentativas}/3)` : ""}
+            {mensalidadeEmAtraso(m, hojeIso()) && <ValorAtualizadoAtraso valorCentavos={m.valor_centavos} vencimento={m.vencimento} />}
             {canManage && ["recusado", "inadimplente"].includes(m.status) && (
               <Button size="sm" variant="link" className="h-auto p-0 ml-1 text-xs" disabled={baixa.isPending}
                 onClick={() => baixa.mutate(m.id)}>Recebido por Pix</Button>

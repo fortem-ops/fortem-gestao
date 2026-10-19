@@ -1034,6 +1034,7 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
           )}
 
         </div>
+        <MensalidadesAtraso2027 contratoId={contrato.id} />
       </Card>
 
       {inadimplencias.length > 0 && (
