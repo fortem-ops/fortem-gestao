@@ -1233,6 +1233,13 @@
       "when": 1792505972840,
       "tag": "0175_desconto_venda_2027",
       "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1792513122723,
+      "tag": "0176_facial_agente_heartbeat_alerta_offline",
+      "breakpoints": true
     }
   ]
 }
