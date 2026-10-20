@@ -29,7 +29,7 @@ export default function PortalAssessments() {
       <div className="space-y-5 pb-32 pt-2">
         <header>
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Avaliação funcional</p>
-          <h1 className="font-heading text-2xl font-black text-foreground">Minha avaliação</h1>
+          <h1 className="font-heading text-2xl font-black text-foreground">Evolução</h1>
         </header>
         <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
           <div className="flex items-start gap-3">
