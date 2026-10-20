@@ -1,3 +1,4 @@
+import PortalDesafioColetivo from "@/components/portal/PortalDesafioColetivo";
 import { buildInclusoPlano, SERVICOS_PLANO } from "@/lib/creditosServicos";
 
 import { useEffect, useState } from "react";
@@ -194,22 +195,6 @@ export default function PortalHome() {
     enabled: liberar && avulsoIds.length > 0,
     queryFn: async () => {
       const { data } = await supabase.from("vendas").select("id, nome_snapshot, data_venda").in("id", avulsoIds);
-      return data || [];
-    },
-  });
-
-  const { data: desafiosAtivos = [] } = useQuery({
-    queryKey: ["portal-desafios-ativos"],
-    enabled: liberar,
-    queryFn: async () => {
-      const hoje = new Date().toISOString().slice(0, 10);
-      const { data } = await (supabase as any)
-        .from("clube_desafios")
-        .select("*")
-        .eq("status", "ativo")
-        .lte("data_inicio", hoje)
-        .gte("data_fim", hoje)
-        .order("data_fim", { ascending: true });
       return data || [];
     },
   });
@@ -588,41 +573,7 @@ export default function PortalHome() {
         </section>
       ) : null}
 
-      {/* Desafios coletivos (abaixo da dobra) */}
-      {liberar && desafiosAtivos.length > 0 && (
-        <section className="space-y-2">
-          <SectionLabel>Desafios coletivos</SectionLabel>
-          {desafiosAtivos.map((d: any) => {
-            const pct = Math.min(100, Math.round((d.progresso_atual / d.valor_meta) * 100));
-            const diasRestantes = Math.max(0, Math.ceil((new Date(d.data_fim).getTime() - Date.now()) / 86400000));
-            const faltam = d.valor_meta - d.progresso_atual;
-            return (
-              <div key={d.id} className={`space-y-3 p-4 ${cartao}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="text-sm font-black text-foreground">{d.titulo}</p>
-                    {d.descricao && <p className="mt-0.5 text-xs text-[#B1B3B3]">{d.descricao}</p>}
-                  </div>
-                  <p className="text-lg font-black text-foreground">{pct}%</p>
-                </div>
-                <div className="h-1 bg-[#4A4B4B]">
-                  <div className="h-full bg-foreground" style={{ width: `${pct}%` }} />
-                </div>
-                <div className="flex justify-between text-[11px] text-[#B1B3B3]">
-                  <span>{faltam > 0 ? `Faltam ${faltam.toLocaleString("pt-BR")} para a meta` : "Meta atingida"}</span>
-                  <span>{diasRestantes > 0 ? `${diasRestantes} dias restantes` : "Último dia"}</span>
-                </div>
-                {d.pontos_recompensa > 0 && (
-                  <p className="text-xs text-[#B1B3B3]">
-                    Ao atingir a meta, todos os alunos ativos recebem {d.pontos_recompensa} pontos no Clube FORTEM.
-                  </p>
-                )}
-                {d.mensagem_recompensa && <p className="text-xs text-[#B1B3B3]">{d.mensagem_recompensa}</p>}
-              </div>
-            );
-          })}
-        </section>
-      )}
+      <PortalDesafioColetivo enabled={liberar} compacto />
 
       {/* 8. Assistente */}
       <Link to="/portal/assistente" className={`flex min-h-[56px] items-center gap-3 px-4 ${cartao}`}>
