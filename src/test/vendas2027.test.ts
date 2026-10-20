@@ -191,3 +191,26 @@ describe("filtrarLegadoVendavel (VendaDialog, planos atuais)", () => {
   it("legado vende até o dia de vendavel_ate", () =>
     expect(filtrarLegadoVendavel(itens, "2026-10-12").map((i) => i.id)).toEqual(["a", "b"]));
 });
+
+describe("calcularVenda2027 — desconto", () => {
+  const start3x = ITENS.find((i) => i.codigo === "start_2027_3x_mensal")!;
+  const power2xAnual = ITENS.find((i) => i.codigo === "power_2027_2x_anual")!;
+
+  it("Start 3x com R$ 100 de desconto: 1ª mensalidade R$ 499", () => {
+    const r = calcularVenda2027({ item: start3x, forma: "recorrencia", descontoPlano: 100 });
+    expect(r.plano.parcelas[0].valor).toBe(499);
+    expect(r.totalPlano).toBe(499);
+  });
+
+  it("Power 2x anual 12x com R$ 100,01 de desconto: total 5047,99 e sobra na última", () => {
+    const r = calcularVenda2027({ item: power2xAnual, forma: "cartao_parcelado", parcelas: 12, descontoPlano: 100.01 });
+    expect(r.totalPlano).toBe(5047.99);
+    expect(r.plano.parcelas[0].valor).toBe(420.66);
+    expect(r.plano.parcelas[11].valor).toBe(420.73);
+    expect(soma(r.plano.parcelas.map((p) => p.valor))).toBe(5047.99);
+  });
+
+  it("desconto maior ou igual ao plano é rejeitado", () => {
+    expect(() => calcularVenda2027({ item: start3x, forma: "recorrencia", descontoPlano: 599 })).toThrow();
+  });
+});

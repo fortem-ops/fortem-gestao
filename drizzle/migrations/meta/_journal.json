@@ -1226,6 +1226,13 @@
       "when": 1792505073784,
       "tag": "0174_facial_registrar_passagem",
       "breakpoints": true
+    },
+    {
+      "idx": 175,
+      "version": "7",
+      "when": 1792505972840,
+      "tag": "0175_desconto_venda_2027",
+      "breakpoints": true
     }
   ]
 }
