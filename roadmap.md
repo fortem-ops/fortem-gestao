@@ -68,3 +68,4 @@
 - [x] Festa 10 anos (/10anos): página, formulário, contador, tela da equipe e PIX Inter.
 - [ ] Festa 10 anos: primeiro PIX real (aguarda teste do dono) e fotos da linha do tempo.
 - [ ] Plano 1 (encargos por atraso) e Plano 2 (Pix Automático no /planos): aguardam aprovação do dono.
+- [x] Portal: barra inferior Início/Treinos/Agenda/Clube/Evolução (item ativo com filete vermelho), avatar do topo com título "Perfil", cabeçalho SUA CONTA/PERFIL no Perfil e título "Evolução" nas avaliações; visual conferido em 393px.
