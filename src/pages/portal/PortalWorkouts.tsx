@@ -280,7 +280,15 @@ export default function PortalWorkouts() {
     treino &&
     ((treino as any).template_fase === "5-3-1" || (treino.conteudo as any)?.variante === "531")
   ) {
-    return <Portal531View treino={treino} />;
+    return (
+      <Portal531View
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
   }
 
   // ── M102: renderização dedicada ─────────────────────────────
@@ -1095,11 +1103,66 @@ export default function PortalWorkouts() {
 // ─────────────────────────────────────────────────────────────
 
 
-function Portal531View({ treino }: { treino: any }) {
-  const data = (treino?.conteudo ?? null) as Wendler531Conteudo | null;
-  const [semanaAtiva, setSemanaAtiva] = useState<1 | 2 | 3 | 4>(1);
+const AQ531_LABEL: Record<string, string> = {
+  LIB: "Liberação", MOB: "Mobilidade", ATI: "Ativação", PREV: "Prevenção",
+};
+const ROTULO_531 = "text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]";
 
-  if (!data) {
+function VideoBtn531({ url, nome }: { url?: string | null; nome: string }) {
+  if (!url) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Ver vídeo de ${nome}`}
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-[#4A4B4B] text-foreground"
+    >
+      <PlayCircle className="w-5 h-5" />
+    </a>
+  );
+}
+
+/** Variação gravada em treino_sessoes para o 5-3-1: semana + treino. */
+export function variacao531(semana: number, ordem: number): string {
+  return `S${semana}-T${ordem}`;
+}
+
+/** Primeiro treino da semana ainda não concluído; sem registro, o Treino 1. */
+export function treinoDoDia531(
+  ordens: number[],
+  semana: number,
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>,
+): number {
+  const feitos = new Set(sessoes.filter((s) => s.concluido_em).map((s) => s.variacao));
+  return ordens.find((o) => !feitos.has(variacao531(semana, o))) ?? ordens[0] ?? 1;
+}
+
+function Portal531View({
+  treino,
+  sessoes,
+  student,
+  agendamentoHoje,
+  qc,
+}: {
+  treino: any;
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>;
+  student: { id: string } | null;
+  agendamentoHoje: { id: string } | null;
+  qc: ReturnType<typeof useQueryClient>;
+}) {
+  const raw = (treino?.conteudo ?? null) as Wendler531Conteudo | null;
+  const data = raw ? { ...raw, dias: Array.isArray(raw.dias) ? raw.dias : [] } : null;
+  const ordens = (data?.dias ?? []).map((d) => d.ordem);
+  const [semanaAtiva, setSemanaAtiva] = useState<1 | 2 | 3 | 4>(1);
+  const [ordemAtiva, setOrdemAtiva] = useState<number | null>(null);
+  const [concluindo, setConcluindo] = useState(false);
+  const alunoId = treino?.aluno_id ?? student?.id ?? null;
+
+  const feitos = new Set(sessoes.filter((s) => s.concluido_em).map((s) => s.variacao));
+  const ordemSel = ordemAtiva ?? treinoDoDia531(ordens, semanaAtiva, sessoes);
+
+  if (!data || data.dias.length === 0) {
     return (
       <div className="p-6 text-center text-sm text-muted-foreground">
         Treino indisponível.
@@ -1107,64 +1170,123 @@ function Portal531View({ treino }: { treino: any }) {
     );
   }
 
+  const dia = data.dias.find((d) => d.ordem === ordemSel) ?? data.dias[0];
+  const posicao = data.dias.findIndex((d) => d.ordem === dia.ordem) + 1;
+  const diaConcluido = feitos.has(variacao531(semanaAtiva, dia.ordem));
+  const sem = `Sem ${semanaAtiva}`;
+
+  async function handleConcluir() {
+    if (!student || !treino?.id || diaConcluido) return;
+    if (!agendamentoHoje) {
+      toast.error("Você precisa ter um treino agendado para hoje para concluir.");
+      return;
+    }
+    setConcluindo(true);
+    try {
+      await registrarSessaoConcluida({
+        alunoId: student.id,
+        treinoId: treino.id,
+        variacao: variacao531(semanaAtiva, dia.ordem),
+        agendamentoId: agendamentoHoje.id,
+      });
+      qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
+      qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
+      qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
+      qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
+      setOrdemAtiva(dia.ordem);
+      toast.success("Treino concluído");
+    } catch (e: any) {
+      toast.error(e.message || "Não foi possível concluir o treino.");
+    } finally {
+      setConcluindo(false);
+    }
+  }
+
+  const temAquecimento = !!data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+    (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+  );
+
   return (
-    <div className="p-4 space-y-5 max-w-3xl mx-auto pb-16">
+    <div className="p-4 space-y-5 max-w-3xl mx-auto pb-40 text-sm">
       <header className="space-y-1">
-        <h1 className="text-lg font-bold">5-3-1 · Onda de 4 semanas</h1>
-        <p className="text-xs text-muted-foreground">
-          Frequência {data.frequencia}x · Training Max {data.percentual_training_max}%
+        <p className={ROTULO_531}>Seu treino</p>
+        <h1 className="text-xl font-bold uppercase">5-3-1 · Onda de 4 semanas</h1>
+        <p className="text-sm text-[#B1B3B3]">
+          Frequência {data.frequencia}x · Carga de referência {data.percentual_training_max}% da carga máxima
         </p>
       </header>
 
+      {/* Progresso */}
+      <section className="border border-[#4A4B4B] bg-[#1A1A1A] p-4">
+        <p className={ROTULO_531}>Progresso</p>
+        <p className="mt-1 text-base font-bold">
+          Semana {semanaAtiva} de 4 · Treino {posicao} de {data.dias.length}
+        </p>
+      </section>
+
+      {/* Seletor de treino */}
+      <div>
+        <p className={`${ROTULO_531} mb-2`}>Treino</p>
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${data.dias.length}, minmax(0, 1fr))` }}>
+          {data.dias.map((d) => {
+            const ativo = d.ordem === dia.ordem;
+            const ok = feitos.has(variacao531(semanaAtiva, d.ordem));
+            return (
+              <button
+                key={d.ordem}
+                onClick={() => setOrdemAtiva(d.ordem)}
+                aria-pressed={ativo}
+                className={`min-h-[44px] border px-2 py-1 text-[13px] font-bold uppercase ${
+                  ativo ? "border-foreground bg-[#1A1A1A] text-foreground" : "border-[#4A4B4B] text-[#B1B3B3]"
+                }`}
+              >
+                Treino {d.ordem}
+                {ok && <span className="block text-[11px] font-semibold normal-case text-[#4CC38A]">Concluído</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Seletor de semana */}
-      <div className="grid grid-cols-4 gap-1 p-1 bg-muted rounded-lg">
-        {([1, 2, 3, 4] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setSemanaAtiva(s)}
-            className={`text-xs font-semibold py-2 rounded-md transition-colors ${
-              semanaAtiva === s
-                ? "bg-background shadow"
-                : "text-muted-foreground"
-            }`}
-          >
-            Sem {s}
-            {s === 4 && <span className="block text-[9px] opacity-70">deload</span>}
-          </button>
-        ))}
+      <div>
+        <p className={`${ROTULO_531} mb-2`}>Semana</p>
+        <div className="grid grid-cols-4 gap-2">
+          {([1, 2, 3, 4] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => { setSemanaAtiva(s); setOrdemAtiva(null); }}
+              aria-pressed={semanaAtiva === s}
+              className={`min-h-[44px] border text-[13px] font-bold uppercase ${
+                semanaAtiva === s ? "border-foreground bg-[#1A1A1A] text-foreground" : "border-[#4A4B4B] text-[#B1B3B3]"
+              }`}
+            >
+              Semana {s}
+              {s === 4 && <span className="block text-[11px] font-semibold normal-case">Recuperação</span>}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Aquecimento global */}
-      {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
-        (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
-      ) && (
-        <section className="rounded-xl border border-border overflow-hidden">
-          <div className="px-3 py-2 bg-muted/60">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Aquecimento
-            </p>
+      {temAquecimento && (
+        <section className="border border-[#4A4B4B] bg-[#1A1A1A]">
+          <div className="px-4 py-3 border-b border-[#4A4B4B]">
+            <p className={ROTULO_531}>Aquecimento</p>
           </div>
-          <div className="p-3 space-y-2">
+          <div className="p-4 space-y-4">
             {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
               const items = data.aquecimento?.[k] ?? [];
               if (!items.length) return null;
               return (
                 <div key={k}>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    {k}
-                  </p>
-                  <ul className="space-y-1">
+                  <p className={`${ROTULO_531} mb-2`}>{AQ531_LABEL[k]}</p>
+                  <ul className="divide-y divide-[#4A4B4B] border-t border-[#4A4B4B]">
                     {items.map((ex, i) => (
-                      <li key={i} className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2">
-                        <span className="truncate flex items-center gap-1">
-                          {ex.exercicio || "—"}
-                          {ex.video_url && (
-                            <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
-                              <PlayCircle className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                        </span>
-                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                      <li key={i} className="flex min-h-[48px] items-center justify-between gap-2 py-2">
+                        <span className="min-w-0 flex-1 truncate">{ex.exercicio || "—"}</span>
+                        <span className="text-[#B1B3B3] tabular-nums">{ex.repeticoes}</span>
+                        <VideoBtn531 url={ex.video_url} nome={ex.exercicio || "exercício"} />
                       </li>
                     ))}
                   </ul>
@@ -1175,126 +1297,129 @@ function Portal531View({ treino }: { treino: any }) {
         </section>
       )}
 
-      {data.dias.map((dia) => {
-        const nome = dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—";
-        return (
-          <section key={dia.ordem} className="rounded-xl border border-border overflow-hidden">
-            <div className="px-3 py-2 bg-muted/60">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Treino {dia.ordem}
-              </p>
-              <p className="text-sm font-semibold">{nome}</p>
-            </div>
-            <div className="p-3 space-y-3">
-              {dia.levantamentos.map((lev) => {
-                const wave = compute531Wave(lev.rm_1, data.percentual_training_max);
-                const semana = wave.find((w) => w.semana === semanaAtiva)!;
-                const tm = round531(tm531(lev.rm_1, data.percentual_training_max));
-                return (
-                  <div key={lev.levantamento} className="border rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-semibold shrink-0">{lev.levantamento}</span>
-                        <span className="text-[11px] text-muted-foreground truncate">
-                          {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}
-                        </span>
-                        {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url && (
-                          <a
-                            href={LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url!}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary shrink-0"
-                          >
-                            <PlayCircle className="w-3.5 h-3.5" />
-                          </a>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground tabular-nums">
-                        TM {tm}kg
-                      </span>
-                    </div>
-                    <ul className="space-y-1">
-                      {semana.series.map((s, i) => (
-                        <li
-                          key={i}
-                          className={`flex justify-between text-xs tabular-nums ${
-                            s.tipo === "aquecimento"
-                              ? "text-muted-foreground"
-                              : "font-semibold"
-                          }`}
-                        >
-                          <span>{s.tipo === "aquecimento" ? "Aquec." : "Trabalho"} · {s.reps} × {s.pct}%</span>
-                          <span>{s.kg}kg</span>
-                        </li>
-                      ))}
-                    </ul>
+      {/* Treino selecionado */}
+      <section className="border border-[#4A4B4B] bg-[#1A1A1A]">
+        <div className="px-4 py-3 border-b border-[#4A4B4B]">
+          <p className={ROTULO_531}>Treino {dia.ordem}{diaConcluido ? " · Concluído" : ""}</p>
+          <p className="text-base font-bold">{dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—"}</p>
+        </div>
+        <div className="p-4 space-y-5">
+          {dia.levantamentos.map((lev) => {
+            const base = LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento];
+            const wave = compute531Wave(lev.rm_1, data.percentual_training_max);
+            const semana = wave.find((w) => w.semana === semanaAtiva)!;
+            const tm = round531(tm531(lev.rm_1, data.percentual_training_max));
+            const total = semana.series.length;
+            let aqN = 0;
+            return (
+              <div key={lev.levantamento} className="border border-[#4A4B4B]">
+                <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#4A4B4B]">
+                  <div className="min-w-0">
+                    <p className="font-bold">{lev.levantamento}</p>
+                    <p className="text-[13px] text-[#B1B3B3] truncate">{base.nome}</p>
+                    <p className="text-[13px] text-[#B1B3B3] tabular-nums">Carga de referência {tm} kg</p>
                   </div>
-                );
-              })}
-
-              {/* Acessórios (só semanas 1-3) */}
-              {semanaAtiva !== 4 && dia.acessorios.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Acessórios
-                  </p>
-                  <ul className="space-y-1">
-                    {dia.acessorios.map((acc, idx) => {
-                      const rmVinc =
-                        dia.levantamentos.find((l) => l.levantamento === acc.vinculado_a)?.rm_1 ?? 0;
-                      const s = acc.semanas.find((x) => x.semana === semanaAtiva);
-                      if (!s) return null;
-                      const kg = accKg531(rmVinc, data.percentual_training_max, s.percentual);
-                      return (
-                        <li
-                          key={idx}
-                          className="flex justify-between text-xs border-l-2 border-primary/50 pl-2"
-                        >
-                          <span className="truncate flex items-center gap-1">
-                            {acc.exercicio || "—"}
-                            {acc.video_url && (
-                              <a href={acc.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
-                                <PlayCircle className="w-3 h-3" />
-                              </a>
-                            )}
-                            <span className="text-muted-foreground"> · {s.series}×{s.reps} · {s.percentual}%</span>
+                  <VideoBtn531 url={base.video_url} nome={base.nome} />
+                </div>
+                <ul className="divide-y divide-[#4A4B4B]">
+                  {semana.series.map((s, i) => {
+                    const principal = s.reps.includes("+");
+                    const aquec = s.tipo === "aquecimento";
+                    if (aquec) aqN++;
+                    return (
+                      <li
+                        key={i}
+                        className={`min-h-[48px] px-3 py-2 tabular-nums ${principal ? "border-l-2 border-[#C8282A]" : ""}`}
+                      >
+                        <div className="flex min-h-[32px] items-center justify-between gap-2">
+                          <span className={aquec ? "text-[#B1B3B3]" : "font-semibold"}>
+                            Série {i + 1} de {total} · {s.reps.replace("+", "")} reps{principal ? " ou mais" : ""} · {s.pct}%
+                            {aquec && <span className="block text-[13px]">Aquecimento</span>}
+                            {principal && <span className="block text-[13px] font-bold uppercase tracking-[0.08em]">Série principal · máximo de reps</span>}
                           </span>
-                          <span className="tabular-nums font-medium">{kg}kg</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-
-              {/* Auxiliares */}
-              {dia.auxiliares.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Auxiliares
-                  </p>
-                  <ul className="space-y-1">
-                    {dia.auxiliares.map((aux, i) => (
-                      <li key={i} className="flex justify-between text-xs">
-                        <span className="truncate flex items-center gap-1">
-                          {aux.exercicio || "—"}
-                          {aux.video_url && (
-                            <a href={aux.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
-                              <PlayCircle className="w-3 h-3" />
-                            </a>
-                          )}
-                          <span className="text-muted-foreground"> · {aux.series}×{aux.reps}</span>
-                        </span>
-                        <span className="tabular-nums">{aux.kg || "—"}</span>
+                          <span className={`shrink-0 font-bold ${aquec ? "text-[#B1B3B3]" : "text-[#C8282A]"}`}>
+                            → {String(s.kg).replace(".", ",")} kg
+                          </span>
+                        </div>
+                        {aquec && (
+                          <CargaInput
+                            alunoId={alunoId}
+                            treinoId={treino?.id}
+                            exercicio={`${cleanName(base.nome)} · ${sem} · Aquec. ${aqN}`}
+                          />
+                        )}
                       </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+
+          {semanaAtiva !== 4 && dia.acessorios.length > 0 && (
+            <div>
+              <p className={`${ROTULO_531} mb-2`}>Acessórios</p>
+              <ul className="divide-y divide-[#4A4B4B] border-y border-[#4A4B4B]">
+                {dia.acessorios.map((acc, idx) => {
+                  const rmVinc = dia.levantamentos.find((l) => l.levantamento === acc.vinculado_a)?.rm_1 ?? 0;
+                  const s = (acc.semanas ?? []).find((x) => x.semana === semanaAtiva);
+                  if (!s) return null;
+                  const kg = accKg531(rmVinc, data.percentual_training_max, s.percentual);
+                  return (
+                    <li key={idx} className="py-2">
+                      <div className="flex min-h-[44px] items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">{acc.exercicio || "—"}</p>
+                          <p className="text-[13px] text-[#B1B3B3] tabular-nums">
+                            {s.series} séries · {s.reps} reps · {s.percentual}% · referência {String(kg).replace(".", ",")} kg
+                          </p>
+                        </div>
+                        <VideoBtn531 url={acc.video_url} nome={acc.exercicio || "exercício"} />
+                      </div>
+                      <CargaInput alunoId={alunoId} treinoId={treino?.id} exercicio={`${cleanName(acc.exercicio || "")} · ${sem}`} />
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-          </section>
-        );
-      })}
+          )}
+
+          {dia.auxiliares.length > 0 && (
+            <div>
+              <p className={`${ROTULO_531} mb-2`}>Auxiliares</p>
+              <ul className="divide-y divide-[#4A4B4B] border-y border-[#4A4B4B]">
+                {dia.auxiliares.map((aux, i) => (
+                  <li key={i} className="py-2">
+                    <div className="flex min-h-[44px] items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{aux.exercicio || "—"}</p>
+                        <p className="text-[13px] text-[#B1B3B3] tabular-nums">
+                          {aux.series} séries · {aux.reps} reps{aux.kg ? ` · referência ${aux.kg}` : ""}
+                        </p>
+                      </div>
+                      <VideoBtn531 url={aux.video_url} nome={aux.exercicio || "exercício"} />
+                    </div>
+                    <CargaInput alunoId={alunoId} treinoId={treino?.id} exercicio={`${cleanName(aux.exercicio || "")} · ${sem}`} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Concluir treino — fixo acima do menu inferior */}
+      <div className="fixed inset-x-0 bottom-[76px] z-30 border-t border-[#4A4B4B] bg-[#0E0E0E] px-4 py-3">
+        <div className="max-w-3xl mx-auto">
+          <button
+            onClick={handleConcluir}
+            disabled={diaConcluido || concluindo}
+            className="w-full min-h-[48px] bg-[#C8282A] text-[15px] font-bold uppercase tracking-[0.06em] text-white disabled:bg-[#1A1A1A] disabled:text-[#B1B3B3] disabled:border disabled:border-[#4A4B4B]"
+          >
+            {diaConcluido ? "Treino concluído" : concluindo ? "Concluindo…" : "Concluir treino"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
