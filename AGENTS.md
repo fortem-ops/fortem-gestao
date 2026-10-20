@@ -1,5 +1,7 @@
 # Decisões técnicas
 
+- Portal payments aggregate loaded per-contract results via display callbacks, without new queries; this preserves the existing data flow.
+
 - A conclusão do lembrete de Avaliação Funcional deve ser inferida pelo conteúdo de `avaliacoes.dados` em registros `funcional_v2`, mantendo suporte aos tipos legados; o tipo sozinho não representa as partes preenchidas.- Categorias de despesa: lançamentos novos só usam categorias com `nivel` (central/sub); `nivel` nulo = categoria antiga, mantida só para histórico/filtros. Por quê: preservar lançamentos antigos sem poluir o cadastro novo.
 - Pix agendado: a data escolhida fica em `despesas.pix_data_agendada`; `data_pagamento` só é preenchida na baixa, com a data confirmada pelo Inter. Por quê: despesa pendente com data_pagamento parece paga em outras telas.
 - Valor a enviar por Pix = `despesas.valor_liquido_previsto ?? valor`; na folha `valor` JÁ É o líquido (com Comissão/DSR) e `valor_liquido_previsto` repete o mesmo valor por compatibilidade. `valor_pago` só nasce na baixa (Pix: sempre = `despesa.valor`, sem extrair valor "real" do Inter/extrato).
