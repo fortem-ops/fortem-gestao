@@ -1212,6 +1212,13 @@
       "when": 1792499532054,
       "tag": "0172_permitir_variacao_531_treino_sessoes",
       "breakpoints": true
+    },
+    {
+      "idx": 173,
+      "version": "7",
+      "when": 1792503408024,
+      "tag": "0173_fase1_base_checkin_facial",
+      "breakpoints": true
     }
   ]
 }
