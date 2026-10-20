@@ -125,7 +125,7 @@ function ContratoBloco({ contrato }: { contrato: any }) {
 
       {proximaCobranca && (
         <div className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Próxima cobrança</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Próxima cobrança</p>
           <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <CreditCard className="w-5 h-5 text-primary" />
@@ -150,7 +150,7 @@ function ContratoBloco({ contrato }: { contrato: any }) {
       )}
 
       <div className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resumo do contrato</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Resumo do contrato</p>
         <div className="bg-card border border-border rounded-2xl p-4 grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-2xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{pagas}</p>
@@ -195,7 +195,7 @@ function ContratoBloco({ contrato }: { contrato: any }) {
       </div>
 
       <div className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Histórico</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Histórico</p>
         {isLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : cobrancas.length === 0 ? (
@@ -284,7 +284,7 @@ export default function PortalPagamentos() {
           <ArrowLeft className="w-4 h-4 text-muted-foreground" />
         </button>
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Financeiro</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Financeiro</p>
           <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Pagamentos</h1>
         </div>
       </div>
@@ -292,7 +292,7 @@ export default function PortalPagamentos() {
       {/* ── CARTEIRA ── */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Meus cartões</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Meus cartões</p>
           <button
             onClick={() => setCadastroAberto(true)}
             className="flex items-center gap-1 text-xs font-bold text-primary"

@@ -652,7 +652,6 @@ export default function PortalWorkouts() {
     return (
       <div className="space-y-4 pb-32 animate-fade-in px-1 pt-4">
         <div className="bg-card border border-border rounded-2xl p-6 text-center space-y-3">
-          <p className="text-2xl">🏋️</p>
           <p className="font-bold text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
             Nenhum treino ativo
           </p>
@@ -680,12 +679,11 @@ export default function PortalWorkouts() {
     return (
       <div className="space-y-5 pb-32 animate-fade-in px-1 pt-4">
         <div className="bg-card border border-primary/30 rounded-2xl p-6 text-center space-y-3">
-          <p className="text-4xl">🎉</p>
           <p className="font-black text-xl text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
             {variacaoConcluida ?? variacaoExibida} concluído!
           </p>
           <p className="text-sm text-muted-foreground">
-            Sessão {novaTotalSessoes} de {totalSessoesPrevistas} · Presença confirmada ✓
+            Sessão {novaTotalSessoes} de {totalSessoesPrevistas} · Presença confirmada
           </p>
           {foiTrocado && variacaoOriginalConcluida && (
             <p className="text-xs text-warning">↕ Realizado fora de ordem (original: {variacaoOriginalConcluida})</p>
@@ -694,7 +692,7 @@ export default function PortalWorkouts() {
 
         {novoTreino && (
           <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Próxima sessão</p>
+            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Próxima sessão</p>
             <div className="flex items-center justify-between">
               <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
                 {novaVariacao}
@@ -736,7 +734,7 @@ export default function PortalWorkouts() {
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Treino do dia</p>
+            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Treino do dia</p>
             <p className="text-2xl font-black text-foreground mt-0.5" style={{fontFamily:'Archivo,sans-serif'}}>
               {variacaoExibida}
               {foiTrocado && (
@@ -821,7 +819,7 @@ export default function PortalWorkouts() {
       {/* AQUECIMENTO */}
       {aquecimentoFiltrado.length > 0 && (
         <section className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-1">
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)] px-1">
             Aquecimento
           </p>
           {(["LIB", "MOB", "ATI", "PREV"] as const).map(cat => {
@@ -867,7 +865,7 @@ export default function PortalWorkouts() {
       {/* TREINO PRINCIPAL — em blocos */}
       {treinoAtual && (
         <section className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-1">
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)] px-1">
             {treinoAtual.nome ?? variacaoExibida} — Força
           </p>
 
@@ -1474,7 +1472,7 @@ function PortalM102View({
               {st.phase === "readyForTest" && (
                 <div className="border rounded-lg p-3 space-y-2 bg-warning/5 border-warning/40">
                   <p className="text-xs font-bold uppercase tracking-wider text-warning">
-                    🎯 Sessão de teste disponível
+                    Sessão de teste disponível
                   </p>
                   {lifts.map(({ levantamento }) => {
                     const rm = rmForLevantamento(data.rm, levantamento);

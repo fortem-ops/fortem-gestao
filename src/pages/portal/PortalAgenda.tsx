@@ -45,7 +45,7 @@ const SERVICOS_PORTAL = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
       {children}
     </p>
   );
@@ -669,7 +669,7 @@ export default function PortalAgenda() {
           <p className="text-xs text-muted-foreground mt-1">Escolha o melhor horário na semana</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-3 py-2 text-right">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Créditos</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Créditos</p>
           <p className="text-xl font-black text-primary" style={{ fontFamily: "Archivo, sans-serif" }}>{saldo}</p>
         </div>
       </div>

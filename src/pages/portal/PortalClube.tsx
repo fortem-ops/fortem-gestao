@@ -219,7 +219,7 @@ export default function PortalClube() {
     <div className="space-y-6 animate-fade-in pb-8">
       <div className="pt-2 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Programa de Fidelidade</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Programa de Fidelidade</p>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Clube FORTEM</h1>
             {planoAtivo && (
@@ -258,13 +258,13 @@ export default function PortalClube() {
       <Card className="glass-card p-6 bg-gradient-to-br from-primary/20 to-transparent border-primary/30">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Nível</p>
+            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Nível</p>
             <p className="text-2xl font-heading font-bold mt-1">
               <span className="mr-2">{nivelAtual.emoji}</span>{nivelAtual.nome}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Saldo</p>
+            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Saldo</p>
             <p className="text-3xl font-heading font-bold text-primary mt-1">{saldo}</p>
             <p className="text-[10px] text-muted-foreground">pontos</p>
           </div>
@@ -336,7 +336,7 @@ export default function PortalClube() {
 
       {/* Badges */}
       <section>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Conquistas</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)] mb-3">Conquistas</p>
         {!badges ? <Skeleton className="h-32" /> : (
           <div className="grid grid-cols-3 gap-3">
             {badges.map((b) => (
@@ -356,7 +356,7 @@ export default function PortalClube() {
       <Card className="glass-card p-4 flex items-center gap-3">
         <Trophy className="w-8 h-8 text-amber-500" />
         <div className="flex-1">
-          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Ranking mensal</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Ranking mensal</p>
           <p className="font-heading font-bold">
             {posicaoRanking
               ? `#${posicaoRanking} este mês`
@@ -411,7 +411,7 @@ export default function PortalClube() {
 
       {/* Recompensas */}
       <section>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)] mb-3 flex items-center gap-2">
           <Gift className="w-3 h-3" /> Catálogo de recompensas
         </p>
         <div className="grid grid-cols-1 gap-3">
@@ -525,7 +525,7 @@ export default function PortalClube() {
       {/* Indicação */}
       {meuCodigo && (
         <Card className="glass-card p-4">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Seu código de indicação</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)] mb-2">Seu código de indicação</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-lg font-mono font-bold tracking-wider bg-muted/50 rounded-md px-3 py-2">{meuCodigo}</code>
             <Button size="icon" variant="outline" onClick={() => { navigator.clipboard.writeText(meuCodigo); toast.success("Copiado"); }}>
@@ -540,7 +540,7 @@ export default function PortalClube() {
 
       {/* Histórico */}
       <section>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Últimas movimentações</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)] mb-3">Últimas movimentações</p>
         <div className="space-y-1">
           {historico?.length ? historico.map((mov: any) => (
             <div key={mov.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -598,7 +598,7 @@ export default function PortalClube() {
             </div>
 
             <section className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Níveis da carteirinha</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Níveis da carteirinha</p>
               <p className="text-xs text-muted-foreground">
                 Seu nível é definido pela combinação do seu plano ativo e dos pontos acumulados — sempre prevalece o maior entre os dois.
               </p>
@@ -630,7 +630,7 @@ export default function PortalClube() {
             </section>
 
             <section className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Como ganhar pontos</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Como ganhar pontos</p>
               <div className="space-y-2">
                 {[
                   { emoji: "🏋️", acao: "Treino realizado", pts: "10 pts", obs: "Por sessão confirmada" },
@@ -658,7 +658,7 @@ export default function PortalClube() {
             </section>
 
             <section className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Multiplicador climático</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Multiplicador climático</p>
               <div className="bg-background border border-border rounded-xl p-3 space-y-1.5">
                 <p className="text-sm font-bold text-foreground">🌧️ Dias de chuva, frio ou calor intenso</p>
                 <p className="text-xs text-muted-foreground">
@@ -668,7 +668,7 @@ export default function PortalClube() {
             </section>
 
             <section className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Validade dos pontos</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Validade dos pontos</p>
               <div className="bg-background border border-border rounded-xl p-3">
                 <p className="text-xs text-muted-foreground">
                   Seus pontos são válidos por <strong className="text-foreground">12 meses</strong> a partir da última movimentação. Em caso de cancelamento do plano, os pontos expiram imediatamente e não podem ser transferidos.
@@ -677,7 +677,7 @@ export default function PortalClube() {
             </section>
 
             <section className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Parceiros FORTEM</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Parceiros FORTEM</p>
               <div className="bg-background border border-border rounded-xl p-3">
                 <p className="text-xs text-muted-foreground">
                   Estabelecimentos parceiros oferecem benefícios exclusivos para membros do Clube FORTEM. Apresente sua carteirinha digital com QR Code ao fazer uso do benefício. Cada parceiro pode ter um nível mínimo exigido para acesso.

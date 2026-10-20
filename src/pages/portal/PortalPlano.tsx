@@ -196,7 +196,7 @@ export default function PortalPlano() {
   return (
     <div className="space-y-5 pb-32 animate-fade-in">
       <div className="pt-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Meu Plano</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Meu Plano</p>
         <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
           Gerenciar Plano
         </h1>
@@ -213,7 +213,7 @@ export default function PortalPlano() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 uppercase tracking-wide">Ativo</span>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Plano ativo</span>
+              <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Plano ativo</span>
             </div>
             <p className="text-2xl font-black text-foreground mt-1" style={{fontFamily:'Archivo,sans-serif'}}>{planoTipo}</p>
           </div>
@@ -244,7 +244,7 @@ export default function PortalPlano() {
       {expandido && (
       <div className="space-y-2">
 
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Ações</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Ações</p>
 
 
         {limiteLicenca > 0 && (
@@ -532,7 +532,7 @@ export default function PortalPlano() {
 
       {contratosAdicionais.length > 0 && (
         <section className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Contratos adicionais</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Contratos adicionais</p>
           {contratosAdicionais.map((c: any) => {
             const corrida = isCorridaItem(c);
             const dias = c.data_fim ? differenceInDays(parseISO(c.data_fim), new Date()) : 0;
@@ -579,7 +579,7 @@ export default function PortalPlano() {
 
       {PLANO_BENEFITS[planoTipo] && (
         <section className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Vantagens do seu plano</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Vantagens do seu plano</p>
           <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
             {PLANO_BENEFITS[planoTipo].map((b, i) => {
               const Icon = b.icon;
@@ -598,7 +598,7 @@ export default function PortalPlano() {
 
       {licencas.length > 0 && (
         <section className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Histórico de trancamentos</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Histórico de trancamentos</p>
           <div className="space-y-2">
             {licencas.filter((l:any) => l.tipo === "plano").map((l:any) => {
               const isVigente = l.data_inicio <= todayStr && l.data_fim >= todayStr;

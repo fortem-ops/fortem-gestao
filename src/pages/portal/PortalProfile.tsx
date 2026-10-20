@@ -92,7 +92,7 @@ export default function PortalProfile() {
 
       {/* ── MINHA CONTA ── */}
       <section className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Minha conta</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Minha conta</p>
         <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
           <Link to="/portal/meus-dados" className="flex items-center gap-3 px-4 py-3.5">
             <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">

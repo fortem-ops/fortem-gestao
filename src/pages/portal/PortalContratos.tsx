@@ -54,7 +54,7 @@ interface BlocoProps {
 function ContratoBloco({ titulo, subtitulo, vazioMsg, loading, doc, onLer, onAceitar }: BlocoProps) {
   return (
     <section className="space-y-2">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{titulo}</p>
+      <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">{titulo}</p>
       <div className="bg-card border border-border rounded-2xl p-5">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -249,7 +249,7 @@ export default function PortalContratos() {
 
       {/* Bloco 3 — Anexo I */}
       <section className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
           Anexo I — Aptidão Física e Uso de Imagem
         </p>
         <div className="bg-card border border-border rounded-2xl p-5">
