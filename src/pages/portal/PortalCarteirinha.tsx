@@ -34,7 +34,7 @@ export default function PortalCarteirinha() {
           <ArrowLeft className="w-4 h-4 text-muted-foreground" />
         </button>
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Clube FORTEM</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Clube FORTEM</p>
           <h1 className="text-lg font-black text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
             Minha Carteirinha
           </h1>
@@ -48,8 +48,7 @@ export default function PortalCarteirinha() {
           </div>
         ) : !membro ? (
           <div className="bg-card border border-border rounded-2xl p-6 text-center space-y-3">
-            <p className="text-2xl">🏷️</p>
-            <p className="font-bold text-sm text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
+              <p className="font-bold text-sm text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
               Carteirinha ainda não disponível
             </p>
             <p className="text-xs text-muted-foreground">
@@ -66,7 +65,7 @@ export default function PortalCarteirinha() {
             />
 
             <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
                 Como usar
               </p>
               <div className="space-y-2.5">

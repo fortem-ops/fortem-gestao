@@ -16,7 +16,7 @@ export function WorkoutWeeklyProgress({ feitos, meta }: WorkoutWeeklyProgressPro
     <div className="bg-card border border-border rounded-2xl p-4">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
             Esta semana
           </p>
           <p
@@ -38,7 +38,7 @@ export function WorkoutWeeklyProgress({ feitos, meta }: WorkoutWeeklyProgressPro
       </div>
       <p className="text-[11px] text-muted-foreground mt-2">
         {feitos >= safeMeta
-          ? "Meta semanal atingida! 🎉"
+          ? "Meta semanal atingida"
           : `Faltam ${safeMeta - feitos} treino${safeMeta - feitos > 1 ? "s" : ""} para bater a meta.`}
       </p>
     </div>

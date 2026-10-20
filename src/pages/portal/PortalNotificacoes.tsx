@@ -7,7 +7,7 @@ export default function PortalNotificacoes() {
   return (
     <div className="space-y-5 pb-32 animate-fade-in">
       <div className="pt-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Configurações</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Configurações</p>
         <h1 className="text-xl font-black text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>Notificações</h1>
       </div>
 
@@ -97,17 +97,16 @@ export default function PortalNotificacoes() {
       )}
 
       <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">O que você receberá</p>
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">O que você receberá</p>
         {[
-          { emoji: "🏋️", title: "Confirmação de treino", desc: "Sempre que agendar um treino" },
-          { emoji: "⚠️", title: "Créditos acabando", desc: "Quando restar 2 ou menos créditos" },
-          { emoji: "📊", title: "Hora de reavaliar", desc: "Quando a avaliação funcional estiver pendente" },
-          { emoji: "📅", title: "Renovação do plano", desc: "30 dias antes do vencimento" },
-          { emoji: "🎉", title: "Aniversário FORTEM", desc: "Comemorando sua jornada conosco" },
+          { title: "Confirmação de treino", desc: "Sempre que agendar um treino" },
+          { title: "Créditos acabando", desc: "Quando restar 2 ou menos créditos" },
+          { title: "Hora de reavaliar", desc: "Quando a avaliação funcional estiver pendente" },
+          { title: "Renovação do plano", desc: "30 dias antes do vencimento" },
+          { title: "Aniversário FORTEM", desc: "Comemorando sua jornada conosco" },
         ].map((item) => (
           <div key={item.title} className="flex items-start gap-3">
-            <span className="text-lg shrink-0">{item.emoji}</span>
-            <div className="flex-1">
+                        <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">{item.title}</p>
               <p className="text-xs text-muted-foreground">{item.desc}</p>
             </div>

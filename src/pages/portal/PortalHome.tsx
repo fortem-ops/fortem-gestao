@@ -33,7 +33,7 @@ import {
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
       {children}
     </p>
   );
@@ -318,7 +318,7 @@ export default function PortalHome() {
     <div className="space-y-5 animate-fade-in pb-32 pt-4">
       {/* Saudação */}
       <div className="pt-2 pb-1">
-        <p className="text-muted-foreground text-sm">{saudacao} 👋</p>
+        <p className="text-muted-foreground text-sm">{saudacao}</p>
         <h1
           className="text-2xl font-black tracking-tight text-foreground"
           style={{ fontFamily: "Archivo, sans-serif" }}
@@ -356,7 +356,7 @@ export default function PortalHome() {
           <Link to="/portal/plano">
             <div className="bg-card border border-border rounded-2xl p-5 space-y-3 cursor-pointer">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
                   Créditos de Treino
                 </span>
                 <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
@@ -513,7 +513,7 @@ export default function PortalHome() {
             >
               {streakSemanas === 0
                 ? "Comece sua sequência!"
-                : `${streakSemanas} semana${streakSemanas > 1 ? "s" : ""} seguida${streakSemanas > 1 ? "s" : ""} 🔥`}
+                : `${streakSemanas} semana${streakSemanas > 1 ? "s" : ""} seguida${streakSemanas > 1 ? "s" : ""}`}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {streakSemanas === 0
@@ -536,14 +536,10 @@ export default function PortalHome() {
           : meses > 0
           ? `${meses} ${meses > 1 ? "meses" : "mês"}`
           : `${diffDays} dia${diffDays !== 1 ? "s" : ""}`;
-        const emoji = anos >= 2 ? "🏆" : anos >= 1 ? "⭐" : meses >= 6 ? "💪" : "🌱";
         return (
           <section className="space-y-2">
             <SectionLabel>Minha jornada</SectionLabel>
             <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 text-2xl">
-                {emoji}
-              </div>
               <div>
                 <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
                   {tempo} na FORTEM
@@ -603,7 +599,7 @@ export default function PortalHome() {
       {/* Desafios Coletivos */}
       {desafiosAtivos.length > 0 && (
         <section className="space-y-2">
-          <SectionLabel>Desafios Coletivos 🏆</SectionLabel>
+          <SectionLabel>Desafios Coletivos</SectionLabel>
           {desafiosAtivos.map((d: any) => {
             const pct = Math.min(100, Math.round((d.progresso_atual / d.valor_meta) * 100));
             const diasRestantes = Math.max(0, Math.ceil((new Date(d.data_fim).getTime() - Date.now()) / 86400000));
@@ -632,7 +628,7 @@ export default function PortalHome() {
 
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] text-muted-foreground">
-                    {faltam > 0 ? `Faltam ${faltam.toLocaleString('pt-BR')} para a meta` : "🎉 Meta atingida!"}
+                    {faltam > 0 ? `Faltam ${faltam.toLocaleString('pt-BR')} para a meta` : "Meta atingida"}
                   </p>
                   <p className="text-[11px] font-semibold text-primary">
                     {diasRestantes > 0 ? `${diasRestantes}d restantes` : "Último dia!"}
@@ -641,15 +637,14 @@ export default function PortalHome() {
 
                 {d.pontos_recompensa > 0 && (
                   <div className="bg-primary/5 border border-primary/20 rounded-xl px-3 py-2 flex items-center gap-2">
-                    <span className="text-base">🎁</span>
-                    <p className="text-xs text-foreground">
+                                        <p className="text-xs text-foreground">
                       Ao atingir a meta, <strong>todos os alunos ativos</strong> recebem <strong>{d.pontos_recompensa} pontos</strong> no Clube FORTEM!
                     </p>
                   </div>
                 )}
                 {d.mensagem_recompensa && (
                   <div className="bg-muted rounded-xl px-3 py-2">
-                    <p className="text-xs text-muted-foreground">🤝 {d.mensagem_recompensa}</p>
+                    <p className="text-xs text-muted-foreground">{d.mensagem_recompensa}</p>
                   </div>
                 )}
               </div>
@@ -731,8 +726,7 @@ export default function PortalHome() {
               <section className="space-y-2">
                 <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">🚀</span>
-                    <p className="text-sm font-bold text-foreground">Turbine seu plano 🚀</p>
+                    <p className="text-sm font-bold text-foreground">Turbine seu plano</p>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     No Power, Pro ou Max você já sai com Avaliação Funcional, Nutrição e Reabilitação incluídas no plano — sem precisar contratar à parte.

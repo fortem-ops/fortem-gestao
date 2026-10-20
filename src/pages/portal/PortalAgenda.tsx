@@ -45,7 +45,7 @@ const SERVICOS_PORTAL = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
       {children}
     </p>
   );
@@ -669,7 +669,7 @@ export default function PortalAgenda() {
           <p className="text-xs text-muted-foreground mt-1">Escolha o melhor horário na semana</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-3 py-2 text-right">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Créditos</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Créditos</p>
           <p className="text-xl font-black text-primary" style={{ fontFamily: "Archivo, sans-serif" }}>{saldo}</p>
         </div>
       </div>
@@ -677,10 +677,10 @@ export default function PortalAgenda() {
       {/* Switcher */}
       <div className="flex gap-1 p-1 bg-muted rounded-xl">
         {[
-          { key: "treinos", label: "🏋️ Treinos" },
-          { key: "corrida", label: "🏃 Corrida" },
-          { key: "servicos", label: "📋 Serviços" },
-          { key: "agendamentos", label: "📌 Meus" },
+          { key: "treinos", label: "Treinos" },
+          { key: "corrida", label: "Corrida" },
+          { key: "servicos", label: "Serviços" },
+          { key: "agendamentos", label: "Meus" },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -736,8 +736,7 @@ export default function PortalAgenda() {
       {bloqueadoCorrida && (
         <section className="bg-card border border-border rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🔒</span>
-            <p className="text-sm font-bold text-foreground">Disponível apenas para alunos com plano de Corrida</p>
+                        <p className="text-sm font-bold text-foreground">Disponível apenas para alunos com plano de Corrida</p>
           </div>
           <p className="text-xs text-muted-foreground">
             Você pode ver os horários, mas o agendamento é exclusivo para quem tem um plano de Corrida ativo.
@@ -746,7 +745,7 @@ export default function PortalAgenda() {
             onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero contratar o plano de Corrida.', '_blank')}
             className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
           >
-            🏃 Falar com a equipe sobre o plano de Corrida →
+            Falar com a equipe sobre o plano de Corrida
           </button>
         </section>
       )}
@@ -812,7 +811,7 @@ export default function PortalAgenda() {
                     return (
                       <div className="flex items-center gap-2 text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Realizado ✓</span>
+                        <span className="text-sm font-semibold">Realizado</span>
                       </div>
                     );
                   }
@@ -840,7 +839,7 @@ export default function PortalAgenda() {
                   );
                 })() : bloqueadoCorrida ? (
                   <Button className="w-full" disabled>
-                    🔒 Exclusivo plano de Corrida
+                    Exclusivo plano de Corrida
                   </Button>
                 ) : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
@@ -1022,8 +1021,7 @@ export default function PortalAgenda() {
                       {!elegivel ? (
                         <div className="pt-3 space-y-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-lg">🔒</span>
-                            <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
+                                                        <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
                           </div>
                           <p className="text-xs text-muted-foreground">
                             Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.
@@ -1040,7 +1038,7 @@ export default function PortalAgenda() {
                             onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero fazer upgrade do meu plano para ter horário fixo.', '_blank')}
                             className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
                           >
-                            🚀 Fazer upgrade e garantir meu horário →
+                            Fazer upgrade e garantir meu horário
                           </button>
                         </div>
                       ) : horariosFixos.length === 0 ? (
@@ -1069,7 +1067,7 @@ export default function PortalAgenda() {
                                     {DIAS_LABEL[hf.dia_semana]} · {hf.horario_inicio?.slice(0, 5)}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {pausado ? `Pausado até ${format(parseISO(hf.pausado_ate + "T12:00:00"), "dd/MM/yyyy")}` : "Reserva automática toda semana ✓"}
+                                    {pausado ? `Pausado até ${format(parseISO(hf.pausado_ate + "T12:00:00"), "dd/MM/yyyy")}` : "Reserva automática toda semana"}
                                   </p>
                                 </div>
                                 <button
@@ -1102,7 +1100,6 @@ export default function PortalAgenda() {
           {/* ── SEÇÃO TREINOS ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-base">🏋️</span>
               <SectionLabel>Treinos</SectionLabel>
             </div>
 
@@ -1140,7 +1137,7 @@ export default function PortalAgenda() {
                             </p>
                             {ag.treino_slots?.modalidade === "corrida" && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                🏃 Corrida
+                                Corrida
                               </span>
                             )}
                           </div>
@@ -1187,8 +1184,7 @@ export default function PortalAgenda() {
           {/* ── SEÇÃO SERVIÇOS ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-base">📋</span>
-              <SectionLabel>Serviços</SectionLabel>
+                            <SectionLabel>Serviços</SectionLabel>
             </div>
 
             {servicosFuturos.length === 0 ? (
@@ -1234,7 +1230,6 @@ export default function PortalAgenda() {
                     </div>
                     {!servicoDentroPrazo(s) && (
                       <p className="mt-2 text-[11px] text-amber-400 flex items-start gap-1.5">
-                        <span>⚠️</span>
                         <span>Faltam menos de 8h — cancelar agora não estorna o crédito.</span>
                       </p>
                     )}
@@ -1519,7 +1514,7 @@ export default function PortalAgenda() {
               )}
               {dentroDoprazo && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
-                  <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+                  <p className="text-xs text-emerald-400">Crédito será estornado automaticamente.</p>
                 </div>
               )}
               <div className="flex gap-3">
@@ -1550,12 +1545,12 @@ export default function PortalAgenda() {
               </p>
               {servicoDentroPrazo(s) ? (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
-                  <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+                  <p className="text-xs text-emerald-400">Crédito será estornado automaticamente.</p>
                 </div>
               ) : (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
                   <p className="text-xs text-amber-400">
-                    ⚠️ Faltam menos de 8h para o atendimento — o crédito <strong>não</strong> será estornado.
+                    Faltam menos de 8h para o atendimento — o crédito <strong>não</strong> será estornado.
                   </p>
                 </div>
               )}
@@ -1584,7 +1579,7 @@ export default function PortalAgenda() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
               <div>
-                <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>🏋️ Histórico de Treinos</p>
+                <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Histórico de Treinos</p>
                 {(() => {
                   const mesAtual = format(new Date(), "yyyy-MM");
                   const realizadosMes = historicoTreinos.filter((h: any) =>
@@ -1606,9 +1601,9 @@ export default function PortalAgenda() {
             <div className="flex gap-2 px-5 py-3 overflow-x-auto shrink-0">
               {[
                 { key: "todos", label: "Todos" },
-                { key: "realizado", label: "✅ Realizados" },
-                { key: "faltou", label: "❌ Faltas" },
-                { key: "cancelado", label: "🚫 Cancelados" },
+                { key: "realizado", label: "Realizados" },
+                { key: "faltou", label: "Faltas" },
+                { key: "cancelado", label: "Cancelados" },
               ].map(f => (
                 <button
                   key={f.key}
@@ -1648,7 +1643,7 @@ export default function PortalAgenda() {
                         </p>
                         {h.treino_slots?.modalidade === "corrida" && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                            🏃 Corrida
+                            Corrida
                           </span>
                         )}
                       </div>
@@ -1660,7 +1655,7 @@ export default function PortalAgenda() {
                         ? "bg-destructive/10 text-destructive"
                         : "bg-muted text-muted-foreground"
                     }`}>
-                      {h.status === "realizado" ? "✅ Realizado" : h.status === "faltou" ? "❌ Falta" : "🚫 Cancelado"}
+                      {h.status === "realizado" ? "Realizado" : h.status === "faltou" ? "Falta" : "Cancelado"}
                     </span>
                   </div>
                 ))}
@@ -1678,7 +1673,7 @@ export default function PortalAgenda() {
           <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-2 shrink-0" />
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>📋 Histórico de Serviços</p>
+              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Histórico de Serviços</p>
               <button onClick={() => setShowHistoricoServicos(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -1700,7 +1695,7 @@ export default function PortalAgenda() {
                       </p>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
-                      ✅ Realizado
+                      Realizado
                     </span>
                   </div>
                 );
@@ -1715,7 +1710,7 @@ export default function PortalAgenda() {
         <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowAdicionarFixo(false)}>
           <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
-            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>📌 Novo Horário Fixo</p>
+            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Novo Horário Fixo</p>
 
             <div className="space-y-3">
               <div>

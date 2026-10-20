@@ -13,7 +13,7 @@ export default function PortalAssistente() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      content: `Olá! Sou o Assistente FORTEM 👋 Estou aqui para responder suas dúvidas sobre treinos, agendamentos, planos, avaliações e muito mais. Como posso ajudar?`,
+      content: `Olá! Sou o Assistente FORTEM. Estou aqui para responder suas dúvidas sobre treinos, agendamentos, planos, avaliações e muito mais. Como posso ajudar?`,
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -71,13 +71,13 @@ export default function PortalAssistente() {
 
     const historicoMsgs = messages
       .filter((m, i) => !(i === 0 && m.role === "assistant"))
-      .map((m) => `${m.role === "user" ? `👤 ${primeiroNome}` : "🤖 Assistente"}: ${m.content}`)
+      .map((m) => `${m.role === "user" ? primeiroNome : "Assistente"}: ${m.content}`)
       .join("\n\n");
 
     const texto = encodeURIComponent(
       `Olá! Sou ${nomeFormatado} e estava conversando com o Assistente FORTEM.\n\n` +
-        `📋 *Resumo da conversa:*\n\n${historicoMsgs}\n\n` +
-        `Preciso de ajuda com mais detalhes. Pode me auxiliar? 😊`
+        `*Resumo da conversa:*\n\n${historicoMsgs}\n\n` +
+        `Preciso de ajuda com mais detalhes. Pode me auxiliar?`
     );
 
     window.open(`https://wa.me/555135199451?text=${texto}`, "_blank");
@@ -135,7 +135,7 @@ export default function PortalAssistente() {
                     onClick={abrirWhatsAppComHistorico}
                     className="text-[11px] text-[#25D366] border border-[#25D366]/30 bg-[#25D366]/5 rounded-full px-3 py-1.5 flex items-center gap-1.5"
                   >
-                    💬 Abrir WhatsApp com histórico
+                    Abrir WhatsApp com histórico
                   </button>
                 </div>
               )}
@@ -166,7 +166,7 @@ export default function PortalAssistente() {
                 onClick={abrirWhatsAppComHistorico}
                 className="w-full py-2.5 rounded-xl bg-[#25D366] text-white text-sm font-bold flex items-center justify-center gap-2"
               >
-                💬 Abrir WhatsApp
+                Abrir WhatsApp
               </button>
             </div>
           </div>
