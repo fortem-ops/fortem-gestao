@@ -7,6 +7,7 @@ import { AuthBackdrop } from "@/components/portal/AuthBackdrop";
 import { toast } from "sonner";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { userHasStaffAccess } from "@/lib/authAccess";
+import { lovable } from "@/integrations/lovable/index";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
 import { Seo } from "@/components/Seo";
@@ -73,6 +74,24 @@ export default function PortalLogin() {
     }
     setLoginFalhou(false);
     setDiagnosis(null);
+  }
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setGoogleLoading(false);
+      toast.error("Não foi possível iniciar o login com Google", { description: "Tente novamente ou use e-mail e senha." });
+      return;
+    }
+    if (result.redirected) {
+      // O navegador vai para o Google; a sessão chega pelo retorno.
+      return;
+    }
+    // Sessão definida sem redirect: o useEffect acima navega para o destino.
+    setGoogleLoading(false);
   }
 
   async function handleResetSession() {
