@@ -101,6 +101,11 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferenc
         </p>
       </header>
 
+      <section className="space-y-3">
+        <SectionHeading>Próxima avaliação</SectionHeading>
+        <ReassessmentCard latestDate={latest.data} />
+      </section>
+
       <section className="space-y-2 border-b border-border pb-5">
         <SectionHeading>Resumo</SectionHeading>
         <p className="text-sm leading-relaxed text-foreground">
@@ -144,11 +149,6 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferenc
           </div>)}
         </div>
       </section>}
-
-      <section className="space-y-3">
-        <SectionHeading>Próxima avaliação</SectionHeading>
-        <ReassessmentCard latestDate={latest.data} />
-      </section>
 
       <DetailsCard title="Ver detalhes" subtitle="Todas as medidas, referências e histórico.">
         <div className="mb-5 border-b border-border pb-4">
