@@ -73,3 +73,5 @@
 - [ ] Festa 10 anos: primeiro PIX real (aguarda teste do dono) e fotos da linha do tempo.
 - [ ] Plano 1 (encargos por atraso) e Plano 2 (Pix Automático no /planos): aguardam aprovação do dono.
 - [x] Portal: barra inferior Início/Treinos/Agenda/Clube/Evolução (item ativo com filete vermelho), avatar do topo com título "Perfil", cabeçalho SUA CONTA/PERFIL no Perfil e título "Evolução" nas avaliações; visual conferido em 393px.
+- [x] Portal 5-3-1: treino selecionado organizado em Blocos 1 (Levantamentos básicos), 2 (Acessórios) e 3 (Auxiliares), cada um com cabeçalho de rótulo e filete; Aquecimento segue antes e sem número; Bloco 2 some na semana 4.
+

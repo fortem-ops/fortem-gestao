@@ -1114,6 +1114,16 @@ const AQ531_LABEL: Record<string, string> = {
 };
 const ROTULO_531 = "text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]";
 
+/** Cabeçalho de bloco do 5-3-1: rótulo em caixa alta sobre filete. */
+function CabecalhoBloco531({ titulo }: { titulo: string }) {
+  return (
+    <div className="border-b border-[#4A4B4B] pb-2">
+      <p className={ROTULO_531}>{titulo}</p>
+    </div>
+  );
+}
+
+
 function VideoBtn531({ url, nome }: { url?: string | null; nome: string }) {
   if (!url) return null;
   return (
@@ -1366,7 +1376,12 @@ function Portal531View({
           <p className="text-base font-bold">{dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—"}</p>
         </div>
         <div className="p-4 space-y-5">
+          {dia.levantamentos.length > 0 && (
+            <div className="space-y-3">
+              <CabecalhoBloco531 titulo="Bloco 1 · Levantamentos básicos" />
+              <div className="space-y-4">
           {dia.levantamentos.map((lev) => {
+
             const base = LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento];
             const wave = compute531Wave(lev.rm_1, data.percentual_training_max);
             const semana = wave.find((w) => w.semana === semanaAtiva)!;
@@ -1408,10 +1423,14 @@ function Portal531View({
               </div>
             );
           })}
+              </div>
+            </div>
+          )}
 
           {semanaAtiva !== 4 && dia.acessorios.length > 0 && (
-            <div>
-              <p className={`${ROTULO_531} mb-2`}>Acessórios</p>
+            <div className="space-y-3">
+              <CabecalhoBloco531 titulo="Bloco 2 · Acessórios" />
+
               <ul className="divide-y divide-[#4A4B4B] border-y border-[#4A4B4B]">
                 {dia.acessorios.map((acc, idx) => {
                   const rmVinc = dia.levantamentos.find((l) => l.levantamento === acc.vinculado_a)?.rm_1 ?? 0;
@@ -1438,8 +1457,9 @@ function Portal531View({
           )}
 
           {dia.auxiliares.length > 0 && (
-            <div>
-              <p className={`${ROTULO_531} mb-2`}>Auxiliares</p>
+            <div className="space-y-3">
+              <CabecalhoBloco531 titulo="Bloco 3 · Auxiliares" />
+
               <ul className="divide-y divide-[#4A4B4B] border-y border-[#4A4B4B]">
                 {dia.auxiliares.map((aux, i) => (
                   <li key={i} className="py-2">
