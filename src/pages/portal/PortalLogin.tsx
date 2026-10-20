@@ -233,6 +233,13 @@ export default function PortalLogin() {
               {loading ? "Entrando..." : "Entrar"}
             </button>
 
+            <Link
+              to="/portal/cadastro"
+              className="flex min-h-[48px] w-full items-center justify-center border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-[#F0F0F0]"
+            >
+              Primeiro acesso
+            </Link>
+
             {loginFalhou && (
               <div role="alert" className="space-y-2 border border-[#4A4B4B] p-3">
                 <p className="text-xs text-[#B1B3B3]">Não foi possível entrar. Confira e-mail e senha ou limpe a sessão e tente de novo.</p>
@@ -247,17 +254,6 @@ export default function PortalLogin() {
               </div>
             )}
 
-            <div className="flex items-center gap-3 py-1">
-              <span className="h-px flex-1 bg-[#4A4B4B]" />
-              <span className="text-xs text-[#B1B3B3]">ou</span>
-              <span className="h-px flex-1 bg-[#4A4B4B]" />
-            </div>
-            <Link
-              to="/portal/cadastro"
-              className="flex min-h-[48px] w-full items-center justify-center border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-[#F0F0F0]"
-            >
-              Criar conta
-            </Link>
             {diagnosis && diagnosis.status !== "ok" && (
               <NetworkHelpPanel diagnosis={diagnosis} onRetest={runDiagnosis} testing={testing} />
             )}
