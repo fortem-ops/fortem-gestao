@@ -77,3 +77,5 @@
 - [x] Portal: barra inferior Início/Treinos/Agenda/Clube/Evolução (item ativo com filete vermelho), avatar do topo com título "Perfil", cabeçalho SUA CONTA/PERFIL no Perfil e título "Evolução" nas avaliações; visual conferido em 393px.
 - [x] Portal 5-3-1: treino selecionado organizado em Blocos 1 (Levantamentos básicos), 2 (Acessórios) e 3 (Auxiliares), cada um com cabeçalho de rótulo e filete; Aquecimento segue antes e sem número; Bloco 2 some na semana 4.
 
+- [x] Vendas manuais 2027 recorrentes no cron novo: Power/Pro 2..12, Start mês a mês (só o próximo ciclo); ensaio NICOLAS TESTE desfeito; Larissa com mensalidade 2 em 20/11 (R$ 403).
+- [ ] Rótulo "Cancelamento agendado" no histórico de vendas para Start com renovação automática: propor troca por "Renova em" (aguarda aprovação).
