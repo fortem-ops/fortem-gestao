@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { treinoDoDia531, variacao531 } from "@/pages/portal/PortalWorkouts";
+import { treinoDoDia531, variacao531, semanaAtual531 } from "@/pages/portal/PortalWorkouts";
 
 describe("treino do dia 5-3-1", () => {
   it("sem registro abre o Treino 1", () => {
