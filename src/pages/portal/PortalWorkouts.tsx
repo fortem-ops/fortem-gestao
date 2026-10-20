@@ -1173,7 +1173,11 @@ function Portal531View({
   const raw = (treino?.conteudo ?? null) as Wendler531Conteudo | null;
   const data = raw ? { ...raw, dias: Array.isArray(raw.dias) ? raw.dias : [] } : null;
   const ordens = (data?.dias ?? []).map((d) => d.ordem);
-  const [semanaAtiva, setSemanaAtiva] = useState<1 | 2 | 3 | 4>(1);
+  // Semana automática: derivada das sessões concluídas; a escolha manual
+  // (semanaSel) vale só enquanto a tela estiver aberta.
+  const auto = semanaAtual531(ordens, sessoes);
+  const [semanaSel, setSemanaSel] = useState<1 | 2 | 3 | 4 | null>(null);
+  const semanaAtiva = semanaSel ?? auto.semana;
   const [ordemAtiva, setOrdemAtiva] = useState<number | null>(null);
   const [concluindo, setConcluindo] = useState(false);
   const alunoId = treino?.aluno_id ?? student?.id ?? null;
