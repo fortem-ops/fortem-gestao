@@ -1300,19 +1300,24 @@ function Portal531View({
       <div>
         <p className={`${ROTULO_531} mb-2`}>Semana</p>
         <div className="grid grid-cols-4 gap-2">
-          {([1, 2, 3, 4] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => { setSemanaAtiva(s); setOrdemAtiva(null); }}
-              aria-pressed={semanaAtiva === s}
-              className={`min-h-[44px] border text-[13px] font-bold uppercase ${
-                semanaAtiva === s ? "border-foreground bg-[#1A1A1A] text-foreground" : "border-[#4A4B4B] text-[#B1B3B3]"
-              }`}
-            >
-              Semana {s}
-              {s === 4 && <span className="block text-[11px] font-semibold normal-case">Recuperação</span>}
-            </button>
-          ))}
+          {([1, 2, 3, 4] as const).map((s) => {
+            const completa = ordens.length > 0 && ordens.every((o) => feitos.has(variacao531(s, o)));
+            return (
+              <button
+                key={s}
+                onClick={() => { setSemanaSel(s); setOrdemAtiva(null); }}
+                aria-pressed={semanaAtiva === s}
+                className={`min-h-[44px] border text-[13px] font-bold uppercase ${
+                  semanaAtiva === s ? "border-foreground bg-[#1A1A1A] text-foreground" : "border-[#4A4B4B] text-[#B1B3B3]"
+                }`}
+              >
+                Semana {s}
+                {s === 4 && !completa && <span className="block text-[11px] font-semibold normal-case">Recuperação</span>}
+                {completa && <span className="block text-[11px] font-semibold normal-case text-[#4CC38A]">Concluída</span>}
+                {!completa && s === auto.semana && <span className="block text-[11px] font-semibold normal-case">Atual</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
