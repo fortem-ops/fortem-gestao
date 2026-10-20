@@ -123,6 +123,6 @@ BEGIN
  IF n <> 11 THEN RAISE EXCEPTION 'Power: esperava 11 mensalidades, veio %', n; END IF;
  SELECT count(*) INTO n FROM cobrancas WHERE contrato_id = kp; IF n <> 12 THEN RAISE EXCEPTION 'Power: cobranças alteradas %', n; END IF;
 
- RAISE NOTICE 'ENSAIO OK';
+ RAISE EXCEPTION 'ENSAIO OK (desfeito)';
 END $test$;
 ROLLBACK;
