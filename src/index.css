@@ -227,6 +227,40 @@
   }
 
   /* Exclusivo da tela de pagamentos do aluno. */
+  [data-portal="true"] .portal-evolucao {
+    --primary: 359.25 66.67% 47.06%;
+    --muted-foreground: 180 1.3% 69.8%;
+    --evolution-prioridade: #C8282A;
+    --evolution-atencao: #E3B341;
+    --evolution-equilibrado: #4CC38A;
+  }
+  [data-portal="true"] .portal-evolucao,
+  [data-portal="true"] .portal-evolucao :is(div,p,span,button,a,h1,h2,h3) {
+    font-family: 'Archivo', sans-serif;
+  }
+  [data-portal="true"] .portal-evolucao .evolution-section-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--muted-foreground));
+  }
+  [data-portal="true"] .portal-evolucao .evolution-prioridade {
+    color: var(--evolution-prioridade);
+    border-color: var(--evolution-prioridade);
+  }
+  [data-portal="true"] .portal-evolucao .evolution-atencao {
+    color: var(--evolution-atencao);
+    border-color: var(--evolution-atencao);
+  }
+  [data-portal="true"] .portal-evolucao .evolution-equilibrado {
+    color: var(--evolution-equilibrado);
+    border-color: var(--evolution-equilibrado);
+  }
+  [data-portal="true"] .portal-evolucao .evolution-map-container .bodymap-surface {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+  }
   [data-portal="true"] .portal-desafios {
     --muted-foreground: 180 1.3% 69.8%;
   }
