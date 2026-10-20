@@ -1198,6 +1198,13 @@
       "when": 1792494189233,
       "tag": "0170_0170_um_treino_por_dia_aluno_equipe_livre",
       "breakpoints": true
+    },
+    {
+      "idx": 171,
+      "version": "7",
+      "when": 1792499477488,
+      "tag": "0171_tarefa_onda_531_concluida",
+      "breakpoints": true
     }
   ]
 }
