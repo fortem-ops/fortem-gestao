@@ -3412,6 +3412,57 @@ export type Database = {
           },
         ]
       }
+      credenciais_facial: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          device_user_id: number
+          foto_path: string | null
+          id: string
+          sincronizado_em: string | null
+          status: string
+          ultimo_erro: string | null
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          device_user_id?: number
+          foto_path?: string | null
+          id?: string
+          sincronizado_em?: string | null
+          status?: string
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          device_user_id?: number
+          foto_path?: string | null
+          id?: string
+          sincronizado_em?: string | null
+          status?: string
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciais_facial_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciais_facial_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       creditos_aluno: {
         Row: {
           aluno_id: string
@@ -3949,6 +4000,229 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      facial_agente_status: {
+        Row: {
+          detalhe: Json | null
+          dispositivo_online: boolean | null
+          id: number
+          ultimo_contato: string | null
+          versao_agente: string | null
+        }
+        Insert: {
+          detalhe?: Json | null
+          dispositivo_online?: boolean | null
+          id?: number
+          ultimo_contato?: string | null
+          versao_agente?: string | null
+        }
+        Update: {
+          detalhe?: Json | null
+          dispositivo_online?: boolean | null
+          id?: number
+          ultimo_contato?: string | null
+          versao_agente?: string | null
+        }
+        Relationships: []
+      }
+      facial_config: {
+        Row: {
+          id: number
+          janela_antes_min: number
+          modo_checkin: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          janela_antes_min?: number
+          modo_checkin?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          janela_antes_min?: number
+          modo_checkin?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      facial_consentimentos: {
+        Row: {
+          aceito: boolean
+          aceito_em: string
+          aceito_por: string | null
+          aluno_id: string
+          created_at: string
+          id: string
+          ip_aceite: string | null
+          origem: string
+          responsavel_nome: string | null
+          revogado_em: string | null
+          texto_termo: string | null
+          tipo: string
+          user_agent: string | null
+          versao_termo: string
+        }
+        Insert: {
+          aceito?: boolean
+          aceito_em?: string
+          aceito_por?: string | null
+          aluno_id: string
+          created_at?: string
+          id?: string
+          ip_aceite?: string | null
+          origem: string
+          responsavel_nome?: string | null
+          revogado_em?: string | null
+          texto_termo?: string | null
+          tipo: string
+          user_agent?: string | null
+          versao_termo: string
+        }
+        Update: {
+          aceito?: boolean
+          aceito_em?: string
+          aceito_por?: string | null
+          aluno_id?: string
+          created_at?: string
+          id?: string
+          ip_aceite?: string | null
+          origem?: string
+          responsavel_nome?: string | null
+          revogado_em?: string | null
+          texto_termo?: string | null
+          tipo?: string
+          user_agent?: string | null
+          versao_termo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facial_consentimentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facial_consentimentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      facial_eventos: {
+        Row: {
+          aluno_id: string | null
+          aplicado: boolean
+          bruto: Json | null
+          created_at: string
+          device_user_id: number | null
+          evento_em: string
+          id: string
+          resultado: string
+          treino_agendamento_id: string | null
+        }
+        Insert: {
+          aluno_id?: string | null
+          aplicado?: boolean
+          bruto?: Json | null
+          created_at?: string
+          device_user_id?: number | null
+          evento_em: string
+          id?: string
+          resultado: string
+          treino_agendamento_id?: string | null
+        }
+        Update: {
+          aluno_id?: string | null
+          aplicado?: boolean
+          bruto?: Json | null
+          created_at?: string
+          device_user_id?: number | null
+          evento_em?: string
+          id?: string
+          resultado?: string
+          treino_agendamento_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facial_eventos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facial_eventos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "facial_eventos_treino_agendamento_id_fkey"
+            columns: ["treino_agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "treino_agendamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facial_fila: {
+        Row: {
+          acao: string
+          aluno_id: string
+          created_at: string
+          device_user_id: number
+          id: string
+          payload: Json
+          processado_em: string | null
+          status: string
+          tentativas: number
+          ultimo_erro: string | null
+        }
+        Insert: {
+          acao: string
+          aluno_id: string
+          created_at?: string
+          device_user_id: number
+          id?: string
+          payload?: Json
+          processado_em?: string | null
+          status?: string
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Update: {
+          acao?: string
+          aluno_id?: string
+          created_at?: string
+          device_user_id?: number
+          id?: string
+          payload?: Json
+          processado_em?: string | null
+          status?: string
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facial_fila_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facial_fila_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
       }
       festa_acompanhantes: {
         Row: {
@@ -9372,6 +9646,8 @@ export type Database = {
           aluno_id: string
           cancelado_em: string | null
           cancelado_por: string | null
+          checkin_em: string | null
+          checkin_origem: string | null
           ciclo_id: string | null
           created_at: string
           created_by: string | null
@@ -9390,6 +9666,8 @@ export type Database = {
           aluno_id: string
           cancelado_em?: string | null
           cancelado_por?: string | null
+          checkin_em?: string | null
+          checkin_origem?: string | null
           ciclo_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -9408,6 +9686,8 @@ export type Database = {
           aluno_id?: string
           cancelado_em?: string | null
           cancelado_por?: string | null
+          checkin_em?: string | null
+          checkin_origem?: string | null
           ciclo_id?: string | null
           created_at?: string
           created_by?: string | null
