@@ -214,6 +214,7 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferenc
             <AssessmentHistory data={data} />
           </DetailsCard>
         )}
+      </div>
       </DetailsCard>
     </div>
   );
