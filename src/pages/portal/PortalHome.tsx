@@ -284,17 +284,16 @@ export default function PortalHome() {
 
   // Próximo treino
   const hojeStr = format(new Date(), "yyyy-MM-dd");
-  const agora = format(new Date(), "HH:mm");
-  const proximo = meusAgendamentos.find((a: any) => {
-    const ini = (a.horario_inicio ?? a.treino_slots?.horario_inicio ?? "").slice(0, 5);
-    return a.data > hojeStr || (a.data === hojeStr && (!ini || ini >= agora || a.status === "agendado" || a.status === "confirmado"));
-  });
+  const horaDe = (a: any) => (a.horario_inicio ?? a.treino_slots?.horario_inicio ?? "").slice(0, 5);
+  const proximo = [...meusAgendamentos].sort((x: any, y: any) =>
+    `${x.data} ${horaDe(x)}`.localeCompare(`${y.data} ${horaDe(y)}`),
+  )[0];
   const checkinHoje = proximo && proximo.data === hojeStr;
   const descreverDia = (a: any) => {
     const d = new Date(a.data + "T12:00:00");
     const diff = differenceInCalendarDays(d, new Date());
     const dia = diff === 0 ? "Hoje" : diff === 1 ? "Amanhã" : d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" });
-    const hr = (a.horario_inicio ?? a.treino_slots?.horario_inicio ?? "").slice(0, 5);
+    const hr = horaDe(a);
     return `${dia.charAt(0).toUpperCase() + dia.slice(1)}${hr ? `, ${hr}` : ""}`;
   };
 
