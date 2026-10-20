@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Paiement manual recorrente: regularizar exclusivamente cobrança de Larissa aprovada pelo dono, entregar reversão, corrigir reserva/liquidação atômica do primeiro ciclo e testar idempotência; não alterar checkout público, créditos, flags ou crons.
+
 - [x] Portal Evolução: resumo, mapa intacto, pontos por nível, comparativo completo, reavaliação e detalhes recolhidos; consultas/cálculos preservados, 13 testes e build OK; móvel/desktop conferidos em simulação. Percentis exatos indisponíveis no resumo já consultado (sem consulta nova).
 
 - [x] Portal: horários futuros de São Paulo reavaliados por minuto; desafio compacto no Início e detalhado no Clube com consulta/cache existentes; 43 testes e build OK, visual e navegação conferidos em simulação móvel/desktop (sessão disponível sem vínculo de aluno).
