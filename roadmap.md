@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Portal Pagamentos: reorganização visual, próxima cobrança global, cartões recolhíveis e histórico; preservar consultas e regras.
+- [x] Portal Pagamentos: próxima cobrança global, cartões recolhíveis e histórico; consultas e cadastro preservados, 5 testes passaram, visual conferido com simulação (conta disponível sem vínculo de aluno).
 
 - [x] ANEXO I: migração 0142 aplicada e conferida; função, tela e ficha prontas; ensaio desfeito e testes OK.
 - [ ] ANEXO I: publicar `planos-checkout` no momento do Publish do dono (aguarda o dono).

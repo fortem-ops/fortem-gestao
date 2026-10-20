@@ -172,7 +172,7 @@ export default function PortalPagamentos() {
   const cartaoPrincipal = cartoes.find(c => c.is_default) ?? cartoes[0];
 
   return (
-    <div className="portal-pagamentos space-y-6 pb-32">
+    <div className="portal-pagamentos text-foreground space-y-6 pb-32">
       <div className="flex items-center gap-3 pt-2">
         <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="Voltar" onClick={() => navigate(-1)}><ArrowLeft /></Button>
         <div><p className="portal-section-label">Financeiro</p><h1 className="text-xl font-black uppercase">Pagamentos</h1></div>
