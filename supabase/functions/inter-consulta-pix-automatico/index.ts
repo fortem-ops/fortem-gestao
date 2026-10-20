@@ -48,6 +48,15 @@ Deno.serve(async (req) => {
     if (!interno || corpo.confirmar !== "CONFERIR_3F") return jsonResponse({ error: "Forbidden" }, 403);
     return jsonResponse(await conferirRec3f(!!corpo.atualizar));
   }
+  // TEMPORÁRIO (teste 3F jornada 3): só chamada interna, NICOLAS TESTE, R$ 1,00, UMA tentativa.
+  if (modo === "teste_3f_j3") {
+    if (!interno || corpo.confirmar !== "TESTE_3F_J3") return jsonResponse({ error: "Forbidden" }, 403);
+    return jsonResponse(await teste3fJornada3());
+  }
+  if (modo === "conferir_3f_j3") {
+    if (!interno || corpo.confirmar !== "CONFERIR_3F_J3") return jsonResponse({ error: "Forbidden" }, 403);
+    return jsonResponse(await conferir3fJornada3());
+  }
   // Teste do pix-webhook com avisos simulados FIXOS (sem cobrança): rec de teste APROVADA e ids inexistentes.
   if (modo === "testar_webhook_avisos") {
     if (!interno) return jsonResponse({ error: "Forbidden" }, 403);
