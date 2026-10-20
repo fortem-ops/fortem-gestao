@@ -74,6 +74,8 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
   const [primeiroVenc, setPrimeiroVenc] = useState(hoje);
   const [substituir, setSubstituir] = useState(temPlanoAtivo);
   const [observacoes, setObservacoes] = useState("");
+  const [desconto, setDesconto] = useState(0);
+  const [descontoRecorrente, setDescontoRecorrente] = useState<"" | "primeiro" | "todos">("");
   const [idem] = useState(() => crypto.randomUUID());
 
   const { data: catalogo = [] } = useQuery({
@@ -132,11 +134,13 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
         servicos: servicosItens.map((s: any) => ({ codigo: s.codigo, valor: s.valor })),
         formaServicos,
         parcelasServicos,
+        descontoPlano: desconto,
       });
     } catch (e) {
       return null;
     }
-  }, [soServicos, item, forma, parcelas, servicosItens, formaServicos, parcelasServicos]);
+  }, [soServicos, item, forma, parcelas, servicosItens, formaServicos, parcelasServicos, desconto]);
+  const faltaEscolhaStart = ehStart && desconto > 0 && !descontoRecorrente;
 
   const vender = useMutation({
     mutationFn: async () => {
@@ -172,6 +176,8 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
           substituir,
           observacoes,
           idempotency_key: idem,
+          desconto: desconto || 0,
+          desconto_recorrente: ehStart && desconto > 0 && descontoRecorrente === "todos",
         },
       });
       if (error) throw error;
@@ -322,6 +328,32 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
         </label>
       )}
 
+      {!soServicos && item && (
+        <div className="space-y-2">
+          <Label>Desconto sobre o plano (R$)</Label>
+          <Input
+            type="number" min={0} step="0.01" className="w-40"
+            value={desconto || ""}
+            onChange={(e) => setDesconto(Math.max(0, Number(e.target.value) || 0))}
+          />
+          {!ehStart && desconto > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {forma === "recorrencia" ? "Abatido da 1ª mensalidade." : "Abatido do total do plano e dividido nas parcelas."}
+            </p>
+          )}
+          {ehStart && desconto > 0 && (
+            <div className="space-y-1">
+              <p className="text-sm">Aplicar este desconto também nas mensalidades seguintes?</p>
+              <div className="flex flex-wrap gap-2">
+                <Chip selected={descontoRecorrente === "primeiro"} onClick={() => setDescontoRecorrente("primeiro")}>Só no 1º mês</Chip>
+                <Chip selected={descontoRecorrente === "todos"} onClick={() => setDescontoRecorrente("todos")}>Em todos os meses</Chip>
+              </div>
+            </div>
+          )}
+          {desconto > 0 && !calc && <p className="text-xs text-destructive">Desconto maior que o valor do plano.</p>}
+        </div>
+      )}
+
       <div className="space-y-1">
         <Label>Observações</Label>
         <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2} />
@@ -364,7 +396,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
         </div>
       )}
 
-      <Button className="w-full" disabled={!calc || !vendavel || vender.isPending} onClick={() => vender.mutate()}>
+      <Button className="w-full" disabled={!calc || !vendavel || faltaEscolhaStart || vender.isPending} onClick={() => vender.mutate()}>
         {vender.isPending ? "Registrando..." : "Registrar venda 2027"}
       </Button>
     </div>
