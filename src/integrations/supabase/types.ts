@@ -4027,18 +4027,33 @@ export type Database = {
       }
       facial_config: {
         Row: {
+          alerta_offline_min: number
+          expediente_dias: number[]
+          expediente_fim: string
+          expediente_fim_sexta: string
+          expediente_inicio: string
           id: number
           janela_antes_min: number
           modo_checkin: string
           updated_at: string
         }
         Insert: {
+          alerta_offline_min?: number
+          expediente_dias?: number[]
+          expediente_fim?: string
+          expediente_fim_sexta?: string
+          expediente_inicio?: string
           id?: number
           janela_antes_min?: number
           modo_checkin?: string
           updated_at?: string
         }
         Update: {
+          alerta_offline_min?: number
+          expediente_dias?: number[]
+          expediente_fim?: string
+          expediente_fim_sexta?: string
+          expediente_inicio?: string
           id?: number
           janela_antes_min?: number
           modo_checkin?: string
@@ -12071,6 +12086,10 @@ export type Database = {
         Args: { p_horario_fixo_id: string }
         Returns: Json
       }
+      fn_facial_agente_heartbeat: {
+        Args: { p_detalhe?: Json; p_porta_ok: boolean; p_versao: string }
+        Returns: Json
+      }
       fn_facial_registrar_passagem: {
         Args: {
           p_bruto?: Json
@@ -12081,6 +12100,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_facial_verificar_agente: { Args: never; Returns: Json }
       fn_feriados_nacionais: {
         Args: { p_fim: string; p_ini: string }
         Returns: string[]
