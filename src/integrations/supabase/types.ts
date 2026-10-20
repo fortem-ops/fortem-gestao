@@ -12245,6 +12245,20 @@ export type Database = {
         Args: { p_cpf_hash: string }
         Returns: Json
       }
+      fn_manual_primeiro_ciclo_liquidar: {
+        Args: { p_pagamento_id: string; p_resultado?: Json; p_venda_id: string }
+        Returns: Json
+      }
+      fn_manual_primeiro_ciclo_reservar: {
+        Args: {
+          p_aluno_id?: string
+          p_cartao_id?: string
+          p_chave: string
+          p_kind?: string
+          p_venda_id: string
+        }
+        Returns: Json
+      }
       fn_marcar_parcelas_vencidas: { Args: never; Returns: number }
       fn_migrar_exercicio_categoria: {
         Args: {
