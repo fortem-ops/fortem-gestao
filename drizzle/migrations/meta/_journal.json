@@ -1191,6 +1191,13 @@
       "when": 1792490395737,
       "tag": "0169_rls_initplan_ciclos_credito",
       "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1792494189233,
+      "tag": "0170_0170_um_treino_por_dia_aluno_equipe_livre",
+      "breakpoints": true
     }
   ]
 }
