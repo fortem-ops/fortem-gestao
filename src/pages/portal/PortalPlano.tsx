@@ -349,8 +349,7 @@ export default function PortalPlano() {
             {cancelEtapa === "persuasao" && (
               <>
                 <div className="text-center space-y-2 py-2">
-                  <p className="text-2xl">😢</p>
-                  <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                          <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
                     Sentiremos sua falta, {student.nome.split(" ")[0]}!
                   </p>
                   <p className="text-xs text-muted-foreground">

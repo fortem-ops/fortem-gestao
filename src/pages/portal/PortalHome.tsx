@@ -513,7 +513,7 @@ export default function PortalHome() {
             >
               {streakSemanas === 0
                 ? "Comece sua sequência!"
-                : `${streakSemanas} semana${streakSemanas > 1 ? "s" : ""} seguida${streakSemanas > 1 ? "s" : ""} 🔥`}
+                : `${streakSemanas} semana${streakSemanas > 1 ? "s" : ""} seguida${streakSemanas > 1 ? "s" : ""}`}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {streakSemanas === 0
@@ -637,15 +637,14 @@ export default function PortalHome() {
 
                 {d.pontos_recompensa > 0 && (
                   <div className="bg-primary/5 border border-primary/20 rounded-xl px-3 py-2 flex items-center gap-2">
-                    <span className="text-base">🎁</span>
-                    <p className="text-xs text-foreground">
+                                        <p className="text-xs text-foreground">
                       Ao atingir a meta, <strong>todos os alunos ativos</strong> recebem <strong>{d.pontos_recompensa} pontos</strong> no Clube FORTEM!
                     </p>
                   </div>
                 )}
                 {d.mensagem_recompensa && (
                   <div className="bg-muted rounded-xl px-3 py-2">
-                    <p className="text-xs text-muted-foreground">🤝 {d.mensagem_recompensa}</p>
+                    <p className="text-xs text-muted-foreground">{d.mensagem_recompensa}</p>
                   </div>
                 )}
               </div>

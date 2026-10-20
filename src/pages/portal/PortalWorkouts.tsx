@@ -738,7 +738,7 @@ export default function PortalWorkouts() {
             <p className="text-2xl font-black text-foreground mt-0.5" style={{fontFamily:'Archivo,sans-serif'}}>
               {variacaoExibida}
               {foiTrocado && (
-                <span className="text-sm font-normal text-warning ml-2">⚠ trocado</span>
+                <span className="text-sm font-normal text-warning ml-2">Trocado</span>
               )}
             </p>
             <p className="text-xs text-muted-foreground">
@@ -996,7 +996,7 @@ export default function PortalWorkouts() {
                 {/* Indicador de troca */}
                 {realizados.some((s: any) => s.foi_troca) && (
                   <p className="text-[10px] text-warning">
-                    ⚠ Sessões em amarelo foram realizadas fora da ordem original.
+                    Sessões em amarelo foram realizadas fora da ordem original.
                   </p>
                 )}
               </div>

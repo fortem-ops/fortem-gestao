@@ -242,8 +242,7 @@ export default function PortalClube() {
       <Link to="/portal/carteirinha">
         <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
           <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-2xl">🪪</span>
-          </div>
+                      </div>
           <div className="flex-1">
             <p className="font-black text-base text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
               Minha Carteirinha
@@ -295,7 +294,7 @@ export default function PortalClube() {
             </div>
           </div>
         ) : !isAgregador && (
-          <p className="text-xs text-emerald-400 font-semibold mt-4">👑 Nível máximo atingido!</p>
+          <p className="text-xs text-emerald-400 font-semibold mt-4">Nível máximo atingido</p>
         )}
         {pontos?.pontos_expiram_em && (
           <p className="text-[11px] text-muted-foreground mt-3">
@@ -449,8 +448,7 @@ export default function PortalClube() {
           className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
         >
           <div className="flex items-center gap-2">
-            <span className="text-base">📊</span>
-            <p className="text-sm font-semibold text-foreground">Ver vantagens por plano</p>
+                        <p className="text-sm font-semibold text-foreground">Ver vantagens por plano</p>
           </div>
           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showComparativo ? 'rotate-180' : ''}`} />
         </button>

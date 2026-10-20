@@ -736,8 +736,7 @@ export default function PortalAgenda() {
       {bloqueadoCorrida && (
         <section className="bg-card border border-border rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🔒</span>
-            <p className="text-sm font-bold text-foreground">Disponível apenas para alunos com plano de Corrida</p>
+                        <p className="text-sm font-bold text-foreground">Disponível apenas para alunos com plano de Corrida</p>
           </div>
           <p className="text-xs text-muted-foreground">
             Você pode ver os horários, mas o agendamento é exclusivo para quem tem um plano de Corrida ativo.
@@ -840,7 +839,7 @@ export default function PortalAgenda() {
                   );
                 })() : bloqueadoCorrida ? (
                   <Button className="w-full" disabled>
-                    🔒 Exclusivo plano de Corrida
+                    Exclusivo plano de Corrida
                   </Button>
                 ) : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
@@ -1022,8 +1021,7 @@ export default function PortalAgenda() {
                       {!elegivel ? (
                         <div className="pt-3 space-y-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-lg">🔒</span>
-                            <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
+                                                        <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
                           </div>
                           <p className="text-xs text-muted-foreground">
                             Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.
@@ -1186,8 +1184,7 @@ export default function PortalAgenda() {
           {/* ── SEÇÃO SERVIÇOS ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-base">📋</span>
-              <SectionLabel>Serviços</SectionLabel>
+                            <SectionLabel>Serviços</SectionLabel>
             </div>
 
             {servicosFuturos.length === 0 ? (
@@ -1517,7 +1514,7 @@ export default function PortalAgenda() {
               )}
               {dentroDoprazo && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
-                  <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+                  <p className="text-xs text-emerald-400">Crédito será estornado automaticamente.</p>
                 </div>
               )}
               <div className="flex gap-3">
@@ -1548,12 +1545,12 @@ export default function PortalAgenda() {
               </p>
               {servicoDentroPrazo(s) ? (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
-                  <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+                  <p className="text-xs text-emerald-400">Crédito será estornado automaticamente.</p>
                 </div>
               ) : (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
                   <p className="text-xs text-amber-400">
-                    ⚠️ Faltam menos de 8h para o atendimento — o crédito <strong>não</strong> será estornado.
+                    Faltam menos de 8h para o atendimento — o crédito <strong>não</strong> será estornado.
                   </p>
                 </div>
               )}
@@ -1582,7 +1579,7 @@ export default function PortalAgenda() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
               <div>
-                <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>🏋️ Histórico de Treinos</p>
+                <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Histórico de Treinos</p>
                 {(() => {
                   const mesAtual = format(new Date(), "yyyy-MM");
                   const realizadosMes = historicoTreinos.filter((h: any) =>
@@ -1604,9 +1601,9 @@ export default function PortalAgenda() {
             <div className="flex gap-2 px-5 py-3 overflow-x-auto shrink-0">
               {[
                 { key: "todos", label: "Todos" },
-                { key: "realizado", label: "✅ Realizados" },
-                { key: "faltou", label: "❌ Faltas" },
-                { key: "cancelado", label: "🚫 Cancelados" },
+                { key: "realizado", label: "Realizados" },
+                { key: "faltou", label: "Faltas" },
+                { key: "cancelado", label: "Cancelados" },
               ].map(f => (
                 <button
                   key={f.key}
@@ -1658,7 +1655,7 @@ export default function PortalAgenda() {
                         ? "bg-destructive/10 text-destructive"
                         : "bg-muted text-muted-foreground"
                     }`}>
-                      {h.status === "realizado" ? "✅ Realizado" : h.status === "faltou" ? "❌ Falta" : "🚫 Cancelado"}
+                      {h.status === "realizado" ? "Realizado" : h.status === "faltou" ? "Falta" : "Cancelado"}
                     </span>
                   </div>
                 ))}
@@ -1676,7 +1673,7 @@ export default function PortalAgenda() {
           <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-2 shrink-0" />
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>📋 Histórico de Serviços</p>
+              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Histórico de Serviços</p>
               <button onClick={() => setShowHistoricoServicos(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -1698,7 +1695,7 @@ export default function PortalAgenda() {
                       </p>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
-                      ✅ Realizado
+                      Realizado
                     </span>
                   </div>
                 );
@@ -1713,7 +1710,7 @@ export default function PortalAgenda() {
         <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowAdicionarFixo(false)}>
           <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
-            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>📌 Novo Horário Fixo</p>
+            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Novo Horário Fixo</p>
 
             <div className="space-y-3">
               <div>
