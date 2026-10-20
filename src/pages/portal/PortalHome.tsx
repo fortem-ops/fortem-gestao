@@ -141,36 +141,6 @@ export default function PortalHome() {
     },
   });
 
-  const { data: alunoDesde } = useQuery({
-    queryKey: ["portal-aluno-desde", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("planos")
-        .select("data_inicio")
-        .eq("aluno_id", student!.id)
-        .order("data_inicio", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return data?.data_inicio ?? null;
-    },
-  });
-
-  const { data: desafiosAtivos = [] } = useQuery({
-    queryKey: ["portal-desafios-ativos"],
-    queryFn: async () => {
-      const hoje = new Date().toISOString().slice(0, 10);
-      const { data } = await (supabase as any)
-        .from("clube_desafios")
-        .select("*")
-        .eq("status", "ativo")
-        .lte("data_inicio", hoje)
-        .gte("data_fim", hoje)
-        .order("data_fim", { ascending: true });
-      return data || [];
-    },
-  });
-
   const iconServico = (atividade: string) => {
     const a = atividade.toLowerCase();
     if (a.includes("nutri")) return { icon: Utensils, label: "Nutrição" };
