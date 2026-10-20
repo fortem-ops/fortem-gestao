@@ -130,7 +130,7 @@ export default function PortalLogin() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
-            className="flex min-h-[48px] w-full items-center justify-center gap-3 border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground disabled:opacity-60"
+            className="mb-6 flex min-h-[48px] w-full items-center justify-center gap-3 border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground disabled:opacity-60"
           >
             <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5">
               <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81Z" />
