@@ -16,6 +16,7 @@ type Cobranca = {
   data_vencimento: string; data_pagamento: string | null;
   status: string; forma_pagamento: string | null;
 };
+const COBRANCAS_VAZIAS: Cobranca[] = [];
 const moeda = (valor: number) => Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataLocal = (data: string) => parseISO(data.slice(0, 10) + "T12:00:00");
 const dataCurta = (data: string) => format(dataLocal(data), "dd/MM/yyyy");
@@ -36,7 +37,7 @@ function ContratoBloco({ contrato, onCobrancas }: {
   contrato: any;
   onCobrancas: (id: string, cobrancas: Cobranca[], carregando: boolean) => void;
 }) {
-  const { data: cobrancas = [], isLoading } = useQuery({
+  const { data: cobrancas = COBRANCAS_VAZIAS, isLoading } = useQuery({
     queryKey: ["portal-cobrancas", contrato.id],
     queryFn: async () => {
       const { data } = await (supabase as any)

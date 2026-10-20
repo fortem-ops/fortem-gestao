@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Portal Pagamentos: reorganização visual, próxima cobrança global, cartões recolhíveis e histórico; preservar consultas e regras.
+
 - [x] ANEXO I: migração 0142 aplicada e conferida; função, tela e ficha prontas; ensaio desfeito e testes OK.
 - [ ] ANEXO I: publicar `planos-checkout` no momento do Publish do dono (aguarda o dono).
 - [x] Expirar e2538616 (lixo de teste autorizado).

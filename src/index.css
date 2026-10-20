@@ -226,6 +226,41 @@
     outline-offset: 2px;
   }
 
+  /* Exclusivo da tela de pagamentos do aluno. */
+  [data-portal="true"] .portal-pagamentos {
+    --primary: 359.25 66.67% 47.06%;
+    --portal-marca: 359.3 78.09% 57.06%;
+    --muted-foreground: 180 1.3% 69.8%;
+    --success: 151.26 49.79% 53.14%;
+    --warning: 42.59 74.26% 57.25%;
+  }
+  [data-portal="true"] .portal-pagamentos,
+  [data-portal="true"] .portal-pagamentos :is(div,p,span,button,a,h1,h2,h3) {
+    font-family: 'Archivo', sans-serif;
+  }
+  [data-portal="true"] .portal-pagamentos .portal-section-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--muted-foreground));
+  }
+  [data-portal="true"] .portal-pagamentos .portal-cobranca-moldura::before,
+  [data-portal="true"] .portal-pagamentos .portal-cobranca-moldura::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: hsl(var(--portal-marca));
+    pointer-events: none;
+  }
+  [data-portal="true"] .portal-pagamentos .portal-cobranca-moldura::before {
+    top: -1px; right: -1px; border-top-width: 2px; border-right-width: 2px;
+  }
+  [data-portal="true"] .portal-pagamentos .portal-cobranca-moldura::after {
+    bottom: -1px; left: -1px; border-bottom-width: 2px; border-left-width: 2px;
+  }
+
   /* Landing pública FORTEM 10 anos — tema escuro da marca, isolado. */
   [data-festa="10anos"] {
     --background: 0 0% 5.5%;        /* #0e0e0e */
