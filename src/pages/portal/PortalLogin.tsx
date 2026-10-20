@@ -7,6 +7,7 @@ import { AuthBackdrop } from "@/components/portal/AuthBackdrop";
 import { toast } from "sonner";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { userHasStaffAccess } from "@/lib/authAccess";
+import { lovable } from "@/integrations/lovable/index";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
 import { Seo } from "@/components/Seo";
@@ -18,6 +19,7 @@ export default function PortalLogin() {
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [testing, setTesting] = useState(false);
   const [loginFalhou, setLoginFalhou] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn, user, resetAuthState } = useAuth();
   const navigate = useNavigate();
 
@@ -75,6 +77,24 @@ export default function PortalLogin() {
     setDiagnosis(null);
   }
 
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setGoogleLoading(false);
+      toast.error("Não foi possível iniciar o login com Google", { description: "Tente novamente ou use e-mail e senha." });
+      return;
+    }
+    if (result.redirected) {
+      // O navegador vai para o Google; a sessão chega pelo retorno.
+      return;
+    }
+    // Sessão definida sem redirect: o useEffect acima navega para o destino.
+    setGoogleLoading(false);
+  }
+
   async function handleResetSession() {
     setLoading(true);
     await resetAuthState();
@@ -106,8 +126,20 @@ export default function PortalLogin() {
           <span aria-hidden className="absolute -right-px -top-px h-6 w-6 border-r-2 border-t-2 border-[#E73C3E]" />
           <span aria-hidden className="absolute -bottom-px -left-px h-6 w-6 border-b-2 border-l-2 border-[#E73C3E]" />
 
-          {/* Espaço reservado para o futuro "Entrar com Google" */}
-          <div data-slot="login-social" />
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading}
+            className="mb-6 flex min-h-[48px] w-full items-center justify-center gap-3 border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground disabled:opacity-60"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5">
+              <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81Z" />
+              <path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.94-2.91l-3.87-3c-1.07.72-2.44 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.1A12 12 0 0 0 12 24Z" />
+              <path fill="#FBBC05" d="M5.27 14.28a7.19 7.19 0 0 1 0-4.56v-3.1H1.28a12 12 0 0 0 0 10.76l3.99-3.1Z" />
+              <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.62l3.99 3.1C6.22 6.88 8.87 4.77 12 4.77Z" />
+            </svg>
+            {googleLoading ? "Abrindo Google..." : "Entrar com Google"}
+          </button>
 
           <div className="mb-6 space-y-1">
             <h1 className="text-[28px] font-black uppercase leading-none text-foreground">Entrar</h1>
