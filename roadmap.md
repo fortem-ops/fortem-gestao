@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Portal: horários futuros de São Paulo reavaliados por minuto; desafio compacto no Início e detalhado no Clube com consulta/cache existentes; 43 testes e build OK, visual e navegação conferidos em simulação móvel/desktop (sessão disponível sem vínculo de aluno).
+
 - [x] Portal Pagamentos: próxima cobrança global, cartões recolhíveis e histórico; consultas e cadastro preservados, 5 testes passaram, visual conferido com simulação (conta disponível sem vínculo de aluno).
 
 - [x] ANEXO I: migração 0142 aplicada e conferida; função, tela e ficha prontas; ensaio desfeito e testes OK.

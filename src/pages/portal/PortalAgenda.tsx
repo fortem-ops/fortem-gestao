@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { horarioFuturoPortal } from "@/components/portal/portalPresentation";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,6 +55,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export default function PortalAgenda() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
+  const [agoraVisual, setAgoraVisual] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setAgoraVisual(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
   const [confirmando, setConfirmando] = useState<{ slot: Slot; data: string; instrutor?: string } | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
@@ -429,7 +435,6 @@ export default function PortalAgenda() {
   }, [reservasServico]);
 
   const horariosServicoPorDia = useMemo(() => {
-    const agora = Date.now();
     const map: Record<string, any[]> = {};
     for (const d of dias14) {
       const key = format(d, "yyyy-MM-dd");
@@ -438,10 +443,7 @@ export default function PortalAgenda() {
         return h.dia_semana === d.getDay();
       });
       const validos = doDia.filter((h) => {
-        const [hh, mm] = String(h.horario_inicio).split(":").map(Number);
-        const dt = new Date(d);
-        dt.setHours(hh, mm, 0, 0);
-        if (dt.getTime() <= agora) return false;
+        if (!horarioFuturoPortal(key, String(h.horario_inicio), agoraVisual)) return false;
         const ocupado = ocupadosSet.has(
           `${h.profissional_id ?? ""}|${key}|${String(h.horario_inicio).slice(0, 5)}`,
         );
@@ -452,12 +454,12 @@ export default function PortalAgenda() {
       }
     }
     return map;
-  }, [horariosServico, dias14, ocupadosSet]);
+  }, [horariosServico, dias14, ocupadosSet, agoraVisual]);
 
 
   const diasServicoDisponiveis = useMemo(
-    () => dias14.filter((d) => horariosServicoPorDia[format(d, "yyyy-MM-dd")]?.length),
-    [dias14, horariosServicoPorDia]
+    () => dias14,
+    [dias14]
   );
 
 
@@ -876,7 +878,9 @@ export default function PortalAgenda() {
           })()}
       {(() => {
         const isCorrida = modalidadeTreino === "corrida";
-        const lista = isCorrida ? slotsCorrida : slotsTreino;
+        const lista = (isCorrida ? slotsCorrida : slotsTreino).filter((slot) =>
+          horarioFuturoPortal(dataStr, slot.horario_inicio, agoraVisual)
+        );
         const diasSet = isCorrida ? diasComSlotsCorrida : diasComSlotsTreino;
         const bloqueadoCorrida = isCorrida && !temPlanoCorrida;
         return (<>
@@ -949,7 +953,7 @@ export default function PortalAgenda() {
         {lista.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-8 text-center">
             <CalendarDays className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Sem horários disponíveis neste dia.</p>
+            <p className="text-sm text-muted-foreground">{new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(agoraVisual) === dataStr ? "Não há mais horários hoje" : "Sem horários disponíveis neste dia."}</p>
           </div>
         ) : (
           lista.map((slot) => {
@@ -964,13 +968,7 @@ export default function PortalAgenda() {
             const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
             const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
             const semCreditos = !isCorrida && saldo <= 0;
-            const ehHoje = isSameDay(diaSelecionado, new Date());
-            const slotPassou = ehHoje && (() => {
-              const [hh, mm] = slot.horario_inicio.split(":").map(Number);
-              const inicio = new Date();
-              inicio.setHours(hh, mm, 0, 0);
-              return inicio.getTime() <= Date.now();
-            })();
+
 
             return (
               <div key={slot.id} className="bg-card border border-border rounded-2xl p-4 space-y-3">
@@ -1036,10 +1034,6 @@ export default function PortalAgenda() {
                   </Button>
                 ) : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
-                ) : slotPassou ? (
-                  <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
-                    Horário encerrado
-                  </div>
                 ) : jaTemNoDia ? (
                   <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
                     Você já tem um treino agendado neste dia
@@ -1144,7 +1138,7 @@ export default function PortalAgenda() {
                     onClick={() => {
                       const next = isSelected ? null : atividade;
                       setServicoSelecionado(next);
-                      setDiaServico(null);
+                      setDiaServico(next ? new Date() : null);
                     }}
                     className={cn(
                       "w-full flex items-center gap-3 p-4 rounded-xl border transition-colors text-left",
@@ -1226,7 +1220,7 @@ export default function PortalAgenda() {
                             </div>
                           ) : horariosDoDia.length === 0 ? (
                             <div className="bg-card border border-border rounded-xl p-4 text-center">
-                              <p className="text-sm text-muted-foreground">Sem horários disponíveis neste dia.</p>
+                              <p className="text-sm text-muted-foreground">{new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(agoraVisual) === diaServicoStr ? "Não há mais horários hoje" : "Sem horários disponíveis neste dia."}</p>
                             </div>
                           ) : (
                             horariosDoDia.map((h: any) => (
