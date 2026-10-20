@@ -1138,6 +1138,25 @@ export function treinoDoDia531(
   return ordens.find((o) => !feitos.has(variacao531(semana, o))) ?? ordens[0] ?? 1;
 }
 
+/**
+ * Semana atual da onda 5-3-1: a menor semana (1..4) com pelo menos um treino
+ * do ciclo ainda não concluído. Se as 4 semanas estiverem completas, retorna
+ * semana 4 com `concluida: true`. Sessões sem `concluido_em` não contam.
+ */
+export function semanaAtual531(
+  ordens: number[],
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>,
+): { semana: 1 | 2 | 3 | 4; concluida: boolean } {
+  const feitos = new Set(sessoes.filter((s) => s.concluido_em).map((s) => s.variacao));
+  if (ordens.length === 0) return { semana: 1, concluida: false };
+  for (const s of [1, 2, 3, 4] as const) {
+    if (ordens.some((o) => !feitos.has(variacao531(s, o)))) {
+      return { semana: s, concluida: false };
+    }
+  }
+  return { semana: 4, concluida: true };
+}
+
 function Portal531View({
   treino,
   sessoes,
