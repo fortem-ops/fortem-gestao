@@ -1216,8 +1216,26 @@ function Portal531View({
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
       qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
       qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
-      setOrdemAtiva(dia.ordem);
-      toast.success("Treino concluído");
+      // Se a semana ficou completa, avança para a seguinte sem recarregar.
+      const novasSessoes = [
+        ...sessoes,
+        { variacao: variacao531(semanaAtiva, dia.ordem), concluido_em: new Date().toISOString() },
+      ];
+      const semanaCompleta = ordens.every((o) =>
+        novasSessoes.some((s) => s.concluido_em && s.variacao === variacao531(semanaAtiva, o)),
+      );
+      if (semanaCompleta) {
+        toast.success(`Treino concluído. Semana ${semanaAtiva} concluída.`);
+        if (semanaAtiva < 4) {
+          setSemanaSel((semanaAtiva + 1) as 1 | 2 | 3 | 4);
+          setOrdemAtiva(null);
+        } else {
+          setOrdemAtiva(dia.ordem);
+        }
+      } else {
+        setOrdemAtiva(dia.ordem);
+        toast.success("Treino concluído");
+      }
     } catch (e: any) {
       toast.error(e.message || "Não foi possível concluir o treino.");
     } finally {
