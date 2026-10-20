@@ -1,0 +1,4 @@
+ALTER POLICY ciclos_admin_all ON public.ciclos_credito USING ((select public.is_admin_role())) WITH CHECK ((select public.is_admin_role()));
+ALTER POLICY ciclos_coord_all ON public.ciclos_credito USING ((select public.is_coordenador_ou_admin())) WITH CHECK ((select public.is_coordenador_ou_admin()));
+ALTER POLICY ciclos_staff_select ON public.ciclos_credito USING ((select public.is_professor_staff()));
+ALTER POLICY ciclos_self_select ON public.ciclos_credito USING (contrato_id IN (SELECT contratos.id FROM public.contratos WHERE contratos.aluno_id IN (SELECT alunos.id FROM public.alunos WHERE alunos.user_id = (select auth.uid()))));

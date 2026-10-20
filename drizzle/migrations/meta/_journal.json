@@ -1177,6 +1177,20 @@
       "when": 1792425043964,
       "tag": "0167_ipca_indices_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1792490387962,
+      "tag": "0168_rls_initplan_creditos_aluno",
+      "breakpoints": true
+    },
+    {
+      "idx": 169,
+      "version": "7",
+      "when": 1792490395737,
+      "tag": "0169_rls_initplan_ciclos_credito",
+      "breakpoints": true
     }
   ]
 }
