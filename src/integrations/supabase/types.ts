@@ -7091,7 +7091,7 @@ export type Database = {
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
-          proposta_id: string
+          proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
           simulado: boolean
@@ -7102,6 +7102,7 @@ export type Database = {
           updated_at: string
           valor_centavos: number
           vencimento: string
+          venda_origem_id: string | null
         }
         Insert: {
           baixa_manual_forma?: string | null
@@ -7115,7 +7116,7 @@ export type Database = {
           notificacao_inadimplencia_id?: string | null
           numero: number
           pago_em?: string | null
-          proposta_id: string
+          proposta_id?: string | null
           proxima_tentativa_em?: string | null
           referencia?: string | null
           simulado?: boolean
@@ -7126,6 +7127,7 @@ export type Database = {
           updated_at?: string
           valor_centavos: number
           vencimento: string
+          venda_origem_id?: string | null
         }
         Update: {
           baixa_manual_forma?: string | null
@@ -7139,7 +7141,7 @@ export type Database = {
           notificacao_inadimplencia_id?: string | null
           numero?: number
           pago_em?: string | null
-          proposta_id?: string
+          proposta_id?: string | null
           proxima_tentativa_em?: string | null
           referencia?: string | null
           simulado?: boolean
@@ -7150,6 +7152,7 @@ export type Database = {
           updated_at?: string
           valor_centavos?: number
           vencimento?: string
+          venda_origem_id?: string | null
         }
         Relationships: [
           {
@@ -7165,6 +7168,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rede_tokenizacoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_2027_mensalidades_venda_origem_id_fkey"
+            columns: ["venda_origem_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "planos_2027_mensalidades_venda_origem_id_fkey"
+            columns: ["venda_origem_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "planos_2027_mensalidades_venda_origem_id_fkey"
+            columns: ["venda_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_2027_mensalidades_venda_origem_id_fkey"
+            columns: ["venda_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
           },
         ]
       }
@@ -12260,6 +12291,18 @@ export type Database = {
         Returns: Json
       }
       fn_marcar_parcelas_vencidas: { Args: never; Returns: number }
+      fn_mensalidade_manual_cobravel: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
+      fn_mensalidade_manual_gerar: {
+        Args: { p_venda_id: string }
+        Returns: Json
+      }
+      fn_mensalidade_manual_proximo: {
+        Args: { p_venda_origem: string }
+        Returns: string
+      }
       fn_migrar_exercicio_categoria: {
         Args: {
           p_categoria_destino: string
@@ -12614,7 +12657,7 @@ export type Database = {
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
-          proposta_id: string
+          proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
           simulado: boolean
@@ -12625,6 +12668,7 @@ export type Database = {
           updated_at: string
           valor_centavos: number
           vencimento: string
+          venda_origem_id: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -12647,7 +12691,7 @@ export type Database = {
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
-          proposta_id: string
+          proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
           simulado: boolean
@@ -12658,6 +12702,7 @@ export type Database = {
           updated_at: string
           valor_centavos: number
           vencimento: string
+          venda_origem_id: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -12684,7 +12729,7 @@ export type Database = {
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
-          proposta_id: string
+          proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
           simulado: boolean
@@ -12695,6 +12740,7 @@ export type Database = {
           updated_at: string
           valor_centavos: number
           vencimento: string
+          venda_origem_id: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -12725,7 +12771,7 @@ export type Database = {
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
-          proposta_id: string
+          proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
           simulado: boolean
@@ -12736,6 +12782,7 @@ export type Database = {
           updated_at: string
           valor_centavos: number
           vencimento: string
+          venda_origem_id: string | null
         }
         SetofOptions: {
           from: "*"

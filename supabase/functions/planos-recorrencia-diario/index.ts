@@ -89,9 +89,13 @@ function depsReais(acesso: Acesso | null, softDescriptor: string): DepsRec {
     incertas: async () => (await rpc("fn_recorrencia_2027_incertas", { p_simulado: false })) ?? [],
     cobrar: async (m) => {
       if (!acesso) return { res: "desconhecido", motivo: "sem_acesso_rede" };
-      const { data: t } = await sup.from("rede_tokenizacoes")
+      // Site: token da proposta (sem aluno). Venda manual (proposta nula): token do aluno, já validado no banco.
+      const base = sup.from("rede_tokenizacoes")
         .select("tokenization_id, token_code, token_expiration, cardholder_name, status")
-        .eq("id", m.tokenizacao_id).eq("proposta_id", m.proposta_id).is("aluno_id", null).maybeSingle();
+        .eq("id", m.tokenizacao_id);
+      const { data: t } = m.proposta_id
+        ? await base.eq("proposta_id", m.proposta_id).is("aluno_id", null).maybeSingle()
+        : await base.is("proposta_id", null).not("aluno_id", "is", null).maybeSingle();
       if (!t || t.status !== "active" || !t.token_code) return { res: "recusado", motivo: "token_inativo" };
       if (!t.cardholder_name) return { res: "recusado", motivo: "sem_titular" };
       const val = validadeToken(t.token_expiration);
