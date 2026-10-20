@@ -20,6 +20,7 @@ export default function PortalLogin() {
   const [testing, setTesting] = useState(false);
   const [loginFalhou, setLoginFalhou] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const { signIn, user, resetAuthState } = useAuth();
   const navigate = useNavigate();
 
@@ -95,6 +96,24 @@ export default function PortalLogin() {
     setGoogleLoading(false);
   }
 
+  async function handleAppleSignIn() {
+    setAppleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setAppleLoading(false);
+      toast.error("Não foi possível iniciar o login com Apple", { description: "Tente novamente ou use e-mail e senha." });
+      return;
+    }
+    if (result.redirected) {
+      // O navegador vai para a Apple; a sessão chega pelo retorno.
+      return;
+    }
+    // Sessão definida sem redirect: o useEffect acima navega para o destino.
+    setAppleLoading(false);
+  }
+
   async function handleResetSession() {
     setLoading(true);
     await resetAuthState();
@@ -139,6 +158,18 @@ export default function PortalLogin() {
               <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.61 4.59 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.62l3.99 3.1C6.22 6.88 8.87 4.77 12 4.77Z" />
             </svg>
             {googleLoading ? "Abrindo Google..." : "Entrar com Google"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAppleSignIn}
+            disabled={appleLoading}
+            className="mb-6 flex min-h-[48px] w-full items-center justify-center gap-3 border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground disabled:opacity-60"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+              <path d="M17.05 12.54c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.19-1.73-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.68-.39 6.65 1.11 8.83.74 1.07 1.62 2.27 2.78 2.23 1.12-.05 1.54-.72 2.89-.72 1.35 0 1.73.72 2.91.7 1.2-.02 1.96-1.09 2.7-2.16.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.33-.9-2.36-3.59ZM14.9 5.9c.61-.74 1.02-1.77.91-2.8-.88.04-1.95.59-2.58 1.32-.56.66-1.06 1.71-.93 2.72.98.08 1.99-.5 2.6-1.24Z" />
+            </svg>
+            {appleLoading ? "Abrindo Apple..." : "Entrar com Apple"}
           </button>
 
           <div className="mb-6 space-y-1">
