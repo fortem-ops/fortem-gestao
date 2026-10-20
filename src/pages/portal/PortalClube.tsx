@@ -258,9 +258,7 @@ export default function PortalClube() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Nível</p>
-            <p className="text-2xl font-heading font-bold mt-1">
-              <span className="mr-2">{nivelAtual.emoji}</span>{nivelAtual.nome}
-            </p>
+            <p className="text-2xl font-heading font-bold mt-1">{nivelAtual.nome}</p>
           </div>
           <div className="text-right">
             <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Saldo</p>
@@ -340,7 +338,6 @@ export default function PortalClube() {
           <div className="grid grid-cols-3 gap-3">
             {badges.map((b) => (
               <Card key={b.id} className={`p-3 text-center ${b.conquistado ? "" : "opacity-40 grayscale"}`}>
-                <div className="text-3xl">{b.emoji}</div>
                 <p className="text-[11px] font-semibold mt-1 leading-tight">{b.nome}</p>
                 <p className="text-[10px] text-muted-foreground">
                   {b.conquistado ? format(new Date(b.conquistado_em!), "dd/MM/yy") : "Bloqueado"}
