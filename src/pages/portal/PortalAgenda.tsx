@@ -783,12 +783,9 @@ export default function PortalAgenda() {
                       <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
                         <Pin className="w-4 h-4 text-primary" />
                       </div>
-                      <p className="text-sm font-semibold text-foreground truncate">Horário Fixo</p>
-                      {elegivel && (
-                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold shrink-0">
-                          {horariosFixos.length}/{freq} slots
-                        </span>
-                      )}
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {elegivel ? `Horário fixo ${horariosFixos.length} de ${freq}` : "Horário fixo"}
+                      </p>
                     </div>
                     <ChevronDown
                       className={cn(
