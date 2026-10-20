@@ -122,6 +122,12 @@ function cleanName(name: string): string {
   return (name ?? "").replace(/^\s*\d+\s*[-–—.)]\s*/, "").trim();
 }
 
+/** Nome exibido ao aluno no 5-3-1: remove prefixo interno ("11- ", "03. ", "F1- "). Só exibição. */
+export function nomeExercicioAluno531(nome: string | null | undefined): string {
+  const limpo = (nome ?? "").replace(/^\s*[A-Za-z]{0,2}\d+\s*[.\-–)]\s*/, "").trim();
+  return limpo || "Exercício sem nome";
+}
+
 // Helper: label da categoria do aquecimento
 function catLabel(cat: string): string {
   const map: Record<string, string> = {
@@ -1336,10 +1342,13 @@ function Portal531View({
                   <p className={`${ROTULO_531} mb-2`}>{AQ531_LABEL[k]}</p>
                   <ul className="divide-y divide-[#4A4B4B] border-t border-[#4A4B4B]">
                     {items.map((ex, i) => (
-                      <li key={i} className="flex min-h-[48px] items-center justify-between gap-2 py-2">
-                        <span className="min-w-0 flex-1 truncate">{ex.exercicio || "—"}</span>
-                        <span className="text-[#B1B3B3] tabular-nums">{ex.repeticoes}</span>
-                        <VideoBtn531 url={ex.video_url} nome={ex.exercicio || "exercício"} />
+                      <li key={i} className="py-2">
+                        <div className="flex min-h-[44px] items-start justify-between gap-2">
+                          <span className="min-w-0 flex-1 break-words leading-snug pt-2.5">{nomeExercicioAluno531(ex.exercicio)}</span>
+                          <span className="shrink-0 text-[#B1B3B3] tabular-nums pt-2.5">{ex.repeticoes}</span>
+                          <VideoBtn531 url={ex.video_url} nome={nomeExercicioAluno531(ex.exercicio)} />
+                        </div>
+                        <CargaInput alunoId={alunoId} treinoId={treino?.id} exercicio={`${cleanName(ex.exercicio || "")} · ${sem}`} />
                       </li>
                     ))}
                   </ul>
@@ -1363,13 +1372,12 @@ function Portal531View({
             const semana = wave.find((w) => w.semana === semanaAtiva)!;
             const tm = round531(tm531(lev.rm_1, data.percentual_training_max));
             const total = semana.series.length;
-            let aqN = 0;
             return (
               <div key={lev.levantamento} className="border border-[#4A4B4B]">
-                <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#4A4B4B]">
+                <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-[#4A4B4B]">
                   <div className="min-w-0">
                     <p className="font-bold">{lev.levantamento}</p>
-                    <p className="text-[13px] text-[#B1B3B3] truncate">{base.nome}</p>
+                    <p className="text-[13px] text-[#B1B3B3] break-words leading-snug">{base.nome}</p>
                     <p className="text-[13px] text-[#B1B3B3] tabular-nums">Carga de referência {tm} kg</p>
                   </div>
                   <VideoBtn531 url={base.video_url} nome={base.nome} />
@@ -1378,8 +1386,7 @@ function Portal531View({
                   {semana.series.map((s, i) => {
                     const principal = s.reps.includes("+");
                     const aquec = s.tipo === "aquecimento";
-                    if (aquec) aqN++;
-                    return (
+                                    return (
                       <li
                         key={i}
                         className={`min-h-[48px] px-3 py-2 tabular-nums ${principal ? "border-l-2 border-[#C8282A]" : ""}`}
@@ -1394,13 +1401,6 @@ function Portal531View({
                             → {String(s.kg).replace(".", ",")} kg
                           </span>
                         </div>
-                        {aquec && (
-                          <CargaInput
-                            alunoId={alunoId}
-                            treinoId={treino?.id}
-                            exercicio={`${cleanName(base.nome)} · ${sem} · Aquec. ${aqN}`}
-                          />
-                        )}
                       </li>
                     );
                   })}
@@ -1420,14 +1420,14 @@ function Portal531View({
                   const kg = accKg531(rmVinc, data.percentual_training_max, s.percentual);
                   return (
                     <li key={idx} className="py-2">
-                      <div className="flex min-h-[44px] items-center justify-between gap-2">
+                      <div className="flex min-h-[44px] items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{acc.exercicio || "—"}</p>
+                          <p className="break-words leading-snug font-semibold">{nomeExercicioAluno531(acc.exercicio)}</p>
                           <p className="text-[13px] text-[#B1B3B3] tabular-nums">
                             {s.series} séries · {s.reps} reps · {s.percentual}% · referência {String(kg).replace(".", ",")} kg
                           </p>
                         </div>
-                        <VideoBtn531 url={acc.video_url} nome={acc.exercicio || "exercício"} />
+                        <VideoBtn531 url={acc.video_url} nome={nomeExercicioAluno531(acc.exercicio)} />
                       </div>
                       <CargaInput alunoId={alunoId} treinoId={treino?.id} exercicio={`${cleanName(acc.exercicio || "")} · ${sem}`} />
                     </li>
@@ -1443,14 +1443,14 @@ function Portal531View({
               <ul className="divide-y divide-[#4A4B4B] border-y border-[#4A4B4B]">
                 {dia.auxiliares.map((aux, i) => (
                   <li key={i} className="py-2">
-                    <div className="flex min-h-[44px] items-center justify-between gap-2">
+                    <div className="flex min-h-[44px] items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">{aux.exercicio || "—"}</p>
+                        <p className="break-words leading-snug font-semibold">{nomeExercicioAluno531(aux.exercicio)}</p>
                         <p className="text-[13px] text-[#B1B3B3] tabular-nums">
                           {aux.series} séries · {aux.reps} reps{aux.kg ? ` · referência ${aux.kg}` : ""}
                         </p>
                       </div>
-                      <VideoBtn531 url={aux.video_url} nome={aux.exercicio || "exercício"} />
+                      <VideoBtn531 url={aux.video_url} nome={nomeExercicioAluno531(aux.exercicio)} />
                     </div>
                     <CargaInput alunoId={alunoId} treinoId={treino?.id} exercicio={`${cleanName(aux.exercicio || "")} · ${sem}`} />
                   </li>
