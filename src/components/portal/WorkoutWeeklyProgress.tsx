@@ -38,7 +38,7 @@ export function WorkoutWeeklyProgress({ feitos, meta }: WorkoutWeeklyProgressPro
       </div>
       <p className="text-[11px] text-muted-foreground mt-2">
         {feitos >= safeMeta
-          ? "Meta semanal atingida! 🎉"
+          ? "Meta semanal atingida"
           : `Faltam ${safeMeta - feitos} treino${safeMeta - feitos > 1 ? "s" : ""} para bater a meta.`}
       </p>
     </div>

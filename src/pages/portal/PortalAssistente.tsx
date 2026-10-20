@@ -13,7 +13,7 @@ export default function PortalAssistente() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      content: `Olá! Sou o Assistente FORTEM 👋 Estou aqui para responder suas dúvidas sobre treinos, agendamentos, planos, avaliações e muito mais. Como posso ajudar?`,
+      content: `Olá! Sou o Assistente FORTEM. Estou aqui para responder suas dúvidas sobre treinos, agendamentos, planos, avaliações e muito mais. Como posso ajudar?`,
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -76,8 +76,8 @@ export default function PortalAssistente() {
 
     const texto = encodeURIComponent(
       `Olá! Sou ${nomeFormatado} e estava conversando com o Assistente FORTEM.\n\n` +
-        `📋 *Resumo da conversa:*\n\n${historicoMsgs}\n\n` +
-        `Preciso de ajuda com mais detalhes. Pode me auxiliar? 😊`
+        `*Resumo da conversa:*\n\n${historicoMsgs}\n\n` +
+        `Preciso de ajuda com mais detalhes. Pode me auxiliar?`
     );
 
     window.open(`https://wa.me/555135199451?text=${texto}`, "_blank");

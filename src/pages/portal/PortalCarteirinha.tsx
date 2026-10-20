@@ -48,8 +48,7 @@ export default function PortalCarteirinha() {
           </div>
         ) : !membro ? (
           <div className="bg-card border border-border rounded-2xl p-6 text-center space-y-3">
-            <p className="text-2xl">🏷️</p>
-            <p className="font-bold text-sm text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
+              <p className="font-bold text-sm text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
               Carteirinha ainda não disponível
             </p>
             <p className="text-xs text-muted-foreground">

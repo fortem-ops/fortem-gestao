@@ -310,7 +310,7 @@ export default function PortalPlano() {
               <div className={`rounded-xl p-3 text-xs ${excedeLicenca ? "bg-destructive/10 border border-destructive/20 text-destructive" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"}`}>
                 {excedeLicenca
                   ? `${diasSolicitados} dias solicitados excedem o limite restante de ${diasRestantes} dias.`
-                  : `✓ ${diasSolicitados} dia${diasSolicitados !== 1 ? "s" : ""} de trancamento — dentro do limite.`}
+                  : `Dentro do limite: ${diasSolicitados} dia${diasSolicitados !== 1 ? "s" : ""} de trancamento.`}
               </div>
             )}
             <div className="flex gap-3">
@@ -387,7 +387,7 @@ export default function PortalPlano() {
                     <div className="bg-background border border-border rounded-xl p-3 space-y-2 text-sm">
                       {rescisao.tipo === "start_sem_multa" && (
                         <div className="text-emerald-400 text-xs bg-emerald-500/10 rounded-lg p-2">
-                          ✓ Plano mensal sem fidelidade. Nenhuma multa devida.
+                          Plano mensal sem fidelidade. Nenhuma multa devida.
                         </div>
                       )}
                       {rescisao.tipo === "recorrencia_com_multa" && (

@@ -15,11 +15,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const NIVEIS = [
-  { key: "bronze",   nome: "Bronze",   emoji: "🥉", min: 0,    max: 0,     cor: "text-amber-700" },
-  { key: "prata",    nome: "Prata",    emoji: "🥈", min: 0,    max: 300,   cor: "text-slate-300" },
-  { key: "ouro",     nome: "Ouro",     emoji: "🥇", min: 300,  max: 1000,  cor: "text-yellow-400" },
-  { key: "diamante", nome: "Diamante", emoji: "💎", min: 1000, max: 3000,  cor: "text-cyan-400" },
-  { key: "platina",  nome: "Platina",  emoji: "👑", min: 3000, max: Infinity, cor: "text-purple-400" },
+  { key: "bronze",   nome: "Bronze",   min: 0,    max: 0,     cor: "text-amber-700" },
+  { key: "prata",    nome: "Prata",    min: 0,    max: 300,   cor: "text-slate-300" },
+  { key: "ouro",     nome: "Ouro",     min: 300,  max: 1000,  cor: "text-yellow-400" },
+  { key: "diamante", nome: "Diamante", min: 1000, max: 3000,  cor: "text-cyan-400" },
+  { key: "platina",  nome: "Platina",  min: 3000, max: Infinity, cor: "text-purple-400" },
 ];
 
 function isAgregadorPlan(tipo?: string | null): boolean {
@@ -602,11 +602,11 @@ export default function PortalClube() {
               </p>
               <div className="space-y-2">
                 {[
-                  { nivel: "🥉 Bronze", cor: "text-amber-700", plano: "Wellhub / Gympass / Total Pass", pontos: "fixo", desc: "Nível fixo para planos agregadores. Acesso aos benefícios básicos dos parceiros, mas pontua 50% menos e resgates custam 30% a mais." },
-                  { nivel: "🥈 Prata", cor: "text-slate-300", plano: "Start / Start+", pontos: "0 – 299 pts", desc: "Nível inicial dos planos FORTEM. Acesso aos benefícios básicos dos parceiros." },
-                  { nivel: "🥇 Ouro", cor: "text-yellow-400", plano: "Power", pontos: "300 – 999 pts", desc: "Acesso a benefícios intermediários e desconto em recompensas." },
-                  { nivel: "💎 Diamante", cor: "text-cyan-400", plano: "Pro", pontos: "1.000 – 2.999 pts", desc: "Acesso a benefícios premium e desconto significativo nas recompensas." },
-                  { nivel: "👑 Platina", cor: "text-purple-400", plano: "Max", pontos: "3.000+ pts", desc: "Nível máximo. Acesso VIP a todos os benefícios e melhores condições de resgate." },
+                  { nivel: "Bronze", cor: "text-amber-700", plano: "Wellhub / Gympass / Total Pass", pontos: "fixo", desc: "Nível fixo para planos agregadores. Acesso aos benefícios básicos dos parceiros, mas pontua 50% menos e resgates custam 30% a mais." },
+                  { nivel: "Prata", cor: "text-slate-300", plano: "Start / Start+", pontos: "0 – 299 pts", desc: "Nível inicial dos planos FORTEM. Acesso aos benefícios básicos dos parceiros." },
+                  { nivel: "Ouro", cor: "text-yellow-400", plano: "Power", pontos: "300 – 999 pts", desc: "Acesso a benefícios intermediários e desconto em recompensas." },
+                  { nivel: "Diamante", cor: "text-cyan-400", plano: "Pro", pontos: "1.000 – 2.999 pts", desc: "Acesso a benefícios premium e desconto significativo nas recompensas." },
+                  { nivel: "Platina", cor: "text-purple-400", plano: "Max", pontos: "3.000+ pts", desc: "Nível máximo. Acesso VIP a todos os benefícios e melhores condições de resgate." },
                 ].map(n => (
                   <div key={n.nivel} className="bg-background border border-border rounded-xl p-3 space-y-1.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -631,15 +631,15 @@ export default function PortalClube() {
               <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Como ganhar pontos</p>
               <div className="space-y-2">
                 {[
-                  { emoji: "🏋️", acao: "Treino realizado", pts: "10 pts", obs: "Por sessão confirmada" },
-                  { emoji: "📊", acao: "Avaliação funcional", pts: "50 pts", obs: "A cada avaliação" },
-                  { emoji: "🤝", acao: "Indicação convertida", pts: "100 pts", obs: "Quando o indicado contrata" },
-                  { emoji: "🎁", acao: "Bônus por ser indicado", pts: "50 pts", obs: "Única vez" },
-                  { emoji: "💪", acao: "Serviço contratado", pts: "30 pts", obs: "Por serviço" },
-                  { emoji: "🎂", acao: "Aniversário FORTEM", pts: "100 pts", obs: "Por ano completado" },
-                  { emoji: "🎉", acao: "Aniversário do aluno", pts: "50 pts", obs: "Uma vez por ano" },
-                  { emoji: "⭐", acao: "Avaliação no Google", pts: "50 pts", obs: "Única vez" },
-                  { emoji: "✅", acao: "Perfil completo", pts: "20 pts", obs: "Única vez" },
+                  { acao: "Treino realizado", pts: "10 pts", obs: "Por sessão confirmada" },
+                  { acao: "Avaliação funcional", pts: "50 pts", obs: "A cada avaliação" },
+                  { acao: "Indicação convertida", pts: "100 pts", obs: "Quando o indicado contrata" },
+                  { acao: "Bônus por ser indicado", pts: "50 pts", obs: "Única vez" },
+                  { acao: "Serviço contratado", pts: "30 pts", obs: "Por serviço" },
+                  { acao: "Aniversário FORTEM", pts: "100 pts", obs: "Por ano completado" },
+                  { acao: "Aniversário do aluno", pts: "50 pts", obs: "Uma vez por ano" },
+                  { acao: "Avaliação no Google", pts: "50 pts", obs: "Única vez" },
+                  { acao: "Perfil completo", pts: "20 pts", obs: "Única vez" },
                 ].map(item => (
                   <div key={item.acao} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                                         <div className="flex-1 min-w-0">

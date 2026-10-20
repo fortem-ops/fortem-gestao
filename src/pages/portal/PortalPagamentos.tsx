@@ -223,7 +223,7 @@ function ContratoBloco({ contrato }: { contrato: any }) {
                         Parcela {numParcela}
                         {totalParcelas > 1 && `/${totalParcelas}`}
                       </p>
-                      {isPaga && <span className="text-emerald-400 text-xs">✅</span>}
+                      {isPaga && <span className="text-emerald-400 text-[10px] font-bold uppercase">Paga</span>}
                       {isFutura && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">Agendada</span>}
                       {isAtrasada && <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-bold">Em atraso</span>}
                     </div>
