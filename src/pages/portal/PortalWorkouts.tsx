@@ -1138,6 +1138,25 @@ export function treinoDoDia531(
   return ordens.find((o) => !feitos.has(variacao531(semana, o))) ?? ordens[0] ?? 1;
 }
 
+/**
+ * Semana atual da onda 5-3-1: a menor semana (1..4) com pelo menos um treino
+ * do ciclo ainda não concluído. Se as 4 semanas estiverem completas, retorna
+ * semana 4 com `concluida: true`. Sessões sem `concluido_em` não contam.
+ */
+export function semanaAtual531(
+  ordens: number[],
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>,
+): { semana: 1 | 2 | 3 | 4; concluida: boolean } {
+  const feitos = new Set(sessoes.filter((s) => s.concluido_em).map((s) => s.variacao));
+  if (ordens.length === 0) return { semana: 1, concluida: false };
+  for (const s of [1, 2, 3, 4] as const) {
+    if (ordens.some((o) => !feitos.has(variacao531(s, o)))) {
+      return { semana: s, concluida: false };
+    }
+  }
+  return { semana: 4, concluida: true };
+}
+
 function Portal531View({
   treino,
   sessoes,
@@ -1154,7 +1173,11 @@ function Portal531View({
   const raw = (treino?.conteudo ?? null) as Wendler531Conteudo | null;
   const data = raw ? { ...raw, dias: Array.isArray(raw.dias) ? raw.dias : [] } : null;
   const ordens = (data?.dias ?? []).map((d) => d.ordem);
-  const [semanaAtiva, setSemanaAtiva] = useState<1 | 2 | 3 | 4>(1);
+  // Semana automática: derivada das sessões concluídas; a escolha manual
+  // (semanaSel) vale só enquanto a tela estiver aberta.
+  const auto = semanaAtual531(ordens, sessoes);
+  const [semanaSel, setSemanaSel] = useState<1 | 2 | 3 | 4 | null>(null);
+  const semanaAtiva = semanaSel ?? auto.semana;
   const [ordemAtiva, setOrdemAtiva] = useState<number | null>(null);
   const [concluindo, setConcluindo] = useState(false);
   const alunoId = treino?.aluno_id ?? student?.id ?? null;
@@ -1193,8 +1216,26 @@ function Portal531View({
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
       qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
       qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
-      setOrdemAtiva(dia.ordem);
-      toast.success("Treino concluído");
+      // Se a semana ficou completa, avança para a seguinte sem recarregar.
+      const novasSessoes = [
+        ...sessoes,
+        { variacao: variacao531(semanaAtiva, dia.ordem), concluido_em: new Date().toISOString() },
+      ];
+      const semanaCompleta = ordens.every((o) =>
+        novasSessoes.some((s) => s.concluido_em && s.variacao === variacao531(semanaAtiva, o)),
+      );
+      if (semanaCompleta) {
+        toast.success(`Treino concluído. Semana ${semanaAtiva} concluída.`);
+        if (semanaAtiva < 4) {
+          setSemanaSel((semanaAtiva + 1) as 1 | 2 | 3 | 4);
+          setOrdemAtiva(null);
+        } else {
+          setOrdemAtiva(dia.ordem);
+        }
+      } else {
+        setOrdemAtiva(dia.ordem);
+        toast.success("Treino concluído");
+      }
     } catch (e: any) {
       toast.error(e.message || "Não foi possível concluir o treino.");
     } finally {
@@ -1219,9 +1260,16 @@ function Portal531View({
       {/* Progresso */}
       <section className="border border-[#4A4B4B] bg-[#1A1A1A] p-4">
         <p className={ROTULO_531}>Progresso</p>
-        <p className="mt-1 text-base font-bold">
-          Semana {semanaAtiva} de 4 · Treino {posicao} de {data.dias.length}
-        </p>
+        {auto.concluida ? (
+          <>
+            <p className="mt-1 text-base font-bold">Onda concluída</p>
+            <p className="mt-1 text-[13px] text-[#B1B3B3]">Fale com a equipe para a próxima onda.</p>
+          </>
+        ) : (
+          <p className="mt-1 text-base font-bold">
+            Semana {semanaAtiva} de 4 · Treino {posicao} de {data.dias.length}
+          </p>
+        )}
       </section>
 
       {/* Seletor de treino */}
@@ -1252,19 +1300,24 @@ function Portal531View({
       <div>
         <p className={`${ROTULO_531} mb-2`}>Semana</p>
         <div className="grid grid-cols-4 gap-2">
-          {([1, 2, 3, 4] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => { setSemanaAtiva(s); setOrdemAtiva(null); }}
-              aria-pressed={semanaAtiva === s}
-              className={`min-h-[44px] border text-[13px] font-bold uppercase ${
-                semanaAtiva === s ? "border-foreground bg-[#1A1A1A] text-foreground" : "border-[#4A4B4B] text-[#B1B3B3]"
-              }`}
-            >
-              Semana {s}
-              {s === 4 && <span className="block text-[11px] font-semibold normal-case">Recuperação</span>}
-            </button>
-          ))}
+          {([1, 2, 3, 4] as const).map((s) => {
+            const completa = ordens.length > 0 && ordens.every((o) => feitos.has(variacao531(s, o)));
+            return (
+              <button
+                key={s}
+                onClick={() => { setSemanaSel(s); setOrdemAtiva(null); }}
+                aria-pressed={semanaAtiva === s}
+                className={`min-h-[44px] border text-[13px] font-bold uppercase ${
+                  semanaAtiva === s ? "border-foreground bg-[#1A1A1A] text-foreground" : "border-[#4A4B4B] text-[#B1B3B3]"
+                }`}
+              >
+                Semana {s}
+                {s === 4 && !completa && <span className="block text-[11px] font-semibold normal-case">Recuperação</span>}
+                {completa && <span className="block text-[11px] font-semibold normal-case text-[#4CC38A]">Concluída</span>}
+                {!completa && s === auto.semana && <span className="block text-[11px] font-semibold normal-case">Atual</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
