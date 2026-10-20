@@ -448,8 +448,6 @@ async function teste3fJornada3() {
 
 async function conferir3fJornada3() {
   const sup = admin();
-  const { data: rec } = await sup.from("pix_recorrencias").select("id_rec, status, raw_response").eq("aluno_id", J3.aluno_id).eq("raw_response->>jornada3_txid", "" ).limit(0);
-  void rec;
   const { data: r } = await sup.from("pix_recorrencias").select("id_rec, status, raw_response").eq("aluno_id", J3.aluno_id).not("raw_response->>jornada3_txid", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!r) return { ok: false, erro: "Sem recorrência da jornada 3." };
   const txid = (r.raw_response as any).jornada3_txid;
