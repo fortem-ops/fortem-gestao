@@ -748,20 +748,21 @@ export function PersonalizadoEditor({
           <Badge variant="outline" className="text-xs">Aluno: {alunoNome}</Badge>
         )}
         <div className="ml-auto flex items-center gap-2 flex-wrap">
-          {autoSaveLabel && (
-            <span
-              className={`text-[11px] ${
-                autoSaveStatus === "error"
-                  ? "text-destructive"
-                  : autoSaveStatus === "saving"
-                    ? "text-muted-foreground"
-                    : "text-primary"
-              }`}
-              title="Suas alterações são salvas automaticamente como rascunho"
-            >
-              {autoSaveLabel}
-            </span>
-          )}
+          <span
+            aria-hidden={!autoSaveLabel}
+            className={`text-[11px] inline-block text-right min-w-[150px] whitespace-nowrap transition-opacity duration-200 ${
+              autoSaveLabel ? "opacity-100" : "opacity-0"
+            } ${
+              autoSaveStatus === "error"
+                ? "text-destructive"
+                : autoSaveStatus === "saving"
+                  ? "text-muted-foreground"
+                  : "text-primary"
+            }`}
+            title="Suas alterações são salvas automaticamente como rascunho"
+          >
+            {autoSaveLabel || "Rascunho salvo"}
+          </span>
           <Button size="sm" variant="outline" onClick={() => setExportOpen("download")}>
             <FileDown className="w-3 h-3 mr-1" /> PDF
           </Button>

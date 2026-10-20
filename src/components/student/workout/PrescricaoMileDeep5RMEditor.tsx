@@ -184,16 +184,19 @@ export function PrescricaoMileDeep5RMEditor({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {savingLabel && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <span
+            aria-hidden={!savingLabel}
+            className={`text-xs text-muted-foreground flex items-center gap-1 justify-end min-w-[130px] whitespace-nowrap transition-opacity duration-200 ${
+              savingLabel ? "opacity-100" : "opacity-0"
+            }`}
+          >
               {savingLabel === "Salvando…" ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
                 <CheckCircle2 className="w-3 h-3 text-primary" />
               )}
-              {savingLabel}
-            </span>
-          )}
+              {savingLabel || "Rascunho salvo"}
+          </span>
           <MethodGuideSheet guide={MILE_DEEP_5RM_METHOD_GUIDE} />
           <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
             <FileDown className="w-3 h-3 mr-1" /> PDF
