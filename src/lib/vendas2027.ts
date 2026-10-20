@@ -49,6 +49,8 @@ export type EntradaVenda2027 = {
   formaServicos?: FormaServicos2027;
   /** Parcelas dos serviços à parte no cartão: 1 a 6. */
   parcelasServicos?: number;
+  /** Desconto sobre o plano (R$). Anual: abate o total; mensal: abate a 1ª mensalidade. */
+  descontoPlano?: number;
 };
 
 export const MESES_RECORRENCIA_2027 = 12;
@@ -88,6 +90,8 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   const valorC = toCents(item.valor);
   const servicosC = servicos.reduce((s, x) => s + toCents(x.valor), 0);
   if (valorC <= 0) throw new Error("Valor do plano inválido");
+  const descC = toCents(e.descontoPlano);
+  if (descC < 0) throw new Error("Desconto inválido");
 
   const ehStart = item.familia === "start_2027";
   const ehMensal = item.modalidade_cobranca === "recorrencia_mensal";
@@ -99,13 +103,15 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   // Power/Pro anual: plano + serviços nas mesmas parcelas (ou Pix à vista)
   if (!ehMensal) {
     const n = forma === "pix_vista" ? 1 : inteiroEntre(e.parcelas, 1, MAX_PARCELAS_PLANO_2027, "Parcelas");
-    const parcelas = montarParcelas(valorC, servicosC, n);
+    if (descC >= valorC) throw new Error("Desconto maior que o valor do plano");
+    const planoC = valorC - descC;
+    const parcelas = montarParcelas(planoC, servicosC, n);
     return {
-      plano: { forma, total: fromCents(valorC + servicosC), parcelas },
+      plano: { forma, total: fromCents(planoC + servicosC), parcelas },
       servicosAvulsos: null,
-      totalPlano: fromCents(valorC),
+      totalPlano: fromCents(planoC),
       totalServicos: fromCents(servicosC),
-      totalGeral: fromCents(valorC + servicosC),
+      totalGeral: fromCents(planoC + servicosC),
     };
   }
 
@@ -114,13 +120,12 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   const taxaC = ehStart ? 0 : toCents(item.taxa_recorrencia);
   const mensalC = valorC + taxaC;
   const nCobrancas = ehStart ? 1 : MESES_RECORRENCIA_2027;
-  const parcelasPlano: Parcela2027[] = Array.from({ length: nCobrancas }, (_, i) => ({
-    numero: i + 1,
-    valor: fromCents(mensalC),
-    plano: fromCents(mensalC),
-    servicos: 0,
-  }));
-  const totalPlanoC = mensalC * nCobrancas;
+  if (descC >= mensalC) throw new Error("Desconto maior que a mensalidade");
+  const parcelasPlano: Parcela2027[] = Array.from({ length: nCobrancas }, (_, i) => {
+    const v = i === 0 ? mensalC - descC : mensalC;
+    return { numero: i + 1, valor: fromCents(v), plano: fromCents(v), servicos: 0 };
+  });
+  const totalPlanoC = mensalC * nCobrancas - descC;
 
   let servicosAvulsos: Cobranca2027 | null = null;
   if (servicosC > 0) {
