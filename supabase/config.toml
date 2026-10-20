@@ -75,3 +75,6 @@ verify_jwt = false
 
 [functions.facial-checkin]
 verify_jwt = false
+
+[functions.facial-agente-heartbeat]
+verify_jwt = false
