@@ -275,14 +275,14 @@ export default function PortalClube() {
               <span>
                 {boostedByPlan ? (
                   <>
-                    Seu plano já garante {nivelAtual.emoji} {nivelAtual.nome}. Faltam{" "}
-                    <strong>{faltamParaProximo}</strong> pts para chegar em {proxNivel.emoji} {proxNivel.nome} por pontuação
+                    Seu plano já garante {nivelAtual.nome}. Faltam{" "}
+                    <strong>{faltamParaProximo}</strong> pts para chegar em {proxNivel.nome} por pontuação
                   </>
                 ) : faltamParaProximo === 0 ? (
-                  `✓ Próximo nível desbloqueado!`
+                  `Próximo nível desbloqueado`
                 ) : (
                   <>
-                    Faltam <strong>{faltamParaProximo}</strong> pts para {proxNivel.emoji} {proxNivel.nome}
+                    Faltam <strong>{faltamParaProximo}</strong> pts para {proxNivel.nome}
                   </>
                 )}
               </span>
@@ -319,7 +319,7 @@ export default function PortalClube() {
           className="w-full py-3 rounded-2xl bg-amber-500 text-black text-sm font-black flex items-center justify-center gap-2"
           style={{fontFamily:'Archivo,sans-serif'}}
         >
-          🚀 Migrar para plano FORTEM
+          Migrar para plano FORTEM
         </button>
       )}
 
@@ -373,11 +373,10 @@ export default function PortalClube() {
       {rankingAberto && ranking && (
         <div className="space-y-2">
           {ranking.slice(0, 10).map((r, i) => {
-            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+            const posicao = `#${i + 1}`;
             const isMe = r.aluno_id === student.id;
             return isMe ? (
               <div key={r.aluno_id} className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
-                <span className="text-lg">🥇</span>
                 <div className="flex-1">
                   <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
                     {student.nome}
@@ -388,7 +387,7 @@ export default function PortalClube() {
               </div>
             ) : (
               <div key={r.aluno_id} className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
-                <span className="text-base">{medal}</span>
+                <span className="text-base">{posicao}</span>
                 <p className="flex-1 text-sm font-semibold text-foreground truncate">{r.nome}</p>
                 <p className="text-sm font-bold text-foreground">{r.pontos} pts</p>
               </div>
@@ -396,7 +395,6 @@ export default function PortalClube() {
           })}
           {posicaoRanking && posicaoRanking > 10 && (
             <div className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
-              <span className="text-lg">🥇</span>
               <div className="flex-1">
                 <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
                   {student.nome}
@@ -553,7 +551,7 @@ export default function PortalClube() {
               <span className={`text-sm font-black ml-3 ${mov.pontos_final > 0 ? 'text-emerald-400' : 'text-destructive'}`}
                 style={{fontFamily:'Archivo,sans-serif'}}>
                 {mov.pontos_final > 0 ? '+' : ''}{mov.pontos_final}
-                {mov.multiplicador_clima && <span className="text-[10px] ml-1">🌧️</span>}
+                {mov.multiplicador_clima && <span className="text-[10px] ml-1">Clima</span>}
               </span>
             </div>
           )) : <p className="text-xs text-muted-foreground">Sem movimentações ainda.</p>}
@@ -624,7 +622,7 @@ export default function PortalClube() {
               </div>
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
                 <p className="text-xs text-foreground">
-                  💡 <strong>Exemplo:</strong> Aluno com plano Power (nível mínimo Ouro) que acumula 1.200 pontos sobe automaticamente para <strong>Diamante</strong> — o maior entre os dois prevalece.
+                  <strong>Exemplo:</strong> Aluno com plano Power (nível mínimo Ouro) que acumula 1.200 pontos sobe automaticamente para <strong>Diamante</strong> — o maior entre os dois prevalece.
                 </p>
               </div>
             </section>
@@ -644,8 +642,7 @@ export default function PortalClube() {
                   { emoji: "✅", acao: "Perfil completo", pts: "20 pts", obs: "Única vez" },
                 ].map(item => (
                   <div key={item.acao} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                    <span className="text-lg shrink-0">{item.emoji}</span>
-                    <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground">{item.acao}</p>
                       <p className="text-xs text-muted-foreground">{item.obs}</p>
                     </div>
@@ -660,7 +657,7 @@ export default function PortalClube() {
             <section className="space-y-2">
               <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Multiplicador climático</p>
               <div className="bg-background border border-border rounded-xl p-3 space-y-1.5">
-                <p className="text-sm font-bold text-foreground">🌧️ Dias de chuva, frio ou calor intenso</p>
+                <p className="text-sm font-bold text-foreground">Dias de chuva, frio ou calor intenso</p>
                 <p className="text-xs text-muted-foreground">
                   Em dias de clima extremo em Porto Alegre, seus pontos de treino valem <strong className="text-foreground">1,5×</strong> automaticamente. O app exibe um aviso quando o multiplicador está ativo.
                 </p>
