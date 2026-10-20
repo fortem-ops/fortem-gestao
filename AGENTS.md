@@ -1,6 +1,7 @@
 # Decisões técnicas
 
-- Portal payments reuse contract callbacks; challenges share Home's existing query/key with Clube. Why: preserve data flow without distinct queries.
+- Portal payments reuse contract callbacks; Home/Clube challenges share their cache. Why: preserve data flow.
+- Manual first-cycle card payments share service-only reservation/atomic settlement RPCs; reconcile approvals without capture or recreating contracts/credits. Why: link payment, charge, sale and cycle; exclude public checkout/crons.
 
 - A conclusão do lembrete de Avaliação Funcional deve ser inferida pelo conteúdo de `avaliacoes.dados` em registros `funcional_v2`, mantendo suporte aos tipos legados; o tipo sozinho não representa as partes preenchidas.
 - Categorias de despesa: lançamentos novos só usam categorias com `nivel` (central/sub); `nivel` nulo = categoria antiga, mantida só para histórico/filtros. Por quê: preservar lançamentos antigos sem poluir o cadastro novo.
