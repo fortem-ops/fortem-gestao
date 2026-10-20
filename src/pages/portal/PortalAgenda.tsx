@@ -677,10 +677,10 @@ export default function PortalAgenda() {
       {/* Switcher */}
       <div className="flex gap-1 p-1 bg-muted rounded-xl">
         {[
-          { key: "treinos", label: "🏋️ Treinos" },
-          { key: "corrida", label: "🏃 Corrida" },
-          { key: "servicos", label: "📋 Serviços" },
-          { key: "agendamentos", label: "📌 Meus" },
+          { key: "treinos", label: "Treinos" },
+          { key: "corrida", label: "Corrida" },
+          { key: "servicos", label: "Serviços" },
+          { key: "agendamentos", label: "Meus" },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -746,7 +746,7 @@ export default function PortalAgenda() {
             onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero contratar o plano de Corrida.', '_blank')}
             className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
           >
-            🏃 Falar com a equipe sobre o plano de Corrida →
+            Falar com a equipe sobre o plano de Corrida
           </button>
         </section>
       )}
@@ -812,7 +812,7 @@ export default function PortalAgenda() {
                     return (
                       <div className="flex items-center gap-2 text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Realizado ✓</span>
+                        <span className="text-sm font-semibold">Realizado</span>
                       </div>
                     );
                   }
@@ -1040,7 +1040,7 @@ export default function PortalAgenda() {
                             onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero fazer upgrade do meu plano para ter horário fixo.', '_blank')}
                             className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
                           >
-                            🚀 Fazer upgrade e garantir meu horário →
+                            Fazer upgrade e garantir meu horário
                           </button>
                         </div>
                       ) : horariosFixos.length === 0 ? (
@@ -1069,7 +1069,7 @@ export default function PortalAgenda() {
                                     {DIAS_LABEL[hf.dia_semana]} · {hf.horario_inicio?.slice(0, 5)}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {pausado ? `Pausado até ${format(parseISO(hf.pausado_ate + "T12:00:00"), "dd/MM/yyyy")}` : "Reserva automática toda semana ✓"}
+                                    {pausado ? `Pausado até ${format(parseISO(hf.pausado_ate + "T12:00:00"), "dd/MM/yyyy")}` : "Reserva automática toda semana"}
                                   </p>
                                 </div>
                                 <button
@@ -1102,7 +1102,6 @@ export default function PortalAgenda() {
           {/* ── SEÇÃO TREINOS ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-base">🏋️</span>
               <SectionLabel>Treinos</SectionLabel>
             </div>
 
@@ -1140,7 +1139,7 @@ export default function PortalAgenda() {
                             </p>
                             {ag.treino_slots?.modalidade === "corrida" && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                🏃 Corrida
+                                Corrida
                               </span>
                             )}
                           </div>
@@ -1234,7 +1233,6 @@ export default function PortalAgenda() {
                     </div>
                     {!servicoDentroPrazo(s) && (
                       <p className="mt-2 text-[11px] text-amber-400 flex items-start gap-1.5">
-                        <span>⚠️</span>
                         <span>Faltam menos de 8h — cancelar agora não estorna o crédito.</span>
                       </p>
                     )}
@@ -1648,7 +1646,7 @@ export default function PortalAgenda() {
                         </p>
                         {h.treino_slots?.modalidade === "corrida" && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                            🏃 Corrida
+                            Corrida
                           </span>
                         )}
                       </div>
