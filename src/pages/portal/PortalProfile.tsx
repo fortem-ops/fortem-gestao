@@ -82,7 +82,13 @@ export default function PortalProfile() {
 
   return (
     <div data-portal="true" className="space-y-5 pb-32 animate-fade-in">
+      {/* ── CABEÇALHO ── */}
+      <header className="pt-1">
+        <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Sua conta</p>
+        <h1 className="font-heading text-[32px] font-black uppercase leading-none text-foreground">Perfil</h1>
+      </header>
       {/* ── CARTÃO DE IDENTIDADE ── */}
+
       <div className="relative bg-card border border-border p-5">
         <span
           aria-hidden="true"

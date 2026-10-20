@@ -10,12 +10,13 @@ import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/portal/home", label: "Home", icon: House },
+  { to: "/portal/home", label: "Início", icon: House },
   { to: "/portal/treinos", label: "Treinos", icon: Dumbbell },
-  { to: "/portal/avaliacoes", label: "Avaliações", icon: ClipboardCheck },
-  { to: "/portal/clube", label: "Clube", icon: Sparkles },
   { to: "/portal/agenda", label: "Agenda", icon: CalendarDays },
+  { to: "/portal/clube", label: "Clube", icon: Sparkles },
+  { to: "/portal/avaliacoes", label: "Evolução", icon: ClipboardCheck },
 ];
+
 
 export function PortalLayout() {
   const { signOut, user } = useAuth();
@@ -67,9 +68,10 @@ export function PortalLayout() {
             <span className="text-xs text-muted-foreground truncate max-w-[140px]">{student?.nome?.split(' ')[0]}</span>
             <button
               onClick={() => navigate("/portal/perfil")}
-              className="rounded-full ring-1 ring-border hover:ring-primary transition"
-              title="Mais"
-              aria-label="Mais"
+              className="w-11 h-11 flex items-center justify-center rounded-full ring-1 ring-border hover:ring-primary transition"
+              title="Perfil"
+              aria-label="Perfil"
+
             >
               <Avatar className="w-8 h-8">
                 {student?.foto_url && <AvatarImage src={student.foto_url} alt={student.nome} />}
@@ -113,7 +115,7 @@ export function PortalLayout() {
       </main>
 
       {/* Bottom nav */}
-      <nav data-portal="true" className="fixed bottom-0 inset-x-0 border-t border-border bg-card z-40">
+      <nav data-portal="true" className="fixed bottom-0 inset-x-0 border-t border-border bg-background z-40">
         <div className="max-w-3xl mx-auto grid grid-cols-5">
           {navItems.map((item) => (
             <NavLink
@@ -121,8 +123,10 @@ export function PortalLayout() {
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center py-3 pb-6 gap-1 text-[10px] tracking-wide transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  "flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-2 pt-2 pb-5 text-[11px] font-bold uppercase tracking-[0.06em] transition-colors",
+                  isActive
+                    ? "border-[#E73C3E] text-white"
+                    : "border-transparent text-[#B1B3B3] hover:text-foreground",
                 )
               }
             >
@@ -132,6 +136,7 @@ export function PortalLayout() {
           ))}
         </div>
       </nav>
+
     </div>
   );
 }
