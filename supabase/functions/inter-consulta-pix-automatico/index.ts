@@ -367,7 +367,9 @@ async function teste3fJornada3() {
   const out: Record<string, unknown> = {};
   // Uma única tentativa: recusa se já houve início.
   const { count: ja } = await sup.from("system_logs").select("id", { count: "exact", head: true }).eq("modulo", MOD_J3).eq("acao", "inicio");
-  if ((ja ?? 0) > 0) return { ok: false, erro: "Jornada 3 já foi tentada uma vez; nada enviado." };
+  // 2ª e última tentativa só com registro de aprovação do dono; nunca uma 3ª.
+  const { count: lib } = await sup.from("system_logs").select("id", { count: "exact", head: true }).eq("modulo", MOD_J3).eq("acao", "segunda_tentativa_aprovada");
+  if ((ja ?? 0) >= 2 || ((ja ?? 0) === 1 && (lib ?? 0) === 0)) return { ok: false, erro: "Limite de tentativas da jornada 3 atingido; nada enviado." };
   await log("inicio", { aluno_id: J3.aluno_id, valor: J3.valor });
 
   // 1) Cancela a recorrência ativa de teste (sem cobrança).
