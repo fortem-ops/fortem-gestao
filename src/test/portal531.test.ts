@@ -47,3 +47,18 @@ describe("semana atual 5-3-1", () => {
     expect(semanaAtual531(ordens, s)).toEqual({ semana: 1, concluida: false });
   });
 });
+
+import { nomeExercicioAluno531 } from "@/pages/portal/PortalWorkouts";
+describe("nome do exercício para o aluno 5-3-1", () => {
+  it.each([
+    ["11- Remada Curvada com Barra", "Remada Curvada com Barra"],
+    ["03. CARs - Rotação interna", "CARs - Rotação interna"],
+    ["01- Desassociação quadril", "Desassociação quadril"],
+    ["F1- Isom. flexores de quadril", "Isom. flexores de quadril"],
+    ["1- Passada Simples", "Passada Simples"],
+    ["3- Supino Alternado com Halteres", "Supino Alternado com Halteres"],
+  ])("remove prefixo de %s", (a, b) => expect(nomeExercicioAluno531(a)).toBe(b));
+  it.each(["90/90 de quadril", "21s de bíceps", "Supino"])("mantém %s", (a) =>
+    expect(nomeExercicioAluno531(a)).toBe(a));
+  it("vazio vira Exercício sem nome", () => expect(nomeExercicioAluno531("")).toBe("Exercício sem nome"));
+});
