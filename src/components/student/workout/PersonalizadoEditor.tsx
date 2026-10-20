@@ -641,11 +641,12 @@ export function PersonalizadoEditor({
           .maybeSingle();
         const respId = alunoRow?.responsavel_id || user.id;
         // Remove tarefas antigas pendentes desse tipo para o mesmo aluno
+        // (inclui a baixa da tarefa de onda 5-3-1 concluída: novo treino aplicado resolve a pendência)
         await supabase
           .from("tarefas")
           .delete()
           .eq("aluno_id", targetAlunoId)
-          .eq("tipo_auto", "atualizar_treino");
+          .in("tipo_auto", ["atualizar_treino", "treino_onda_concluida"]);
         const dataLimite = new Date();
         dataLimite.setDate(dataLimite.getDate() + 30);
         await supabase.from("tarefas").insert({
