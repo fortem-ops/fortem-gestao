@@ -11,6 +11,8 @@ import {
   formatExpirationMonth,
 } from "../_shared/rede-payload.ts";
 import { cobrarComToken } from "../_shared/rede-recorrencia-core.ts";
+import { executarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
+import { cobrarTokenManual } from "../_shared/manual-primeiro-ciclo-rede.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +32,24 @@ serve(async (req) => {
   const { venda_id, cartao_id, amount, installments = 1 } = await req.json().catch(() => ({}));
   if (!venda_id || !cartao_id || !amount) {
     return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes" }), { status: 400, headers });
+  }
+
+  const { data: vendaManual } = await supabase.from("vendas").select("origem,tipo_cobranca").eq("id", venda_id).maybeSingle();
+  if (vendaManual?.origem === "manual" && vendaManual.tipo_cobranca === "recorrencia") {
+    const bearer = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
+    if (bearer !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+      const { data: { user } } = await supabase.auth.getUser(bearer);
+      if (!user) return new Response(JSON.stringify({ error: "Não autenticado" }), { status: 401, headers });
+      const { data: autorizado } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
+      if (!autorizado) return new Response(JSON.stringify({ error: "Sem permissão" }), { status: 403, headers });
+    }
+    try {
+      const manual = await executarPrimeiroCiclo(supabase, venda_id, crypto.randomUUID(), "token", cartao_id, null,
+        (centavos) => cobrarTokenManual(supabase, venda_id, cartao_id, centavos));
+      if (manual.handled) return new Response(JSON.stringify(manual), { headers });
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: String(e), incerto: true }), { status: 409, headers });
+    }
   }
 
   const { data: existing } = await supabase

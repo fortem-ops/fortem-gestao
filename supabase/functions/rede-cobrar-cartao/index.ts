@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { salvarCartaoComSubstituicao } from "../_shared/cartao-substituicao.ts";
 import { atualizarVendaEParcelas, criarContratoPosAprovacao } from "../_shared/venda-pos-aprovacao.ts";
+import { executarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
 
 import {
   loadSecrets,
@@ -188,6 +189,26 @@ serve(async (req) => {
 
 
   // Idempotência
+  try {
+    const manual = await executarPrimeiroCiclo(supabase, venda_id, crypto.randomUUID(), "credit", null, aluno_id, async (centavos) => {
+      if (Number(installments) !== 1 || capture_override === false) throw new Error("Primeiro ciclo recorrente exige captura em uma parcela");
+      const s = await loadSecrets(supabase);
+      const amb = s.rede_ambiente === "producao" ? "producao" : "sandbox";
+      const accessToken = await getRedeAccessToken(s.rede_pv, s.rede_token, amb);
+      const resp = await fetch(`${resolveRedeBaseUrl(amb)}/transactions`, {
+        method: "POST", headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+        body: JSON.stringify({ capture: true, kind: "credit", reference: buildReference(venda_id), amount: centavos, installments: 1,
+          cardNumber: card_number.replace(/\D/g, ""), cardholderName: normalizeCardholderName(card_holder),
+          expirationMonth: formatExpirationMonth(expiration_month), expirationYear: formatExpirationYear(expiration_year), securityCode: String(security_code) }),
+      });
+      const raw = await resp.json().catch(() => null);
+      return { stage: "transaction", errorKind: null, httpStatus: resp.status, approved: resp.ok && raw?.returnCode === "00", returnCode: raw?.returnCode,
+        returnMessage: raw?.returnMessage, tid: raw?.tid, nsu: raw?.nsu, authorizationCode: raw?.authorizationCode, raw };
+    });
+    if (manual.handled) return new Response(JSON.stringify(manual), { headers });
+  } catch (e) {
+    return new Response(JSON.stringify({ success: false, incerto: true, error: String(e) }), { status: 409, headers });
+  }
   const { data: existing } = await supabase
     .from("pagamentos_rede")
     .select("tid, status")

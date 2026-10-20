@@ -4,6 +4,7 @@
 // cartão recém-tokenizado (via rede-cobrar-token) e encerra o link se aprovado.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
+import { reservarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,7 +59,15 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!venda) return json(404, { success: false, error: "venda_nao_encontrada" });
-    if (venda.status_pagamento === "pago") return json(200, { success: true, ja_pago: true });
+    if (venda.status_pagamento === "pago") {
+      // Concilia um pagamento aprovado já existente; nunca chama a Rede nesta retomada.
+      const { data: origem } = await admin.from("vendas").select("origem,tipo_cobranca").eq("id", venda.id).single();
+      if (origem?.origem === "manual" && origem.tipo_cobranca === "recorrencia") {
+        const manual = await reservarPrimeiroCiclo(admin, venda.id, crypto.randomUUID(), "token", cartaoSalvoId);
+        if (manual.handled) return json(200, manual);
+      }
+      return json(200, { success: true, ja_pago: true });
+    }
 
     // o cartão precisa pertencer ao aluno da venda
     const { data: cartao } = await admin
