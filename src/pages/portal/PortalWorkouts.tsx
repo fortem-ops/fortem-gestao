@@ -1260,9 +1260,16 @@ function Portal531View({
       {/* Progresso */}
       <section className="border border-[#4A4B4B] bg-[#1A1A1A] p-4">
         <p className={ROTULO_531}>Progresso</p>
-        <p className="mt-1 text-base font-bold">
-          Semana {semanaAtiva} de 4 · Treino {posicao} de {data.dias.length}
-        </p>
+        {auto.concluida ? (
+          <>
+            <p className="mt-1 text-base font-bold">Onda concluída</p>
+            <p className="mt-1 text-[13px] text-[#B1B3B3]">Fale com a equipe para a próxima onda.</p>
+          </>
+        ) : (
+          <p className="mt-1 text-base font-bold">
+            Semana {semanaAtiva} de 4 · Treino {posicao} de {data.dias.length}
+          </p>
+        )}
       </section>
 
       {/* Seletor de treino */}
