@@ -3,7 +3,7 @@
 // Nada de número/CVV/CPF/nome aqui: o nome do titular só é lido do token na hora da chamada à Rede.
 
 export type Mensalidade = {
-  id: string; proposta_id: string; tokenizacao_id: string; numero: number; valor_centavos: number;
+  id: string; proposta_id: string | null; tokenizacao_id: string; numero: number; valor_centavos: number;
   status: string; tentativas: number; referencia: string | null; simulado: boolean;
 };
 export type Rede = { nsu?: string | null; autorizacao?: string | null; returnCode?: string | null; returnMessage?: string | null };
