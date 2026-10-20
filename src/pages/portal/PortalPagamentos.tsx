@@ -70,7 +70,7 @@ function ContratoBloco({ contrato, onCobrancas }: {
     onCobrancas(contrato.id, cobrancas, isLoading);
   }, [contrato.id, cobrancas, isLoading, onCobrancas]);
 
-  const totalParcelas = cobrancas.length > 0 ? cobrancas.length : (contrato?.parcelas ?? 1);
+  const totalParcelas = Math.max(cobrancas.length, contrato.parcelas ?? venda?.parcelas ?? 1);
   const pagas = cobrancas.filter((c: Cobranca) => c.status === "pago").length;
   const historico = cobrancas.map((c: Cobranca, index: number) => ({ ...c, parcela: c.numero_ciclo ?? index + 1 }))
     .sort((a: Cobranca, b: Cobranca) => {
