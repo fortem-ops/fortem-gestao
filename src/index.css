@@ -175,24 +175,24 @@
      Portal do Aluno — dark premium theme (isolated via data-portal)
      ============================================================ */
   [data-portal="true"] {
-    --background: 0 0% 8%;
+    --background: 0 0% 5.5%;        /* #0E0E0E */
     --foreground: 0 0% 94%;
-    --card: 0 0% 11%;
+    --card: 0 0% 10.2%;             /* #1A1A1A */
     --card-foreground: 0 0% 94%;
-    --popover: 0 0% 11%;
+    --popover: 0 0% 10.2%;
     --popover-foreground: 0 0% 94%;
     --primary: 0 74% 51%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 14%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 94%;
-    --muted: 0 0% 17%;
+    --muted: 0 0% 16%;
     --muted-foreground: 0 0% 54%;
-    --accent: 0 0% 17%;
+    --accent: 0 0% 14%;
     --accent-foreground: 0 0% 94%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
+    --border: 180 1% 29%;           /* #4A4B4B */
+    --input: 180 1% 29%;
     --ring: 0 74% 51%;
-    --radius: 1rem;
+    --radius: 0rem;
     font-family: 'Manrope', sans-serif;
   }
   [data-portal="true"] h1,
@@ -215,6 +215,15 @@
     border: 1px solid hsl(var(--border));
     box-shadow: none;
     backdrop-filter: none;
+  }
+  /* Identidade FORTEM: cantos retos, sem sombras (foco indicado por outline) */
+  [data-portal="true"] * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  [data-portal="true"] :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   /* Landing pública FORTEM 10 anos — tema escuro da marca, isolado. */
