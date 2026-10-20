@@ -1219,6 +1219,13 @@
       "when": 1792503408024,
       "tag": "0173_fase1_base_checkin_facial",
       "breakpoints": true
+    },
+    {
+      "idx": 174,
+      "version": "7",
+      "when": 1792505073784,
+      "tag": "0174_facial_registrar_passagem",
+      "breakpoints": true
     }
   ]
 }

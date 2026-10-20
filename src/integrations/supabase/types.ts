@@ -12071,6 +12071,16 @@ export type Database = {
         Args: { p_horario_fixo_id: string }
         Returns: Json
       }
+      fn_facial_registrar_passagem: {
+        Args: {
+          p_bruto?: Json
+          p_device_user_id: number
+          p_evento_em: string
+          p_simular?: boolean
+          p_sucesso: boolean
+        }
+        Returns: Json
+      }
       fn_feriados_nacionais: {
         Args: { p_fim: string; p_ini: string }
         Returns: string[]
