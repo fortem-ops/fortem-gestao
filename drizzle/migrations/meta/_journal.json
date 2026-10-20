@@ -1205,6 +1205,13 @@
       "when": 1792499477488,
       "tag": "0171_tarefa_onda_531_concluida",
       "breakpoints": true
+    },
+    {
+      "idx": 172,
+      "version": "7",
+      "when": 1792499532054,
+      "tag": "0172_permitir_variacao_531_treino_sessoes",
+      "breakpoints": true
     }
   ]
 }
