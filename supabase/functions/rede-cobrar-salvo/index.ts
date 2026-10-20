@@ -26,6 +26,8 @@ import {
 import { cobrarComToken, motivoRecusaLegivel } from "../_shared/rede-recorrencia-core.ts";
 import { atualizarVendaEParcelas, criarContratoPosAprovacao } from "../_shared/venda-pos-aprovacao.ts";
 import { validarCobrancaSalvo } from "../_shared/cobrar-salvo-validacao.ts";
+import { executarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
+import { cobrarTokenManual } from "../_shared/manual-primeiro-ciclo-rede.ts";
 import {
   classificarResultadoTransacao,
   decidirConflitoReserva,
@@ -104,6 +106,13 @@ serve(async (req) => {
   }
 
   // ── 3. Idempotência por chave — devolve o resultado da primeira ──
+  try {
+    const manual = await executarPrimeiroCiclo(supabase, venda_id, idempotency_key, "token", cartao_id, null,
+      (centavos) => cobrarTokenManual(supabase, venda_id, cartao_id, centavos));
+    if (manual.handled) return json(manual);
+  } catch (e) {
+    return json({ success: false, incerto: true, error: String(e) }, 409);
+  }
   const { data: mesmaChave } = await supabase
     .from("pagamentos_rede")
     .select("id, tid, status, return_code, return_message, amount")
