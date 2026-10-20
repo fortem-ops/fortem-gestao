@@ -358,7 +358,8 @@ async function teste3fCobr() {
 }
 
 // ---------- Jornada 3 (autorização + cobrança imediata no mesmo QR). Parâmetros fixos aprovados pelo dono. ----------
-const J3 = { aluno_id: "085acf57-2dbe-464d-9acc-e1b0f5b77032", valor: 1, data_inicio: "2026-11-20", data_fim: "2026-12-20", objeto: "Teste Pix Automatico FORTEM J3" };
+// 3ª tentativa aprovada pelo dono: cadastro dele (único ativo), mesmo valor e lógica.
+const J3 = { aluno_id: "590f4e74-8955-4104-a25c-3558100a98fe", valor: 1, data_inicio: "2026-11-20", data_fim: "2026-12-20", objeto: "Teste Pix Automatico FORTEM J3" };
 const MOD_J3 = "pix-automatico-teste-3f-j3";
 
 async function teste3fJornada3() {
@@ -367,9 +368,9 @@ async function teste3fJornada3() {
   const out: Record<string, unknown> = {};
   // Uma única tentativa: recusa se já houve início.
   const { count: ja } = await sup.from("system_logs").select("id", { count: "exact", head: true }).eq("modulo", MOD_J3).eq("acao", "inicio");
-  // 2ª e última tentativa só com registro de aprovação do dono; nunca uma 3ª.
-  const { count: lib } = await sup.from("system_logs").select("id", { count: "exact", head: true }).eq("modulo", MOD_J3).eq("acao", "segunda_tentativa_aprovada");
-  if ((ja ?? 0) >= 2 || ((ja ?? 0) === 1 && (lib ?? 0) === 0)) return { ok: false, erro: "Limite de tentativas da jornada 3 atingido; nada enviado." };
+  // 3ª e última tentativa só com registro de aprovação do dono; nunca uma 4ª.
+  const { count: lib } = await sup.from("system_logs").select("id", { count: "exact", head: true }).eq("modulo", MOD_J3).eq("acao", "terceira_tentativa_aprovada");
+  if ((ja ?? 0) !== 2 || (lib ?? 0) === 0) return { ok: false, erro: "Limite de tentativas da jornada 3 atingido; nada enviado." };
   await log("inicio", { aluno_id: J3.aluno_id, valor: J3.valor });
 
   // 1) Cancela a recorrência ativa de teste (sem cobrança).
