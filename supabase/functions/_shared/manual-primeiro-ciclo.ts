@@ -38,13 +38,27 @@ export async function executarPrimeiroCiclo(db: any, vendaId: string, chave: str
   const reserva = await reservarPrimeiroCiclo(db, vendaId, chave, kind, cartaoId, alunoId);
   if (!reserva.handled || !reserva.nova) return reserva;
   if (!reserva.valor_centavos) throw new Error("Valor da reserva inválido");
-  const resultado = await cobrar(reserva.valor_centavos);
-  if (resultado.approved && resultado.returnCode === "00") return liquidarPrimeiroCiclo(db, vendaId, reserva, resultado);
+  let resultado: any;
+  try {
+    resultado = await cobrar(reserva.valor_centavos);
+    if (resultado.approved && resultado.returnCode === "00") return await liquidarPrimeiroCiclo(db, vendaId, reserva, resultado);
+  } catch (e) {
+    // A reserva continua pendente: nunca tenta novamente uma captura sem confirmação.
+    await db.from("system_logs").insert({ modulo: "cobrancas", acao: "manual_primeiro_ciclo_pendente",
+      mensagem: "Reserva mantida; conferir resultado antes de qualquer nova cobrança",
+      payload: { venda_id: vendaId, pagamento_id: reserva.pagamento_id, cobranca_id: reserva.cobranca_id,
+        tid: resultado?.tid ?? null, nsu: resultado?.nsu ?? null, aprovado: resultado?.approved === true } });
+    throw e;
+  }
   // Resultado incerto permanece reservado, nunca autoriza nova chamada.
   if (resultado.stage === "cryptogram") {
     await db.from("pagamentos_rede").delete().eq("id", reserva.pagamento_id).eq("status", "pending");
   } else if (!resultado.errorKind && resultado.httpStatus < 500 && resultado.returnCode) {
     await db.from("pagamentos_rede").update({ status: "denied", return_code: resultado.returnCode, return_message: resultado.returnMessage, tid: resultado.tid, nsu: resultado.nsu }).eq("id", reserva.pagamento_id);
   }
+  await db.from("system_logs").insert({ modulo: "cobrancas", acao: "manual_primeiro_ciclo_nao_confirmado",
+    mensagem: "Primeiro ciclo sem confirmação de pagamento; nenhuma repetição automática",
+    payload: { venda_id: vendaId, pagamento_id: reserva.pagamento_id, cobranca_id: reserva.cobranca_id,
+      etapa: resultado.stage, http_status: resultado.httpStatus, return_code: resultado.returnCode } });
   return { ...reserva, nova: false, success: false, error: "Pagamento não confirmado; confira o resultado antes de tentar novamente." };
 }
