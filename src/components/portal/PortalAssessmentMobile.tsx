@@ -92,7 +92,7 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferenc
   if (!latest) return null;
 
   return (
-    <div className="portal-evolucao space-y-6 min-w-0">
+    <div className="portal-evolucao space-y-6 min-w-0 text-foreground">
       <header className="pt-2">
         <p className="evolution-section-label">Avaliação funcional</p>
         <h1 className="font-heading text-2xl font-black text-foreground">EVOLUÇÃO</h1>
@@ -245,7 +245,7 @@ function MeasureRow({ medida, showReference = false }: { medida: PortalMedida; s
         {showReference && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Percentil da amostra Fortem indisponível nos dados desta avaliação.</p>}
       </div>
       <div className="w-[76px] shrink-0 text-center">
-        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${style.text} ${style.bg}`}>
+        <span className={`inline-flex px-1 py-1 text-xs font-bold ${style.text}`}>
           {numero(medida.diferenca)}{medida.unidadeDiferenca}
         </span>
         <p className={`mt-1 text-[10px] font-semibold ${style.text}`}>{portalNivelLabel(medida.nivel)}</p>
