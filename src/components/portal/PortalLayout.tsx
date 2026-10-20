@@ -68,7 +68,8 @@ export function PortalLayout() {
             <button
               onClick={() => navigate("/portal/perfil")}
               className="rounded-full ring-1 ring-border hover:ring-primary transition"
-              title="Perfil"
+              title="Mais"
+              aria-label="Mais"
             >
               <Avatar className="w-8 h-8">
                 {student?.foto_url && <AvatarImage src={student.foto_url} alt={student.nome} />}
