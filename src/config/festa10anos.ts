@@ -33,7 +33,7 @@ export const festa10AnosConfig = {
     cidade: "Porto Alegre, RS",
   },
   /** Último dia para confirmar (fecha às 23:59:59 de Brasília). */
-  prazoIso: "2026-11-08",
+  prazoIso: "2026-11-06",
   prazoTexto: "até 6 de novembro",
   limiteAcompanhantes: 3,
   valores: {
