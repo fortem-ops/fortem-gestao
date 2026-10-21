@@ -12313,6 +12313,10 @@ export type Database = {
       }
       fn_festa_gestao: { Args: { _uid: string }; Returns: boolean }
       fn_festa_total_confirmados: { Args: never; Returns: number }
+      fn_festa_total_novo: {
+        Args: { p_acompanhantes: number; p_isento?: boolean }
+        Returns: number
+      }
       fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }
       fn_fin_somar_dias_uteis: {

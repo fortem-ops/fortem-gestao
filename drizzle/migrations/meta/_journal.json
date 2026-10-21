@@ -1310,6 +1310,13 @@
       "when": 1792589383107,
       "tag": "0186_facial_responsavel_links_e_admin_ativo",
       "breakpoints": true
+    },
+    {
+      "idx": 187,
+      "version": "7",
+      "when": 1792590165766,
+      "tag": "0187_festa_preco_unico_novas_confirmacoes",
+      "breakpoints": true
     }
   ]
 }
