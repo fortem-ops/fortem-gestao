@@ -14,9 +14,9 @@ describe("festa 10 anos", () => {
   it("4 pessoas custam R$ 300", () => expect(calcularTotalFesta(3)).toBe(30000));
   it("limite de 3 acompanhantes", () => expect(calcularTotalFesta(5)).toBe(30000));
   it("voucher Equipe10 zera o total de todos", () => expect(calcularTotalFesta(3, true)).toBe(0));
-  it("fecha depois de 8/11 às 23:59 de Brasília", () => {
-    expect(confirmacoesAbertas(new Date("2026-11-09T02:59:00Z"))).toBe(true);
-    expect(confirmacoesAbertas(new Date("2026-11-09T03:00:01Z"))).toBe(false);
+  it("fecha depois de 6/11 às 23:59 de Brasília", () => {
+    expect(confirmacoesAbertas(new Date("2026-11-07T02:59:00Z"))).toBe(true);
+    expect(confirmacoesAbertas(new Date("2026-11-07T03:00:01Z"))).toBe(false);
   });
   it("WhatsApp exige celular com DDD", () => {
     expect(whatsappValido("(51) 99999-0000")).toBe(true);
