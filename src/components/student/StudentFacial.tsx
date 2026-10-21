@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { FacialResponsavelLink } from "./FacialResponsavelLink";
 import { UserRound } from "lucide-react";
 
 const VERSAO_TERMO = "facial-v1";
@@ -109,13 +110,12 @@ export function StudentFacial({ student, contexto = "aluno" }: { student: Tables
   });
 
   const cred = data?.cred;
-  const consValido = data?.cons.find((c) => c.aceito && !c.revogado_em);
+  const anos = idade(student.data_nascimento);
+  const precisaResp = anos === null || anos < 18;
+  const consValido = data?.cons.find((c) => c.aceito && !c.revogado_em && (!precisaResp || c.tipo === "responsavel"));
   const consExibir = consValido ?? data?.cons[0];
   const temFacial = !!cred && cred.status !== "sem_facial" && cred.status !== "removida";
   const emAndamento = data?.fila.some((f) => f.status === "pendente" || f.status === "processando");
-  const anos = idade(student.data_nascimento);
-  const precisaResp = anos === null || anos < 18;
-
   const abrir = () => { setArquivo(null); setAutorizou(false); setResponsavel(""); setDlg(true); };
 
   const enviar = async () => {
@@ -188,6 +188,8 @@ export function StudentFacial({ student, contexto = "aluno" }: { student: Tables
         )}
       </div>
 
+      {precisaResp && <FacialResponsavelLink alunoId={alunoId} nome={student.nome} autorizacao={consValido?.tipo === "responsavel" ? consValido : null} />}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <div className={card}>
           <Label>Rosto</Label>
@@ -224,7 +226,7 @@ export function StudentFacial({ student, contexto = "aluno" }: { student: Tables
           {!consExibir ? <p className="text-sm text-muted-foreground">Nenhum consentimento registrado.</p> : (
             <div className="text-sm space-y-1">
               <p><span className="text-muted-foreground">Aceito por:</span> {consExibir.tipo === "responsavel" ? `Responsável · ${consExibir.responsavel_nome ?? ""}` : equipe ? "A própria pessoa" : "Próprio aluno"}</p>
-              <p><span className="text-muted-foreground">Origem:</span> {consExibir.origem === "app_aluno" ? "App" : "Equipe"}</p>
+              <p><span className="text-muted-foreground">Origem:</span> {consExibir.origem === "app_aluno" ? "App" : consExibir.origem === "link_responsavel" ? "Link do responsável" : "Equipe"}</p>
               <p><span className="text-muted-foreground">Data:</span> {fmt(consExibir.aceito_em)}</p>
               <p><span className="text-muted-foreground">Versão do termo:</span> {consExibir.versao_termo ?? "—"}</p>
               {consExibir.revogado_em && <p className="text-destructive">Revogado em {fmt(consExibir.revogado_em)}</p>}
@@ -290,7 +292,7 @@ export function StudentFacial({ student, contexto = "aluno" }: { student: Tables
               {equipe && <p className="text-xs text-muted-foreground max-h-40 overflow-y-auto">{textoTermo}</p>}
               <label className="flex items-center gap-2 text-sm min-h-11">
                 <Checkbox checked={autorizou} onCheckedChange={(v) => setAutorizou(!!v)} />
-                A pessoa autorizou o uso do rosto
+                {precisaResp ? "O responsável presente no balcão autorizou o uso do rosto" : "A pessoa autorizou o uso do rosto"}
               </label>
               {precisaResp && (
                 <div className="space-y-1">

@@ -105,6 +105,7 @@ const PortalRecoverPassword = lazyWithReload(() => import("./pages/portal/Portal
 const PortalResetPassword = lazyWithReload(() => import("./pages/portal/PortalResetPassword"));
 const PortalProfile = lazyWithReload(() => import("./pages/portal/PortalProfile"));
 const PortalMeusDados = lazyWithReload(() => import("./pages/portal/PortalMeusDados"));
+const FacialResponsavel = lazyWithReload(() => import("./pages/FacialResponsavel"));
 const PortalFacial = lazyWithReload(() => import("./pages/portal/PortalFacial"));
 const PortalPagamentos = lazyWithReload(() => import("./pages/portal/PortalPagamentos"));
 const CadastrarCartaoPublico = lazyWithReload(() => import("./pages/CadastrarCartao"));
@@ -164,6 +165,7 @@ const App = () => (
         <AuthProvider>
           <CartProvider>
           <Routes>
+            <Route path="/facial/responsavel/:token" element={<Suspense fallback={<RouteFallback />}><FacialResponsavel /></Suspense>} />
             <Route path="/login" element={<Login />} />
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
             <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
