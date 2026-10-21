@@ -64,7 +64,13 @@ serve(async (req) => {
       console.error("[facial-agente-fila] concluir falhou:", error.message);
       return json({ ok: false, error: "falha ao concluir" }, 503);
     }
-    return json(data ?? { ok: true });
+    const fotoApagar = (data as any)?.foto_apagar;
+    if (typeof fotoApagar === "string" && fotoApagar) {
+      const { error: eDel } = await supabase.storage.from("faciais").remove([fotoApagar]);
+      if (eDel) console.error("[facial-agente-fila] apagar foto falhou:", eDel.message);
+    }
+    const { foto_apagar: _f, ...resto } = (data ?? { ok: true }) as Record<string, unknown>;
+    return json(resto);
   }
 
   if (body.op === "reservar") {
