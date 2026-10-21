@@ -1,6 +1,6 @@
 # Decisões técnicas
 
-- Facial: queue/import RPCs are service-only behind agent-token functions; client writes via checked fn_facial_* RPCs, tables read-only, photo URLs last 120s; imports track photo origin; student app gated by fn_facial_app_aluno_habilitado. Why: private biometrics, isolated attendance.
+- Facial writes use checked RPCs; queue/import are service-only, photos expire in 120s, portal is flag-gated. Guardian links are staff-issued, hash-only, service-consumed atomically; public route blocks tracking before loading. Why: protect biometrics and minors.
 
 - Portal payments reuse contract callbacks; Home/Clube challenges share their cache. Why: preserve data flow.
 - Manual first-cycle card payments share service-only reservation/atomic settlement RPCs; reconcile approvals without capture or recreating contracts/credits. Why: link payment, charge, sale and cycle; exclude public checkout/crons.
