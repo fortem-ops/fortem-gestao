@@ -1,6 +1,6 @@
 # Decisões técnicas
 
-- Facial queue reservations and completions use service-only RPCs behind the agent-token edge function; staff/student writes (consent, requests, revoke) only via permission-checking fn_facial_* RPCs, tables are read-only to clients; photo URLs expire after 120 seconds. Why: keep biometric files private and queue processing isolated from attendance.
+- Facial: agent queue uses service-only RPCs behind the agent-token function; client writes only via permission-checking fn_facial_* RPCs (tables read-only); photo URLs expire in 120s. Why: private biometrics, queue isolated from attendance.
 
 - Portal payments reuse contract callbacks; Home/Clube challenges share their cache. Why: preserve data flow.
 - Manual first-cycle card payments share service-only reservation/atomic settlement RPCs; reconcile approvals without capture or recreating contracts/credits. Why: link payment, charge, sale and cycle; exclude public checkout/crons.
