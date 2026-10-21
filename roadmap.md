@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Facial no balcão: compartilhar termos completos do app/responsável, preservar equipe; testes locais e diálogos simulados sem salvar; conferir contagens 227/1/1 e modo log.
+
 - [x] /10anos: preço único, servidor/migration 0187, telas e 23 testes; inserções simuladas revertidas; formulário e inclusão manual conferidos; zero pendentes, quatro registros preservados e PIX teste R$70 intacto; site não publicado.
 
 - [x] Correções A1–A3 e Etapa 3 facial: migration 0186, função facial-responsavel publicada; links exclusivos da equipe; testes SQL revertidos e telas simuladas sem erros; contagens 227/1/1, links 0, modo log e flag true preservados; domínio não publicado.
