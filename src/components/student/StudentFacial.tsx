@@ -13,6 +13,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { UserRound } from "lucide-react";
 
 const VERSAO_TERMO = "facial-v1";
@@ -74,12 +76,14 @@ export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
   const [enviando, setEnviando] = useState(false);
   const [confirma, setConfirma] = useState<null | "remover" | "revogar">(null);
 
+  const { data: roles } = useUserRoles();
+  const [salvandoApp, setSalvandoApp] = useState(false);
   const key = ["facial", alunoId];
   const { data, isLoading } = useQuery({
     queryKey: key,
     queryFn: async () => {
       const [cfg, cred, cons, ev, fila] = await Promise.all([
-        supabase.from("facial_config").select("modo_checkin").eq("id", 1).maybeSingle(),
+        supabase.from("facial_config").select("modo_checkin, app_aluno_habilitado").eq("id", 1).maybeSingle(),
         supabase.from("credenciais_facial").select("*").eq("aluno_id", alunoId).maybeSingle(),
         supabase.from("facial_consentimentos").select("*").eq("aluno_id", alunoId).order("aceito_em", { ascending: false }),
         supabase.from("facial_eventos").select("id, evento_em, resultado, treino_agendamento_id").eq("aluno_id", alunoId).order("evento_em", { ascending: false }).limit(20),
@@ -91,7 +95,7 @@ export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
         const { data: s } = await supabase.storage.from("faciais").createSignedUrl(cred.data.foto_path, 120);
         fotoUrl = s?.signedUrl ?? null;
       }
-      return { modo: cfg.data?.modo_checkin, cred: cred.data, cons: cons.data ?? [], ev: ev.data ?? [], fila: fila.data ?? [], fotoUrl };
+      return { modo: cfg.data?.modo_checkin, appAluno: !!cfg.data?.app_aluno_habilitado, cred: cred.data, cons: cons.data ?? [], ev: ev.data ?? [], fila: fila.data ?? [], fotoUrl };
     },
     refetchInterval: (q) =>
       (q.state.data as any)?.fila?.some((f: any) => f.status === "pendente" || f.status === "processando") ? 5000 : false,
@@ -147,17 +151,35 @@ export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
     qc.invalidateQueries({ queryKey: key });
   };
 
+  const alternarApp = async (v: boolean) => {
+    setSalvandoApp(true);
+    const r = await supabase.rpc("fn_facial_config_app_aluno", { p_habilitado: v });
+    setSalvandoApp(false);
+    if (r.error) toast.error(msgErro(r.error));
+    else toast.success(v ? "App do aluno liberado" : "App do aluno bloqueado");
+    qc.invalidateQueries({ queryKey: ["facial"] });
+    qc.invalidateQueries({ queryKey: ["facial-app-aluno-habilitado"] });
+  };
+
   if (isLoading) return <p className="text-sm text-muted-foreground p-4">Carregando…</p>;
 
   const card = "border border-border bg-card p-5 rounded-none space-y-3";
 
   return (
     <div className="space-y-4">
-      {data?.modo === "log" && (
-        <div className="border border-border bg-muted/40 p-3 text-sm rounded-none">
-          Modo de observação. As passagens são registradas, mas ainda não confirmam a presença no treino.
-        </div>
-      )}
+      <div className="flex flex-wrap gap-3 items-stretch">
+        {data?.modo === "log" && (
+          <div className="flex-1 min-w-[240px] border border-border bg-muted/40 p-3 text-sm rounded-none">
+            Modo de observação. As passagens são registradas, mas ainda não confirmam a presença no treino.
+          </div>
+        )}
+        {roles?.isAdmin && (
+          <label className="flex items-center gap-3 border border-border p-3 text-sm rounded-none min-h-11">
+            <Switch checked={!!data?.appAluno} disabled={salvandoApp} onCheckedChange={alternarApp} />
+            App do aluno liberado
+          </label>
+        )}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className={card}>
