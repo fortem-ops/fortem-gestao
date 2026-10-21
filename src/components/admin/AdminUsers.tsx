@@ -63,17 +63,6 @@ type CreateForm = {
   role: string;
 };
 
-type EditForm = {
-  user_id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  specialty: string;
-  cpf: string;
-  pis_pasep: string;
-  changePassword: boolean;
-  password: string;
-};
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
 const maskCPF = (v: string) => {
@@ -109,7 +98,6 @@ export function AdminUsers() {
   const [roleToRemove, setRoleToRemove] = useState<{ id: string; role: string; user_id: string } | null>(null);
   const [ativoTarget, setAtivoTarget] = useState<{ user_id: string; name: string; ativo: boolean } | null>(null);
 
-  const [deleteTarget, setDeleteTarget] = useState<{ user_id: string; name: string } | null>(null);
 
   const { data: isAdmin } = useQuery({
     queryKey: ["admin-users-is-admin", user?.id],
@@ -248,7 +236,6 @@ export function AdminUsers() {
     onSuccess: () => {
       invalidateAll();
       toast.success("Usuário excluído");
-      setDeleteTarget(null);
       setFichaUserId(null);
     },
     onError: (e: any) => toast.error(e.message),
