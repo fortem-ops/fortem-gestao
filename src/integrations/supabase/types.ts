@@ -4031,6 +4031,7 @@ export type Database = {
       facial_config: {
         Row: {
           alerta_offline_min: number
+          app_aluno_habilitado: boolean
           expediente_dias: number[]
           expediente_fim: string
           expediente_fim_sexta: string
@@ -4042,6 +4043,7 @@ export type Database = {
         }
         Insert: {
           alerta_offline_min?: number
+          app_aluno_habilitado?: boolean
           expediente_dias?: number[]
           expediente_fim?: string
           expediente_fim_sexta?: string
@@ -4053,6 +4055,7 @@ export type Database = {
         }
         Update: {
           alerta_offline_min?: number
+          app_aluno_habilitado?: boolean
           expediente_dias?: number[]
           expediente_fim?: string
           expediente_fim_sexta?: string
@@ -12129,6 +12132,11 @@ export type Database = {
       fn_facial_agente_heartbeat: {
         Args: { p_detalhe?: Json; p_porta_ok: boolean; p_versao: string }
         Returns: Json
+      }
+      fn_facial_app_aluno_habilitado: { Args: never; Returns: boolean }
+      fn_facial_config_app_aluno: {
+        Args: { p_habilitado: boolean }
+        Returns: boolean
       }
       fn_facial_fila_concluir: {
         Args: { p_erro?: string; p_id: string; p_ok: boolean }

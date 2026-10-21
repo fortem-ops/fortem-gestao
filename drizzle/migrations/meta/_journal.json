@@ -1289,6 +1289,13 @@
       "when": 1792580437260,
       "tag": "0183_facial_importar_fotos_porta",
       "breakpoints": true
+    },
+    {
+      "idx": 184,
+      "version": "7",
+      "when": 1792582992862,
+      "tag": "0184_facial_app_aluno_trava",
+      "breakpoints": true
     }
   ]
 }
