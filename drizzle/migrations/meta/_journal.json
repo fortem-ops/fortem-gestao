@@ -1268,6 +1268,13 @@
       "when": 1792575693207,
       "tag": "0180_facial_fila_agente",
       "breakpoints": true
+    },
+    {
+      "idx": 181,
+      "version": "7",
+      "when": 1792578437296,
+      "tag": "0181_facial_funcoes_usuario",
+      "breakpoints": true
     }
   ]
 }

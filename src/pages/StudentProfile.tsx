@@ -22,6 +22,7 @@ import { StudentFrequencia } from "@/components/student/StudentFrequencia";
 import { StudentHistory } from "@/components/student/StudentHistory";
 import { StudentPlan } from "@/components/student/StudentPlan";
 import { StudentRegistros, REGISTROS_SUBTABS, type RegistroSubTab } from "@/components/student/StudentRegistros";
+import { StudentFacial } from "@/components/student/StudentFacial";
 
 import EditStudentDialog from "@/components/student/EditStudentDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
@@ -50,7 +51,7 @@ export default function StudentProfile() {
   const validTabs = [
     "resumo",
     ...(podeVerComercial ? ["pipeline","clube","plano","financeiro","contrato"] : []),
-    "treinos","frequencia","registros",
+    "treinos","frequencia","registros","facial",
   ];
   const LEGACY_TAB_MAP: Record<string, RegistroSubTab> = {
     avaliacoes: "avaliacoes",
@@ -267,6 +268,7 @@ export default function StudentProfile() {
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="frequencia">Frequência</TabsTrigger>
           <TabsTrigger value="registros">Registros</TabsTrigger>
+          <TabsTrigger value="facial">Facial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumo"><StudentSummary student={student} /></TabsContent>
@@ -286,6 +288,7 @@ export default function StudentProfile() {
             onValueChange={(s) => setSearchParams({ tab: "registros", sub: s }, { replace: true })}
           />
         </TabsContent>
+        <TabsContent value="facial"><StudentFacial student={student} /></TabsContent>
 
       </Tabs>
     </div>

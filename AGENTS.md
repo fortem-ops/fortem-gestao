@@ -1,13 +1,13 @@
 # Decisões técnicas
 
-- Facial queue reservations and completions use service-only RPCs behind the agent-token edge function; photo URLs expire after 120 seconds. Why: keep biometric files private and queue processing isolated from attendance.
+- Facial: agent queue uses service-only RPCs behind the agent-token function; client writes only via permission-checking fn_facial_* RPCs (tables read-only); photo URLs expire in 120s. Why: private biometrics, queue isolated from attendance.
 
 - Portal payments reuse contract callbacks; Home/Clube challenges share their cache. Why: preserve data flow.
 - Manual first-cycle card payments share service-only reservation/atomic settlement RPCs; reconcile approvals without capture or recreating contracts/credits. Why: link payment, charge, sale and cycle; exclude public checkout/crons.
 
 - A conclusão do lembrete de Avaliação Funcional deve ser inferida pelo conteúdo de `avaliacoes.dados` em registros `funcional_v2`, mantendo suporte aos tipos legados; o tipo sozinho não representa as partes preenchidas.
 - Categorias de despesa: lançamentos novos só usam categorias com `nivel` (central/sub); `nivel` nulo = categoria antiga, mantida só para histórico/filtros. Por quê: preservar lançamentos antigos sem poluir o cadastro novo.
-- O conteúdo editorial da festa de 10 anos fica centralizado em `src/config/festa10anos.ts`; por quê: permitir trocar data, local, horário, atrações e marcos sem alterar componentes.
+- Conteúdo editorial da festa de 10 anos só em `src/config/festa10anos.ts`; por quê: trocar dados sem mexer em componentes.
 - Planos versionados: comportamento de planos novos vem das colunas do `planos_catalogo` via `planos.catalogo_id`/`contratos.catalogo_id`; itens com `versao` nula seguem a lógica antiga por nome. Por quê: lançar novas versões sem afetar alunos e contratos existentes.
 - Contratos de planos versionados (2027+): o template vem de `contrato_templates` por `plano_tipo = planos_catalogo.familia` + forma (`cartao_recorrencia` ou `cartao_parcelado`, este cobrindo 12x e PIX à vista) + `ativo`, e as variáveis vêm de `src/lib/contratos2027.ts`; legado segue o `TEMPLATE_MAP` por nome. Por quê: os itens 2027 têm o mesmo nome dos antigos e cairiam no contrato legado.
 - Valores de venda dos planos 2027 saem só de `calcularVenda2027` (`src/lib/vendas2027.ts`), em centavos, com a sobra na última parcela; por quê: parcelas, contrato e cobranças precisam bater ao centavo.
