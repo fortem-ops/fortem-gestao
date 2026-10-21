@@ -91,7 +91,7 @@ export default function RelatoriosTecnicos() {
     enabled: !!isCoordAdmin,
     queryFn: async () => {
       const [alunosRes, planosRes, avalRes, profsRes] = await Promise.all([
-        supabase.from("alunos").select("id, nome, responsavel_id").eq("status", "ativo").order("nome"),
+        supabase.from("alunos").select("id, nome, responsavel_id").eq("status", "ativo").eq("is_equipe", false).order("nome"),
         supabase.from("planos").select("aluno_id").eq("ativo", true).eq("atividade", "corrida"),
         supabase
           .from("avaliacoes")

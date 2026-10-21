@@ -1,5 +1,8 @@
 project_id = "dmudgqedzeosfpehpgep"
 
+[functions.facial-responsavel]
+verify_jwt = false
+
 [functions.agenda-ics]
 verify_jwt = false
 
