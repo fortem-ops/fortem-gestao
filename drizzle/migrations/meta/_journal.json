@@ -1275,6 +1275,13 @@
       "when": 1792578437296,
       "tag": "0181_facial_funcoes_usuario",
       "breakpoints": true
+    },
+    {
+      "idx": 182,
+      "version": "7",
+      "when": 1792579642422,
+      "tag": "0182_facial_correcoes_seguranca",
+      "breakpoints": true
     }
   ]
 }
