@@ -58,7 +58,7 @@ export const festa10AnosConfig = {
     anos: [
       {
         ano: "2016",
-        marcos: ["No dia 16 de outubro a primeira loja com 25m² foi alugada, na galeria do Shopping Independência. A obra foi realizada pelas mãos da família do Nícolas, chegando a retirar mais de meia tonelada de entulhos. Foram 10 semanas de obras, fechando o ano com uma pequena celebração de inaguração entre amigos.", "7 de novembro: constituída a empresa."],
+        marcos: ["No dia 16 de outubro a primeira loja com 25m² foi alugada, na galeria do Shopping Independência. A obra foi realizada pelas mãos da família do Nícolas, chegando a retirar mais de meia tonelada de entulhos. Foram 10 semanas de obras, fechando o ano com uma pequena celebração de inaguração entre amigos.", "\n"],
         fotos: [{ url: festa2016.url, alt: "A primeira sede da FORTEM em obras, em 2016" }],
         fotoProporcao: "aspect-square",
       },
