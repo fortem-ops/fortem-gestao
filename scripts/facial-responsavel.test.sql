@@ -52,7 +52,7 @@ BEGIN
  PERFORM set_config('request.jwt.claim.sub','',true);
  UPDATE public.profiles SET ativo=true WHERE user_id=u;
  UPDATE public.profiles SET ativo=false WHERE user_id IN(SELECT user_id FROM public.user_roles WHERE role='admin' AND user_id<>u);
- IF EXISTS(SELECT 1 FROM public.user_roles r WHERE role='admin' AND user_id<>u AND NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.user_id=r.user_id AND ativo=false)) THEN RAISE EXCEPTION 'Teste A3 requer perfil em todos os admins'; END IF;
+ IF EXISTS(SELECT 1 FROM public.user_roles ur WHERE role='admin' AND user_id<>u AND NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.user_id=ur.user_id AND ativo=false)) THEN RAISE EXCEPTION 'Teste A3 requer perfil em todos os admins'; END IF;
  BEGIN DELETE FROM public.user_roles WHERE user_id=u AND role='admin'; RAISE EXCEPTION 'Último admin removido'; EXCEPTION WHEN raise_exception THEN IF SQLERRM='Último admin removido' THEN RAISE; END IF; END;
  RAISE EXCEPTION USING ERRCODE='ZX001',MESSAGE='rollback de todas as simulações';
  EXCEPTION WHEN SQLSTATE 'ZX001' THEN NULL;
