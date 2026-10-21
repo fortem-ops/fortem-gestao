@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Fila facial: aplicar SQL literal, publicar somente facial-agente-fila e confirmar fila vazia/modo log; sem enfileirar pedidos.
+
 - [x] Pagamento manual recorrente: cobrança de Larissa regularizada com travas/auditoria e reversão; migração 0177 e quatro funções publicadas; 108 testes e ensaio NICOLAS TESTE com rollback passaram; checkout público, créditos, contrato/cartão, flags e crons preservados. Nenhuma nova captura real nem pagamento pela tela foi testado.
 
 - [x] Portal Evolução: resumo, mapa intacto, pontos por nível, comparativo completo, reavaliação e detalhes recolhidos; consultas/cálculos preservados, 13 testes e build OK; móvel/desktop conferidos em simulação. Percentis exatos indisponíveis no resumo já consultado (sem consulta nova).
