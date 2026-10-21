@@ -3417,6 +3417,7 @@ export type Database = {
           aluno_id: string
           created_at: string
           device_user_id: number
+          foto_origem: string | null
           foto_path: string | null
           id: string
           sincronizado_em: string | null
@@ -3428,6 +3429,7 @@ export type Database = {
           aluno_id: string
           created_at?: string
           device_user_id?: number
+          foto_origem?: string | null
           foto_path?: string | null
           id?: string
           sincronizado_em?: string | null
@@ -3439,6 +3441,7 @@ export type Database = {
           aluno_id?: string
           created_at?: string
           device_user_id?: number
+          foto_origem?: string | null
           foto_path?: string | null
           id?: string
           sincronizado_em?: string | null
@@ -12132,6 +12135,19 @@ export type Database = {
         Returns: Json
       }
       fn_facial_fila_reservar: { Args: { p_max?: number }; Returns: Json }
+      fn_facial_importar_aluno: {
+        Args: { p_device_user_id: number }
+        Returns: string
+      }
+      fn_facial_importar_gravar: {
+        Args: {
+          p_ausente?: boolean
+          p_device_user_id: number
+          p_foto_path: string
+        }
+        Returns: Json
+      }
+      fn_facial_importar_listar: { Args: { p_max?: number }; Returns: Json }
       fn_facial_pode_agir: { Args: { p_aluno_id: string }; Returns: boolean }
       fn_facial_registrar_consentimento: {
         Args: {

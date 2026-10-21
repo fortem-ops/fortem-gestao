@@ -1282,6 +1282,13 @@
       "when": 1792579642422,
       "tag": "0182_facial_correcoes_seguranca",
       "breakpoints": true
+    },
+    {
+      "idx": 183,
+      "version": "7",
+      "when": 1792580437260,
+      "tag": "0183_facial_importar_fotos_porta",
+      "breakpoints": true
     }
   ]
 }
