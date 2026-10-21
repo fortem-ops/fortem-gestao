@@ -4192,8 +4192,10 @@ export type Database = {
           created_at: string
           device_user_id: number
           id: string
+          iniciado_em: string | null
           payload: Json
           processado_em: string | null
+          proxima_tentativa_em: string
           status: string
           tentativas: number
           ultimo_erro: string | null
@@ -4204,8 +4206,10 @@ export type Database = {
           created_at?: string
           device_user_id: number
           id?: string
+          iniciado_em?: string | null
           payload?: Json
           processado_em?: string | null
+          proxima_tentativa_em?: string
           status?: string
           tentativas?: number
           ultimo_erro?: string | null
@@ -4216,8 +4220,10 @@ export type Database = {
           created_at?: string
           device_user_id?: number
           id?: string
+          iniciado_em?: string | null
           payload?: Json
           processado_em?: string | null
+          proxima_tentativa_em?: string
           status?: string
           tentativas?: number
           ultimo_erro?: string | null
@@ -12121,6 +12127,11 @@ export type Database = {
         Args: { p_detalhe?: Json; p_porta_ok: boolean; p_versao: string }
         Returns: Json
       }
+      fn_facial_fila_concluir: {
+        Args: { p_erro?: string; p_id: string; p_ok: boolean }
+        Returns: Json
+      }
+      fn_facial_fila_reservar: { Args: { p_max?: number }; Returns: Json }
       fn_facial_registrar_passagem: {
         Args: {
           p_bruto?: Json

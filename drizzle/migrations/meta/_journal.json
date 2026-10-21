@@ -1261,6 +1261,13 @@
       "when": 1792515845765,
       "tag": "0179_recorrencia_manual_2027_so_versao_2027",
       "breakpoints": true
+    },
+    {
+      "idx": 180,
+      "version": "7",
+      "when": 1792575693207,
+      "tag": "0180_facial_fila_agente",
+      "breakpoints": true
     }
   ]
 }

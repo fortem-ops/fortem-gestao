@@ -78,3 +78,6 @@ verify_jwt = false
 
 [functions.facial-agente-heartbeat]
 verify_jwt = false
+
+[functions.facial-agente-fila]
+verify_jwt = false
