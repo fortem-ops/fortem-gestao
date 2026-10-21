@@ -96,7 +96,8 @@ export default function FestaConfirmacoes() {
   const salvar = useMutation({
     mutationFn: async (e: Edicao) => {
       const n = e.acompanhantes.length;
-      const total = e.status === "isento" ? 0 : calcularTotalFesta(n);
+      const existente = e.id ? itens.find((x) => x.id === e.id) : undefined;
+      const total = existente?.total_centavos ?? (e.status === "isento" ? 0 : calcularTotalFesta(n));
       const base = {
         nome: e.nome.trim(), whatsapp: `55${e.whatsapp.replace(/\D/g, "").replace(/^55(?=\d{11}$)/, "")}`, email: e.email.trim() || null, vinculo: e.vinculo,
         consumo: e.consumo, intolerancias: e.intolerancias, status: e.status, total_pessoas: 1 + n, acompanhantes: e.acompanhantes.map((a) => a.nome.trim()), total_centavos: total,
@@ -113,7 +114,7 @@ export default function FestaConfirmacoes() {
           if (error || !data?.ok) throw new Error("pix");
         }
         const manterPagamento = atual?.status === "confirmado" && e.status === "confirmado";
-        const { error } = await supabase.from("festa_confirmacoes").update(manterPagamento ? { ...base, pago_em: atual!.pago_em, pago_valor_centavos: atual!.pago_valor_centavos, pagamento_forma: atual!.pagamento_forma } : base).eq("id", id);
+        const { error } = await supabase.from("festa_confirmacoes").update(manterPagamento && atual ? { ...base, pago_em: atual.pago_em, pago_valor_centavos: atual.pago_valor_centavos, pagamento_forma: atual.pagamento_forma } : base).eq("id", id);
         if (error) throw error;
         const { error: e2 } = await supabase.from("festa_acompanhantes").delete().eq("confirmacao_id", id);
         if (e2) throw e2;
@@ -308,7 +309,7 @@ export default function FestaConfirmacoes() {
               <Select value={edit.status} onValueChange={(v) => setEdit({ ...edit, status: v })}><SelectTrigger aria-label="Situação"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="aguardando_pagamento">Aguardando pagamento</SelectItem><SelectItem value="confirmado">Pago</SelectItem><SelectItem value="isento">Isento</SelectItem>{edit.id && <SelectItem value="cancelado">Cancelado</SelectItem>}</SelectContent></Select>
               {edit.status === "confirmado" && <Select value={edit.pagamento_forma || "manual"} onValueChange={(v) => setEdit({ ...edit, pagamento_forma: v })}><SelectTrigger aria-label="Forma de pagamento"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Fora do PIX do site</SelectItem><SelectItem value="dinheiro">Dinheiro</SelectItem><SelectItem value="pix">PIX</SelectItem></SelectContent></Select>}
               <Input aria-label="Observação" placeholder="Observação (opcional)" value={edit.observacao} onChange={(e) => setEdit({ ...edit, observacao: e.target.value })} />
-              <p className="text-sm">Total: <strong>{brlCentavos(edit.status === "isento" ? 0 : calcularTotalFesta(edit.acompanhantes.length))}</strong></p>
+              <p className="text-sm">{edit.id ? "Total registrado" : "Total"}: <strong>{brlCentavos((edit.id ? itens.find((c) => c.id === edit.id)?.total_centavos : undefined) ?? (edit.status === "isento" ? 0 : calcularTotalFesta(edit.acompanhantes.length)))}</strong></p>
             </div>
             <DialogFooter><Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button><Button disabled={!editValido || salvar.isPending} onClick={() => salvar.mutate(edit)}>Salvar</Button></DialogFooter>
           </>}

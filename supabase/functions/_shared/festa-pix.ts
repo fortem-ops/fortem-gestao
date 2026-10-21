@@ -1,6 +1,7 @@
 // Festa 10 anos: cobrança PIX imediata (Inter, credenciais de cobrança da Loja/Corrida) e baixa idempotente.
 // Não toca em pix_cobrancas, recorrência nem checkout dos planos.
 import { interCobFetch } from "./inter-cob.ts";
+import { valorPagoFestaCorreto } from "./festa-valor.ts";
 
 export const FESTA_TXID_PREFIXO = "FESTA10";
 export const FESTA_PRAZO_FIM = new Date("2026-11-08T23:59:59.999-03:00");
@@ -51,7 +52,7 @@ export async function baixarPixFesta(sup: any, txid: string, valorRecebido: numb
   if (conf.status === "cancelado") { await registrarSemConfirmacao(sup, txid, valorRecebido, fonte, "pagamento_em_cancelada", conf.id); return { ok: true, motivo: "cancelada" }; }
   if (conf.status !== "aguardando_pagamento") return { ok: true, motivo: "ja_tratado" };
   const centavos = Math.round(Number(valorRecebido) * 100);
-  if (!Number.isFinite(centavos) || centavos !== conf.total_centavos) {
+  if (!valorPagoFestaCorreto(valorRecebido, conf.total_centavos)) {
     await sup.from("festa_eventos").insert({ confirmacao_id: conf.id, acao: "valor_divergente", detalhes: { txid, recebido_centavos: centavos, esperado_centavos: conf.total_centavos, fonte } });
     return { ok: false, motivo: "valor_divergente" };
   }

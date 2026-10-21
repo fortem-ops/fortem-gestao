@@ -4,9 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
 import { FESTA_PRAZO_FIM, criarPixFesta, conferirPixFesta, cancelarPixFesta } from "../_shared/festa-pix.ts";
-
-const CONVIDADO = 7000;
-const ACOMPANHANTE = 9000;
+import { totalFesta } from "../_shared/festa-valor.ts";
 const LIMITE_ACOMP = 3;
 
 const consumo = z.array(z.enum(["nao_alcoolico", "chope", "drink"])).max(3).default([]);
@@ -23,10 +21,6 @@ const ConfirmarSchema = z.object({
   acompanhantes: z.array(z.object({ nome, consumo, intolerancias: intol })).max(LIMITE_ACOMP).default([]),
   voucher: z.string().trim().max(40).default(""),
 });
-
-export function totalFesta(acompanhantes: number, isento: boolean) {
-  return isento ? 0 : CONVIDADO + acompanhantes * ACOMPANHANTE;
-}
 
 async function sha256(s: string) {
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
