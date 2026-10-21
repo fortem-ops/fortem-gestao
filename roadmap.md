@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Importação facial da porta: migração 0183 literal, facial-agente-importar publicada; testes SQL (a–d) desfeitos; listagem autenticada 200/token inválido 401; contagens 227/1/1 e modo log preservados; nenhuma foto real importada.
+
 - [x] Fila facial: SQL literal aplicado na migração 0180, somente facial-agente-fila publicada; fila vazia e modo log confirmados, RPCs restritas a service_role; sem enfileirar pedidos.
 
 - [x] Pagamento manual recorrente: cobrança de Larissa regularizada com travas/auditoria e reversão; migração 0177 e quatro funções publicadas; 108 testes e ensaio NICOLAS TESTE com rollback passaram; checkout público, créditos, contrato/cartão, flags e crons preservados. Nenhuma nova captura real nem pagamento pela tela foi testado.
