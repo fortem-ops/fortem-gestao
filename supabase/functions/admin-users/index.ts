@@ -140,8 +140,8 @@ Deno.serve(async (req) => {
         return json({ error: pErr.message }, 500);
       }
       await admin.from("system_logs").insert({
-        level: "info", modulo: "admin-users", acao: "deactivate",
-        mensagem: "Usuário desativado", detalhes: { user_id: body.user_id, por: callerId },
+        modulo: "admin-users", acao: "deactivate", user_id: callerId,
+        mensagem: "Usuário desativado", payload: { alvo: body.user_id },
       } as any);
       return json({ ok: true });
     }
@@ -154,8 +154,8 @@ Deno.serve(async (req) => {
         .eq("user_id", body.user_id);
       if (pErr) return json({ error: pErr.message }, 500);
       await admin.from("system_logs").insert({
-        level: "info", modulo: "admin-users", acao: "reactivate",
-        mensagem: "Usuário reativado", detalhes: { user_id: body.user_id, por: callerId },
+        modulo: "admin-users", acao: "reactivate", user_id: callerId,
+        mensagem: "Usuário reativado", payload: { alvo: body.user_id },
       } as any);
       return json({ ok: true });
     }
