@@ -253,8 +253,8 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
       </div>
 
       <div className="border border-border bg-card p-5 text-sm" aria-live="polite">
-        <div className="flex justify-between"><span>1 convidado</span><span>{voucherOk ? "R$ 0,00" : brlCentavos(cfg.valores.convidadoCentavos)}</span></div>
-        {n > 0 && <div className="mt-2 flex justify-between"><span>{n} {n === 1 ? "acompanhante" : "acompanhantes"} · {brlCentavos(cfg.valores.acompanhanteCentavos)} cada</span><span>{voucherOk ? "R$ 0,00" : brlCentavos(n * cfg.valores.acompanhanteCentavos)}</span></div>}
+        <div className="flex justify-between gap-3"><span>1 convidado</span><span>{voucherOk ? "R$ 0,00" : brlCentavos(cfg.valores.pessoaCentavos)}</span></div>
+        {n > 0 && <div className="mt-2 flex justify-between gap-3"><span>{n} {n === 1 ? "acompanhante" : "acompanhantes"} · {brlCentavos(cfg.valores.pessoaCentavos)} cada</span><span className="shrink-0">{voucherOk ? "R$ 0,00" : brlCentavos(n * cfg.valores.pessoaCentavos)}</span></div>}
         <div className="mt-4 flex justify-between border-t border-border pt-4 text-base font-bold"><span>Total</span><span>{brlCentavos(total)}</span></div>
       </div>
 

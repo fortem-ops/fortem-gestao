@@ -37,8 +37,7 @@ export const festa10AnosConfig = {
   prazoTexto: "até 6 de novembro",
   limiteAcompanhantes: 3,
   valores: {
-    convidadoCentavos: 7000,
-    acompanhanteCentavos: 9000,
+    pessoaCentavos: 7500,
     criancaTexto: "Isenta",
     pagamento: "Pagamento por PIX",
   },

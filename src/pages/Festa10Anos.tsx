@@ -160,8 +160,7 @@ export default function Festa10Anos() {
             <div className="mt-8 border border-border">
               <p className="border-b border-border px-6 py-4 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Valores por pessoa</p>
               <dl className="divide-y divide-border">
-                <div className="flex justify-between gap-4 px-6 py-4"><dt>Aluno, ex-aluno e amigo(a) da FORTEM</dt><dd className="font-bold">{brlCentavos(cfg.valores.convidadoCentavos)}</dd></div>
-                <div className="flex justify-between gap-4 px-6 py-4"><dt>Acompanhante</dt><dd className="font-bold">{brlCentavos(cfg.valores.acompanhanteCentavos)}</dd></div>
+                <div className="flex flex-wrap justify-between gap-4 px-6 py-4"><dt>Por pessoa (convidado e acompanhante):</dt><dd className="font-bold">{brlCentavos(cfg.valores.pessoaCentavos)}</dd></div>
                 <div className="flex justify-between gap-4 px-6 py-4"><dt>Criança</dt><dd className="font-bold">{cfg.valores.criancaTexto}</dd></div>
               </dl>
               <p className="border-t border-border px-6 py-4 text-sm text-muted-foreground">{cfg.valores.pagamento}</p>
