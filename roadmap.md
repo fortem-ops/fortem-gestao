@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Facial no balcão: compartilhar termos completos do app/responsável, preservar equipe; testes locais e diálogos simulados sem salvar; conferir contagens 227/1/1 e modo log.
+- [x] Facial no balcão: termos completos compartilhados do app/responsável, equipe preservada; 12 testes locais passaram, diálogos adulto/menor simulados em computador/celular conferidos sem salvar; contagens 227/1/1 e modo log preservados.
 
 - [x] /10anos: preço único, servidor/migration 0187, telas e 23 testes; inserções simuladas revertidas; formulário e inclusão manual conferidos; zero pendentes, quatro registros preservados e PIX teste R$70 intacto; site não publicado.
 

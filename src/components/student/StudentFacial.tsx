@@ -17,14 +17,18 @@ import { Switch } from "@/components/ui/switch";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { FacialResponsavelLink } from "./FacialResponsavelLink";
 import { UserRound } from "lucide-react";
-
-const VERSAO_TERMO = "facial-v1";
-const TEXTO_TERMO =
-  "Autorizo a FORTEM a usar a imagem do meu rosto exclusivamente para liberar a entrada pela porta facial e registrar minhas passagens. Posso revogar a qualquer momento.";
+import { TERMO_FACIAL_VERSAO, TERMO_FACIAL_TEXTO } from "@/lib/facialAluno";
+import { VERSAO_RESPONSAVEL, TEXTO_RESPONSAVEL } from "../../../supabase/functions/_shared/facial-responsavel-termo";
 
 const VERSAO_TERMO_EQUIPE = "v1-provisoria-equipe";
 const TEXTO_TERMO_EQUIPE =
   "TERMO DE CONSENTIMENTO PARA USO DA IMAGEM DO ROSTO (EQUIPE). Eu autorizo a FORTEM a coletar e armazenar uma foto do meu rosto e a gerar dela os dados necessários para o reconhecimento facial na porta do estúdio, com a única finalidade de liberar a minha entrada. A foto e os dados do rosto não são compartilhados com terceiros nem usados para outra finalidade. Os registros de passagem (data e hora) ficam guardados no meu cadastro. Posso pedir a remoção do meu rosto a qualquer momento: o rosto é apagado da porta e a foto é apagada do sistema; o registro deste consentimento e das passagens permanece guardado para fins de comprovação. Este consentimento é válido enquanto eu fizer parte da equipe da FORTEM ou até que eu o revogue. (Texto provisório, a ser revisado por advogado.)";
+
+export function selecionarTermoFacial(contexto: "aluno" | "equipe", precisaResp: boolean) {
+  if (contexto === "equipe") return { versao: VERSAO_TERMO_EQUIPE, texto: TEXTO_TERMO_EQUIPE };
+  if (precisaResp) return { versao: VERSAO_RESPONSAVEL, texto: TEXTO_RESPONSAVEL };
+  return { versao: TERMO_FACIAL_VERSAO, texto: TERMO_FACIAL_TEXTO };
+}
 
 const STATUS: Record<string, string> = {
   sem_facial: "Sem facial", pendente: "Aguardando a porta", ativa: "Ativa na porta",
@@ -72,8 +76,6 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 
 export function StudentFacial({ student, contexto = "aluno" }: { student: Tables<"alunos">; contexto?: "aluno" | "equipe" }) {
   const equipe = contexto === "equipe";
-  const versaoTermo = equipe ? VERSAO_TERMO_EQUIPE : VERSAO_TERMO;
-  const textoTermo = equipe ? TEXTO_TERMO_EQUIPE : TEXTO_TERMO;
   const qc = useQueryClient();
   const alunoId = student.id;
   const fileRef = useRef<HTMLInputElement>(null);
@@ -112,6 +114,7 @@ export function StudentFacial({ student, contexto = "aluno" }: { student: Tables
   const cred = data?.cred;
   const anos = idade(student.data_nascimento);
   const precisaResp = anos === null || anos < 18;
+  const { versao: versaoTermo, texto: textoTermo } = selecionarTermoFacial(contexto, precisaResp);
   const consValido = data?.cons.find((c) => c.aceito && !c.revogado_em && (!precisaResp || c.tipo === "responsavel"));
   const consExibir = consValido ?? data?.cons[0];
   const temFacial = !!cred && cred.status !== "sem_facial" && cred.status !== "removida";
@@ -289,7 +292,7 @@ export function StudentFacial({ student, contexto = "aluno" }: { student: Tables
           </Button>
           {!consValido && (
             <div className="space-y-3 border border-border p-3">
-              {equipe && <p className="text-xs text-muted-foreground max-h-40 overflow-y-auto">{textoTermo}</p>}
+              <p tabIndex={0} aria-label="Termo completo" className="text-xs text-muted-foreground max-h-40 overflow-y-auto">{textoTermo}</p>
               <label className="flex items-center gap-2 text-sm min-h-11">
                 <Checkbox checked={autorizou} onCheckedChange={(v) => setAutorizou(!!v)} />
                 {precisaResp ? "O responsável presente no balcão autorizou o uso do rosto" : "A pessoa autorizou o uso do rosto"}
