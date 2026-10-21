@@ -12132,6 +12132,17 @@ export type Database = {
         Returns: Json
       }
       fn_facial_fila_reservar: { Args: { p_max?: number }; Returns: Json }
+      fn_facial_pode_agir: { Args: { p_aluno_id: string }; Returns: boolean }
+      fn_facial_registrar_consentimento: {
+        Args: {
+          p_aluno_id: string
+          p_responsavel_nome?: string
+          p_texto_termo: string
+          p_tipo: string
+          p_versao_termo: string
+        }
+        Returns: string
+      }
       fn_facial_registrar_passagem: {
         Args: {
           p_bruto?: Json
@@ -12141,6 +12152,16 @@ export type Database = {
           p_sucesso: boolean
         }
         Returns: Json
+      }
+      fn_facial_revogar: { Args: { p_aluno_id: string }; Returns: string }
+      fn_facial_solicitar: {
+        Args: {
+          p_acao: string
+          p_aluno_id: string
+          p_apagar_foto?: boolean
+          p_foto_path?: string
+        }
+        Returns: string
       }
       fn_facial_verificar_agente: { Args: never; Returns: Json }
       fn_feriados_nacionais: {
