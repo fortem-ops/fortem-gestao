@@ -38,12 +38,39 @@ const DeleteSchema = z.object({
 });
 
 const ListEmailsSchema = z.object({ action: z.literal("list-emails") });
+const DeactivateSchema = z.object({ action: z.literal("deactivate"), user_id: z.string().uuid() });
+const ReactivateSchema = z.object({ action: z.literal("reactivate"), user_id: z.string().uuid() });
+const SendResetSchema = z.object({
+  action: z.literal("send-reset"),
+  user_id: z.string().uuid(),
+  redirect_to: z.string().url().max(300),
+});
+
+const ALLOWED_HOSTS = [/^(www\.)?soufortem\.com\.br$/, /^[a-z0-9-]+\.lovable\.app$/, /^[a-z0-9-]+\.lovableproject\.com$/, /^localhost$/];
+function redirectValido(u: string) {
+  try {
+    const url = new URL(u);
+    return url.pathname === "/redefinir-senha" && ALLOWED_HOSTS.some((r) => r.test(url.hostname));
+  } catch { return false; }
+}
+
+async function ultimoAdminAtivo(admin: ReturnType<typeof createClient>, targetId: string) {
+  const { data: admins } = await admin.from("user_roles").select("user_id").eq("role", "admin");
+  const ids = [...new Set((admins ?? []).map((a: any) => a.user_id as string))].filter((id) => id !== targetId);
+  if (ids.length === 0) return true;
+  const { data: inativos } = await admin.from("profiles").select("user_id").in("user_id", ids).eq("ativo", false);
+  const inat = new Set((inativos ?? []).map((p: any) => p.user_id));
+  return ids.every((id) => inat.has(id));
+}
 
 const BodySchema = z.discriminatedUnion("action", [
   CreateSchema,
   UpdateSchema,
   DeleteSchema,
   ListEmailsSchema,
+  DeactivateSchema,
+  ReactivateSchema,
+  SendResetSchema,
 ]);
 
 function json(body: unknown, status = 200) {
@@ -79,17 +106,68 @@ Deno.serve(async (req) => {
     const body = parsed.data;
 
     if (body.action === "list-emails") {
-      const emails: { user_id: string; email: string | null }[] = [];
+      const emails: { user_id: string; email: string | null; last_sign_in_at: string | null; banned_until: string | null }[] = [];
       let page = 1;
       const perPage = 1000;
       while (true) {
         const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
         if (error) return json({ error: error.message }, 500);
-        for (const u of data.users) emails.push({ user_id: u.id, email: u.email ?? null });
+        for (const u of data.users) emails.push({
+          user_id: u.id,
+          email: u.email ?? null,
+          last_sign_in_at: u.last_sign_in_at ?? null,
+          banned_until: (u as any).banned_until ?? null,
+        });
         if (data.users.length < perPage) break;
         page++;
       }
       return json({ emails });
+    }
+
+    if (body.action === "deactivate") {
+      if (body.user_id === callerId) return json({ error: "Não é permitido desativar o próprio usuário" }, 400);
+      const { data: isTargetAdmin } = await admin.from("user_roles").select("id").eq("user_id", body.user_id).eq("role", "admin").limit(1);
+      if ((isTargetAdmin?.length ?? 0) > 0 && await ultimoAdminAtivo(admin, body.user_id)) {
+        return json({ error: "Não é possível desativar o último administrador ativo" }, 400);
+      }
+      const { error: bErr } = await admin.auth.admin.updateUserById(body.user_id, { ban_duration: "876000h" } as any);
+      if (bErr) return json({ error: bErr.message }, 400);
+      const { error: pErr } = await admin.from("profiles")
+        .update({ ativo: false, desativado_em: new Date().toISOString(), desativado_por: callerId })
+        .eq("user_id", body.user_id);
+      if (pErr) {
+        await admin.auth.admin.updateUserById(body.user_id, { ban_duration: "none" } as any);
+        return json({ error: pErr.message }, 500);
+      }
+      await admin.from("system_logs").insert({
+        modulo: "admin-users", acao: "deactivate", user_id: callerId,
+        mensagem: "Usuário desativado", payload: { alvo: body.user_id },
+      } as any);
+      return json({ ok: true });
+    }
+
+    if (body.action === "reactivate") {
+      const { error: bErr } = await admin.auth.admin.updateUserById(body.user_id, { ban_duration: "none" } as any);
+      if (bErr) return json({ error: bErr.message }, 400);
+      const { error: pErr } = await admin.from("profiles")
+        .update({ ativo: true, desativado_em: null, desativado_por: null })
+        .eq("user_id", body.user_id);
+      if (pErr) return json({ error: pErr.message }, 500);
+      await admin.from("system_logs").insert({
+        modulo: "admin-users", acao: "reactivate", user_id: callerId,
+        mensagem: "Usuário reativado", payload: { alvo: body.user_id },
+      } as any);
+      return json({ ok: true });
+    }
+
+    if (body.action === "send-reset") {
+      if (!redirectValido(body.redirect_to)) return json({ error: "Endereço de retorno inválido" }, 400);
+      const { data: u, error: gErr } = await admin.auth.admin.getUserById(body.user_id);
+      if (gErr || !u?.user?.email) return json({ error: "Usuário sem e-mail" }, 400);
+      const pub = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { error: rErr } = await pub.auth.resetPasswordForEmail(u.user.email, { redirectTo: body.redirect_to });
+      if (rErr) return json({ error: rErr.message }, 400);
+      return json({ ok: true });
     }
 
     if (body.action === "create") {

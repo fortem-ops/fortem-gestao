@@ -21,6 +21,10 @@ const VERSAO_TERMO = "facial-v1";
 const TEXTO_TERMO =
   "Autorizo a FORTEM a usar a imagem do meu rosto exclusivamente para liberar a entrada pela porta facial e registrar minhas passagens. Posso revogar a qualquer momento.";
 
+const VERSAO_TERMO_EQUIPE = "v1-provisoria-equipe";
+const TEXTO_TERMO_EQUIPE =
+  "TERMO DE CONSENTIMENTO PARA USO DA IMAGEM DO ROSTO (EQUIPE). Eu autorizo a FORTEM a coletar e armazenar uma foto do meu rosto e a gerar dela os dados necessários para o reconhecimento facial na porta do estúdio, com a única finalidade de liberar a minha entrada. A foto e os dados do rosto não são compartilhados com terceiros nem usados para outra finalidade. Os registros de passagem (data e hora) ficam guardados no meu cadastro. Posso pedir a remoção do meu rosto a qualquer momento: o rosto é apagado da porta e a foto é apagada do sistema; o registro deste consentimento e das passagens permanece guardado para fins de comprovação. Este consentimento é válido enquanto eu fizer parte da equipe da FORTEM ou até que eu o revogue. (Texto provisório, a ser revisado por advogado.)";
+
 const STATUS: Record<string, string> = {
   sem_facial: "Sem facial", pendente: "Aguardando a porta", ativa: "Ativa na porta",
   remocao_pendente: "Removendo", removida: "Removida", erro: "Erro",
@@ -65,7 +69,10 @@ const Label = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{children}</p>
 );
 
-export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
+export function StudentFacial({ student, contexto = "aluno" }: { student: Tables<"alunos">; contexto?: "aluno" | "equipe" }) {
+  const equipe = contexto === "equipe";
+  const versaoTermo = equipe ? VERSAO_TERMO_EQUIPE : VERSAO_TERMO;
+  const textoTermo = equipe ? TEXTO_TERMO_EQUIPE : TEXTO_TERMO;
   const qc = useQueryClient();
   const alunoId = student.id;
   const fileRef = useRef<HTMLInputElement>(null);
@@ -126,7 +133,7 @@ export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
       if (!consValido) {
         const c = await supabase.rpc("fn_facial_registrar_consentimento", {
           p_aluno_id: alunoId, p_tipo: precisaResp ? "responsavel" : "proprio",
-          p_versao_termo: VERSAO_TERMO, p_texto_termo: TEXTO_TERMO,
+          p_versao_termo: versaoTermo, p_texto_termo: textoTermo,
           p_responsavel_nome: precisaResp ? responsavel.trim() : null,
         });
         if (c.error) throw c.error;
@@ -199,7 +206,7 @@ export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button className="rounded-none uppercase" onClick={abrir} disabled={emAndamento}>
+            <Button className="rounded-none uppercase" onClick={abrir} disabled={emAndamento || (equipe && !student.data_nascimento)}>
               {temFacial ? "Atualizar foto" : "Cadastrar rosto"}
             </Button>
             {temFacial && (
@@ -216,7 +223,7 @@ export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
           <Label>Consentimento</Label>
           {!consExibir ? <p className="text-sm text-muted-foreground">Nenhum consentimento registrado.</p> : (
             <div className="text-sm space-y-1">
-              <p><span className="text-muted-foreground">Aceito por:</span> {consExibir.tipo === "responsavel" ? `Responsável · ${consExibir.responsavel_nome ?? ""}` : "Próprio aluno"}</p>
+              <p><span className="text-muted-foreground">Aceito por:</span> {consExibir.tipo === "responsavel" ? `Responsável · ${consExibir.responsavel_nome ?? ""}` : equipe ? "A própria pessoa" : "Próprio aluno"}</p>
               <p><span className="text-muted-foreground">Origem:</span> {consExibir.origem === "app_aluno" ? "App" : "Equipe"}</p>
               <p><span className="text-muted-foreground">Data:</span> {fmt(consExibir.aceito_em)}</p>
               <p><span className="text-muted-foreground">Versão do termo:</span> {consExibir.versao_termo ?? "—"}</p>
@@ -280,6 +287,7 @@ export function StudentFacial({ student }: { student: Tables<"alunos"> }) {
           </Button>
           {!consValido && (
             <div className="space-y-3 border border-border p-3">
+              {equipe && <p className="text-xs text-muted-foreground max-h-40 overflow-y-auto">{textoTermo}</p>}
               <label className="flex items-center gap-2 text-sm min-h-11">
                 <Checkbox checked={autorizou} onCheckedChange={(v) => setAutorizou(!!v)} />
                 A pessoa autorizou o uso do rosto

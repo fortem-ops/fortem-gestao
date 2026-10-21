@@ -8517,11 +8517,14 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ativo: boolean
           avatar_url: string | null
           cpf_encrypted: string | null
           cpf_hash: string | null
           cpf_ultimos3: string | null
           created_at: string
+          desativado_em: string | null
+          desativado_por: string | null
           full_name: string
           id: string
           phone: string | null
@@ -8531,11 +8534,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ativo?: boolean
           avatar_url?: string | null
           cpf_encrypted?: string | null
           cpf_hash?: string | null
           cpf_ultimos3?: string | null
           created_at?: string
+          desativado_em?: string | null
+          desativado_por?: string | null
           full_name: string
           id?: string
           phone?: string | null
@@ -8545,11 +8551,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ativo?: boolean
           avatar_url?: string | null
           cpf_encrypted?: string | null
           cpf_hash?: string | null
           cpf_ultimos3?: string | null
           created_at?: string
+          desativado_em?: string | null
+          desativado_por?: string | null
           full_name?: string
           id?: string
           phone?: string | null
@@ -12069,6 +12078,14 @@ export type Database = {
           p_venda_id: string
         }
         Returns: undefined
+      }
+      fn_equipe_definir_nascimento: {
+        Args: { p_data: string; p_user_id: string }
+        Returns: undefined
+      }
+      fn_equipe_garantir_cadastro: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       fn_estoque_movimentar: {
         Args: {
