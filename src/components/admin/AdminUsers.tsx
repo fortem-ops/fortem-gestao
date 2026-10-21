@@ -22,6 +22,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Search, Shield, Trash2, Plus, Pencil, UserPlus } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
+import { Switch } from "@/components/ui/switch";
+import { FichaFuncionario } from "./FichaFuncionario";
 
 const ROLES = Constants.public.Enums.app_role;
 const ROLE_LABELS: Record<string, string> = {
@@ -47,6 +49,7 @@ type ProfileRow = {
   specialty: string | null;
   cpf_ultimos3: string | null;
   pis_pasep: string | null;
+  ativo?: boolean | null;
 };
 
 type CreateForm = {
@@ -101,8 +104,10 @@ export function AdminUsers() {
     full_name: "", email: "", password: "", phone: "", specialty: "", cpf: "", pis_pasep: "", role: "",
   });
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [fichaUserId, setFichaUserId] = useState<string | null>(null);
+  const [mostrarDesativados, setMostrarDesativados] = useState(false);
+  const [roleToRemove, setRoleToRemove] = useState<{ id: string; role: string; user_id: string } | null>(null);
+  const [ativoTarget, setAtivoTarget] = useState<{ user_id: string; name: string; ativo: boolean } | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<{ user_id: string; name: string } | null>(null);
 
@@ -140,12 +145,13 @@ export function AdminUsers() {
         body: { action: "list-emails" },
       });
       if (error) throw error;
-      return (data?.emails || []) as { user_id: string; email: string | null }[];
+      return (data?.emails || []) as { user_id: string; email: string | null; last_sign_in_at: string | null }[];
     },
     enabled: !!isAdmin,
   });
 
   const emailByUserId = new Map(emails.map((e) => [e.user_id, e.email]));
+  const lastSignInByUserId = new Map(emails.map((e) => [e.user_id, e.last_sign_in_at]));
 
   const addRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
@@ -169,6 +175,7 @@ export function AdminUsers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
       toast.success("Permissão removida");
+      setRoleToRemove(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -206,38 +213,29 @@ export function AdminUsers() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async (f: EditForm) => {
-      const cpfDigits = onlyDigits(f.cpf);
-      const pisDigits = onlyDigits(f.pis_pasep);
-      if (cpfDigits && cpfDigits.length !== 11) throw new Error("CPF deve conter 11 dígitos");
-      if (pisDigits && pisDigits.length !== 11) throw new Error("PIS/PASEP deve conter 11 dígitos");
+  const ativoMutation = useMutation({
+    mutationFn: async (t: { user_id: string; ativo: boolean }) => {
       const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: {
-          action: "update",
-          user_id: f.user_id,
-          email: f.email.trim() || null,
-          password: f.changePassword && f.password ? f.password : null,
-          full_name: f.full_name.trim(),
-          phone: f.phone.trim() || null,
-          specialty: f.specialty.trim() || null,
-          // Only send cpf when user typed something (empty = don't touch).
-          cpf: cpfDigits ? cpfDigits : undefined,
-          pis_pasep: pisDigits || null,
-        },
+        body: { action: t.ativo ? "deactivate" : "reactivate", user_id: t.user_id },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Erro ao atualizar");
-      return data?.profile ?? null;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Erro");
     },
-    onSuccess: () => {
+    onSuccess: (_d, t) => {
       invalidateAll();
-      toast.success("Usuário atualizado");
-      setEditOpen(false);
-      setEditForm(null);
+      toast.success(t.ativo ? "Usuário desativado" : "Usuário reativado");
+      setAtivoTarget(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const pedirRemocao = (r: { id: string; role: string; user_id: string }) => {
+    if (r.user_id === user?.id && r.role === "admin") {
+      toast.error("Você não pode remover sua própria permissão de admin");
+      return;
+    }
+    setRoleToRemove(r);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
@@ -251,6 +249,7 @@ export function AdminUsers() {
       invalidateAll();
       toast.success("Usuário excluído");
       setDeleteTarget(null);
+      setFichaUserId(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -260,6 +259,7 @@ export function AdminUsers() {
   const filtered = profiles.filter((p) => {
     const email = emailByUserId.get(p.user_id) || "";
     if (/^teste\..*@fortem\.app$/i.test(email)) return false;
+    if (!mostrarDesativados && p.ativo === false) return false;
     const q = search.toLowerCase();
     return (
       p.full_name.toLowerCase().includes(q) ||
@@ -271,20 +271,8 @@ export function AdminUsers() {
     ? getRolesForUser(selectedUser.userId).map((r) => r.role)
     : [];
 
-  const openEdit = (p: ProfileRow) => {
-    setEditForm({
-      user_id: p.user_id,
-      full_name: p.full_name,
-      email: emailByUserId.get(p.user_id) || "",
-      phone: p.phone || "",
-      specialty: p.specialty || "",
-      cpf: "",
-      pis_pasep: p.pis_pasep ? maskPIS(p.pis_pasep) : "",
-      changePassword: false,
-      password: "",
-    });
-    setEditOpen(true);
-  };
+  const fichaProfile = profiles.find((p) => p.user_id === fichaUserId) ?? null;
+  const nomeDe = (uid: string) => profiles.find((p) => p.user_id === uid)?.full_name ?? "";
 
   return (
     <div className="space-y-4">
@@ -298,6 +286,12 @@ export function AdminUsers() {
             className="pl-9"
           />
         </div>
+        {isAdmin && (
+          <label className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
+            <Switch checked={mostrarDesativados} onCheckedChange={setMostrarDesativados} />
+            Mostrar desativados
+          </label>
+        )}
         {isAdmin && (
           <Button onClick={() => setCreateOpen(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
@@ -325,7 +319,10 @@ export function AdminUsers() {
                 <TableRow key={profile.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-foreground">{profile.full_name}</p>
+                      <p className="font-medium text-foreground flex items-center gap-2">
+                        {profile.full_name}
+                        {profile.ativo === false && <Badge variant="destructive" className="text-[10px]">Desativado</Badge>}
+                      </p>
                       <p className="text-xs text-muted-foreground">{profile.phone || "—"}</p>
                     </div>
                   </TableCell>
@@ -344,17 +341,12 @@ export function AdminUsers() {
                         <Badge
                           key={r.id}
                           variant="secondary"
-                          className={`text-xs ${ROLE_COLORS[r.role] || ""} cursor-pointer group`}
-                          onClick={() => {
-                            if (r.user_id === user?.id && r.role === "admin") {
-                              toast.error("Você não pode remover sua própria permissão de admin");
-                              return;
-                            }
-                            removeRoleMutation.mutate(r.id);
-                          }}
+                          className={`text-xs ${ROLE_COLORS[r.role] || ""} cursor-pointer`}
+                          onClick={() => pedirRemocao(r)}
+                          title="Remover permissão"
                         >
                           {ROLE_LABELS[r.role] || r.role}
-                          <Trash2 className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Trash2 className="w-3 h-3 ml-1" />
                         </Badge>
                       ))}
                     </div>
@@ -374,17 +366,17 @@ export function AdminUsers() {
                       </Button>
                       {isAdmin && (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(profile)}>
+                          <Button size="sm" variant="ghost" onClick={() => setFichaUserId(profile.user_id)} title="Abrir ficha">
                             <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             disabled={isSelf}
-                            onClick={() => setDeleteTarget({ user_id: profile.user_id, name: profile.full_name })}
-                            title={isSelf ? "Não é possível excluir o próprio usuário" : "Excluir usuário"}
+                            onClick={() => setAtivoTarget({ user_id: profile.user_id, name: profile.full_name, ativo: profile.ativo !== false })}
+                            title={isSelf ? "Não é possível desativar o próprio usuário" : undefined}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            {profile.ativo === false ? "Reativar" : "Desativar"}
                           </Button>
                         </>
                       )}
@@ -513,114 +505,67 @@ export function AdminUsers() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User */}
-      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditForm(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-primary" />
-              Editar Usuário
-            </DialogTitle>
-          </DialogHeader>
-          {editForm && (
-            <div className="space-y-3">
-              <div>
-                <Label>Nome completo</Label>
-                <Input value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
-              </div>
-              <div>
-                <Label>E-mail</Label>
-                <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Telefone</Label>
-                  <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Especialidade</Label>
-                  <Input value={editForm.specialty} onChange={(e) => setEditForm({ ...editForm, specialty: e.target.value })} />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  id="chgpw"
-                  type="checkbox"
-                  checked={editForm.changePassword}
-                  onChange={(e) => setEditForm({ ...editForm, changePassword: e.target.checked, password: "" })}
-                />
-                <Label htmlFor="chgpw" className="cursor-pointer">Alterar senha</Label>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>CPF (deixe vazio para não alterar)</Label>
-                  <Input
-                    value={editForm.cpf}
-                    onChange={(e) => setEditForm({ ...editForm, cpf: maskCPF(e.target.value) })}
-                    placeholder="000.000.000-00"
-                    inputMode="numeric"
-                  />
-                </div>
-                <div>
-                  <Label>PIS/PASEP</Label>
-                  <Input
-                    value={editForm.pis_pasep}
-                    onChange={(e) => setEditForm({ ...editForm, pis_pasep: maskPIS(e.target.value) })}
-                    placeholder="000.00000.00-0"
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-              {editForm.changePassword && (
-                <div>
-                  <Label>Nova senha (mín. 6)</Label>
-                  <Input
-                    type="password"
-                    value={editForm.password}
-                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
-            <Button
-              disabled={
-                !editForm ||
-                updateMutation.isPending ||
-                !editForm.full_name.trim() ||
-                (editForm.changePassword && editForm.password.length < 6)
-              }
-              onClick={() => editForm && updateMutation.mutate(editForm)}
-            >
-              {updateMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FichaFuncionario
+        open={!!fichaUserId}
+        onOpenChange={(o) => !o && setFichaUserId(null)}
+        profile={fichaProfile}
+        email={fichaUserId ? emailByUserId.get(fichaUserId) || "" : ""}
+        lastSignIn={fichaUserId ? lastSignInByUserId.get(fichaUserId) ?? null : null}
+        roles={fichaUserId ? getRolesForUser(fichaUserId) : []}
+        roleLabels={ROLE_LABELS}
+        roleColors={ROLE_COLORS}
+        isSelf={fichaUserId === user?.id}
+        onRemoveRole={pedirRemocao}
+        onAddRole={() => {
+          if (!fichaProfile) return;
+          setSelectedUser({ userId: fichaProfile.user_id, name: fichaProfile.full_name });
+          setAddRoleOpen(true);
+        }}
+        onToggleAtivo={() => fichaProfile && setAtivoTarget({ user_id: fichaProfile.user_id, name: fichaProfile.full_name, ativo: fichaProfile.ativo !== false })}
+        onDelete={() => fichaProfile && deleteMutation.mutate(fichaProfile.user_id)}
+        deleting={deleteMutation.isPending}
+        onSaved={invalidateAll}
+      />
 
-      {/* Delete confirm */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+      <AlertDialog open={!!roleToRemove} onOpenChange={(o) => !o && setRoleToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Esta ação é permanente
-              e remove o acesso ao sistema.
-            </AlertDialogDescription>
+            <AlertDialogTitle>
+              Remover a permissão {roleToRemove ? ROLE_LABELS[roleToRemove.role] || roleToRemove.role : ""} de {roleToRemove ? nomeDe(roleToRemove.user_id) : ""}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>A pessoa perde na hora o acesso liberado por essa permissão.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.user_id)}
+              onClick={() => roleToRemove && removeRoleMutation.mutate(roleToRemove.id)}
             >
-              Excluir
+              Remover
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!ativoTarget} onOpenChange={(o) => !o && setAtivoTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{ativoTarget?.ativo ? "Desativar" : "Reativar"} {ativoTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {ativoTarget?.ativo
+                ? "O login é bloqueado e o acesso ao sistema é cortado na hora. Nada do histórico é apagado (ponto, comissões, treinos)."
+                : "O login volta a funcionar e as permissões atuais voltam a valer."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => ativoTarget && ativoMutation.mutate({ user_id: ativoTarget.user_id, ativo: ativoTarget.ativo })}>
+              {ativoTarget?.ativo ? "Desativar" : "Reativar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
