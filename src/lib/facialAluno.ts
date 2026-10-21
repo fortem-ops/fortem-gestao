@@ -39,7 +39,7 @@ export function rotuloPassagem(
     const h = (treino.horario_inicio ?? "").slice(0, 5);
     return h ? `Presença confirmada · Treino das ${h}` : "Presença confirmada";
   }
-  if (resultado === "sem_treino_agendado") return "Entrada registrada · sem treino agendado";
+  if (resultado === "sem_treino_agendado" || resultado === "sem_treino_agendamento") return "Entrada registrada · sem treino agendado";
   if (resultado === "nao_reconhecido") return "Rosto não reconhecido";
   return "Entrada registrada";
 }
