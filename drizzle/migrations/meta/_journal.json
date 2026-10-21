@@ -1296,6 +1296,13 @@
       "when": 1792582992862,
       "tag": "0184_facial_app_aluno_trava",
       "breakpoints": true
+    },
+    {
+      "idx": 185,
+      "version": "7",
+      "when": 1792584648656,
+      "tag": "0185_usuarios_seguranca_ficha_equipe",
+      "breakpoints": true
     }
   ]
 }
