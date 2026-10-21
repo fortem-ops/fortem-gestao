@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Fila facial: aplicar SQL literal, publicar somente facial-agente-fila e confirmar fila vazia/modo log; sem enfileirar pedidos.
+- [x] Fila facial: SQL literal aplicado na migração 0180, somente facial-agente-fila publicada; fila vazia e modo log confirmados, RPCs restritas a service_role; sem enfileirar pedidos.
 
 - [x] Pagamento manual recorrente: cobrança de Larissa regularizada com travas/auditoria e reversão; migração 0177 e quatro funções publicadas; 108 testes e ensaio NICOLAS TESTE com rollback passaram; checkout público, créditos, contrato/cartão, flags e crons preservados. Nenhuma nova captura real nem pagamento pela tela foi testado.
 
