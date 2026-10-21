@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-vi.mock("../../supabase/functions/_shared/inter-cob.ts", () => ({ interCobFetch: vi.fn() }));
-import { baixarPixFesta, conferirPixFesta } from "../../supabase/functions/_shared/festa-pix";
-import { interCobFetch } from "../../supabase/functions/_shared/inter-cob";
+vi.mock("./inter-cob.ts", () => ({ interCobFetch: vi.fn() }));
+import { baixarPixFesta, conferirPixFesta } from "./festa-pix";
+import { interCobFetch } from "./inter-cob";
 
 function servidorSimulado(total = 15000) {
   const updates: Record<string, unknown>[] = [];
