@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
   ChevronRight, CreditCard, Bell, LogOut, FileText,
-  UserRound, Shield, QrCode, Sparkles, ShoppingBag, Bot,
+  UserRound, Shield, QrCode, Sparkles, ShoppingBag, Bot, ScanFace,
 } from "lucide-react";
 
 const GRUPOS = [
@@ -65,7 +65,23 @@ export default function PortalProfile() {
     },
   });
 
+  const { data: facialLiberado } = useQuery({
+    queryKey: ["facial-app-aluno-habilitado"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_facial_app_aluno_habilitado");
+      if (error) throw error;
+      return !!data;
+    },
+    staleTime: 60_000,
+  });
+
   if (!student) return null;
+
+  const grupos = GRUPOS.map((g) =>
+    g.titulo === "Conta" && facialLiberado
+      ? { ...g, itens: [...g.itens, { to: "/portal/reconhecimento-facial", titulo: "Reconhecimento facial", descricao: "Entrar no estúdio pelo rosto", icone: ScanFace }] }
+      : g,
+  );
 
   const iniciais = student.nome.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
   const diasMembro = alunoDesde ? differenceInDays(new Date(), new Date(alunoDesde + "T00:00:00")) : null;
@@ -113,7 +129,7 @@ export default function PortalProfile() {
       </div>
 
       {/* ── GRUPOS ── */}
-      {GRUPOS.map((grupo) => (
+      {grupos.map((grupo) => (
         <section key={grupo.titulo} className="space-y-2">
           <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">
             {grupo.titulo}
