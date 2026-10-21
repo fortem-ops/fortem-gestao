@@ -1303,6 +1303,13 @@
       "when": 1792584648656,
       "tag": "0185_usuarios_seguranca_ficha_equipe",
       "breakpoints": true
+    },
+    {
+      "idx": 186,
+      "version": "7",
+      "when": 1792589383107,
+      "tag": "0186_facial_responsavel_links_e_admin_ativo",
+      "breakpoints": true
     }
   ]
 }

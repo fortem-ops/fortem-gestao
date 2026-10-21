@@ -4077,7 +4077,10 @@ export type Database = {
           id: string
           ip_aceite: string | null
           origem: string
+          responsavel_cpf_hash: string | null
+          responsavel_cpf_ultimos3: string | null
           responsavel_nome: string | null
+          responsavel_parentesco: string | null
           revogado_em: string | null
           texto_termo: string | null
           tipo: string
@@ -4093,7 +4096,10 @@ export type Database = {
           id?: string
           ip_aceite?: string | null
           origem: string
+          responsavel_cpf_hash?: string | null
+          responsavel_cpf_ultimos3?: string | null
           responsavel_nome?: string | null
+          responsavel_parentesco?: string | null
           revogado_em?: string | null
           texto_termo?: string | null
           tipo: string
@@ -4109,7 +4115,10 @@ export type Database = {
           id?: string
           ip_aceite?: string | null
           origem?: string
+          responsavel_cpf_hash?: string | null
+          responsavel_cpf_ultimos3?: string | null
           responsavel_nome?: string | null
+          responsavel_parentesco?: string | null
           revogado_em?: string | null
           texto_termo?: string | null
           tipo?: string
@@ -4248,6 +4257,64 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      facial_links_responsavel: {
+        Row: {
+          aluno_id: string
+          consentimento_id: string | null
+          criado_em: string | null
+          criado_por: string
+          expira_em: string
+          id: string
+          revogado_em: string | null
+          token_hash: string
+          usado_em: string | null
+        }
+        Insert: {
+          aluno_id: string
+          consentimento_id?: string | null
+          criado_em?: string | null
+          criado_por: string
+          expira_em?: string
+          id?: string
+          revogado_em?: string | null
+          token_hash: string
+          usado_em?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          consentimento_id?: string | null
+          criado_em?: string | null
+          criado_por?: string
+          expira_em?: string
+          id?: string
+          revogado_em?: string | null
+          token_hash?: string
+          usado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facial_links_responsavel_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facial_links_responsavel_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "facial_links_responsavel_consentimento_id_fkey"
+            columns: ["consentimento_id"]
+            isOneToOne: false
+            referencedRelation: "facial_consentimentos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12173,6 +12240,26 @@ export type Database = {
         Returns: Json
       }
       fn_facial_importar_listar: { Args: { p_max?: number }; Returns: Json }
+      fn_facial_link_aceitar: {
+        Args: {
+          p_cpf: string
+          p_ip: string
+          p_nome: string
+          p_parentesco: string
+          p_texto: string
+          p_token: string
+          p_ua: string
+          p_versao: string
+        }
+        Returns: Json
+      }
+      fn_facial_link_cancelar: {
+        Args: { p_aluno_id: string }
+        Returns: undefined
+      }
+      fn_facial_link_consultar: { Args: { p_token: string }; Returns: Json }
+      fn_facial_link_criar: { Args: { p_aluno_id: string }; Returns: Json }
+      fn_facial_link_status: { Args: { p_aluno_id: string }; Returns: Json }
       fn_facial_pode_agir: { Args: { p_aluno_id: string }; Returns: boolean }
       fn_facial_registrar_consentimento: {
         Args: {
