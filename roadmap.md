@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Correções A1–A3 e Etapa 3 facial: links exclusivos da equipe, autorização pública, integração equipe/portal e verificações revertidas; preservar configuração e contagens.
+- [x] Correções A1–A3 e Etapa 3 facial: migration 0186, função facial-responsavel publicada; links exclusivos da equipe; testes SQL revertidos e telas simuladas sem erros; contagens 227/1/1, links 0, modo log e flag true preservados; domínio não publicado.
 
 - [x] Importação facial da porta: migração 0183 literal, facial-agente-importar publicada; testes SQL (a–d) desfeitos; listagem autenticada 200/token inválido 401; contagens 227/1/1 e modo log preservados; nenhuma foto real importada.
 
