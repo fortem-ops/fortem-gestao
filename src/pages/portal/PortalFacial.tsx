@@ -76,7 +76,7 @@ export default function PortalFacial() {
     queryFn: async () => {
       const [cred, cons, ev] = await Promise.all([
         supabase.from("credenciais_facial").select("status, foto_path, sincronizado_em, created_at, ultimo_erro").eq("aluno_id", alunoId!).maybeSingle(),
-        supabase.from("facial_consentimentos").select("id").eq("aluno_id", alunoId!).eq("aceito", true).is("revogado_em", null).limit(1),
+        supabase.from("facial_consentimentos").select("id, tipo").eq("aluno_id", alunoId!).eq("aceito", true).is("revogado_em", null),
         supabase.from("facial_eventos").select("id, evento_em, resultado, treino_agendamento_id").eq("aluno_id", alunoId!).order("evento_em", { ascending: false }).limit(10),
       ]);
       for (const r of [cred, cons, ev]) if (r.error) throw r.error;
@@ -91,7 +91,7 @@ export default function PortalFacial() {
         const { data: s } = await supabase.storage.from("faciais").createSignedUrl(cred.data.foto_path, 120);
         fotoUrl = s?.signedUrl ?? null;
       }
-      return { cred: cred.data, temConsentimento: (cons.data ?? []).length > 0, ev: ev.data ?? [], treinos, fotoUrl };
+      return { cred: cred.data, temConsentimento: (cons.data ?? []).length > 0, responsavelValido: (cons.data ?? []).some(c => c.tipo === "responsavel"), ev: ev.data ?? [], treinos, fotoUrl };
     },
     refetchInterval: (q) => {
       const s = (q.state.data as { cred?: { status?: string } | null } | undefined)?.cred?.status;
@@ -106,7 +106,7 @@ export default function PortalFacial() {
   const cred = data?.cred;
   const estado = estadoFacial(cred?.status, student.data_nascimento);
   const menor = ehMenor(student.data_nascimento);
-  const precisaTermo = !data?.temConsentimento;
+  const precisaTermo = menor ? !data?.responsavelValido : !data?.temConsentimento;
 
   const abrirFluxo = () => { setFoto(null); setAceite(false); setFluxo(true); };
 
@@ -122,7 +122,7 @@ export default function PortalFacial() {
   };
 
   const enviar = async () => {
-    if (!foto || (precisaTermo && !aceite) || !alunoId) return;
+    if (!foto || (precisaTermo && !aceite) || !alunoId || (menor && !data?.responsavelValido)) return;
     setEnviando(true);
     try {
       if (precisaTermo) {
@@ -217,7 +217,7 @@ export default function PortalFacial() {
             {enviando ? "Enviando…" : "Enviar cadastro"}
           </button>
         </div>
-      ) : estado === "menor" ? (
+      ) : estado === "menor" && !data.responsavelValido ? (
         /* ── D. MENOR DE 18 ── */
         <section className={card}>
           <Cantoneira />
@@ -227,17 +227,17 @@ export default function PortalFacial() {
             Para cadastrar o rosto de quem tem menos de 18 anos, a FORTEM precisa da autorização de um responsável. Procure a recepção para fazer o cadastro.
           </p>
         </section>
-      ) : estado === "nao_cadastrado" ? (
+      ) : estado === "nao_cadastrado" || (estado === "menor" && data.responsavelValido) ? (
         /* ── A. NÃO CADASTRADO ── */
         <div className="space-y-5">
           <section className={card}>
             <Cantoneira />
-            <Selo>Não cadastrado</Selo>
+            <Selo>{menor ? "Autorizado pelo responsável" : "Não cadastrado"}</Selo>
             <p className="text-sm text-foreground">
               Cadastre seu rosto e entre no estúdio sem cartão e sem abrir o aplicativo. A porta reconhece você e confirma sua presença no treino que já está agendado.
             </p>
             <ol className="divide-y divide-border border border-border">
-              {["Leia e aceite o termo", "Envie uma foto sua", "A porta recebe seu cadastro"].map((p, i) => (
+              {(menor ? ["Envie uma foto sua", "A porta recebe seu cadastro"] : ["Leia e aceite o termo", "Envie uma foto sua", "A porta recebe seu cadastro"]).map((p, i) => (
                 <li key={p} className="flex items-center gap-3 px-3 min-h-12">
                   <span className="w-7 h-7 border border-[#4A4B4B] flex items-center justify-center text-xs font-bold text-foreground">{i + 1}</span>
                   <span className="text-sm text-foreground">{p}</span>
