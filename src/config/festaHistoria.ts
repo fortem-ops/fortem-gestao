@@ -2,7 +2,7 @@ import nicolasFoto from "@/assets/festa-nicolas.webp.asset.json";
 /**
  * Conteúdo da seção "Nossa história" em /10anos (texto do dono, sem edição).
  * `oculto: true` esconde o capítulo da página e da navegação.
- * `audio`: caminho do mp3 em /public (ex.: "/audio/festa/2016.mp3"). Vazio = sem botão de ouvir.
+ * `audio`: caminho do mp3 em /public (ex.: "/audio/10anos/2016.m4a"). Vazio = sem botão de ouvir.
  * Use **texto** para negrito.
  */
 
@@ -51,7 +51,7 @@ const EQ = "CHEGARAM À EQUIPE";
 
 export const festaHistoriaCapitulos: Capitulo[] = [
   {
-    ano: "2016", titulo: "O sonho começa a sair do papel", audio: "",
+    ano: "2016", titulo: "O sonho começa a sair do papel", audio: "/audio/10anos/2016.m4a",
     numeros: [{ valor: "25 m²", legenda: "primeira loja" }, { valor: "10 semanas", legenda: "de obra" }, { valor: "500 kg+", legenda: "de entulho retirado" }],
     frase: "A FORTEM só existe porque a minha família acreditou em mim, me apoiou desde o começo e continua ao meu lado.",
     paragrafos: [
@@ -66,7 +66,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2017", titulo: "Tudo começa com 25 m²", audio: "",
+    ano: "2017", titulo: "Tudo começa com 25 m²", audio: "/audio/10anos/2017.m4a",
     numeros: [{ valor: "25 m²", legenda: "primeira loja" }, { valor: "100", legenda: "aulas experimentais" }, { valor: "85%", legenda: "de conversão" }],
     frase: "A FORTEM estava apenas começando, mas já mostrava que tinha potencial para ir além daqueles primeiros 25 m².",
     pessoasRotulo: "PRIMEIROS ALUNOS", pessoas: ["Gabi C.", "Vivian K.", "Bruno Funari"],
@@ -80,7 +80,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2018", titulo: "Crescer, profissionalizar e ampliar", audio: "",
+    ano: "2018", titulo: "Crescer, profissionalizar e ampliar", audio: "/audio/10anos/2018.m4a",
     numeros: [{ valor: "+60 m²", legenda: "nova loja, na mesma galeria" }, { valor: "2", legenda: "modalidades de treino" }],
     frase: "Construir uma empresa que também oferecesse vínculos de trabalho formais era — e continua sendo — motivo de orgulho.",
     pessoasRotulo: EQ, pessoas: ["Rodrigo · professor", "Bruno Funari · administrador", "Pedro Schons · circuito"],
@@ -94,7 +94,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2019", titulo: "Mais gente, mais espaço e novos planos", audio: "",
+    ano: "2019", titulo: "Mais gente, mais espaço e novos planos", audio: "/audio/10anos/2019.m4a",
     numeros: [{ valor: "+25 m²", legenda: "de estrutura" }],
     frase: "A FORTEM ganhava corpo, amadurecia como negócio e se aproximava de um novo objetivo: ocupar o espaço onde hoje funciona a nossa sede.",
     pessoasRotulo: EQ, pessoas: ["Gustavo Dubois", "Arthur Berger", "Jonas Hubner"],
@@ -110,7 +110,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2020", titulo: "Quando o mundo parou", audio: "",
+    ano: "2020", titulo: "Quando o mundo parou", audio: "/audio/10anos/2020.m4a",
     numeros: [{ valor: "120 → 40", legenda: "alunos na pandemia" }],
     frase: "Nem todo crescimento acontece em linha reta.",
     paragrafos: [
@@ -123,7 +123,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2021", titulo: "Um passo ousado rumo à nova FORTEM", audio: "",
+    ano: "2021", titulo: "Um passo ousado rumo à nova FORTEM", audio: "/audio/10anos/2021.m4a",
     numeros: [{ valor: "85 → 220 m²", legenda: "novo espaço" }],
     frase: "Oferecer um serviço de excelência, respeitando as individualidades e valorizando cada pessoa que atendemos.",
     pessoasRotulo: "CHEGOU À EQUIPE", pessoas: ["Renan · professor"],
@@ -139,7 +139,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2022", titulo: "A multidisciplinaridade ganha vida", audio: "",
+    ano: "2022", titulo: "A multidisciplinaridade ganha vida", audio: "/audio/10anos/2022.m4a",
     numeros: [{ valor: "Agosto", legenda: "obras concluídas" }],
     frase: "Mais do que crescer em estrutura, queríamos crescer mantendo o padrão de serviço que acreditávamos ser o correto.",
     pessoasRotulo: EQ, pessoas: ["Julinha · reabilitação", "Júlia Lorenzon · nutrição", "Bruno Victor"],
@@ -154,7 +154,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2023", titulo: "Aperfeiçoamento e evolução técnica", audio: "",
+    ano: "2023", titulo: "Aperfeiçoamento e evolução técnica", audio: "/audio/10anos/2023.m4a",
     frase: "A FORTEM seguia evoluindo, não apenas em tamanho ou número de serviços, mas na maneira de pensar, organizar e entregar o nosso trabalho.",
     pessoasRotulo: EQ, pessoas: ["Eduardo Camargo · fisioterapia", "Júlia Assis Brasil", "Gabi · estágio"],
     paragrafos: [
@@ -166,7 +166,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2024", titulo: "O ano em que tudo mudou", audio: "", barraCinza: true,
+    ano: "2024", titulo: "O ano em que tudo mudou", audio: "/audio/10anos/2024.m4a", barraCinza: true,
     pessoasRotulo: EQ, pessoas: ["Thaís dos Santos", "Sophia Buchaim · estágio", "Kiko"],
     paragrafos: [
       "2024 foi o ano mais difícil da minha vida e marcou o início de um grande desafio pessoal.",
@@ -180,7 +180,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2025", titulo: "Recomeços, propósito e novos caminhos", audio: "",
+    ano: "2025", titulo: "Recomeços, propósito e novos caminhos", audio: "/audio/10anos/2025.m4a",
     numeros: [{ valor: "Novembro", legenda: "início do Grupo de Corrida" }],
     frase: "A FORTEM continuava sendo muito mais do que um negócio. Era também um lugar de convivência, de vínculos e de construção de significado.",
     pessoasRotulo: EQ, pessoas: ["Vanessa · professora", "Jéssica Elkfury · nutrição", "Igor Niederauer · corrida"],
@@ -198,7 +198,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2026", titulo: "Dez anos de história e novos horizontes", audio: "",
+    ano: "2026", titulo: "Dez anos de história e novos horizontes", audio: "/audio/10anos/2026.m4a",
     numeros: [{ valor: "42ª", legenda: "Maratona Internacional de Porto Alegre" }],
     frase: "Algumas coisas continuam iguais: o cuidado com as pessoas, a busca pela excelência e a vontade de fazer um trabalho que realmente faça diferença na vida de quem passa por aqui.",
     pessoasRotulo: "CHEGOU À EQUIPE", pessoas: ["Yasmim Ávila · corrida"],
@@ -214,7 +214,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2027", titulo: "O próximo capítulo", audio: "",
+    ano: "2027", titulo: "O próximo capítulo", audio: "/audio/10anos/2027.m4a",
     frase: "A FORTEM nasceu de um sonho meu, mas nunca foi construída por uma pessoa só.",
     paragrafos: [
       "Não sei exatamente o que 2027 nos reserva.",

@@ -11,11 +11,14 @@ describe("Nossa história", () => {
     expect(document.getElementById("cap-2019")).toBeNull();
     expect(screen.queryAllByRole("link", { name: /2019/ })).toHaveLength(0);
   });
-  it("sem áudio não há botões de ouvir; com áudio aparecem", () => {
-    r(); expect(screen.queryByRole("button", { name: /ouvir/i })).toBeNull();
+  it("sem áudio não há botões de ouvir", () => {
+    r(caps.map((c) => ({ ...c, audio: "" }))); expect(screen.queryByRole("button", { name: /ouvir/i })).toBeNull();
+  });
+  it("cada capítulo aponta para /audio/10anos/ANO.m4a", () => {
+    caps.forEach((c) => expect(c.audio).toBe(`/audio/10anos/${c.ano}.m4a`));
   });
   it("com áudio aparecem ouvir tudo e ouvir capítulo", () => {
-    r(caps.map((c) => c.ano === "2016" ? { ...c, audio: "/audio/festa/2016.mp3" } : c));
+    r(caps.map((c) => c.ano === "2016" ? c : { ...c, audio: "" }));
     expect(screen.getByRole("button", { name: /ouvir tudo/i })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /ouvir capítulo/i })).toHaveLength(1);
   });

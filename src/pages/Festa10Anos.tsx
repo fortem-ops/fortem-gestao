@@ -82,6 +82,10 @@ export default function Festa10Anos() {
           <div className="col-span-2 row-start-2 lg:col-span-1 lg:col-start-1 lg:row-start-2">
             <p className="text-2xl font-extrabold uppercase tracking-[0.06em] sm:text-3xl">{cfg.hero.titulo}</p>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">{cfg.hero.texto}</p>
+            <div className="mt-5 max-w-xs">
+              <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">Introdução</p>
+              <audio controls preload="none" src="/audio/10anos/introducao.m4a" aria-label="Ouvir a introdução" className="h-9 w-full opacity-80" />
+            </div>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <a href="#confirmar" className={btnPrim}>Confirmar presença</a>
               <a href="#historia" className={btnSec}>Nossa história</a>
@@ -232,7 +236,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
 
   return (
     <section id="historia" className="scroll-mt-16 border-t border-border py-20 sm:py-28">
-      <audio ref={audioRef} onEnded={fim} aria-label="Narração da história" className="hidden" />
+      <audio ref={audioRef} preload="none" onEnded={fim} aria-label="Narração da história" className="hidden" />
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <Rotulo>{ab.eyebrow}</Rotulo>
         <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">{ab.titulo}</h2>
