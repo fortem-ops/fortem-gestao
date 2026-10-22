@@ -1,53 +1,111 @@
-# Reduzir a pressão de disco sem aumentar a instância
+# Plano 2 — Pix Automático no checkout /planos (Start, Power e Pro 2027)
 
-Nada é executado antes da aprovação do dono, item a item. A instância continua Tiny; o card de redimensionamento fica sem aplicar.
+Só plano. Nada é implementado, publicado ou ligado sem aprovação do dono, etapa por etapa. Os itens E4–E6 do Plano 1 continuam fora. O cartão, a recorrência no cartão e o cron `planos-recorrencia-diario` não mudam.
 
-## O que já foi visto (leitura)
-- Saúde do banco agora: funcionando, sem reinícios, memória 59%, disco 21%, conexões 27/60. Único alerta em 48h: **leitura/gravação de disco** às 01:06 UTC (22:06 Brasília) de 21/10, com 20% de folga restante.
-- O `audit_log` tem **9 índices, e 4 deles são cópias** de outros:
-  - três índices iguais em (tabela, data): `idx_audit_log_tabela`, `audit_log_tabela_created_at_idx`, `idx_audit_tabela`;
-  - dois iguais em (usuário, data): `audit_log_user_id_idx`, `idx_audit_user_data`.
-  Cada registro de auditoria grava em todos eles, o que aumenta a escrita em disco sem nenhum ganho.
-- Consultas mais pesadas: inadimplências (0,46 s em média, 1.663 vezes), créditos ativos (0,26 s, 2.440 vezes), ciclos de crédito (0,36 s), tarefas pendentes (13 mil vezes).
-- Horários dos crons (UTC → Brasília):
-  - a cada 5 min (4 jobs: whatsapp ponto, resumo agenda, facial agente, agenda próximos) → 288 execuções/dia cada, cerca de 1.150 por dia somados, cada uma gravando um registro do cron e uma resposta HTTP;
-  - a cada 30 min: rate-limit (2), verificar PIX;
-  - 00:00 → 21:00 presenças; 01:00 (ter–sáb) → 22:00 pendências do ponto; 03:00 → 00:00 renovação de planos + resync do clube + evasão; 03:15 → 00:15 receitas; 23:40–23:55 → 20:40–20:55 resumo/alertas do ponto e fim dos treinos.
-  - O alerta das 22:06 (Brasília) coincide com **ponto-pendencias-diario (01:00 UTC)** somado aos 4 crons de 5 min.
+## Premissas (corrigidas quando necessário)
+- A conta Inter só aceita a **jornada 2**: um QR autoriza a recorrência e não cobra nada. A jornada 3 não existe para nós e não é usada aqui.
+- Cada cobrança mensal precisa ser criada no Inter **pelo menos 2 dias antes** do vencimento. A política de retentativa é PERMITE_3R_7D.
+- Taxa de R$ 24,90 igual à do cartão. O valor de cada mês sai de `calcularVenda2027`, o mesmo cálculo do cartão; o servidor recalcula sempre.
+- Hoje o /planos já cobra **Pix à vista** (cobrança imediata com baixa por aviso do banco e consulta de reserva) e já tem o cronograma de mensalidades 2027 (`planos_2027_mensalidades`), que gera as cobranças espelho por gatilho.
 
-## Item 1 — Diagnóstico complementar (só leitura)
-- Ler o tempo de cada execução de cron nas horas do alerta (histórico do cron e respostas HTTP), cruzar com as 3 horas em laranja do painel.
-- Ver o plano de execução (sem executar) das consultas que varrem o `audit_log` inteiro, para achar quem gera as 132 varreduras (provável: a limpeza mensal de 5 anos ou alguma tela de contagem).
-- Medir o tamanho de cada índice do `audit_log`.
-- Sem migração, sem publicar. Risco: nenhum.
+## 1. O que o cliente vê
+1. Na escolha da forma, aparece "Pix Automático (débito mensal no seu banco)" ao lado de "Cartão — recorrência", só quando a liberação está ligada para aquele plano.
+2. Contrato e aceite seguem como hoje.
+3. Na tela de pagamento, em dois passos numerados:
+   - **Passo 1, pagar o 1º mês:** QR e copia e cola de um Pix comum no valor do 1º mês, igual ao do cartão. É o mesmo Pix à vista que já funciona e vale 30 minutos.
+   - **Passo 2, autorizar os próximos meses:** depois do pagamento, aparece o QR de autorização. O cliente lê no app do banco e confirma. O texto diz que nada é cobrado nesse momento.
+4. Enquanto espera, a tela mostra "Aguardando confirmação do banco" e consulta o servidor a cada 8 segundos. O servidor lê primeiro o banco de dados (preenchido pelo aviso do Inter) e só pergunta ao Inter como reserva, no máximo a cada 30 segundos.
+5. **A aprovação da autorização** chega pelo aviso do Inter. A recorrência passa a APROVADA e o cronograma ganha o meio "Pix Automático".
+6. **Se não autorizar ou o código expirar:** o plano já está ativo, porque o 1º mês foi pago. A tela permite "Gerar novo código de autorização", com até 3 códigos por proposta. O cliente recebe um e-mail com o link para voltar a esta etapa. Sem autorização até 10 dias antes do 2º vencimento, a equipe recebe um aviso ("autorização pendente") para resolver no balcão ou trocar para cartão.
+7. **Se o cliente cancelar depois no banco:** o aviso do Inter marca a recorrência como CANCELADA. As mensalidades futuras ficam "sem meio de cobrança" e a equipe é avisada, como numa recusa do cartão. O cliente pode autorizar de novo por um link da equipe.
 
-## Item 2 — Retenção de 7 dias em histórico de crons e respostas HTTP
-- Uma rotina diária, às 06:00 UTC (03:00 Brasília, fora dos picos), apaga do histórico de execuções de cron e da tabela de respostas HTTP só o que tem mais de 7 dias, em lotes pequenos.
-- Não toca em nenhum cron de negócio, cobrança, recorrência, Rede, Inter ou Pix: mexe só nesses dois registros técnicos.
-- Impacto: cerca de 150 MB a menos para manter e varrer; menos escrita de manutenção. O espaço já ocupado no disco não diminui sozinho (só passa a ser reaproveitado).
-- Risco: perder histórico técnico com mais de 7 dias (só serve para depuração).
-- Reverter: desligar a rotina (um comando). Os registros apagados não voltam.
-- Precisa de migração (criar a rotina). Não precisa publicar.
+## 2. Primeiro mês: opções
+| Opção | Como funciona | Prós | Contras |
+|---|---|---|---|
+| A (recomendada) | Pix comum do 1º mês primeiro; autorização depois do pagamento | Reaproveita o Pix à vista já testado; acesso liberado na hora; não há como cobrar o 1º mês duas vezes, porque o cronograma começa no 2º mês | Dois QR em sequência; o cliente pode parar antes de autorizar (coberto pelo aviso do item 1.6) |
+| B | Autorização primeiro e 1ª cobrança pela recorrência | Um único meio | O Inter exige 2 dias de antecedência: o acesso atrasa 2 ou 3 dias ou o aluno entra sem pagar; mais risco |
+| C | Os dois QR na mesma tela | Rápido para quem entende | Confuso, com risco de pagar e não autorizar sem perceber; mesmo backend da A |
 
-## Item 3 — Auditoria: remover índices duplicados (sem tocar em dados)
-- Apagar só as 4 cópias de índice listadas acima, mantendo um índice de cada tipo. Os registros e a retenção de 5 anos continuam iguais.
-- Para as 132 varreduras completas: criar um índice novo só se o Item 1 mostrar que alguma consulta frequente não usa os índices existentes. Hoje a data, a tabela, o registro, o usuário e a operação já têm índice.
-- Impacto: cada registro de auditoria passa a gravar 4 índices a menos (menos escrita em disco), e o espaço desses índices fica livre.
-- Risco: baixo; as consultas usam o índice igual que fica.
-- Reverter: recriar os índices com a mesma definição (salva antes em um script de volta).
-- Precisa de migração. Não precisa publicar.
+**Recomendação: opção A.**
+- 1º mês: o mesmo valor do cartão (mensalidade + R$ 24,90 + desconto recorrente do Start, quando houver).
+- A autorização nasce com início no 2º vencimento e valor mínimo igual ao da mensalidade.
+- O cronograma é criado só depois da baixa do 1º mês, pelo mesmo caminho idempotente do cartão (uma linha por proposta e mês).
 
-## Item 4 (opcional, para decisão do dono) — Crons de 5 minutos
-- Os 4 crons de 5 min são a maior fonte de escrita contínua. Opções, sem mudar nada agora:
-  - manter como está (o Item 2 já limita o acúmulo);
-  - passar facial-verificar-agente para 15 min (atraso máximo no aviso do agente: 15 min em vez de 5);
-  - rodar os de WhatsApp e agenda só no horário de funcionamento.
-- Cada mudança muda quando as mensagens/avisos saem, então só com aprovação do dono, uma a uma.
+## 3. Meses seguintes
+- **Nova rotina** `planos-pix-automatico-diario`, separada e sem tocar no cron do cartão, roda 1 vez por dia às 10:30 UTC (07:30 Brasília).
+- **Antecedência:**
+  - cria no Inter a cobrança de toda mensalidade Pix Automático com vencimento entre **5 e 3 dias** à frente;
+  - quem ficar a 2 dias ou menos não é criado: a equipe recebe o aviso "cobrança Pix não agendada".
+- **Sem duplicidade:**
+  - uma reserva atômica por mensalidade, com a chave da cobrança gerada antes de chamar o Inter e gravada na mensalidade;
+  - se o resultado for incerto, a mensalidade fica "desconhecido" e é conferida pela chave, nunca recriada;
+  - uma cobrança por mensalidade, garantida no banco.
+- **Power e Pro:** as 12 mensalidades já nascem no cronograma.
+- **Start:** a próxima só nasce quando a atual é paga, reaproveitando a regra de renovação 2027 do Start e o desconto recorrente.
+- **Reaproveita:** `pix_recorrencias` e `pix_cobrancas` (com ligação à mensalidade), a criação de cobrança mensal que já existe em `_shared` e a baixa pelo `pix-webhook`.
 
-## Ordem sugerida
-1 → 3 (índices) → 2 (retenção) → acompanhar o painel por 3 a 7 dias → decidir o Item 4.
+## 4. Falhas
+- **Débito recusado ou sem saldo:** o Inter tenta de novo por até 7 dias (PERMITE_3R_7D). Cada tentativa fica registrada. Depois disso, a mensalidade fica **em atraso** e o espelho em `cobrancas` vira inadimplência, como no cartão. A equipe recebe um aviso único por mensalidade.
+- **Encargos de atraso:** só aparecem na tela (cálculo atual). Nada é cobrado (E4 fora).
+- **Autorização cancelada pelo cliente:** ver item 1.7. As cobranças já criadas e não pagas são canceladas no Inter, sem custo.
+- **Fim de semana ou feriado:** o vencimento continua na data do contrato. O Inter debita no dia útil seguinte e o atraso só conta depois do prazo das retentativas.
 
-## Detalhes técnicos
-- Item 2: `cron.schedule` diário com `DELETE ... WHERE end_time < now() - interval '7 days'` em `cron.job_run_details` e `created < now() - interval '7 days'` em `net._http_response`, em lotes.
-- Item 3: `DROP INDEX` de `audit_log_tabela_created_at_idx`, `idx_audit_tabela`, `idx_audit_user_data`; manter `idx_audit_log_tabela`, `audit_log_user_id_idx`. Rollback em `scripts/audit-log-indices.rollback.sql` com os `CREATE INDEX` originais.
-- Item 1 usa só `EXPLAIN` (sem ANALYZE) e leituras de estatísticas.
+## 5. Ligação com o resto
+- **Contrato e venda:** iguais aos da recorrência no cartão. A forma aparece como "Pix Automático", com o template de recorrência após a revisão do advogado.
+- **Cobranças espelho, créditos (`ciclos_credito`), acesso e ficha:** pelos mesmos gatilhos e regras de mensalidade 2027 de hoje. O crédito do mês só é liberado com a mensalidade paga.
+- **Baixa:** um passo idempotente chamado pelo aviso do Inter (cobrança CONCLUIDA) e pela consulta de reserva das 30 em 30 minutos. Ele marca a mensalidade como paga, e o espelho, o financeiro e a conciliação seguem o caminho de hoje.
+- **O que a equipe vê:** na ficha, a forma "Pix Automático" com o estado (pendente, aprovada, cancelada) e as próximas cobranças.
+- **O que a equipe pode fazer** (admin ou coordenação):
+  - dar baixa manual, com motivo;
+  - cancelar a autorização (já existe `pix-cancelar-recorrencia`);
+  - gerar novo link de autorização;
+  - trocar para cartão, encerrando as cobranças Pix futuras e mantendo as pagas.
+
+## 6. Segurança e conformidade
+- **Acionamento:** só o servidor cria cobranças e autorizações, sempre pelas liberações e pela proposta.
+- **CPF:** o pagador é o titular da proposta. O CPF tem de bater com o da conta no banco, e a tela avisa isso antes do QR. Se o banco recusar por CPF, a mensagem é neutra e a equipe é avisada.
+- **Logs:** CPF mascarado (`mascararCpf`), sem copia e cola nem chave nos registros.
+- **Texto do checkout**, só o que precisa aparecer (a redação fica com o advogado):
+  - autorização de débito mensal no banco, com valor, dia, quantidade de meses ou renovação mensal do Start;
+  - como cancelar no app do banco e o que acontece com o plano se cancelar;
+  - retentativas em até 7 dias e encargos em caso de atraso;
+  - a taxa de R$ 24,90.
+- **Consentimento:** caixa obrigatória "Li e autorizo o débito automático via Pix", com versão do texto guardada no aceite, como o anexo atual.
+
+## 7. Liberação em fases
+- Novas liberações, todas desligadas, com ausência contando como desligado: `planos_pix_automatico_ativo` e `planos_pix_automatico_planos` (lista: start, power, pro).
+- **Ordem:**
+  1. teste de ponta a ponta com o dono a R$ 1,00 no máximo, usando o teto de teste atual: Pix do 1º mês, autorização, uma mensalidade com vencimento a 3 dias, baixa e cancelamento;
+  2. Start;
+  3. Power;
+  4. Pro.
+  Cada um é ligado só com aprovação do dono.
+- **Desligar rápido:** desligar a liberação esconde a opção na hora. Quem já autorizou continua sendo cobrado, a menos que o dono peça para pausar a rotina, que tem chave própria.
+- **Medir:** autorizações aprovadas sobre geradas, cobranças pagas na 1ª tentativa, falhas por motivo e avisos à equipe, num relatório simples na tela de propostas.
+
+## 8. Etapas
+| # | O que muda | Migração | Função de borda | Publicar | Risco | Reverter | Esforço |
+|---|---|---|---|---|---|---|---|
+| P1 | Liberações e meio "pix_automatico" no cronograma, com ligação a recorrência e cobrança | Sim | Não | Não | Baixo | Script de volta | Baixo |
+| P2 | Autorização após o Pix do 1º mês (servidor do checkout) e baixa da autorização pelo aviso do Inter | Sim (passos no banco) | `planos-checkout`, `pix-webhook` | Não* | Médio | Desligar liberação | Médio |
+| P3 | Tela de pagamento em 2 passos, opção na escolha da forma e link de retomada | Não | Não | Sim | Baixo | Desligar liberação | Médio |
+| P4 | Rotina `planos-pix-automatico-diario` (criar cobrança 5 a 3 dias antes, reserva, incerteza) | Sim | Nova | Não | Médio | Pausar a rotina | Médio |
+| P5 | Falhas, atraso, avisos e ações da equipe na ficha | Sim | `pix-webhook` | Sim | Médio | Script de volta | Médio |
+| P6 | Teste de ponta a ponta com o dono a R$ 1,00 | Não | Não | Não | Baixo | Cancelar no Inter | Baixo |
+| P7 | Ligar Start, depois Power, depois Pro | Não | Não | Não | Médio | Desligar | Baixo |
+
+*Funções de borda passam a valer assim que são republicadas, sem publicar o site. Telas só aparecem no site depois de publicado, e o dono publica.
+
+Aprovação de ferramenta: as migrações e as chamadas reais ao Inter no teste. Criar a rotina diária usa uma consulta de dados com aprovação.
+
+Dependências:
+- **Advogado:** texto do item 6 e template de contrato "Pix Automático" (§5 e §6–§8).
+- **Inter:** limites diários de cobranças recorrentes da conta, prazo real de retentativa e se o aviso de recorrência cancelada chega para nós (testado só na jornada 2).
+
+## 9. Perguntas para o dono
+1. A taxa de R$ 24,90 é por mês, como no cartão, ou só uma vez?
+2. Sem autorização, o aluno segue ativo até o 2º vencimento (recomendado) ou fica bloqueado?
+3. A antecedência de 5 a 3 dias está boa?
+4. Quantas tentativas de novo código de autorização (sugestão: 3)?
+5. Quem pode trocar o Pix Automático para cartão: admin e coordenação, ou só admin?
+6. Quer o aviso ao cliente (e-mail) 3 dias antes de cada débito?
