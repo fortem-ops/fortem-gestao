@@ -1,0 +1,2 @@
+CREATE POLICY festa_audios_storage_select ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'festa-audios' AND public.fn_festa_gestao(auth.uid()));
+COMMENT ON COLUMN public.festa_audios.url_audio IS 'Link assinado de 10 anos do arquivo no bucket privado festa-audios';

@@ -331,6 +331,8 @@
   [data-festa="10anos"] .festa-marca { color: hsl(var(--festa-marca)); }
   [data-festa="10anos"] .festa-marca-bg { background-color: hsl(var(--festa-marca)); }
   [data-festa="10anos"] .festa-marca-border { border-color: hsl(var(--festa-marca)); }
+  [data-festa="10anos"] .festa-trilha-ponto { border-radius: 9999px !important; transition: all 0.3s ease; }
+  [data-festa="10anos"] .festa-trilha-ponto-ativo { box-shadow: 0 0 0 5px hsl(var(--festa-marca) / 0.25) !important; }
 
   @media (prefers-reduced-motion: reduce) {
     [data-festa="10anos"] *,

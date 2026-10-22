@@ -1352,6 +1352,20 @@
       "when": 1792676861512,
       "tag": "0192_festa_autor_foto_ajuste",
       "breakpoints": true
+    },
+    {
+      "idx": 193,
+      "version": "7",
+      "when": 1792677611645,
+      "tag": "0193_festa_audios",
+      "breakpoints": true
+    },
+    {
+      "idx": 194,
+      "version": "7",
+      "when": 1792677639498,
+      "tag": "0194_festa_audios_storage_select",
+      "breakpoints": true
     }
   ]
 }

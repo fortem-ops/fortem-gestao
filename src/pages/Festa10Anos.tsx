@@ -9,6 +9,9 @@ import FotoAutor from "@/components/festa/FotoAutor";
 import { agruparFotosPorAno, carregarFestaFotosPublico, carregarAjusteAutorPublico, AJUSTE_PADRAO, type AjusteFoto, type FestaFoto } from "@/lib/festaFotos";
 import { carregarInteracoes, type FestaInteracao } from "@/lib/festaInteracoes";
 import { festaHistoriaAbertura as ab, festaHistoriaCapitulos, minutosLeitura, type Capitulo } from "@/config/festaHistoria";
+import TrilhaAnos from "@/components/festa/TrilhaAnos";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { carregarFestaAudios, textoDuracao, type FestaAudio } from "@/lib/festaAudios";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 
 /** Duas cantoneiras em diagonal (superior esquerda e inferior direita). */
@@ -41,6 +44,8 @@ export default function Festa10Anos() {
   useEffect(() => { carregarFestaFotosPublico().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); carregarAjusteAutorPublico().then(setAjusteAutor).catch(() => {}); }, []);
   const [ajusteAutor, setAjusteAutor] = useState<AjusteFoto>(AJUSTE_PADRAO);
 
+  const [audiosDb, setAudiosDb] = useState<Record<string, FestaAudio>>({});
+  useEffect(() => { carregarFestaAudios().then(setAudiosDb).catch(() => {}); }, []);
   const [interacoes, setInteracoes] = useState<Record<string, FestaInteracao>>({});
   useEffect(() => { carregarInteracoes().then(setInteracoes).catch(() => {}); }, []);
   const onInteracao = useCallback((id: string, i: FestaInteracao) => setInteracoes((m) => ({ ...m, [id]: i })), []);
@@ -48,7 +53,7 @@ export default function Festa10Anos() {
   const local = `${cfg.local.endereco} · ${cfg.horario} · confirmações ${cfg.prazoTexto}`;
 
   return (
-    <main data-festa="10anos" className="min-h-screen overflow-x-hidden bg-background font-light text-foreground">
+    <main data-festa="10anos" className="min-h-screen overflow-x-clip bg-background font-light text-foreground">
       <Seo title="FORTEM · 10 anos | 14.11.26" description="Dez anos de movimento. Confirme sua presença na festa de 10 anos da FORTEM, em 14 de novembro de 2026." path="/10anos" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background">
@@ -87,7 +92,7 @@ export default function Festa10Anos() {
       </section>
 
 
-      <NossaHistoria ajusteAutor={ajusteAutor} fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
+      <NossaHistoria audiosDb={audiosDb} ajusteAutor={ajusteAutor} fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
 
       {/* A festa */}
       <section id="festa" className="scroll-mt-16 border-t border-border bg-card px-5 py-20 sm:px-8 sm:py-28">
@@ -175,11 +180,12 @@ function Recolhivel({ titulo, children }: { titulo: string; children: React.Reac
   );
 }
 
-type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void; ajusteAutor?: AjusteFoto };
+type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void; ajusteAutor?: AjusteFoto; audiosDb?: Record<string, Pick<FestaAudio, "url_audio" | "duracao_segundos">> };
 
-export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao }: HistoriaProps) {
-  const caps = capitulos.filter((c) => !c.oculto);
+export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao, audiosDb = {} }: HistoriaProps) {
+  const caps = capitulos.filter((c) => !c.oculto).map((c) => ({ ...c, audio: audiosDb[c.ano]?.url_audio || c.audio }));
   const comAudio = caps.filter((c) => c.audio);
+  const duracao = textoDuracao(comAudio.map((c) => audiosDb[c.ano]?.duracao_segundos));
   const audioRef = useRef<HTMLAudioElement>(null);
   const [tocando, setTocando] = useState<string | null>(null);
   const [fila, setFila] = useState<string[]>([]);
@@ -201,6 +207,18 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
   const fim = () => fila.length ? tocar(fila[0], fila.slice(1)) : setTocando(null);
   const tudo = fila.length > 0 || (tocando !== null && comAudio[0]?.ano === tocando && fila.length > 0);
   const btnAudio = "inline-flex min-h-11 items-center px-4 text-xs font-bold uppercase tracking-[0.12em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const isMobile = useIsMobile();
+  const irPara = (ano: string) => document.getElementById(`cap-${ano}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const barraNarracao = (
+    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-2 sm:px-8">
+      <p className="text-sm"><strong className="font-bold uppercase tracking-[0.12em]">{ab.narracao.titulo}</strong> <span className="text-muted-foreground">{ab.narracao.autor} · {caps.length} capítulos{duracao ? ` · ${duracao}` : ""}</span></p>
+      {comAudio.length > 0 && (
+        <button type="button" aria-pressed={tocando !== null && tudo} onClick={() => (tocando ? tocar(null) : tocar(comAudio[0].ano, comAudio.slice(1).map((c) => c.ano)))} className={`${btnAudio} bg-primary text-primary-foreground`}>
+          {tocando ? "Parar" : "Ouvir tudo"}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <section id="historia" className="scroll-mt-16 border-t border-border py-20 sm:py-28">
@@ -228,21 +246,18 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
         </div>
       </div>
 
-      <div className="sticky top-[68px] z-20 mt-14 border-y border-border bg-background">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-2 sm:px-8">
-          <p className="text-sm"><strong className="font-bold uppercase tracking-[0.12em]">{ab.narracao.titulo}</strong> <span className="text-muted-foreground">{ab.narracao.autor} · {caps.length} capítulos · {ab.narracao.duracao}</span></p>
-          {comAudio.length > 0 && (
-            <button type="button" aria-pressed={tocando !== null && tudo} onClick={() => (tocando ? tocar(null) : tocar(comAudio[0].ano, comAudio.slice(1).map((c) => c.ano)))} className={`${btnAudio} bg-primary text-primary-foreground`}>
-              {tocando ? "Parar" : "Ouvir tudo"}
-            </button>
-          )}
+      {isMobile ? (
+        <TrilhaAnos anos={caps.map((c) => c.ano)} ativo={tocando ?? ativo} onIr={irPara} />
+      ) : (
+        <div className="sticky top-[68px] z-20 mt-14 border-y border-border bg-background">
+          {barraNarracao}
+          <nav aria-label="Anos da história" className="flex gap-1 overflow-x-auto px-5 pb-2 lg:hidden">
+            {caps.map((c) => <a key={c.ano} href={`#cap-${c.ano}`} aria-current={(tocando ?? ativo) === c.ano} className={`inline-flex min-h-11 shrink-0 items-center px-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${(tocando ?? ativo) === c.ano ? "festa-marca" : "text-muted-foreground"}`}>{c.ano}</a>)}
+          </nav>
         </div>
-        <nav aria-label="Anos da história" className="flex gap-1 overflow-x-auto px-5 pb-2 lg:hidden">
-          {caps.map((c) => <a key={c.ano} href={`#cap-${c.ano}`} aria-current={ativo === c.ano} className={`inline-flex min-h-11 shrink-0 items-center px-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${ativo === c.ano ? "festa-marca" : "text-muted-foreground"}`}>{c.ano}</a>)}
-        </nav>
-      </div>
+      )}
 
-      <div className="mx-auto mt-12 grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[12rem_1fr]">
+      <div className="mx-auto mt-12 grid max-w-7xl gap-10 px-5 pb-20 sm:px-8 md:pb-0 lg:grid-cols-[12rem_1fr]">
         <nav aria-label="Capítulos" className="hidden lg:block">
           <ol className="sticky top-[150px] space-y-1">
             {caps.map((c) => (
@@ -257,7 +272,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
             const fotos = fotosDb?.[c.ano] ?? (fotosDb ? undefined : cfg.historia.anos.find((a) => a.ano === c.ano)?.fotos);
             const [p1, ...resto] = c.paragrafos;
             return (
-              <article key={c.ano} id={`cap-${c.ano}`} aria-labelledby={`tit-${c.ano}`} className="scroll-mt-40">
+              <article key={c.ano} id={`cap-${c.ano}`} aria-labelledby={`tit-${c.ano}`} className="scroll-mt-48 md:scroll-mt-40">
                 <p className="text-[72px] font-black leading-none lg:text-[112px]">{c.ano}</p>
                 <div className={`mt-3 h-1 w-24 ${c.barraCinza ? "bg-border" : "festa-marca-bg"}`} />
                 <h3 id={`tit-${c.ano}`} className="mt-5 text-2xl font-black uppercase sm:text-3xl">{c.titulo}</h3>
@@ -311,6 +326,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
           <a href="#confirmar" className="mt-8 inline-flex min-h-12 items-center bg-background px-7 text-sm font-bold uppercase tracking-[0.12em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{ab.fechamento.botao}</a>
         </div>
       </div>
+      {isMobile && <div className="sticky bottom-0 z-20 mt-10 border-t border-card bg-background pb-[env(safe-area-inset-bottom)]">{barraNarracao}</div>}
     </section>
   );
 }
