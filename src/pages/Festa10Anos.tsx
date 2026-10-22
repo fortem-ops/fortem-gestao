@@ -13,6 +13,8 @@ import TrilhaAnos from "@/components/festa/TrilhaAnos";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { carregarFestaAudios, textoDuracao, type FestaAudio } from "@/lib/festaAudios";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
+import PlayerIntroducao, { tempo } from "@/components/festa/PlayerIntroducao";
+import { Pause, Play } from "lucide-react";
 
 /** Duas cantoneiras em diagonal (superior esquerda e inferior direita). */
 function Cantoneiras({ cor = "border-foreground" }: { cor?: string }) {
@@ -29,8 +31,8 @@ function Rotulo({ children }: { children: React.ReactNode }) {
 }
 
 const linkCls = "inline-flex min-h-11 items-center px-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const btnPrim = "inline-flex min-h-12 items-center justify-center bg-primary px-7 text-sm font-bold uppercase tracking-[0.12em] text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-const btnSec = "inline-flex min-h-12 items-center justify-center border-2 border-foreground px-7 text-sm font-bold uppercase tracking-[0.12em] transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const btnPrim = "inline-flex min-h-12 items-center justify-center bg-primary px-7 text-[13px] font-bold uppercase tracking-[0.12em] text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:text-sm";
+const btnSec = "inline-flex min-h-12 items-center justify-center border-2 border-foreground px-7 text-[13px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
 
 export default function Festa10Anos() {
   const [totalConfirmados, setTotalConfirmados] = useState<number | null>(null);
@@ -57,40 +59,39 @@ export default function Festa10Anos() {
       <Seo title="FORTEM · 10 anos | 14.11.26" description="Dez anos de movimento. Confirme sua presença na festa de 10 anos da FORTEM, em 14 de novembro de 2026." path="/10anos" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-3 sm:px-8">
-          <a href="#topo" aria-label="FORTEM, início" className="inline-flex min-h-11 items-center"><img src={fortemWordmark} alt="FORTEM" className="h-5 w-auto invert sm:h-6" /></a>
+        <div className="mx-auto flex h-[51px] max-w-7xl items-center justify-between gap-3 px-5 sm:px-8 md:h-auto md:py-3">
+          <a href="#topo" aria-label="FORTEM, início" className="inline-flex min-h-11 items-center"><img src={fortemWordmark} alt="FORTEM" className="h-[22px] w-auto invert md:h-6" /></a>
           <nav aria-label="Seções" className="flex items-center gap-1 sm:gap-4">
-            <a href="#historia" className={`${linkCls} hidden sm:inline-flex`}>História</a>
-            <a href="#festa" className={`${linkCls} hidden sm:inline-flex`}>A festa</a>
-            <a href="#confirmar" className="inline-flex min-h-11 items-center bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Confirmar presença</a>
+            <a href="#historia" className={`${linkCls} hidden md:inline-flex`}>História</a>
+            <a href="#festa" className={`${linkCls} hidden md:inline-flex`}>A festa</a>
+            <a href="#confirmar" className="inline-flex h-11 items-center bg-primary px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-auto md:min-h-11 md:px-4 md:text-xs md:tracking-[0.12em]">Confirmar presença</a>
           </nav>
         </div>
       </header>
 
       {/* Hero */}
-      <section id="topo" className="px-5 py-16 sm:px-8 sm:py-24 lg:py-28">
-        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-10 sm:gap-x-8 lg:grid-cols-[1.3fr_1fr] lg:gap-x-14 lg:gap-y-8">
+      <section id="topo" className="px-5 py-8 sm:px-8 md:py-24 lg:py-28">
+        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-6 sm:gap-x-8 md:gap-y-10 lg:grid-cols-[1.3fr_1fr] lg:gap-x-14 lg:gap-y-8">
           <div className="col-start-1 row-start-1">
-            <h1 className="text-[2.9rem] font-black leading-[0.85] sm:text-8xl lg:text-[9rem]">{cfg.dataCurta}</h1>
+            <h1 className="text-[44px] font-black leading-[0.85] md:text-8xl lg:text-[9rem]">{cfg.dataCurta}</h1>
           </div>
-          <div className="relative mx-auto aspect-square w-[5rem] self-center sm:w-[9rem] lg:row-span-2 lg:w-full lg:max-w-[26rem]">
+          <div className="relative mx-auto aspect-square w-16 self-center md:w-[9rem] lg:row-span-2 lg:w-full lg:max-w-[26rem]">
             <Cantoneiras />
             <div className="festa-marca-bg flex h-full w-full items-center justify-center">
-              <span className="text-[2.4rem] font-black leading-none text-foreground sm:text-[6rem] lg:text-[13rem]">10</span>
+              <span className="text-[38px] font-black leading-none text-foreground md:text-[6rem] lg:text-[13rem]">10</span>
             </div>
           </div>
           <div className="col-span-2 row-start-2 lg:col-span-1 lg:col-start-1 lg:row-start-2">
-            <p className="text-2xl font-extrabold uppercase tracking-[0.06em] sm:text-3xl">{cfg.hero.titulo}</p>
-            <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">{cfg.hero.texto}</p>
-            <div className="mt-5 max-w-xs">
-              <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">Introdução</p>
-              <audio controls preload="none" src="/audio/10anos/introducao.m4a" aria-label="Ouvir a introdução" className="h-9 w-full opacity-80" />
+            <p className="text-[22px] font-extrabold uppercase tracking-[0.06em] md:text-3xl">{cfg.hero.titulo}</p>
+            <p className="mt-3 max-w-xl text-base leading-relaxed text-muted-foreground md:mt-4 md:text-lg">{cfg.hero.texto}</p>
+            <div className="mt-5 md:max-w-md">
+              <PlayerIntroducao src="/audio/10anos/introducao.m4a" />
             </div>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row md:mt-9">
               <a href="#confirmar" className={btnPrim}>Confirmar presença</a>
               <a href="#historia" className={btnSec}>Nossa história</a>
             </div>
-            <p className="mt-8 text-sm text-muted-foreground">{local}</p>
+            <p className="mt-5 text-sm text-muted-foreground md:mt-8">{local}</p>
           </div>
         </div>
       </section>
