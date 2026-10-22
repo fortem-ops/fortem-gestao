@@ -5,6 +5,7 @@ import { brlCentavos } from "@/lib/festa10anos";
 import { Seo } from "@/components/Seo";
 import FestaConfirmacaoForm from "@/components/festa/FestaConfirmacaoForm";
 import FestaFotosAno from "@/components/festa/FestaFotosAno";
+import FotoAutor from "@/components/festa/FotoAutor";
 import { agruparFotosPorAno, carregarFestaFotosPublico, carregarAjusteAutorPublico, AJUSTE_PADRAO, type AjusteFoto, type FestaFoto } from "@/lib/festaFotos";
 import { carregarInteracoes, type FestaInteracao } from "@/lib/festaInteracoes";
 import { festaHistoriaAbertura as ab, festaHistoriaCapitulos, minutosLeitura, type Capitulo } from "@/config/festaHistoria";
@@ -314,11 +315,3 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
   );
 }
 
-export function FotoAutor({ src, alt, ajuste }: { src: string; alt: string; ajuste: AjusteFoto }) {
-  return (
-    <div className="aspect-[4/5] w-full overflow-hidden">
-      <img src={src} alt={alt} loading="lazy" decoding="async" className="h-full w-full object-cover"
-        style={{ objectPosition: `${ajuste.x}% ${ajuste.y}%`, transform: `scale(${ajuste.zoom})`, transformOrigin: `${ajuste.x}% ${ajuste.y}%` }} />
-    </div>
-  );
-}
