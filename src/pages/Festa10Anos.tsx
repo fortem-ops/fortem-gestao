@@ -187,28 +187,38 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
   const comAudio = caps.filter((c) => c.audio);
   const duracao = textoDuracao(comAudio.map((c) => audiosDb[c.ano]?.duracao_segundos));
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isMobile = useIsMobile();
   const [tocando, setTocando] = useState<string | null>(null);
   const [fila, setFila] = useState<string[]>([]);
   const [ativo, setAtivo] = useState(caps[0]?.ano);
 
   useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
+    if (isMobile || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && setAtivo(e.target.id.replace("cap-", ""))), { rootMargin: "-40% 0px -55% 0px" });
     caps.forEach((c) => { const el = document.getElementById(`cap-${c.ano}`); if (el) io.observe(el); });
     return () => io.disconnect();
-  }, [caps.length]);
+  }, [caps.length, isMobile]);
 
   const tocar = (ano: string | null, restante: string[] = []) => {
     const a = audioRef.current; if (!a) return;
     const c = caps.find((x) => x.ano === ano);
     if (!c?.audio) { a.pause(); setTocando(null); setFila([]); return; }
     a.src = c.audio; a.play().catch(() => setTocando(null)); setTocando(ano); setFila(restante);
+    if (isMobile && ano !== ativo) irPara(ano);
   };
   const fim = () => fila.length ? tocar(fila[0], fila.slice(1)) : setTocando(null);
   const tudo = fila.length > 0 || (tocando !== null && comAudio[0]?.ano === tocando && fila.length > 0);
   const btnAudio = "inline-flex min-h-11 items-center px-4 text-xs font-bold uppercase tracking-[0.12em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-  const isMobile = useIsMobile();
-  const irPara = (ano: string) => document.getElementById(`cap-${ano}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const [dir, setDir] = useState<1 | -1>(1);
+  const toque = useRef<{ x: number; y: number } | null>(null);
+  const idxAtivo = Math.max(0, caps.findIndex((c) => c.ano === ativo));
+  const irPara = (ano: string) => {
+    if (!isMobile) { document.getElementById(`cap-${ano}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    const i = caps.findIndex((c) => c.ano === ano); if (i < 0 || ano === ativo) return;
+    setDir(i > idxAtivo ? 1 : -1); setAtivo(ano);
+    requestAnimationFrame(() => document.getElementById("capitulo-mobile")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  const passo = (d: 1 | -1) => { const c = caps[idxAtivo + d]; if (c) irPara(c.ano); };
   const barraNarracao = (
     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-2 sm:px-8">
       <p className="text-sm"><strong className="font-bold uppercase tracking-[0.12em]">{ab.narracao.titulo}</strong> <span className="text-muted-foreground">{ab.narracao.autor} · {caps.length} capítulos{duracao ? ` · ${duracao}` : ""}</span></p>
@@ -267,13 +277,16 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
             ))}
           </ol>
         </nav>
-        <div className="min-w-0 space-y-24">
-          {caps.map((c) => {
+        <div id={isMobile ? "capitulo-mobile" : undefined} className={`min-w-0 space-y-24 ${isMobile ? "scroll-mt-48 overflow-x-clip" : ""}`}
+          onTouchStart={isMobile ? (e) => { toque.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; } : undefined}
+          onTouchEnd={isMobile ? (e) => { const t = toque.current; toque.current = null; if (!t) return; const dx = e.changedTouches[0].clientX - t.x, dy = e.changedTouches[0].clientY - t.y; if (Math.abs(dx) > 60 && Math.abs(dx) > 1.5 * Math.abs(dy)) passo(dx < 0 ? 1 : -1); } : undefined}>
+          {(isMobile ? caps.slice(idxAtivo, idxAtivo + 1) : caps).map((c) => {
             const fotos = fotosDb?.[c.ano] ?? (fotosDb ? undefined : cfg.historia.anos.find((a) => a.ano === c.ano)?.fotos);
             const [p1, ...resto] = c.paragrafos;
             return (
-              <article key={c.ano} id={`cap-${c.ano}`} aria-labelledby={`tit-${c.ano}`} className="scroll-mt-48 md:scroll-mt-40">
-                <p className="text-[72px] font-black leading-none lg:text-[112px]">{c.ano}</p>
+              <article key={c.ano} id={`cap-${c.ano}`} aria-labelledby={`tit-${c.ano}`} className={isMobile ? (dir > 0 ? "festa-slide-dir" : "festa-slide-esq") : "scroll-mt-40"}>
+                {isMobile && <p className="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-muted-foreground">Capítulo {idxAtivo + 1}</p>}
+                <p className={`text-[72px] font-black leading-none lg:text-[112px] ${isMobile ? "festa-marca" : ""}`}>{c.ano}</p>
                 <div className={`mt-3 h-1 w-24 ${c.barraCinza ? "bg-border" : "festa-marca-bg"}`} />
                 <h3 id={`tit-${c.ano}`} className="mt-5 text-2xl font-black uppercase sm:text-3xl">{c.titulo}</h3>
                 <div className="mt-3 flex flex-wrap items-center gap-4">
@@ -315,6 +328,18 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
               </article>
             );
           })}
+          {isMobile && (
+            <div className="!mt-10 grid grid-cols-2 gap-3">
+              <button type="button" aria-label="Capítulo anterior" disabled={idxAtivo === 0} onClick={() => passo(-1)}
+                className="min-h-12 border border-border text-sm font-bold uppercase tracking-[0.12em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">Anterior</button>
+              {idxAtivo < caps.length - 1 ? (
+                <button type="button" aria-label="Próximo capítulo" onClick={() => passo(1)}
+                  className="festa-marca-bg min-h-12 text-sm font-bold uppercase tracking-[0.12em] text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">Próximo</button>
+              ) : (
+                <a href="#confirmar" className="festa-marca-bg inline-flex min-h-12 items-center justify-center text-sm font-bold uppercase tracking-[0.1em] text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Confirmar presença</a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
