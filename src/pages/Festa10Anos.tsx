@@ -175,11 +175,12 @@ function Recolhivel({ titulo, children }: { titulo: string; children: React.Reac
   );
 }
 
-type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void; ajusteAutor?: AjusteFoto };
+type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void; ajusteAutor?: AjusteFoto; audiosDb?: Record<string, Pick<FestaAudio, "url_audio" | "duracao_segundos">> };
 
-export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao }: HistoriaProps) {
-  const caps = capitulos.filter((c) => !c.oculto);
+export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao, audiosDb = {} }: HistoriaProps) {
+  const caps = capitulos.filter((c) => !c.oculto).map((c) => ({ ...c, audio: audiosDb[c.ano]?.url_audio || c.audio }));
   const comAudio = caps.filter((c) => c.audio);
+  const duracao = textoDuracao(comAudio.map((c) => audiosDb[c.ano]?.duracao_segundos));
   const audioRef = useRef<HTMLAudioElement>(null);
   const [tocando, setTocando] = useState<string | null>(null);
   const [fila, setFila] = useState<string[]>([]);
@@ -201,6 +202,17 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
   const fim = () => fila.length ? tocar(fila[0], fila.slice(1)) : setTocando(null);
   const tudo = fila.length > 0 || (tocando !== null && comAudio[0]?.ano === tocando && fila.length > 0);
   const btnAudio = "inline-flex min-h-11 items-center px-4 text-xs font-bold uppercase tracking-[0.12em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const irPara = (ano: string) => document.getElementById(`cap-${ano}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const barraNarracao = (
+    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-2 sm:px-8">
+      <p className="text-sm"><strong className="font-bold uppercase tracking-[0.12em]">{ab.narracao.titulo}</strong> <span className="text-muted-foreground">{ab.narracao.autor} · {caps.length} capítulos{duracao ? ` · ${duracao}` : ""}</span></p>
+      {comAudio.length > 0 && (
+        <button type="button" aria-pressed={tocando !== null && tudo} onClick={() => (tocando ? tocar(null) : tocar(comAudio[0].ano, comAudio.slice(1).map((c) => c.ano)))} className={`${btnAudio} bg-primary text-primary-foreground`}>
+          {tocando ? "Parar" : "Ouvir tudo"}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <section id="historia" className="scroll-mt-16 border-t border-border py-20 sm:py-28">
