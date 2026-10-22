@@ -166,7 +166,7 @@ export const festaHistoriaCapitulos: Capitulo[] = [
     ],
   },
   {
-    ano: "2024", titulo: "O ano em que tudo mudou", audio: "", semFotos: true, barraCinza: true,
+    ano: "2024", titulo: "O ano em que tudo mudou", audio: "", barraCinza: true,
     pessoasRotulo: EQ, pessoas: ["Thaís dos Santos", "Sophia Buchaim · estágio", "Kiko"],
     paragrafos: [
       "2024 foi o ano mais difícil da minha vida e marcou o início de um grande desafio pessoal.",
