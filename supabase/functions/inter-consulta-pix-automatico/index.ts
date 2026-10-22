@@ -1,4 +1,4 @@
-// Consulta ao Inter (Pix Automático). Modos de escrita só com confirmação explícita; teste_3f_criar é temporário e só interno.
+// Consulta ao Inter (Pix Automático). Modos de escrita só com confirmação explícita; modos de teste 3F só internos.
 import { criarRecorrencia, solicitarConfirmacao, mascararCpf } from "../_shared/pix-rec.ts";
 import { genTxid, onlyDigits, jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
 
@@ -47,15 +47,6 @@ Deno.serve(async (req) => {
   if (modo === "conferir_rec_3f") {
     if (!interno || corpo.confirmar !== "CONFERIR_3F") return jsonResponse({ error: "Forbidden" }, 403);
     return jsonResponse(await conferirRec3f(!!corpo.atualizar));
-  }
-  // TEMPORÁRIO (teste 3F jornada 3): só chamada interna, NICOLAS TESTE, R$ 1,00, UMA tentativa.
-  if (modo === "teste_3f_j3") {
-    if (!interno || corpo.confirmar !== "TESTE_3F_J3") return jsonResponse({ error: "Forbidden" }, 403);
-    return jsonResponse(await teste3fJornada3());
-  }
-  if (modo === "conferir_3f_j3") {
-    if (!interno || corpo.confirmar !== "CONFERIR_3F_J3") return jsonResponse({ error: "Forbidden" }, 403);
-    return jsonResponse(await conferir3fJornada3());
   }
   // Teste do pix-webhook com avisos simulados FIXOS (sem cobrança): rec de teste APROVADA e ids inexistentes.
   if (modo === "testar_webhook_avisos") {
@@ -354,113 +345,5 @@ async function teste3fCobr() {
   }).select("txid, status, data_vencimento, motivo_rejeicao").single();
   out.banco = banco ?? { erro: error?.message };
   if (ok) out.inter = { calendario: r.data?.calendario ?? null, atualizacao: r.data?.atualizacao ?? null };
-  return mascararCpf(out);
-}
-
-// ---------- Jornada 3 (autorização + cobrança imediata no mesmo QR). Parâmetros fixos aprovados pelo dono. ----------
-// 3ª tentativa aprovada pelo dono: cadastro dele (único ativo), mesmo valor e lógica.
-const J3 = { aluno_id: "590f4e74-8955-4104-a25c-3558100a98fe", valor: 1, data_inicio: "2026-11-20", data_fim: "2026-12-20", objeto: "Teste Pix Automatico FORTEM J3" };
-const MOD_J3 = "pix-automatico-teste-3f-j3";
-
-async function teste3fJornada3() {
-  const sup = admin();
-  const log = (acao: string, payload: unknown) => sup.from("system_logs").insert({ modulo: MOD_J3, acao, mensagem: acao, payload: mascararCpf(payload) });
-  const out: Record<string, unknown> = {};
-  // Uma única tentativa: recusa se já houve início.
-  const { count: ja } = await sup.from("system_logs").select("id", { count: "exact", head: true }).eq("modulo", MOD_J3).eq("acao", "inicio");
-  // 3ª e última tentativa só com registro de aprovação do dono; nunca uma 4ª.
-  const { count: lib } = await sup.from("system_logs").select("id", { count: "exact", head: true }).eq("modulo", MOD_J3).eq("acao", "terceira_tentativa_aprovada");
-  if ((ja ?? 0) !== 2 || (lib ?? 0) === 0) return { ok: false, erro: "Limite de tentativas da jornada 3 atingido; nada enviado." };
-  await log("inicio", { aluno_id: J3.aluno_id, valor: J3.valor });
-
-  // 1) Cancela a recorrência ativa de teste (sem cobrança).
-  const { data: ativa } = await sup.from("pix_recorrencias").select("status, aluno_id").eq("id_rec", REC_3F_QR).maybeSingle();
-  if (ativa && ativa.aluno_id === J3.aluno_id && ativa.status !== "CANCELADA") {
-    const c = await interFetch(`/pix/v2/rec/${REC_3F_QR}`, { method: "PATCH", json: { status: "CANCELADA" } });
-    out.cancelar = { http: c.status, statusInter: c.data?.status ?? null, erro: c.status >= 300 ? (c.data ?? c.raw) : undefined };
-    await log("cancelar_rec_ativa", out.cancelar);
-    if (c.status >= 300) return mascararCpf(out);
-    await sup.from("pix_recorrencias").update({ status: "CANCELADA", motivo_cancelamento: "teste 3F jornada 3" }).eq("id_rec", REC_3F_QR);
-  }
-  const { data: existentes } = await sup.from("pix_recorrencias").select("status, raw_response").eq("aluno_id", J3.aluno_id);
-  if ((existentes ?? []).some((r: any) => !(r.status === "CANCELADA" && r.raw_response?._marcador === "teste_3F"))) {
-    await log("recusado_ja_existe", { n: existentes?.length });
-    return { ...out, ok: false, erro: "Há recorrência não cancelada do aluno de teste; nada criado." };
-  }
-
-  const { data: aluno } = await sup.from("alunos").select("nome").eq("id", J3.aluno_id).maybeSingle();
-  const { data: cpfRev } = await sup.rpc("fn_reveal_cpf_service", { p_aluno_id: J3.aluno_id });
-  const cpf = onlyDigits(cpfRev);
-  if (!aluno || cpf.length !== 11) return { ...out, ok: false, erro: "Aluno de teste sem nome/CPF." };
-  const devedor = { cpf, nome: aluno.nome };
-  const chave = "26502263000192";
-
-  // 2) Cobrança imediata de R$ 1,00.
-  const txid = genTxid();
-  const cob = await interFetch(`/pix/v2/cob/${txid}`, { method: "PUT", json: {
-    calendario: { expiracao: 86400 }, devedor, valor: { original: J3.valor.toFixed(2) }, chave,
-    solicitacaoPagador: "Teste Pix Automatico FORTEM J3",
-  } });
-  out.cob = { http: cob.status, txid, statusInter: cob.data?.status ?? null, erro: cob.status >= 300 ? (cob.data ?? cob.raw) : undefined };
-  await log(cob.status < 300 ? "cob_criada" : "cob_recusada", out.cob);
-  if (cob.status >= 300) return mascararCpf(out);
-
-  // 3) Location de recorrência + recorrência ligada ao txid (jornada 3).
-  const l = await interFetch("/pix/v2/locrec", { method: "POST" });
-  out.locrec = { http: l.status, id: l.data?.id ?? null, erro: l.status >= 300 ? (l.data ?? l.raw) : undefined };
-  await log("locrec", out.locrec);
-  if (l.status >= 300 || l.data?.id == null) return mascararCpf(out);
-
-  const recPayload = {
-    vinculo: { objeto: J3.objeto, contrato: J3.aluno_id.replace(/-/g, "").substring(0, 35), devedor },
-    calendario: { dataInicial: J3.data_inicio, dataFinal: J3.data_fim, periodicidade: "MENSAL" },
-    valor: { valorMinimoRecebedor: J3.valor.toFixed(2) },
-    politicaRetentativa: "PERMITE_3R_7D",
-    loc: Number(l.data.id),
-    ativacao: { dadosJornada: { txid } },
-  };
-  const rec = await interFetch("/pix/v2/rec", { method: "POST", json: recPayload });
-  const idRec = rec.data?.idRec ?? null;
-  out.rec = { http: rec.status, idRec, statusInter: rec.data?.status ?? null, erro: rec.status >= 300 ? (rec.data ?? rec.raw) : undefined };
-  await log(rec.status < 300 && idRec ? "rec_criada" : "rec_recusada", out.rec);
-  if (rec.status >= 300 || !idRec) return mascararCpf(out);
-
-  // 4) Lê o copia e cola (rec e cob) e grava no banco com marca de teste.
-  const g = await interFetch(`/pix/v2/rec/${idRec}`, { method: "GET" });
-  const gc = await interFetch(`/pix/v2/cob/${txid}`, { method: "GET" });
-  const copiaRec = g.data?.dadosQR?.pixCopiaECola ?? null;
-  const copiaCob = gc.data?.pixCopiaECola ?? cob.data?.pixCopiaECola ?? null;
-  out.get = { rec_http: g.status, rec_status: g.data?.status ?? null, jornada: g.data?.dadosQR?.jornada ?? g.data?.ativacao?.tipoJornada ?? null, cob_http: gc.status, cob_status: gc.data?.status ?? null, tem_copia_rec: !!copiaRec, tem_copia_cob: !!copiaCob };
-  await log("get_qr", out.get);
-
-  const { error: e1 } = await sup.from("pix_recorrencias").insert({
-    aluno_id: J3.aluno_id, id_rec: idRec, status: "AGUARDANDO_AUTORIZACAO", valor_minimo: J3.valor, periodicidade: "MENSAL",
-    data_inicio: J3.data_inicio, data_fim: J3.data_fim, politica_retentativa: "PERMITE_3R_7D",
-    raw_response: { ...rec.data, loc: l.data, dadosQR: g.data?.dadosQR ?? null, jornada3_txid: txid, _marcador: "teste_3F" },
-  });
-  const hoje = new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10);
-  const { error: e2 } = await sup.from("pix_cobrancas").insert({
-    id_rec: idRec, aluno_id: J3.aluno_id, txid, valor: J3.valor, data_vencimento: hoje,
-    status: cob.data?.status ?? "ATIVA", descricao: "Teste Pix Automatico FORTEM J3 (cob imediata)",
-    raw_response: { ...cob.data, _marcador: "teste_3F", jornada: 3 },
-  });
-  out.banco = { rec: e1?.message ?? "ok", cob: e2?.message ?? "ok" };
-  await log("banco", out.banco);
-  return { ...(mascararCpf(out) as object), pixCopiaECola: copiaRec ?? copiaCob, copiaRec, copiaCob };
-}
-
-async function conferir3fJornada3() {
-  const sup = admin();
-  const { data: r } = await sup.from("pix_recorrencias").select("id_rec, status, raw_response").eq("aluno_id", J3.aluno_id).not("raw_response->>jornada3_txid", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
-  if (!r) return { ok: false, erro: "Sem recorrência da jornada 3." };
-  const txid = (r.raw_response as any).jornada3_txid;
-  const g = await interFetch(`/pix/v2/rec/${r.id_rec}`, { method: "GET" });
-  const gc = await interFetch(`/pix/v2/cob/${txid}`, { method: "GET" });
-  const out = {
-    idRec: r.id_rec, txid, banco_rec: r.status,
-    inter_rec: { http: g.status, status: g.data?.status ?? null, ativacao: g.data?.ativacao ?? null },
-    inter_cob: { http: gc.status, status: gc.data?.status ?? null, pix: (gc.data?.pix ?? []).map((p: any) => ({ e2e: p.endToEndId, valor: p.valor, horario: p.horario })) },
-  };
-  await sup.from("system_logs").insert({ modulo: MOD_J3, acao: "conferencia", mensagem: "conferencia", payload: mascararCpf(out) });
   return mascararCpf(out);
 }
