@@ -91,3 +91,4 @@
 - [ ] Rótulo "Cancelamento agendado" no histórico de vendas para Start com renovação automática: propor troca por "Renova em" (aguarda aprovação).
 
 - [x] Pressão de disco: índices duplicados do audit_log removidos; limpeza 7 dias às 05:00 UTC criada. Item 4 NÃO aprovado.
+- [ ] Plano 2 P1 (Pix Automático): liberações desligadas + meio pix_automatico no cronograma; aguarda aprovação da migração. P2–P8 não autorizados.
