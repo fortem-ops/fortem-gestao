@@ -94,7 +94,7 @@
 - [x] Plano 2 P1 (Pix Automático): meio pix_automatico no cronograma (migração 0189, volta em scripts/pix-automatico-p1.rollback.sql) e 3 liberações desligadas/pausadas; ensaio desfeito.
 - [x] Segurança: aviso do banco (pix-webhook) agora grava o aviso bruto mascarado; republicado.
 - [x] Plano 2 P2a aplicada (migração 0190; volta em scripts/pix-automatico-p2.rollback.sql); ensaio desfeito ok.
-- [ ] P2a: ajuste pequeno em fn_pix_automatico_2027_estado (desempate pelo número do código) aguarda aprovação. Código P2, P3–P8 não autorizados. Mudança no gatilho da mensalidade e nas funções do cartão movida para a P4.
+- [x] P2a: desempate da tela de estado pelo número do código (migração 0191). Código P2, P3–P8 não autorizados. Mudança no gatilho da mensalidade e nas funções do cartão movida para a P4.
 - [ ] Plano 2 P2–P8: não autorizados (aguardam o dono). Decisões já tomadas para elas:
   - Cancelar a autorização do Pix Automático = multa de cancelamento do contrato, como no cartão; admins recebem notificação para contatar o cliente (P5).
   - Suspensão, multa 2%/juros 1% a.m. e multa 25/20/15%: iguais ao cartão, sem mudança.
