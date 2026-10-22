@@ -50,3 +50,26 @@ export function podeAtualizarRec(atual: string | null | undefined, novo: string)
 export function mascararCpf(v: unknown): unknown {
   return JSON.parse(JSON.stringify(v ?? null).replace(/\b\d{8}(\d{3})\b/g, "********$1"));
 }
+
+const CHAVES_OMITIDAS = /^(pixcopiaecola|copiaecola|emv|qrcode|location|token|access_token|authorization|secret)$/i;
+const CHAVES_NOME = /^(nome|nomedevedor|nomepagador|nomerecebedor|devedornome)$/i;
+
+/** Versão do aviso bruto segura para log: CPF só com os 3 finais, nome só com a inicial, sem copia e cola nem token. */
+export function mascararAvisoLog(v: unknown): unknown {
+  const andar = (x: unknown, chave = ""): unknown => {
+    if (CHAVES_OMITIDAS.test(chave)) return "[omitido]";
+    if (typeof x === "string") {
+      if (CHAVES_NOME.test(chave)) return x.trim() ? `${x.trim()[0]}***` : x;
+      return x
+        .replace(/\b\d{3}\.\d{3}\.\d{2}(\d)-(\d{2})\b/g, "***.***.**$1-$2")
+        .replace(/\b\d{8}(\d{3})\b/g, "********$1");
+    }
+    if (typeof x === "number" && Number.isInteger(x) && String(x).length === 11) return `********${String(x).slice(-3)}`;
+    if (Array.isArray(x)) return x.map((i) => andar(i));
+    if (x && typeof x === "object") {
+      return Object.fromEntries(Object.entries(x as Record<string, unknown>).map(([k, val]) => [k, andar(val, k)]));
+    }
+    return x;
+  };
+  return andar(v ?? null);
+}

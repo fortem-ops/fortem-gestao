@@ -37,3 +37,20 @@ Deno.test("idempotência: mesmo status não atualiza; estado final não volta", 
 Deno.test("CPF é mascarado no registro", () => {
   assertEquals(JSON.stringify(mascararCpf({ cpf: "12345678901" })), '{"cpf":"********901"}');
 });
+
+import { mascararAvisoLog } from "./eventos.ts";
+
+Deno.test("log do aviso bruto: CPF só 3 finais, nome só inicial, sem copia e cola nem token", () => {
+  const aviso = {
+    recs: [{ idRec: "RR1", status: "APROVADA", vinculo: { devedor: { cpf: "12345678909", nome: "Maria da Silva" } },
+      dadosQR: { pixCopiaECola: "00020101021226...", jornada: "JORNADA_2" }, token: "abc" }],
+    pix: [{ txid: "T1", valor: "1.00", pagador: { cpf: "123.456.789-09" }, infoPagador: "cpf 98765432100" }],
+  };
+  const s = JSON.stringify(mascararAvisoLog(aviso));
+  for (const proibido of ["12345678909", "123.456.789-09", "98765432100", "Maria da Silva", "00020101", "\"abc\""]) {
+    assertEquals(s.includes(proibido), false, proibido);
+  }
+  assertEquals(s.includes("********909"), true);
+  assertEquals(s.includes("RR1") && s.includes("T1") && s.includes("JORNADA_2"), true);
+  assertEquals(mascararAvisoLog(null), null);
+});
