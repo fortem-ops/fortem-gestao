@@ -6890,6 +6890,9 @@ export type Database = {
       pix_recorrencias: {
         Row: {
           aluno_id: string
+          codigo_expira_em: string | null
+          codigo_numero: number | null
+          contrato_id: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string
@@ -6897,15 +6900,21 @@ export type Database = {
           id_rec: string
           id_solic_rec: string | null
           motivo_cancelamento: string | null
+          origem: string
           periodicidade: string
           politica_retentativa: string
+          proposta_id: string | null
           raw_response: Json | null
           status: string
           updated_at: string
           valor_minimo: number
+          venda_id: string | null
         }
         Insert: {
           aluno_id: string
+          codigo_expira_em?: string | null
+          codigo_numero?: number | null
+          contrato_id?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio: string
@@ -6913,15 +6922,21 @@ export type Database = {
           id_rec: string
           id_solic_rec?: string | null
           motivo_cancelamento?: string | null
+          origem?: string
           periodicidade?: string
           politica_retentativa?: string
+          proposta_id?: string | null
           raw_response?: Json | null
           status?: string
           updated_at?: string
           valor_minimo: number
+          venda_id?: string | null
         }
         Update: {
           aluno_id?: string
+          codigo_expira_em?: string | null
+          codigo_numero?: number | null
+          contrato_id?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
@@ -6929,12 +6944,15 @@ export type Database = {
           id_rec?: string
           id_solic_rec?: string | null
           motivo_cancelamento?: string | null
+          origem?: string
           periodicidade?: string
           politica_retentativa?: string
+          proposta_id?: string | null
           raw_response?: Json | null
           status?: string
           updated_at?: string
           valor_minimo?: number
+          venda_id?: string | null
         }
         Relationships: [
           {
@@ -6950,6 +6968,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pix_recorrencias_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_recorrencias_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
+          {
+            foreignKeyName: "pix_recorrencias_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_planos_2027"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8825,6 +8864,7 @@ export type Database = {
           notificacao_cartao_divergente_id: string | null
           notificacao_cartao_recusado_id: string | null
           notificacao_pagamento_id: string | null
+          notificacao_pix_aut_id: string | null
           origem: string
           pagamento_nsu: string | null
           pagamento_parcelas: number | null
@@ -8834,6 +8874,10 @@ export type Database = {
           pago_em: string | null
           parcelas_plano: number
           parcelas_servicos: number | null
+          pix_aut_atualizado_em: string | null
+          pix_aut_codigos: number
+          pix_aut_estado: string | null
+          pix_automatico: boolean
           plano_codigo: string
           previa: boolean
           revisao: Json | null
@@ -8892,6 +8936,7 @@ export type Database = {
           notificacao_cartao_divergente_id?: string | null
           notificacao_cartao_recusado_id?: string | null
           notificacao_pagamento_id?: string | null
+          notificacao_pix_aut_id?: string | null
           origem?: string
           pagamento_nsu?: string | null
           pagamento_parcelas?: number | null
@@ -8901,6 +8946,10 @@ export type Database = {
           pago_em?: string | null
           parcelas_plano?: number
           parcelas_servicos?: number | null
+          pix_aut_atualizado_em?: string | null
+          pix_aut_codigos?: number
+          pix_aut_estado?: string | null
+          pix_automatico?: boolean
           plano_codigo: string
           previa?: boolean
           revisao?: Json | null
@@ -8959,6 +9008,7 @@ export type Database = {
           notificacao_cartao_divergente_id?: string | null
           notificacao_cartao_recusado_id?: string | null
           notificacao_pagamento_id?: string | null
+          notificacao_pix_aut_id?: string | null
           origem?: string
           pagamento_nsu?: string | null
           pagamento_parcelas?: number | null
@@ -8968,6 +9018,10 @@ export type Database = {
           pago_em?: string | null
           parcelas_plano?: number
           parcelas_servicos?: number | null
+          pix_aut_atualizado_em?: string | null
+          pix_aut_codigos?: number
+          pix_aut_estado?: string | null
+          pix_automatico?: boolean
           plano_codigo?: string
           previa?: boolean
           revisao?: Json | null
@@ -11868,6 +11922,7 @@ export type Database = {
           notificacao_cartao_divergente_id: string | null
           notificacao_cartao_recusado_id: string | null
           notificacao_pagamento_id: string | null
+          notificacao_pix_aut_id: string | null
           origem: string
           pagamento_nsu: string | null
           pagamento_parcelas: number | null
@@ -11877,6 +11932,10 @@ export type Database = {
           pago_em: string | null
           parcelas_plano: number
           parcelas_servicos: number | null
+          pix_aut_atualizado_em: string | null
+          pix_aut_codigos: number
+          pix_aut_estado: string | null
+          pix_automatico: boolean
           plano_codigo: string
           previa: boolean
           revisao: Json | null
@@ -12583,6 +12642,41 @@ export type Database = {
       fn_pascoa: { Args: { p_ano: number }; Returns: string }
       fn_pipeline_relatorio: {
         Args: { p_ate: string; p_desde: string; p_funnel_id: string }
+        Returns: Json
+      }
+      fn_pix_automatico_2027_aviso: {
+        Args: { p_id_rec: string; p_status: string }
+        Returns: Json
+      }
+      fn_pix_automatico_2027_estado: {
+        Args: { p_proposta: string }
+        Returns: Json
+      }
+      fn_pix_automatico_2027_falhou: {
+        Args: { p_desconhecido: boolean; p_proposta: string }
+        Returns: undefined
+      }
+      fn_pix_automatico_2027_liberado: {
+        Args: { p_proposta: string }
+        Returns: boolean
+      }
+      fn_pix_automatico_2027_marcar: {
+        Args: { p_proposta: string }
+        Returns: Json
+      }
+      fn_pix_automatico_2027_registrar: {
+        Args: {
+          p_data_inicio: string
+          p_expira: string
+          p_id_rec: string
+          p_proposta: string
+          p_raw: Json
+          p_valor_minimo: number
+        }
+        Returns: Json
+      }
+      fn_pix_automatico_2027_reservar: {
+        Args: { p_proposta: string }
         Returns: Json
       }
       fn_plano_principal_ativo: {

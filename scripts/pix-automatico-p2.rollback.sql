@@ -1,3 +1,4 @@
+-- Aplicada como migração 0190_pix_automatico_p2a em 22/10/2026.
 -- Volta da P2a do Pix Automático. Só funciona enquanto não houver recorrência com origem 'site_2027'
 -- nem proposta com pix_automatico = true (confira antes; se houver, pare e fale com o dono).
 DROP FUNCTION IF EXISTS public.fn_pix_automatico_2027_estado(uuid);
