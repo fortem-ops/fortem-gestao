@@ -48,11 +48,6 @@ Deno.serve(async (req) => {
     if (!interno || corpo.confirmar !== "CONFERIR_3F") return jsonResponse({ error: "Forbidden" }, 403);
     return jsonResponse(await conferirRec3f(!!corpo.atualizar));
   }
-  // TEMPORÁRIO (encerramento jornada 3): só interno; cancela a rec de teste do dono sem cobrança.
-  if (modo === "encerrar_3f_j3") {
-    if (!interno || corpo.confirmar !== "ENCERRAR_3F_J3") return jsonResponse({ error: "Forbidden" }, 403);
-    return jsonResponse(await encerrar3fJ3());
-  }
   // Teste do pix-webhook com avisos simulados FIXOS (sem cobrança): rec de teste APROVADA e ids inexistentes.
   if (modo === "testar_webhook_avisos") {
     if (!interno) return jsonResponse({ error: "Forbidden" }, 403);
@@ -351,23 +346,4 @@ async function teste3fCobr() {
   out.banco = banco ?? { erro: error?.message };
   if (ok) out.inter = { calendario: r.data?.calendario ?? null, atualizacao: r.data?.atualizacao ?? null };
   return mascararCpf(out);
-}
-
-// ---------- Encerramento do teste da jornada 3 (temporário) ----------
-async function encerrar3fJ3() {
-  const sup = admin();
-  const ID = "RR0041696820261020UXEEmpaoUYF", ALUNO = "590f4e74-8955-4104-a25c-3558100a98fe", TXID = "386d215325d94f808db7d8ec081c9eaf";
-  const MOD = "pix-automatico-teste-3f-j3";
-  const out: Record<string, unknown> = {};
-  const { data: r } = await sup.from("pix_recorrencias").select("aluno_id, status").eq("id_rec", ID).maybeSingle();
-  if (!r || r.aluno_id !== ALUNO || r.status === "CANCELADA") return { ok: false, erro: "Recorrência não confere ou já cancelada.", banco: r };
-  const g = await interFetch(`/pix/v2/rec/${ID}`, { method: "GET" });
-  out.antes = { http: g.status, status: g.data?.status ?? null };
-  const c = await interFetch(`/pix/v2/rec/${ID}`, { method: "PATCH", json: { status: "CANCELADA" } });
-  out.cancelar = { http: c.status, status: c.data?.status ?? null, erro: c.status >= 300 ? (c.data ?? c.raw) : undefined };
-  if (c.status < 300) await sup.from("pix_recorrencias").update({ status: "CANCELADA", motivo_cancelamento: "encerramento do teste jornada 3" }).eq("id_rec", ID);
-  const gc = await interFetch(`/pix/v2/cob/${TXID}`, { method: "GET" });
-  out.cob = { http: gc.status, status: gc.data?.status ?? null, pagamentos: (gc.data?.pix ?? []).length, criacao: gc.data?.calendario?.criacao ?? null, expiracao: gc.data?.calendario?.expiracao ?? null };
-  await sup.from("system_logs").insert({ modulo: MOD, acao: "encerrar_cancelar_rec", mensagem: "encerrar_cancelar_rec", payload: out });
-  return out;
 }
