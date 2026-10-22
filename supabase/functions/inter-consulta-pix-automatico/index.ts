@@ -1,4 +1,4 @@
-// Consulta ao Inter (Pix Automático). Modos de escrita só com confirmação explícita; teste_3f_criar é temporário e só interno.
+// Consulta ao Inter (Pix Automático). Modos de escrita só com confirmação explícita; modos de teste 3F só internos.
 import { criarRecorrencia, solicitarConfirmacao, mascararCpf } from "../_shared/pix-rec.ts";
 import { genTxid, onlyDigits, jsonResponse, corsHeaders, interFetch, admin, requireAdminOrCoord, consultarEscoposInter, tokenDiagnostico, getDiagnostico, infoDiagnostico } from "../_shared/inter.ts";
 
