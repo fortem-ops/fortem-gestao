@@ -187,6 +187,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
   const comAudio = caps.filter((c) => c.audio);
   const duracao = textoDuracao(comAudio.map((c) => audiosDb[c.ano]?.duracao_segundos));
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isMobile = useIsMobile();
   const [tocando, setTocando] = useState<string | null>(null);
   const [fila, setFila] = useState<string[]>([]);
   const [ativo, setAtivo] = useState(caps[0]?.ano);
@@ -198,7 +199,6 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
     return () => io.disconnect();
   }, [caps.length, isMobile]);
 
-  const isMobile = useIsMobile();
   const tocar = (ano: string | null, restante: string[] = []) => {
     const a = audioRef.current; if (!a) return;
     const c = caps.find((x) => x.ano === ano);
