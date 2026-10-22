@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { festa10AnosConfig as cfg } from "@/config/festa10anos";
 import { agruparFotosPorAno, carregarFestaFotos, reduzirFoto, LINK_FIXO_SEGUNDOS, type FestaFoto } from "@/lib/festaFotos";
 import FestaAutorFotoAjuste from "@/components/festa/FestaAutorFotoAjuste";
+import FestaAudioAno from "@/components/festa/FestaAudioAno";
+import { ANOS_HISTORIA, carregarFestaAudios } from "@/lib/festaAudios";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +26,7 @@ export default function FestaFotosAdmin() {
   const [enviando, setEnviando] = useState<string | null>(null);
   const [remover, setRemover] = useState<FestaFoto | null>(null);
   const { data: fotos = [], isLoading } = useQuery({ queryKey: ["festa-fotos"], queryFn: carregarFestaFotos });
+  const { data: audios = {} } = useQuery({ queryKey: ["festa-audios"], queryFn: carregarFestaAudios });
   const porAno = agruparFotosPorAno(fotos);
   const atualizar = () => qc.invalidateQueries({ queryKey: ["festa-fotos"] });
   const { data: inter = {} } = useQuery({ queryKey: ["festa-fotos-inter"], queryFn: async () => {
@@ -156,9 +159,16 @@ export default function FestaFotosAdmin() {
               </SortableContext>
               </DndContext>
             )}
+            <FestaAudioAno ano={ano} audio={audios[ano]} />
           </Card>
         );
       })}
+      {ANOS_HISTORIA.filter((a) => !cfg.historia.anos.some((x) => x.ano === a)).map((ano) => (
+        <Card key={ano} className="p-5">
+          <h3 className="text-xl font-bold">{ano}</h3>
+          <FestaAudioAno ano={ano} audio={audios[ano]} />
+        </Card>
+      ))}
       <AlertDialog open={!!apagarCom} onOpenChange={(o) => !o && setApagarCom(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
