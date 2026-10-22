@@ -272,7 +272,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
             const fotos = fotosDb?.[c.ano] ?? (fotosDb ? undefined : cfg.historia.anos.find((a) => a.ano === c.ano)?.fotos);
             const [p1, ...resto] = c.paragrafos;
             return (
-              <article key={c.ano} id={`cap-${c.ano}`} aria-labelledby={`tit-${c.ano}`} className="scroll-mt-40">
+              <article key={c.ano} id={`cap-${c.ano}`} aria-labelledby={`tit-${c.ano}`} className="scroll-mt-48 md:scroll-mt-40">
                 <p className="text-[72px] font-black leading-none lg:text-[112px]">{c.ano}</p>
                 <div className={`mt-3 h-1 w-24 ${c.barraCinza ? "bg-border" : "festa-marca-bg"}`} />
                 <h3 id={`tit-${c.ano}`} className="mt-5 text-2xl font-black uppercase sm:text-3xl">{c.titulo}</h3>

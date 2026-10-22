@@ -10,7 +10,8 @@ export default function TrilhaAnos({ anos, ativo, onIr, anoAtual = new Date().ge
   useEffect(() => {
     const el = ref.current; const btn = el?.querySelector<HTMLElement>(`[data-ano="${ativo}"]`);
     if (!el || !btn || typeof el.scrollTo !== "function") return;
-    el.scrollTo({ left: btn.offsetLeft - el.clientWidth / 2 + btn.offsetWidth / 2, behavior: "smooth" });
+    const r = btn.getBoundingClientRect(), c = el.getBoundingClientRect();
+    el.scrollTo({ left: el.scrollLeft + (r.left + r.width / 2) - (c.left + c.width / 2), behavior: "smooth" });
   }, [ativo]);
 
   return (
