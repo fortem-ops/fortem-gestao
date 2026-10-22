@@ -232,7 +232,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
 
   return (
     <section id="historia" className="scroll-mt-16 border-t border-border py-20 sm:py-28">
-      <audio ref={audioRef} onEnded={fim} aria-label="Narração da história" className="hidden" />
+      <audio ref={audioRef} preload="none" onEnded={fim} aria-label="Narração da história" className="hidden" />
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <Rotulo>{ab.eyebrow}</Rotulo>
         <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">{ab.titulo}</h2>
