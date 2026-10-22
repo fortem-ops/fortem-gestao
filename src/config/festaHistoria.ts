@@ -1,3 +1,4 @@
+import nicolasFoto from "@/assets/festa-nicolas.webp.asset.json";
 /**
  * Conteúdo da seção "Nossa história" em /10anos (texto do dono, sem edição).
  * `oculto: true` esconde o capítulo da página e da navegação.
