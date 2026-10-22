@@ -337,6 +337,27 @@
   @keyframes festa-slide-esq { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
   [data-festa="10anos"] .festa-slide-dir { animation: festa-slide-dir 0.35s ease-out; }
   [data-festa="10anos"] .festa-slide-esq { animation: festa-slide-esq 0.35s ease-out; }
+  /* Miolo claro dos capítulos (celular): redefine os tokens dentro do bloco. */
+  [data-festa="10anos"] .festa-claro {
+    --background: 40 22% 95%;       /* #f4f2ee */
+    --foreground: 0 0% 5.5%;        /* #0e0e0e */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5.5%;
+    --muted: 40 13% 88%;            /* #e4e1db */
+    --muted-foreground: 180 1% 29%; /* #4a4b4b */
+    --border: 43 9% 63%;            /* bordas próximas de #cfccc5 com contraste */
+    --input: 180 1% 29%;
+    --festa-vermelho-texto: 359 63% 48%; /* #c92d2f */
+    color-scheme: light;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  [data-festa="10anos"] .festa-claro .festa-divisor { border-color: hsl(43 9% 79%); } /* #cfccc5 */
+  [data-festa="10anos"] .festa-claro .festa-vermelho-texto { color: hsl(var(--festa-vermelho-texto)); }
+  @keyframes festa-eq { 0%,100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+  [data-festa="10anos"] .festa-eq span { display: inline-block; width: 3px; height: 12px; background: currentColor; transform-origin: bottom; animation: festa-eq 0.9s ease-in-out infinite; }
+  [data-festa="10anos"] .festa-eq span:nth-child(2) { animation-delay: 0.2s; }
+  [data-festa="10anos"] .festa-eq span:nth-child(3) { animation-delay: 0.4s; }
 
   @media (prefers-reduced-motion: reduce) {
     [data-festa="10anos"] *,
