@@ -9,6 +9,9 @@ import FotoAutor from "@/components/festa/FotoAutor";
 import { agruparFotosPorAno, carregarFestaFotosPublico, carregarAjusteAutorPublico, AJUSTE_PADRAO, type AjusteFoto, type FestaFoto } from "@/lib/festaFotos";
 import { carregarInteracoes, type FestaInteracao } from "@/lib/festaInteracoes";
 import { festaHistoriaAbertura as ab, festaHistoriaCapitulos, minutosLeitura, type Capitulo } from "@/config/festaHistoria";
+import TrilhaAnos from "@/components/festa/TrilhaAnos";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { carregarFestaAudios, textoDuracao, type FestaAudio } from "@/lib/festaAudios";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 
 /** Duas cantoneiras em diagonal (superior esquerda e inferior direita). */
@@ -41,6 +44,8 @@ export default function Festa10Anos() {
   useEffect(() => { carregarFestaFotosPublico().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); carregarAjusteAutorPublico().then(setAjusteAutor).catch(() => {}); }, []);
   const [ajusteAutor, setAjusteAutor] = useState<AjusteFoto>(AJUSTE_PADRAO);
 
+  const [audiosDb, setAudiosDb] = useState<Record<string, FestaAudio>>({});
+  useEffect(() => { carregarFestaAudios().then(setAudiosDb).catch(() => {}); }, []);
   const [interacoes, setInteracoes] = useState<Record<string, FestaInteracao>>({});
   useEffect(() => { carregarInteracoes().then(setInteracoes).catch(() => {}); }, []);
   const onInteracao = useCallback((id: string, i: FestaInteracao) => setInteracoes((m) => ({ ...m, [id]: i })), []);
@@ -87,7 +92,7 @@ export default function Festa10Anos() {
       </section>
 
 
-      <NossaHistoria ajusteAutor={ajusteAutor} fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
+      <NossaHistoria audiosDb={audiosDb} ajusteAutor={ajusteAutor} fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
 
       {/* A festa */}
       <section id="festa" className="scroll-mt-16 border-t border-border bg-card px-5 py-20 sm:px-8 sm:py-28">
@@ -202,6 +207,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
   const fim = () => fila.length ? tocar(fila[0], fila.slice(1)) : setTocando(null);
   const tudo = fila.length > 0 || (tocando !== null && comAudio[0]?.ano === tocando && fila.length > 0);
   const btnAudio = "inline-flex min-h-11 items-center px-4 text-xs font-bold uppercase tracking-[0.12em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const isMobile = useIsMobile();
   const irPara = (ano: string) => document.getElementById(`cap-${ano}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const barraNarracao = (
     <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-2 sm:px-8">
@@ -320,6 +326,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
           <a href="#confirmar" className="mt-8 inline-flex min-h-12 items-center bg-background px-7 text-sm font-bold uppercase tracking-[0.12em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{ab.fechamento.botao}</a>
         </div>
       </div>
+      {isMobile && <div className="sticky bottom-0 z-20 mt-10 border-t border-card bg-background pb-[env(safe-area-inset-bottom)]">{barraNarracao}</div>}
     </section>
   );
 }
