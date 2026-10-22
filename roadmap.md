@@ -91,4 +91,9 @@
 - [ ] Rótulo "Cancelamento agendado" no histórico de vendas para Start com renovação automática: propor troca por "Renova em" (aguarda aprovação).
 
 - [x] Pressão de disco: índices duplicados do audit_log removidos; limpeza 7 dias às 05:00 UTC criada. Item 4 NÃO aprovado.
-- [ ] Plano 2 P1 (Pix Automático): liberações desligadas + meio pix_automatico no cronograma; aguarda aprovação da migração. P2–P8 não autorizados.
+- [x] Plano 2 P1 (Pix Automático): meio pix_automatico no cronograma (migração 0189, volta em scripts/pix-automatico-p1.rollback.sql) e 3 liberações desligadas/pausadas; ensaio desfeito.
+- [ ] Plano 2 P2–P8: não autorizados (aguardam o dono). Decisões já tomadas para elas:
+  - Cancelar a autorização do Pix Automático = multa de cancelamento do contrato, como no cartão; admins recebem notificação para contatar o cliente (P5).
+  - Suspensão, multa 2%/juros 1% a.m. e multa 25/20/15%: iguais ao cartão, sem mudança.
+  - Checkout exige caixa de consentimento do débito automático (texto revisado pelo advogado no fim; sem prazo extra no contrato para "sem autorização").
+  - P2/P4: funções de cobrança do cartão e o gatilho fn_mensalidade_2027_validar (hoje exige token do aluno) devem ignorar meio pix_automatico antes da 1ª linha Pix.
