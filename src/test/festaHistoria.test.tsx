@@ -18,7 +18,7 @@ describe("Nossa história", () => {
     caps.forEach((c) => expect(c.audio).toBe(`/audio/10anos/${c.ano}.m4a`));
   });
   it("com áudio aparecem ouvir tudo e ouvir capítulo", () => {
-    r(caps.map((c) => c.ano === "2016" ? { ...c, audio: "/audio/festa/2016.mp3" } : c));
+    r(caps.map((c) => c.ano === "2016" ? c : { ...c, audio: "" }));
     expect(screen.getByRole("button", { name: /ouvir tudo/i })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /ouvir capítulo/i })).toHaveLength(1);
   });
