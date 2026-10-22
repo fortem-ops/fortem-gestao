@@ -1,3 +1,4 @@
+import nicolasFoto from "@/assets/festa-nicolas.webp.asset.json";
 /**
  * Conteúdo da seção "Nossa história" em /10anos (texto do dono, sem edição).
  * `oculto: true` esconde o capítulo da página e da navegação.
@@ -26,7 +27,7 @@ export const festaHistoriaAbertura = {
   eyebrow: "NOSSA HISTÓRIA",
   titulo: "A HISTÓRIA DA FORTEM",
   subtitulo: "Contada por quem viveu cada capítulo.",
-  autor: { rotulo: "QUEM CONTA", nome: "Nícolas", cargo: "Fundador da FORTEM", foto: "" as string },
+  autor: { rotulo: "QUEM CONTA", nome: "Nícolas", cargo: "Fundador da FORTEM", foto: nicolasFoto.url as string },
   convite:
     "Acredito que, para contar uma história, ninguém melhor do que quem esteve presente desde o começo. Por isso, eu, Nícolas, fundador da FORTEM, te convido a conhecer como tudo começou — os primeiros passos, as conquistas, os desafios e as pessoas que ajudaram a construir o que somos hoje.",
   chamada: "Agora, sim, vamos à história!",

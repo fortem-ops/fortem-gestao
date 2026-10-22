@@ -209,7 +209,7 @@ export function NossaHistoria({ capitulos = festaHistoriaCapitulos, fotosDb, int
         <p className="mt-4 text-lg text-muted-foreground">{ab.subtitulo}</p>
         <div className="mt-12 grid gap-10 md:grid-cols-[18rem_1fr]">
           <div className="relative self-start border border-border bg-card">
-            {ab.autor.foto && <img src={ab.autor.foto} alt={ab.autor.nome} className="aspect-[4/5] w-full object-cover" />}
+            {ab.autor.foto && <img src={ab.autor.foto} alt={ab.autor.nome} loading="lazy" decoding="async" className="aspect-[4/5] w-full object-cover object-[50%_30%]" />}
             <div className="p-6">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{ab.autor.rotulo}</p>
               <p className="mt-2 text-2xl font-black">{ab.autor.nome}</p>
