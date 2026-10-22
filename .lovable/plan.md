@@ -20,6 +20,13 @@ Primeiro passo: abrir /10anos no celular e no computador, passar por todos os sl
 - se for link vencido: renovar os links ao voltar para a página.
 - Se você souber de um ano/foto específica que não aparece, me diga para eu começar por ela.
 
+## 3. Links fixos de 10 anos para as fotos
+- Hoje cada abertura da página cria links novos (validade de 1 dia), então o navegador baixa as fotos de novo toda vez, e a página fica mais lenta e pesada.
+- Cada foto passa a ter um link fixo, válido por 10 anos, criado uma vez no envio e guardado junto da foto. O navegador guarda a foto e não baixa de novo.
+- As fotos já enviadas recebem seus links fixos de uma vez só.
+- Também ajuda nas fotos que "não aparecem" por link vencido.
+- Observação: o link fixo deixa a página mais leve nas visitas seguintes; o peso de cada foto (4–5 MB) só diminui com a redução do item 2.
+
 ## Fora deste pedido
 Curtidas, comentários, textos da história, Planos 1 e 2, flags, cobranças e Pix não mudam. Nada é publicado.
 
@@ -28,3 +35,4 @@ Curtidas, comentários, textos da história, Planos 1 e 2, flags, cobranças e P
 - `FestaFotosAno.tsx`: `loading="eager"` no slide atual e vizinhos; diagnóstico com Playwright (falhas de rede/`naturalWidth=0`).
 - Redução de imagem no navegador (canvas) antes do upload, só para envios novos.
 - Sem migração.
+- Links fixos: `createSignedUrl` de 10 anos gravado em `festa_fotos.url` no envio; preenchimento único das fotos atuais (só a coluna `url`); `festa-fotos-publico` e `carregarFestaFotos` passam a usar `url` gravada sem assinar a cada carga (precisa publicar a função de borda).
