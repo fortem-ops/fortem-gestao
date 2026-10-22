@@ -28,3 +28,15 @@ describe("Nossa história", () => {
     fireEvent.click(s); expect(s.parentElement!.hasAttribute("open")).toBe(true);
   });
 });
+
+import PlayerIntroducao from "@/components/festa/PlayerIntroducao";
+describe("Player da introdução", () => {
+  it("sem controles nativos (sem baixar) e carrega só ao tocar", () => {
+    render(<PlayerIntroducao src="/audio/10anos/introducao.m4a" />);
+    const a = screen.getByTestId("audio-introducao");
+    expect(a.hasAttribute("controls")).toBe(false);
+    expect(a.getAttribute("preload")).toBe("none");
+    expect(screen.getByRole("button", { name: "Tocar introdução" })).toBeTruthy();
+    expect(screen.getByText("0:00 / 1:48")).toBeTruthy();
+  });
+});
