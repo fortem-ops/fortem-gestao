@@ -4353,6 +4353,30 @@ export type Database = {
           },
         ]
       }
+      festa_audios: {
+        Row: {
+          ano: string
+          atualizado_em: string
+          caminho: string | null
+          duracao_segundos: number | null
+          url_audio: string
+        }
+        Insert: {
+          ano: string
+          atualizado_em?: string
+          caminho?: string | null
+          duracao_segundos?: number | null
+          url_audio: string
+        }
+        Update: {
+          ano?: string
+          atualizado_em?: string
+          caminho?: string | null
+          duracao_segundos?: number | null
+          url_audio?: string
+        }
+        Relationships: []
+      }
       festa_confirmacoes: {
         Row: {
           acesso_hash: string | null
