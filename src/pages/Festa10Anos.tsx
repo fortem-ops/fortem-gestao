@@ -328,6 +328,18 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
               </article>
             );
           })}
+          {isMobile && (
+            <div className="!mt-10 grid grid-cols-2 gap-3">
+              <button type="button" aria-label="Capítulo anterior" disabled={idxAtivo === 0} onClick={() => passo(-1)}
+                className="min-h-12 border border-border text-sm font-bold uppercase tracking-[0.12em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">Anterior</button>
+              {idxAtivo < caps.length - 1 ? (
+                <button type="button" aria-label="Próximo capítulo" onClick={() => passo(1)}
+                  className="festa-marca-bg min-h-12 text-sm font-bold uppercase tracking-[0.12em] text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">Próximo</button>
+              ) : (
+                <a href="#confirmar" className="festa-marca-bg inline-flex min-h-12 items-center justify-center text-sm font-bold uppercase tracking-[0.1em] text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Confirmar presença</a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

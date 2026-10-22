@@ -333,6 +333,10 @@
   [data-festa="10anos"] .festa-marca-border { border-color: hsl(var(--festa-marca)); }
   [data-festa="10anos"] .festa-trilha-ponto { border-radius: 9999px !important; transition: all 0.3s ease; }
   [data-festa="10anos"] .festa-trilha-ponto-ativo { box-shadow: 0 0 0 5px hsl(var(--festa-marca) / 0.25) !important; }
+  @keyframes festa-slide-dir { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+  @keyframes festa-slide-esq { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+  [data-festa="10anos"] .festa-slide-dir { animation: festa-slide-dir 0.35s ease-out; }
+  [data-festa="10anos"] .festa-slide-esq { animation: festa-slide-esq 0.35s ease-out; }
 
   @media (prefers-reduced-motion: reduce) {
     [data-festa="10anos"] *,
