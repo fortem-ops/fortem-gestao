@@ -35,3 +35,4 @@ Curtidas, comentários, textos da história, Planos 1 e 2, flags, cobranças e P
 - `FestaFotosAno.tsx`: `loading="eager"` no slide atual e vizinhos; diagnóstico com Playwright (falhas de rede/`naturalWidth=0`).
 - Redução de imagem no navegador (canvas) antes do upload, só para envios novos.
 - Sem migração.
+- Links fixos: `createSignedUrl` de 10 anos gravado em `festa_fotos.url` no envio; preenchimento único das fotos atuais (só a coluna `url`); `festa-fotos-publico` e `carregarFestaFotos` passam a usar `url` gravada sem assinar a cada carga (precisa publicar a função de borda).
