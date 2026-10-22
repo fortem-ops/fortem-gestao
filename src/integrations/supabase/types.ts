@@ -7166,10 +7166,13 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           id: string
+          meio: string
           motivo: string | null
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
+          pix_cobranca_id: string | null
+          pix_recorrencia_id: string | null
           proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
@@ -7177,7 +7180,7 @@ export type Database = {
           status: string
           tentativas: number
           tid: string | null
-          tokenizacao_id: string
+          tokenizacao_id: string | null
           updated_at: string
           valor_centavos: number
           vencimento: string
@@ -7191,10 +7194,13 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           id?: string
+          meio?: string
           motivo?: string | null
           notificacao_inadimplencia_id?: string | null
           numero: number
           pago_em?: string | null
+          pix_cobranca_id?: string | null
+          pix_recorrencia_id?: string | null
           proposta_id?: string | null
           proxima_tentativa_em?: string | null
           referencia?: string | null
@@ -7202,7 +7208,7 @@ export type Database = {
           status?: string
           tentativas?: number
           tid?: string | null
-          tokenizacao_id: string
+          tokenizacao_id?: string | null
           updated_at?: string
           valor_centavos: number
           vencimento: string
@@ -7216,10 +7222,13 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           id?: string
+          meio?: string
           motivo?: string | null
           notificacao_inadimplencia_id?: string | null
           numero?: number
           pago_em?: string | null
+          pix_cobranca_id?: string | null
+          pix_recorrencia_id?: string | null
           proposta_id?: string | null
           proxima_tentativa_em?: string | null
           referencia?: string | null
@@ -7227,13 +7236,27 @@ export type Database = {
           status?: string
           tentativas?: number
           tid?: string | null
-          tokenizacao_id?: string
+          tokenizacao_id?: string | null
           updated_at?: string
           valor_centavos?: number
           vencimento?: string
           venda_origem_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "planos_2027_mensalidades_pix_cobranca_id_fkey"
+            columns: ["pix_cobranca_id"]
+            isOneToOne: true
+            referencedRelation: "pix_cobrancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_2027_mensalidades_pix_recorrencia_id_fkey"
+            columns: ["pix_recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "pix_recorrencias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "planos_2027_mensalidades_proposta_id_fkey"
             columns: ["proposta_id"]
@@ -12817,10 +12840,13 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           id: string
+          meio: string
           motivo: string | null
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
+          pix_cobranca_id: string | null
+          pix_recorrencia_id: string | null
           proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
@@ -12828,7 +12854,7 @@ export type Database = {
           status: string
           tentativas: number
           tid: string | null
-          tokenizacao_id: string
+          tokenizacao_id: string | null
           updated_at: string
           valor_centavos: number
           vencimento: string
@@ -12851,10 +12877,13 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           id: string
+          meio: string
           motivo: string | null
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
+          pix_cobranca_id: string | null
+          pix_recorrencia_id: string | null
           proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
@@ -12862,7 +12891,7 @@ export type Database = {
           status: string
           tentativas: number
           tid: string | null
-          tokenizacao_id: string
+          tokenizacao_id: string | null
           updated_at: string
           valor_centavos: number
           vencimento: string
@@ -12889,10 +12918,13 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           id: string
+          meio: string
           motivo: string | null
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
+          pix_cobranca_id: string | null
+          pix_recorrencia_id: string | null
           proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
@@ -12900,7 +12932,7 @@ export type Database = {
           status: string
           tentativas: number
           tid: string | null
-          tokenizacao_id: string
+          tokenizacao_id: string | null
           updated_at: string
           valor_centavos: number
           vencimento: string
@@ -12931,10 +12963,13 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           id: string
+          meio: string
           motivo: string | null
           notificacao_inadimplencia_id: string | null
           numero: number
           pago_em: string | null
+          pix_cobranca_id: string | null
+          pix_recorrencia_id: string | null
           proposta_id: string | null
           proxima_tentativa_em: string | null
           referencia: string | null
@@ -12942,7 +12977,7 @@ export type Database = {
           status: string
           tentativas: number
           tid: string | null
-          tokenizacao_id: string
+          tokenizacao_id: string | null
           updated_at: string
           valor_centavos: number
           vencimento: string
