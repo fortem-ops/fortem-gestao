@@ -15,12 +15,12 @@ export default function TrilhaAnos({ anos, ativo, onIr, anoAtual = new Date().ge
   }, [ativo]);
 
   return (
-    <div className="sticky top-[68px] z-20 mt-14 border-y border-card bg-background md:hidden">
-      <div className="flex items-center justify-between px-5 pt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+    <div data-trilha className="sticky top-[52px] z-20 mt-14 h-[76px] border-y border-card bg-background md:hidden">
+      <div className="flex items-center justify-between h-[18px] px-5 pt-1.5 text-[10px] leading-none font-bold uppercase tracking-[0.2em] text-muted-foreground">
         <span>Trajetória</span><span aria-live="polite">{idx + 1} de {anos.length}</span>
       </div>
       <div ref={ref} className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ scrollBehavior: "smooth" }}>
-        <ol className="flex px-[calc(50%-36px)] pb-2 pt-1" aria-label="Anos da história">
+        <ol className="flex px-[calc(50%-36px)] pb-0" aria-label="Anos da história">
           {anos.map((ano, i) => {
             const passado = i < idx, atual = i === idx, futuro = Number(ano) > anoAtual, ultimo = i === anos.length - 1;
             const ponto = atual ? "h-5 w-5 festa-marca-bg festa-trilha-ponto-ativo"
@@ -28,9 +28,9 @@ export default function TrilhaAnos({ anos, ativo, onIr, anoAtual = new Date().ge
               : `h-3.5 w-3.5 border-2 bg-background ${futuro ? "border-muted-foreground" : "border-border"}`;
             return (
               <li key={ano} className="relative w-[72px] shrink-0">
-                {!ultimo && !futuro && <span aria-hidden className={`absolute left-1/2 top-[22px] h-[2px] w-full -translate-y-1/2 ${i < idx ? "festa-marca-bg" : "bg-border"}`} />}
+                {!ultimo && !futuro && <span aria-hidden className={`absolute left-1/2 top-[18px] h-[2px] w-full -translate-y-1/2 ${i < idx ? "festa-marca-bg" : "bg-border"}`} />}
                 <button type="button" data-ano={ano} aria-label={`Ir para ${ano}`} aria-current={atual ? "step" : undefined} onClick={() => onIr(ano)}
-                  className="relative flex min-h-[64px] w-full flex-col items-center justify-start gap-1 pt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  className="relative flex h-[56px] w-full flex-col items-center justify-start gap-1 pt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <span className="flex h-5 items-center"><span aria-hidden className={`festa-trilha-ponto block ${ponto}`} /></span>
                   <span className={`transition-all ${atual ? "text-base font-bold text-foreground" : futuro ? "text-xs text-muted-foreground" : "text-xs text-muted-foreground"}`}>{ano}</span>
                 </button>
