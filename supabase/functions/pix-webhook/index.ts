@@ -1,5 +1,5 @@
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { extrairEventos, statusRec, statusCobr, podeAtualizarRec, mascararCpf } from "./eventos.ts";
+import { extrairEventos, statusRec, statusCobr, podeAtualizarRec, mascararCpf, mascararAvisoLog } from "./eventos.ts";
 import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
 import { ehCobrancaPlanos, baixarPixProposta } from "./planos-baixa.ts";
 import { ehTxidFesta, baixarPixFesta } from "../_shared/festa-pix.ts";
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
   try {
     const payload = await req.json().catch(() => ({}));
-    console.log("pix-webhook payload", JSON.stringify(payload));
+    console.log("pix-webhook payload", JSON.stringify(mascararAvisoLog(payload)));
     const sup = admin();
 
     // --- Pix recebido (formato Bacen): a presença no array já significa pago ---
