@@ -1,111 +1,144 @@
-# Plano 2 — Pix Automático no checkout /planos (Start, Power e Pro 2027)
+# Plano 2 (revisão 2): Pix Automático no checkout /planos (Start, Power e Pro 2027)
 
-Só plano. Nada é implementado, publicado ou ligado sem aprovação do dono, etapa por etapa. Os itens E4–E6 do Plano 1 continuam fora. O cartão, a recorrência no cartão e o cron `planos-recorrencia-diario` não mudam.
+Este documento é só um plano. Nada é implementado, publicado ou ligado sem a aprovação do dono, etapa por etapa.
 
-## Premissas (corrigidas quando necessário)
-- A conta Inter só aceita a **jornada 2**: um QR autoriza a recorrência e não cobra nada. A jornada 3 não existe para nós e não é usada aqui.
-- Cada cobrança mensal precisa ser criada no Inter **pelo menos 2 dias antes** do vencimento. A política de retentativa é PERMITE_3R_7D.
-- Taxa de R$ 24,90 igual à do cartão. O valor de cada mês sai de `calcularVenda2027`, o mesmo cálculo do cartão; o servidor recalcula sempre.
-- Hoje o /planos já cobra **Pix à vista** (cobrança imediata com baixa por aviso do banco e consulta de reserva) e já tem o cronograma de mensalidades 2027 (`planos_2027_mensalidades`), que gera as cobranças espelho por gatilho.
+Ficam de fora:
+- os itens E4–E6 do Plano 1;
+- o e-mail ao cliente 3 dias antes do débito.
 
-## 1. O que o cliente vê
-1. Na escolha da forma, aparece "Pix Automático (débito mensal no seu banco)" ao lado de "Cartão — recorrência", só quando a liberação está ligada para aquele plano.
-2. Contrato e aceite seguem como hoje.
-3. Na tela de pagamento, em dois passos numerados:
-   - **Passo 1, pagar o 1º mês:** QR e copia e cola de um Pix comum no valor do 1º mês, igual ao do cartão. É o mesmo Pix à vista que já funciona e vale 30 minutos.
-   - **Passo 2, autorizar os próximos meses:** depois do pagamento, aparece o QR de autorização. O cliente lê no app do banco e confirma. O texto diz que nada é cobrado nesse momento.
-4. Enquanto espera, a tela mostra "Aguardando confirmação do banco" e consulta o servidor a cada 8 segundos. O servidor lê primeiro o banco de dados (preenchido pelo aviso do Inter) e só pergunta ao Inter como reserva, no máximo a cada 30 segundos.
-5. **A aprovação da autorização** chega pelo aviso do Inter. A recorrência passa a APROVADA e o cronograma ganha o meio "Pix Automático".
-6. **Se não autorizar ou o código expirar:** o plano já está ativo, porque o 1º mês foi pago. A tela permite "Gerar novo código de autorização", com até 3 códigos por proposta. O cliente recebe um e-mail com o link para voltar a esta etapa. Sem autorização até 10 dias antes do 2º vencimento, a equipe recebe um aviso ("autorização pendente") para resolver no balcão ou trocar para cartão.
-7. **Se o cliente cancelar depois no banco:** o aviso do Inter marca a recorrência como CANCELADA. As mensalidades futuras ficam "sem meio de cobrança" e a equipe é avisada, como numa recusa do cartão. O cliente pode autorizar de novo por um link da equipe.
+Não mudam: o cartão, a recorrência no cartão e o cron `planos-recorrencia-diario`.
 
-## 2. Primeiro mês: opções
-| Opção | Como funciona | Prós | Contras |
-|---|---|---|---|
-| A (recomendada) | Pix comum do 1º mês primeiro; autorização depois do pagamento | Reaproveita o Pix à vista já testado; acesso liberado na hora; não há como cobrar o 1º mês duas vezes, porque o cronograma começa no 2º mês | Dois QR em sequência; o cliente pode parar antes de autorizar (coberto pelo aviso do item 1.6) |
-| B | Autorização primeiro e 1ª cobrança pela recorrência | Um único meio | O Inter exige 2 dias de antecedência: o acesso atrasa 2 ou 3 dias ou o aluno entra sem pagar; mais risco |
-| C | Os dois QR na mesma tela | Rápido para quem entende | Confuso, com risco de pagar e não autorizar sem perceber; mesmo backend da A |
+## Decisões do dono (já incorporadas)
+- **Taxa de R$ 24,90:** somada a cada mensalidade da recorrência (cartão e Pix Automático), por exemplo Power 2x = R$ 453,90. Não vale para o Start. A fonte única do valor continua sendo `calcularVenda2027`.
+- **Opção A aprovada em princípio:** o 1º mês é pago com Pix comum e, depois, o cliente autoriza a recorrência, com início no 2º vencimento.
+- **Sem autorização:** o aluno segue ativo até o 2º vencimento. A equipe recebe o aviso "autorização pendente" 10 dias antes.
+- **Novo código de autorização:** no máximo 3 por proposta.
+- **Trocar Pix Automático por cartão:** só admin, igual ao cancelamento de assinatura.
 
-**Recomendação: opção A.**
-- 1º mês: o mesmo valor do cartão (mensalidade + R$ 24,90 + desconto recorrente do Start, quando houver).
-- A autorização nasce com início no 2º vencimento e valor mínimo igual ao da mensalidade.
-- O cronograma é criado só depois da baixa do 1º mês, pelo mesmo caminho idempotente do cartão (uma linha por proposta e mês).
+## A. Antecedência (regra oficial verificada)
+Fonte: Guia de implementação do Pix Automático do Banco Central (v1.3) e a Instrução Normativa BCB 513/2024.
+- A instrução de cobrança tem de chegar **entre 2 e 10 dias corridos antes** da data prevista para a liquidação. Os dias são corridos, não úteis. Fora dessa janela, o banco do pagador recusa, o que bate com o erro `CobROperacaoInvalida` que recebemos.
+- **Dia útil:**
+  - por padrão (`ajusteDiaUtil` ligado), o Inter passa a cobrança de dia não útil para o próximo dia útil;
+  - os feriados considerados são os do município do pagador.
+  - **Correção:** a cobrança do nosso teste foi criada com o ajuste desligado; no plano ele fica ligado.
+- **Nova janela proposta:** a rotina diária cria a cobrança quando faltam **de 7 a 4 dias corridos** para o vencimento.
+  - Isso dá 4 dias seguidos de chance antes do limite de 2 dias.
+  - Como a regra é em dias corridos e o ajuste de dia útil só empurra a data para frente, não precisamos de calendário de feriados.
+  - Faltando 3 dias, é a última tentativa. Com 2 dias ou menos, nada é criado e a equipe recebe o aviso "cobrança Pix não agendada".
+- **Incertezas, a confirmar no 1º teste:**
+  - se o Inter conta os 2 dias pela data de criação em horário de Brasília (vamos rodar às 10:30 UTC, 07:30 Brasília, longe da meia-noite);
+  - se o Inter aplica o ajuste de dia útil exatamente como o guia descreve.
+
+## B. Retentativas, atraso e créditos
+- **Correção importante:** o Pix Automático **não tenta sozinho**. Cada nova tentativa é pedida por nós (`POST /cobr/{txid}/retentativa/{data}`):
+  - até 3 tentativas, até 7 dias corridos após a data original (PERMITE_3R_7D);
+  - nunca depois da véspera do ciclo seguinte;
+  - pedidas até 23:59 da véspera de cada nova data.
+- **Proposta para manter igual ao cartão:**
+  - mesmas datas do cartão: D0 (data de liquidação, já com o ajuste de dia útil), D+1 e D+3;
+  - D+1 e D+3 são pedidas pela mesma rotina diária assim que o Inter informar que D0 não foi paga;
+  - as tentativas de D+4 a D+7 que a política permite não são usadas.
+- **Atraso:** igual ao cartão. Sem pagamento após a tentativa de D+3, a mensalidade vira atraso e a cobrança espelho vira inadimplência. A equipe recebe um aviso por mensalidade.
+- **Start:** a mesma tolerância de 3 dias. Sem pagamento até D+3, o crédito do mês não é liberado e a próxima mensalidade não nasce.
+- **Pagamento tardio:** se o cliente pagar depois por Pix comum gerado pela equipe, a baixa libera o crédito, como no cartão.
+- **Encargos:** continuam só na tela.
+
+## C. Start e a regra "só recorrência"
+- O Pix comum do 1º mês é **compatível com a regra**, desde que ele seja a 1ª mensalidade da própria recorrência, e não uma forma de pagamento à vista:
+  - o contrato continua sendo de recorrência mensal;
+  - a autorização é exigida logo depois do pagamento;
+  - o Start não ganha desconto de à vista e o valor é igual ao 1º mês do cartão.
+- **O que o advogado precisa ver no texto:**
+  - a 1ª mensalidade é paga por Pix imediato e as seguintes por débito automático;
+  - sem autorização até o 2º vencimento, o que acontece (aviso, troca para cartão, encerramento);
+  - como cancelar a autorização e o efeito no plano;
+  - as 3 tentativas em até 3 dias e os encargos;
+  - a taxa de R$ 24,90 (só Power e Pro).
+- **Alternativa, se o advogado vetar:** o Start no Pix Automático faria primeiro a autorização e o 1º débito sairia em 3 dias (mínimo de 2 dias corridos). O acesso seria liberado só com o débito pago. É mais seguro juridicamente, mas o aluno espera 3 dias para começar.
+
+## D. Venda manual e ficha do aluno
+- **Recomendação:** deixar a venda manual de fora até Start, Power e Pro estarem ligados no site e estáveis. Depois, uma etapa própria (P8), só admin:
+  - gerar o link de autorização a partir de uma venda 2027 da equipe;
+  - usar o mesmo cronograma e a mesma rotina.
+- Na ficha, desde o início, a equipe vê o estado da autorização e das cobranças.
+- **Ações:**
+  - baixa manual: admin e coordenação, com motivo;
+  - cancelar a autorização e trocar para cartão: só admin.
+
+## 1. Fluxo do cliente
+1. A opção "Pix Automático (débito mensal no seu banco)" aparece ao lado do cartão, só com a liberação daquele plano ligada.
+2. Contrato e aceite seguem como hoje, com a caixa obrigatória "Li e autorizo o débito automático via Pix". A versão do texto fica guardada.
+3. **Pagar o 1º mês:** com o Pix à vista que já existe, válido por 30 minutos, com baixa pelo aviso do Inter e consulta de reserva a cada 30 segundos.
+4. **Autorizar:** depois da baixa, aparece o QR da jornada 2, que não cobra nada.
+   - O pedido de autorização fica aberto no banco por até 30 dias; vamos usar 7 dias.
+   - A tela consulta o servidor a cada 8 segundos e a aprovação chega pelo aviso do Inter.
+5. **Se o código expirar ou o cliente não autorizar:** pode gerar um novo código, no máximo 3. O link de retomada segue no e-mail de confirmação que já é enviado, sem e-mail novo. O aviso à equipe sai 10 dias antes do 2º vencimento.
+6. **Se o cliente cancelar no banco:** o banco dele cancela automaticamente os débitos futuros. Recebemos o aviso, a recorrência fica cancelada, as mensalidades futuras ficam "sem meio de cobrança" e a equipe é avisada.
+
+## 2. Valores
+- **1º mês e cada mensalidade:** iguais aos do cartão, vindos de `calcularVenda2027`. Isso inclui os R$ 24,90 no Power e no Pro e o desconto recorrente do Start.
+- **Valor mínimo da autorização:** igual ao da mensalidade.
+- **Sem cobrança dupla:** o cronograma começa no 2º mês e é criado de forma idempotente na baixa do 1º.
 
 ## 3. Meses seguintes
-- **Nova rotina** `planos-pix-automatico-diario`, separada e sem tocar no cron do cartão, roda 1 vez por dia às 10:30 UTC (07:30 Brasília).
-- **Antecedência:**
-  - cria no Inter a cobrança de toda mensalidade Pix Automático com vencimento entre **5 e 3 dias** à frente;
-  - quem ficar a 2 dias ou menos não é criado: a equipe recebe o aviso "cobrança Pix não agendada".
+- **Rotina nova `planos-pix-automatico-diario`**, separada do cartão, às 10:30 UTC:
+  - cria as cobranças da janela de 7 a 4 dias;
+  - pede as novas tentativas de D+1 e D+3;
+  - confere as cobranças sem resposta.
 - **Sem duplicidade:**
-  - uma reserva atômica por mensalidade, com a chave da cobrança gerada antes de chamar o Inter e gravada na mensalidade;
-  - se o resultado for incerto, a mensalidade fica "desconhecido" e é conferida pela chave, nunca recriada;
-  - uma cobrança por mensalidade, garantida no banco.
-- **Power e Pro:** as 12 mensalidades já nascem no cronograma.
-- **Start:** a próxima só nasce quando a atual é paga, reaproveitando a regra de renovação 2027 do Start e o desconto recorrente.
-- **Reaproveita:** `pix_recorrencias` e `pix_cobrancas` (com ligação à mensalidade), a criação de cobrança mensal que já existe em `_shared` e a baixa pelo `pix-webhook`.
-
-## 4. Falhas
-- **Débito recusado ou sem saldo:** o Inter tenta de novo por até 7 dias (PERMITE_3R_7D). Cada tentativa fica registrada. Depois disso, a mensalidade fica **em atraso** e o espelho em `cobrancas` vira inadimplência, como no cartão. A equipe recebe um aviso único por mensalidade.
-- **Encargos de atraso:** só aparecem na tela (cálculo atual). Nada é cobrado (E4 fora).
-- **Autorização cancelada pelo cliente:** ver item 1.7. As cobranças já criadas e não pagas são canceladas no Inter, sem custo.
-- **Fim de semana ou feriado:** o vencimento continua na data do contrato. O Inter debita no dia útil seguinte e o atraso só conta depois do prazo das retentativas.
+  - a chave da cobrança é gerada antes de chamar o Inter e gravada numa reserva atômica;
+  - resultado incerto fica como "desconhecido" e é conferido pela chave, nunca recriado;
+  - cada mensalidade tem no máximo uma cobrança.
+- **Power e Pro:** 12 mensalidades no cronograma.
+- **Start:** a próxima mensalidade só nasce quando a atual é paga, pela regra de renovação 2027 de hoje.
+- **Baixa:** pelo `pix-webhook` e pela consulta de reserva das 30 em 30 minutos, num passo idempotente.
 
 ## 5. Ligação com o resto
-- **Contrato e venda:** iguais aos da recorrência no cartão. A forma aparece como "Pix Automático", com o template de recorrência após a revisão do advogado.
-- **Cobranças espelho, créditos (`ciclos_credito`), acesso e ficha:** pelos mesmos gatilhos e regras de mensalidade 2027 de hoje. O crédito do mês só é liberado com a mensalidade paga.
-- **Baixa:** um passo idempotente chamado pelo aviso do Inter (cobrança CONCLUIDA) e pela consulta de reserva das 30 em 30 minutos. Ele marca a mensalidade como paga, e o espelho, o financeiro e a conciliação seguem o caminho de hoje.
-- **O que a equipe vê:** na ficha, a forma "Pix Automático" com o estado (pendente, aprovada, cancelada) e as próximas cobranças.
-- **O que a equipe pode fazer** (admin ou coordenação):
-  - dar baixa manual, com motivo;
-  - cancelar a autorização (já existe `pix-cancelar-recorrencia`);
-  - gerar novo link de autorização;
-  - trocar para cartão, encerrando as cobranças Pix futuras e mantendo as pagas.
+Contrato, venda, cobranças espelho, `ciclos_credito`, acesso, ficha, financeiro e conciliação seguem o caminho da recorrência no cartão. O que muda é só o meio de cobrança, gravado na mensalidade. A baixa marca a mensalidade como paga e o espelho acompanha.
 
-## 6. Segurança e conformidade
-- **Acionamento:** só o servidor cria cobranças e autorizações, sempre pelas liberações e pela proposta.
-- **CPF:** o pagador é o titular da proposta. O CPF tem de bater com o da conta no banco, e a tela avisa isso antes do QR. Se o banco recusar por CPF, a mensagem é neutra e a equipe é avisada.
-- **Logs:** CPF mascarado (`mascararCpf`), sem copia e cola nem chave nos registros.
-- **Texto do checkout**, só o que precisa aparecer (a redação fica com o advogado):
-  - autorização de débito mensal no banco, com valor, dia, quantidade de meses ou renovação mensal do Start;
-  - como cancelar no app do banco e o que acontece com o plano se cancelar;
-  - retentativas em até 7 dias e encargos em caso de atraso;
-  - a taxa de R$ 24,90.
-- **Consentimento:** caixa obrigatória "Li e autorizo o débito automático via Pix", com versão do texto guardada no aceite, como o anexo atual.
+## 6. Segurança
+- Só o servidor cria cobranças e autorizações.
+- O CPF do titular da proposta tem de ser o da conta no banco; a tela avisa antes do QR. Recusa por CPF gera mensagem neutra e aviso à equipe.
+- CPF mascarado nos registros, sem copia e cola e sem chave.
 
-## 7. Liberação em fases
-- Novas liberações, todas desligadas, com ausência contando como desligado: `planos_pix_automatico_ativo` e `planos_pix_automatico_planos` (lista: start, power, pro).
+## 7. Liberação em fases (todas DESLIGADAS)
+- **Liberações:** `planos_pix_automatico_ativo` e `planos_pix_automatico_planos` (ausente = desligado). A rotina tem chave própria para pausar.
 - **Ordem:**
-  1. teste de ponta a ponta com o dono a R$ 1,00 no máximo, usando o teto de teste atual: Pix do 1º mês, autorização, uma mensalidade com vencimento a 3 dias, baixa e cancelamento;
+  1. teste de ponta a ponta com o dono, de no máximo R$ 1,00: 1º mês, autorização, uma cobrança, uma nova tentativa e cancelamento;
   2. Start;
   3. Power;
   4. Pro.
   Cada um é ligado só com aprovação do dono.
-- **Desligar rápido:** desligar a liberação esconde a opção na hora. Quem já autorizou continua sendo cobrado, a menos que o dono peça para pausar a rotina, que tem chave própria.
-- **Medir:** autorizações aprovadas sobre geradas, cobranças pagas na 1ª tentativa, falhas por motivo e avisos à equipe, num relatório simples na tela de propostas.
+- **Desligar:** a opção some na hora. Quem já autorizou só para de ser cobrado se a rotina for pausada.
+- **Medir:** autorizações aprovadas sobre geradas, pagas em D0, D+1 e D+3, atrasos e avisos.
 
 ## 8. Etapas
-| # | O que muda | Migração | Função de borda | Publicar | Risco | Reverter | Esforço |
+Cada etapa só começa com aprovação do dono.
+
+| # | O que muda | Migração | Função de borda | Publicar site | Risco | Reverter | Esforço |
 |---|---|---|---|---|---|---|---|
-| P1 | Liberações e meio "pix_automatico" no cronograma, com ligação a recorrência e cobrança | Sim | Não | Não | Baixo | Script de volta | Baixo |
-| P2 | Autorização após o Pix do 1º mês (servidor do checkout) e baixa da autorização pelo aviso do Inter | Sim (passos no banco) | `planos-checkout`, `pix-webhook` | Não* | Médio | Desligar liberação | Médio |
-| P3 | Tela de pagamento em 2 passos, opção na escolha da forma e link de retomada | Não | Não | Sim | Baixo | Desligar liberação | Médio |
-| P4 | Rotina `planos-pix-automatico-diario` (criar cobrança 5 a 3 dias antes, reserva, incerteza) | Sim | Nova | Não | Médio | Pausar a rotina | Médio |
-| P5 | Falhas, atraso, avisos e ações da equipe na ficha | Sim | `pix-webhook` | Sim | Médio | Script de volta | Médio |
-| P6 | Teste de ponta a ponta com o dono a R$ 1,00 | Não | Não | Não | Baixo | Cancelar no Inter | Baixo |
+| P1 | Liberações e meio "pix_automatico" no cronograma | Sim | Não | Não | Baixo | Script de volta | Baixo |
+| P2 | Autorização após o 1º mês e baixa da autorização | Sim | `planos-checkout`, `pix-webhook` | Não | Médio | Desligar | Médio |
+| P3 | Opção na tela, os 2 passos e o link de retomada | Não | Não | Sim | Baixo | Desligar | Médio |
+| P4 | Rotina diária (janela 7–4 dias, D+1 e D+3, reserva) | Sim | Nova | Não | Médio | Pausar | Médio |
+| P5 | Atraso, avisos e ações da equipe na ficha | Sim | `pix-webhook` | Sim | Médio | Script de volta | Médio |
+| P6 | Teste com o dono, R$ 1,00 | Não | Não | Não | Baixo | Cancelar no Inter | Baixo |
 | P7 | Ligar Start, depois Power, depois Pro | Não | Não | Não | Médio | Desligar | Baixo |
+| P8 (depois) | Pix Automático na venda manual, só admin | Sim | Sim | Sim | Médio | Desligar | Médio |
 
-*Funções de borda passam a valer assim que são republicadas, sem publicar o site. Telas só aparecem no site depois de publicado, e o dono publica.
+- **Publicar:** as funções de borda passam a valer ao serem republicadas. As telas só aparecem depois que o dono publicar o site.
+- **Aprovações de ferramenta:** as migrações, a criação da rotina e as chamadas reais ao Inter no teste.
 
-Aprovação de ferramenta: as migrações e as chamadas reais ao Inter no teste. Criar a rotina diária usa uma consulta de dados com aprovação.
+**Dependências:**
+- **Advogado:** o texto do item C e o contrato de recorrência por Pix Automático.
+- **Inter:**
+  - limites da conta;
+  - como conta os 2 dias pela data de criação;
+  - se o endpoint de nova tentativa está liberado (nunca usamos);
+  - se o aviso de autorização cancelada chega para nós.
 
-Dependências:
-- **Advogado:** texto do item 6 e template de contrato "Pix Automático" (§5 e §6–§8).
-- **Inter:** limites diários de cobranças recorrentes da conta, prazo real de retentativa e se o aviso de recorrência cancelada chega para nós (testado só na jornada 2).
-
-## 9. Perguntas para o dono
-1. A taxa de R$ 24,90 é por mês, como no cartão, ou só uma vez?
-2. Sem autorização, o aluno segue ativo até o 2º vencimento (recomendado) ou fica bloqueado?
-3. A antecedência de 5 a 3 dias está boa?
-4. Quantas tentativas de novo código de autorização (sugestão: 3)?
-5. Quem pode trocar o Pix Automático para cartão: admin e coordenação, ou só admin?
-6. Quer o aviso ao cliente (e-mail) 3 dias antes de cada débito?
+## 9. Perguntas ainda abertas
+1. Seguir com novas tentativas em D+1 e D+3, iguais ao cartão (recomendado), ou usar até 3 tentativas nos 7 dias?
+2. Validade do código de autorização: 7 dias (recomendado) ou outro prazo?
+3. Se o advogado vetar o Pix comum no Start: usar a alternativa do item C ou não oferecer Pix Automático no Start?
