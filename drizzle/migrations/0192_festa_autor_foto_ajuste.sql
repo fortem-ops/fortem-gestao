@@ -1,0 +1,3 @@
+CREATE POLICY "festa gestao le ajuste foto autor" ON public.sistema_config FOR SELECT TO authenticated USING (chave = 'festa_autor_foto_ajuste' AND public.fn_festa_gestao(auth.uid()));
+CREATE POLICY "festa gestao insere ajuste foto autor" ON public.sistema_config FOR INSERT TO authenticated WITH CHECK (chave = 'festa_autor_foto_ajuste' AND public.fn_festa_gestao(auth.uid()));
+CREATE POLICY "festa gestao altera ajuste foto autor" ON public.sistema_config FOR UPDATE TO authenticated USING (chave = 'festa_autor_foto_ajuste' AND public.fn_festa_gestao(auth.uid())) WITH CHECK (chave = 'festa_autor_foto_ajuste' AND public.fn_festa_gestao(auth.uid()));
