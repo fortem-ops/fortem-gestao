@@ -90,4 +90,4 @@
 - [x] Vendas manuais 2027 recorrentes no cron novo: Power/Pro 2..12, Start mês a mês (só o próximo ciclo); ensaio NICOLAS TESTE desfeito; Larissa com mensalidade 2 em 20/11 (R$ 403).
 - [ ] Rótulo "Cancelamento agendado" no histórico de vendas para Start com renovação automática: propor troca por "Renova em" (aguarda aprovação).
 
-- [ ] Pressão de disco: Item 1 diagnóstico; Item 3 remover índices duplicados do audit_log (aguarda aprovação); Item 2 limpeza 7 dias às 05:00 UTC (aguarda aprovação). Item 4 NÃO aprovado.
+- [x] Pressão de disco: índices duplicados do audit_log removidos; limpeza 7 dias às 05:00 UTC criada. Item 4 NÃO aprovado.
