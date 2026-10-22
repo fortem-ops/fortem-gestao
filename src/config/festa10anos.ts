@@ -46,7 +46,6 @@ export const festa10AnosConfig = {
     nota: "Salto agulha não é permitido: o piso é irregular e precisa ser preservado.",
   },
   hero: {
-    selo: "SAVE THE DATE",
     titulo: "FORTEM · 10 ANOS",
     texto: "Dez anos de movimento. Uma festa à altura de quem esteve com a gente.",
   },

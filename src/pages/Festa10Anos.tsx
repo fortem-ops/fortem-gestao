@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { festa10AnosConfig as cfg } from "@/config/festa10anos";
 import { brlCentavos } from "@/lib/festa10anos";
@@ -7,6 +7,7 @@ import FestaConfirmacaoForm from "@/components/festa/FestaConfirmacaoForm";
 import FestaFotosAno from "@/components/festa/FestaFotosAno";
 import { agruparFotosPorAno, carregarFestaFotosPublico, type FestaFoto } from "@/lib/festaFotos";
 import { carregarInteracoes, type FestaInteracao } from "@/lib/festaInteracoes";
+import { festaHistoriaAbertura as ab, festaHistoriaCapitulos, minutosLeitura, type Capitulo } from "@/config/festaHistoria";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 
 /** Duas cantoneiras em diagonal (superior esquerda e inferior direita). */
@@ -63,8 +64,7 @@ export default function Festa10Anos() {
       <section id="topo" className="px-5 py-16 sm:px-8 sm:py-24 lg:py-28">
         <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-10 sm:gap-x-8 lg:grid-cols-[1.3fr_1fr] lg:gap-x-14 lg:gap-y-8">
           <div className="col-start-1 row-start-1">
-            <Rotulo>{cfg.hero.selo}</Rotulo>
-            <h1 className="mt-5 text-[2.9rem] font-black leading-[0.85] sm:text-8xl lg:text-[9rem]">{cfg.dataCurta}</h1>
+            <h1 className="text-[2.9rem] font-black leading-[0.85] sm:text-8xl lg:text-[9rem]">{cfg.dataCurta}</h1>
           </div>
           <div className="relative mx-auto aspect-square w-[5rem] self-center sm:w-[9rem] lg:row-span-2 lg:w-full lg:max-w-[26rem]">
             <Cantoneiras />
@@ -85,31 +85,7 @@ export default function Festa10Anos() {
       </section>
 
 
-      {/* História */}
-      <section id="historia" className="scroll-mt-16 border-t border-border px-5 py-20 sm:px-8 sm:py-28">
-        <div className="mx-auto max-w-7xl">
-          <Rotulo>Nossa história</Rotulo>
-          <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">{cfg.historia.titulo}</h2>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">{cfg.historia.texto}</p>
-          <ol className="mt-14 max-w-5xl border-t border-border">
-            {cfg.historia.anos.map((a) => (
-              <li key={a.ano} className="grid gap-5 border-b border-border py-8 md:grid-cols-[15rem_1fr_22rem] md:items-center md:gap-10">
-                <p className={`whitespace-nowrap font-black festa-marca ${a.ano.length > 5 ? "text-3xl sm:text-4xl" : "text-5xl sm:text-6xl"}`}>{a.ano}</p>
-                <ul className="space-y-3 md:pt-2">
-                  {a.marcos.map((m) => <li key={m} className="border-l-2 border-border pl-4 leading-relaxed">{m}</li>)}
-                </ul>
-                {(fotosDb?.[a.ano] ?? (fotosDb ? undefined : a.fotos))?.length ? (
-                  <FestaFotosAno ano={a.ano} fotos={(fotosDb?.[a.ano] ?? a.fotos)!} proporcao={a.fotoProporcao} interacoes={interacoes} onInteracao={onInteracao} />
-                ) : (
-                  <div className="flex aspect-[4/3] w-full items-center justify-center border border-border bg-card">
-                    <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Foto em breve</span>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      <NossaHistoria fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
 
       {/* A festa */}
       <section id="festa" className="scroll-mt-16 border-t border-border bg-card px-5 py-20 sm:px-8 sm:py-28">
@@ -178,5 +154,161 @@ export default function Festa10Anos() {
         </div>
       </footer>
     </main>
+  );
+}
+
+function Negrito({ t }: { t: string }) {
+  return <>{t.split(/(\*\*[^*]+\*\*)/).map((p, i) => p.startsWith("**") ? <strong key={i} className="font-bold">{p.slice(2, -2)}</strong> : p)}</>;
+}
+
+function Recolhivel({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <details className="mt-6 border-t border-border" onToggle={(e) => setAberto((e.target as HTMLDetailsElement).open)}>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-3 text-xs font-bold uppercase tracking-[0.2em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        {titulo}<span aria-hidden className="text-xl festa-marca">{aberto ? "–" : "+"}</span>
+      </summary>
+      <div className="space-y-5 pb-4">{children}</div>
+    </details>
+  );
+}
+
+type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void };
+
+export function NossaHistoria({ capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao }: HistoriaProps) {
+  const caps = capitulos.filter((c) => !c.oculto);
+  const comAudio = caps.filter((c) => c.audio);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [tocando, setTocando] = useState<string | null>(null);
+  const [fila, setFila] = useState<string[]>([]);
+  const [ativo, setAtivo] = useState(caps[0]?.ano);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && setAtivo(e.target.id.replace("cap-", ""))), { rootMargin: "-40% 0px -55% 0px" });
+    caps.forEach((c) => { const el = document.getElementById(`cap-${c.ano}`); if (el) io.observe(el); });
+    return () => io.disconnect();
+  }, [caps.length]);
+
+  const tocar = (ano: string | null, restante: string[] = []) => {
+    const a = audioRef.current; if (!a) return;
+    const c = caps.find((x) => x.ano === ano);
+    if (!c?.audio) { a.pause(); setTocando(null); setFila([]); return; }
+    a.src = c.audio; a.play().catch(() => setTocando(null)); setTocando(ano); setFila(restante);
+  };
+  const fim = () => fila.length ? tocar(fila[0], fila.slice(1)) : setTocando(null);
+  const tudo = fila.length > 0 || (tocando !== null && comAudio[0]?.ano === tocando && fila.length > 0);
+  const btnAudio = "inline-flex min-h-11 items-center px-4 text-xs font-bold uppercase tracking-[0.12em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+  return (
+    <section id="historia" className="scroll-mt-16 border-t border-border py-20 sm:py-28">
+      <audio ref={audioRef} onEnded={fim} aria-label="Narração da história" className="hidden" />
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <Rotulo>{ab.eyebrow}</Rotulo>
+        <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">{ab.titulo}</h2>
+        <p className="mt-4 text-lg text-muted-foreground">{ab.subtitulo}</p>
+        <div className="mt-12 grid gap-10 md:grid-cols-[18rem_1fr]">
+          <div className="relative self-start border border-border bg-card">
+            {ab.autor.foto && <img src={ab.autor.foto} alt={ab.autor.nome} className="aspect-[4/5] w-full object-cover" />}
+            <div className="p-6">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{ab.autor.rotulo}</p>
+              <p className="mt-2 text-2xl font-black">{ab.autor.nome}</p>
+              <p className="text-muted-foreground">{ab.autor.cargo}</p>
+            </div>
+          </div>
+          <div className="max-w-[680px]">
+            <p className="text-[22px] leading-[34px] sm:text-2xl sm:leading-[38px]">{ab.convite}</p>
+            <p className="mt-6 text-xl font-bold">{ab.chamada}</p>
+            <Recolhivel titulo={ab.apresentacaoTitulo}>
+              {ab.apresentacao.map((p) => <p key={p} className="text-[18px] leading-[30px]">{p}</p>)}
+            </Recolhivel>
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky top-[68px] z-20 mt-14 border-y border-border bg-background">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-2 sm:px-8">
+          <p className="text-sm"><strong className="font-bold uppercase tracking-[0.12em]">{ab.narracao.titulo}</strong> <span className="text-muted-foreground">{ab.narracao.autor} · {caps.length} capítulos · {ab.narracao.duracao}</span></p>
+          {comAudio.length > 0 && (
+            <button type="button" aria-pressed={tocando !== null && tudo} onClick={() => (tocando ? tocar(null) : tocar(comAudio[0].ano, comAudio.slice(1).map((c) => c.ano)))} className={`${btnAudio} bg-primary text-primary-foreground`}>
+              {tocando ? "Parar" : "Ouvir tudo"}
+            </button>
+          )}
+        </div>
+        <nav aria-label="Anos da história" className="flex gap-1 overflow-x-auto px-5 pb-2 lg:hidden">
+          {caps.map((c) => <a key={c.ano} href={`#cap-${c.ano}`} aria-current={ativo === c.ano} className={`inline-flex min-h-11 shrink-0 items-center px-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${ativo === c.ano ? "festa-marca" : "text-muted-foreground"}`}>{c.ano}</a>)}
+        </nav>
+      </div>
+
+      <div className="mx-auto mt-12 grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[12rem_1fr]">
+        <nav aria-label="Capítulos" className="hidden lg:block">
+          <ol className="sticky top-[150px] space-y-1">
+            {caps.map((c) => (
+              <li key={c.ano}><a href={`#cap-${c.ano}`} aria-current={ativo === c.ano} className={`block min-h-11 border-l-2 py-1 pl-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${ativo === c.ano ? "festa-marca-border" : "border-transparent"}`}>
+                <span className={`block font-bold ${ativo === c.ano ? "festa-marca" : ""}`}>{c.ano}</span><span className="block text-xs text-muted-foreground">{c.titulo}</span>
+              </a></li>
+            ))}
+          </ol>
+        </nav>
+        <div className="min-w-0 space-y-24">
+          {caps.map((c) => {
+            const fotos = fotosDb?.[c.ano] ?? (fotosDb ? undefined : cfg.historia.anos.find((a) => a.ano === c.ano)?.fotos);
+            const [p1, ...resto] = c.paragrafos;
+            return (
+              <article key={c.ano} id={`cap-${c.ano}`} aria-labelledby={`tit-${c.ano}`} className="scroll-mt-40">
+                <p className="text-[72px] font-black leading-none lg:text-[112px]">{c.ano}</p>
+                <div className={`mt-3 h-1 w-24 ${c.barraCinza ? "bg-border" : "festa-marca-bg"}`} />
+                <h3 id={`tit-${c.ano}`} className="mt-5 text-2xl font-black uppercase sm:text-3xl">{c.titulo}</h3>
+                <div className="mt-3 flex flex-wrap items-center gap-4">
+                  {c.audio && <button type="button" aria-pressed={tocando === c.ano} onClick={() => tocar(tocando === c.ano ? null : c.ano)} className={`${btnAudio} border border-foreground`}>{tocando === c.ano ? "Parar" : "Ouvir capítulo"}</button>}
+                  <span className="text-sm text-muted-foreground">{minutosLeitura(c.paragrafos)} min de leitura</span>
+                </div>
+                {c.numeros?.length ? (
+                  <dl className="mt-8 grid gap-6 border-t-2 border-foreground pt-5 sm:grid-cols-3">
+                    {c.numeros.map((n) => <div key={n.valor + n.legenda}><dt className="text-3xl font-black festa-marca sm:text-4xl">{n.valor}</dt><dd className="text-sm text-muted-foreground">{n.legenda}</dd></div>)}
+                  </dl>
+                ) : null}
+                <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,680px)_16rem]">
+                  {c.frase && <aside className="self-start border-l-4 festa-marca-border pl-5 text-[22px] font-light leading-[32px] xl:sticky xl:top-40 xl:order-2">{c.frase}</aside>}
+                  <div className="min-w-0 max-w-[680px] xl:order-1">
+                    <p className="text-[22px] leading-[34px]"><Negrito t={p1} /></p>
+                    {resto.length > 0 && <Recolhivel titulo="Continuar lendo">{resto.map((p) => <p key={p} className="text-[18px] leading-[30px]"><Negrito t={p} /></p>)}</Recolhivel>}
+                    {c.pessoas?.length ? (
+                      <div className="mt-8"><p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{c.pessoasRotulo}</p>
+                        <ul className="mt-3 flex flex-wrap gap-2">{c.pessoas.map((p) => <li key={p} className="border border-border px-3 py-2 text-sm">{p}</li>)}</ul></div>
+                    ) : null}
+                  </div>
+                </div>
+                {!c.semFotos && (
+                  <div className="mt-10 max-w-[560px]">
+                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Fotos de {c.ano}</p>
+                    {fotos?.length ? (
+                      <div className="border border-border bg-card">
+                        <div className="flex items-center gap-3 border-b border-border p-3">
+                          <span aria-hidden className="flex h-9 w-9 items-center justify-center border-2 festa-marca-border font-black">F</span>
+                          <div><p className="text-sm font-bold">FORTEM</p><p className="text-xs text-muted-foreground">{c.ano} · {fotos.length} {fotos.length === 1 ? "foto" : "fotos"}</p></div>
+                        </div>
+                        <div className="p-3"><FestaFotosAno ano={c.ano} fotos={fotos} interacoes={interacoes} onInteracao={onInteracao} /></div>
+                      </div>
+                    ) : (
+                      <div className="flex aspect-[4/3] w-full items-center justify-center border border-border bg-card"><span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Fotos em breve</span></div>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mx-auto mt-24 max-w-7xl px-5 sm:px-8">
+        <div className="relative festa-marca-bg p-8 sm:p-14">
+          <Cantoneiras />
+          <p className="text-3xl font-black uppercase leading-tight sm:text-5xl">{ab.fechamento.titulo}</p>
+          <p className="mt-4 text-lg">{ab.fechamento.texto}</p>
+          <a href="#confirmar" className="mt-8 inline-flex min-h-12 items-center bg-background px-7 text-sm font-bold uppercase tracking-[0.12em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{ab.fechamento.botao}</a>
+        </div>
+      </div>
+    </section>
   );
 }
