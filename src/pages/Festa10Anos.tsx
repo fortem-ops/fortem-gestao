@@ -5,7 +5,8 @@ import { brlCentavos } from "@/lib/festa10anos";
 import { Seo } from "@/components/Seo";
 import FestaConfirmacaoForm from "@/components/festa/FestaConfirmacaoForm";
 import FestaFotosAno from "@/components/festa/FestaFotosAno";
-import { agruparFotosPorAno, carregarFestaFotosPublico, type FestaFoto } from "@/lib/festaFotos";
+import FotoAutor from "@/components/festa/FotoAutor";
+import { agruparFotosPorAno, carregarFestaFotosPublico, carregarAjusteAutorPublico, AJUSTE_PADRAO, type AjusteFoto, type FestaFoto } from "@/lib/festaFotos";
 import { carregarInteracoes, type FestaInteracao } from "@/lib/festaInteracoes";
 import { festaHistoriaAbertura as ab, festaHistoriaCapitulos, minutosLeitura, type Capitulo } from "@/config/festaHistoria";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -37,7 +38,8 @@ export default function Festa10Anos() {
   }, []);
   useEffect(() => { carregarTotal(); }, [carregarTotal]);
   const [fotosDb, setFotosDb] = useState<Record<string, FestaFoto[]> | null>(null);
-  useEffect(() => { carregarFestaFotosPublico().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); }, []);
+  useEffect(() => { carregarFestaFotosPublico().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); carregarAjusteAutorPublico().then(setAjusteAutor).catch(() => {}); }, []);
+  const [ajusteAutor, setAjusteAutor] = useState<AjusteFoto>(AJUSTE_PADRAO);
 
   const [interacoes, setInteracoes] = useState<Record<string, FestaInteracao>>({});
   useEffect(() => { carregarInteracoes().then(setInteracoes).catch(() => {}); }, []);
@@ -85,7 +87,7 @@ export default function Festa10Anos() {
       </section>
 
 
-      <NossaHistoria fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
+      <NossaHistoria ajusteAutor={ajusteAutor} fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
 
       {/* A festa */}
       <section id="festa" className="scroll-mt-16 border-t border-border bg-card px-5 py-20 sm:px-8 sm:py-28">
@@ -173,9 +175,9 @@ function Recolhivel({ titulo, children }: { titulo: string; children: React.Reac
   );
 }
 
-type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void };
+type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void; ajusteAutor?: AjusteFoto };
 
-export function NossaHistoria({ capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao }: HistoriaProps) {
+export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao }: HistoriaProps) {
   const caps = capitulos.filter((c) => !c.oculto);
   const comAudio = caps.filter((c) => c.audio);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -209,7 +211,7 @@ export function NossaHistoria({ capitulos = festaHistoriaCapitulos, fotosDb, int
         <p className="mt-4 text-lg text-muted-foreground">{ab.subtitulo}</p>
         <div className="mt-12 grid gap-10 md:grid-cols-[18rem_1fr]">
           <div className="relative self-start border border-border bg-card">
-            {ab.autor.foto && <img src={ab.autor.foto} alt={ab.autor.nome} loading="lazy" decoding="async" className="aspect-[4/5] w-full object-cover object-[50%_30%]" />}
+            {ab.autor.foto && <FotoAutor src={ab.autor.foto} alt={ab.autor.nome} ajuste={ajusteAutor} />}
             <div className="p-6">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{ab.autor.rotulo}</p>
               <p className="mt-2 text-2xl font-black">{ab.autor.nome}</p>
@@ -312,3 +314,4 @@ export function NossaHistoria({ capitulos = festaHistoriaCapitulos, fotosDb, int
     </section>
   );
 }
+

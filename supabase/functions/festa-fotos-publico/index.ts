@@ -16,7 +16,8 @@ Deno.serve(async (req) => {
       const mapa = new Map((assinadas ?? []).map((s) => [s.path, s.signedUrl]));
       for (const f of fotos) if (f.caminho && mapa.get(f.caminho)) f.url = mapa.get(f.caminho)!;
     }
-    return jsonResponse({ fotos: fotos.map(({ caminho: _c, ...f }) => ({ ...f, caminho: null })) });
+    const { data: cfgAjuste } = await sup.from("sistema_config").select("valor").eq("chave", "festa_autor_foto_ajuste").maybeSingle();
+    return jsonResponse({ fotos: fotos.map(({ caminho: _c, ...f }) => ({ ...f, caminho: null })), ajusteAutor: cfgAjuste?.valor ?? null });
   } catch (e) {
     console.error("festa-fotos-publico", e);
     return jsonResponse({ error: "erro_interno" }, 500);

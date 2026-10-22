@@ -57,3 +57,17 @@ export async function carregarFestaFotosPublico(): Promise<FestaFoto[]> {
   if (error) throw error;
   return ((data as { fotos?: FestaFoto[] })?.fotos ?? []) as FestaFoto[];
 }
+
+/** Enquadramento da foto de "Quem conta": posição em % e zoom (1 a 1.5). */
+export type AjusteFoto = { x: number; y: number; zoom: number };
+export const AJUSTE_PADRAO: AjusteFoto = { x: 50, y: 50, zoom: 1 };
+export const CHAVE_AJUSTE_AUTOR = "festa_autor_foto_ajuste";
+export function normalizarAjuste(v: unknown): AjusteFoto {
+  const o = (v ?? {}) as Partial<AjusteFoto>;
+  const n = (x: unknown, min: number, max: number, d: number) => typeof x === "number" && isFinite(x) ? Math.min(max, Math.max(min, x)) : d;
+  return { x: n(o.x, 0, 100, 50), y: n(o.y, 0, 100, 50), zoom: n(o.zoom, 1, 1.5, 1) };
+}
+export async function carregarAjusteAutorPublico(): Promise<AjusteFoto> {
+  const { data } = await supabase.functions.invoke("festa-fotos-publico", { body: {} });
+  return normalizarAjuste((data as { ajusteAutor?: unknown })?.ajusteAutor);
+}

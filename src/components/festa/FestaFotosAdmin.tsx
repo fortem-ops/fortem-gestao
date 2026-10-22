@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { festa10AnosConfig as cfg } from "@/config/festa10anos";
 import { agruparFotosPorAno, carregarFestaFotos, reduzirFoto, LINK_FIXO_SEGUNDOS, type FestaFoto } from "@/lib/festaFotos";
+import FestaAutorFotoAjuste from "@/components/festa/FestaAutorFotoAjuste";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -108,6 +109,7 @@ export default function FestaFotosAdmin() {
 
   return (
     <div className="space-y-4">
+      <FestaAutorFotoAjuste />
       <p className="text-sm text-muted-foreground">As fotos aparecem na linha do tempo da página da festa. Anos com mais de uma foto viram slide.</p>
       {cfg.historia.anos.map(({ ano }) => {
         const lista = porAno[ano] ?? [];

@@ -1345,6 +1345,13 @@
       "when": 1792666870273,
       "tag": "0191_pix_automatico_estado_desempate",
       "breakpoints": true
+    },
+    {
+      "idx": 192,
+      "version": "7",
+      "when": 1792676861512,
+      "tag": "0192_festa_autor_foto_ajuste",
+      "breakpoints": true
     }
   ]
 }
