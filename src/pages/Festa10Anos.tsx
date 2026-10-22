@@ -53,7 +53,7 @@ export default function Festa10Anos() {
   const local = `${cfg.local.endereco} · ${cfg.horario} · confirmações ${cfg.prazoTexto}`;
 
   return (
-    <main data-festa="10anos" className="min-h-screen overflow-x-hidden bg-background font-light text-foreground">
+    <main data-festa="10anos" className="min-h-screen overflow-x-clip bg-background font-light text-foreground">
       <Seo title="FORTEM · 10 anos | 14.11.26" description="Dez anos de movimento. Confirme sua presença na festa de 10 anos da FORTEM, em 14 de novembro de 2026." path="/10anos" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background">
