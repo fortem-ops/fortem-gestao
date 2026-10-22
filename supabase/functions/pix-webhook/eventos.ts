@@ -61,7 +61,7 @@ export function mascararAvisoLog(v: unknown): unknown {
     if (typeof x === "string") {
       if (CHAVES_NOME.test(chave)) return x.trim() ? `${x.trim()[0]}***` : x;
       return x
-        .replace(/\b\d{3}\.\d{3}\.\d{3}-(\d)(\d{2})\b/g, "***.***.**$1-$2")
+        .replace(/\b\d{3}\.\d{3}\.\d{2}(\d)-(\d{2})\b/g, "***.***.**$1-$2")
         .replace(/\b\d{8}(\d{3})\b/g, "********$1");
     }
     if (typeof x === "number" && Number.isInteger(x) && String(x).length === 11) return `********${String(x).slice(-3)}`;
