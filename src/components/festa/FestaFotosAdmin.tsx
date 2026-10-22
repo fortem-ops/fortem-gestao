@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Heart, ImagePlus, MessageCircle, Trash2 } from "lucide-react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ArrowDown, ArrowUp, GripVertical, Heart, ImagePlus, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { festa10AnosConfig as cfg } from "@/config/festa10anos";
-import { agruparFotosPorAno, carregarFestaFotos, type FestaFoto } from "@/lib/festaFotos";
+import { agruparFotosPorAno, carregarFestaFotos, reduzirFoto, LINK_FIXO_SEGUNDOS, type FestaFoto } from "@/lib/festaFotos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,14 +42,16 @@ export default function FestaFotosAdmin() {
     setEnviando(ano);
     let ordem = (porAno[ano]?.at(-1)?.ordem ?? -1) + 1;
     try {
-      for (const file of Array.from(files)) {
-        if (!TIPOS.includes(file.type)) { toast.error(`${file.name}: use JPG, PNG ou WebP.`); continue; }
-        if (file.size > MAX) { toast.error(`${file.name}: máximo 10 MB.`); continue; }
+      for (const original of Array.from(files)) {
+        if (!TIPOS.includes(original.type)) { toast.error(`${original.name}: use JPG, PNG ou WebP.`); continue; }
+        if (original.size > MAX) { toast.error(`${original.name}: máximo 10 MB.`); continue; }
+        const file = await reduzirFoto(original);
         const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
         const caminho = `${ano}/${crypto.randomUUID()}.${ext}`;
         const up = await supabase.storage.from("festa-fotos").upload(caminho, file, { contentType: file.type });
         if (up.error) { toast.error(`${file.name}: falha no envio.`); continue; }
-        const { error } = await supabase.from("festa_fotos").insert({ ano, url: caminho, caminho, alt: null, ordem: ordem++, criado_por: user?.id });
+        const { data: link } = await supabase.storage.from("festa-fotos").createSignedUrl(caminho, LINK_FIXO_SEGUNDOS);
+        const { error } = await supabase.from("festa_fotos").insert({ ano, url: link?.signedUrl ?? caminho, caminho, alt: null, ordem: ordem++, criado_por: user?.id });
         if (error) { await supabase.storage.from("festa-fotos").remove([caminho]); toast.error(`${file.name}: não foi possível salvar.`); }
       }
       toast.success("Fotos atualizadas.");
@@ -71,6 +76,24 @@ export default function FestaFotosAdmin() {
     ]);
     if (r.some((x) => x.error)) toast.error("Não foi possível mudar a ordem.");
     atualizar();
+  }
+
+  const [salvandoOrdem, setSalvandoOrdem] = useState(false);
+  const sensores = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  async function soltar(lista: FestaFoto[], e: DragEndEvent) {
+    const de = lista.findIndex((f) => f.id === e.active.id), para = lista.findIndex((f) => f.id === e.over?.id);
+    if (de < 0 || para < 0 || de === para) return;
+    const nova = arrayMove(lista, de, para);
+    qc.setQueryData<FestaFoto[]>(["festa-fotos"], (old) => (old ?? []).map((f) => { const i = nova.findIndex((n) => n.id === f.id); return i >= 0 ? { ...f, ordem: i } : f; }));
+    setSalvandoOrdem(true);
+    try {
+      const r = await Promise.all(nova.map((f, i) => f.ordem === i ? null : supabase.from("festa_fotos").update({ ordem: i }).eq("id", f.id)));
+      if (r.some((x) => x?.error)) toast.error("Não foi possível salvar a nova ordem."); else toast.success("Ordem salva.");
+    } finally { setSalvandoOrdem(false); atualizar(); }
   }
 
   async function confirmarRemocao() {
@@ -100,10 +123,12 @@ export default function FestaFotosAdmin() {
               </Button>
             </div>
             {lista.length > 0 && (
+              <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={(e) => soltar(lista, e)}>
+              <SortableContext items={lista.map((f) => f.id)} strategy={rectSortingStrategy} disabled={salvandoOrdem}>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {lista.map((f, i) => (
-                  <div key={f.id} className="space-y-2 border border-border p-2">
-                    <img src={f.url} alt={f.alt ?? ""} className="aspect-[4/3] w-full bg-muted object-contain" />
+                  <Arrastavel key={f.id} id={f.id} rotulo={`Arrastar foto ${i + 1} de ${ano}`}>
+                    <img loading="lazy" src={f.url} alt={f.alt ?? ""} className="aspect-[4/3] w-full bg-muted object-contain" />
                     <Input defaultValue={f.alt ?? ""} placeholder="Descrição da foto" aria-label={`Descrição da foto ${i + 1} de ${ano}`}
                       onBlur={(e) => { if ((e.target.value.trim() || null) !== f.alt) salvarAlt.mutate({ id: f.id, alt: e.target.value }); }} />
                     <div className="flex gap-4 text-sm text-muted-foreground">
@@ -123,9 +148,11 @@ export default function FestaFotosAdmin() {
                       <Button size="icon" variant="ghost" aria-label="Mover para depois" disabled={i === lista.length - 1} onClick={() => mover(lista, i, 1)}><ArrowDown className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" className="ml-auto text-destructive" onClick={() => setRemover(f)}><Trash2 className="mr-1 h-4 w-4" />Remover</Button>
                     </div>
-                  </div>
+                  </Arrastavel>
                 ))}
               </div>
+              </SortableContext>
+              </DndContext>
             )}
           </Card>
         );
@@ -154,6 +181,20 @@ export default function FestaFotosAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function Arrastavel({ id, rotulo, children }: { id: string; rotulo: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`relative space-y-2 border border-border bg-card p-2 ${isDragging ? "z-10 opacity-80 shadow-lg" : ""}`}>
+      <button type="button" {...attributes} {...listeners} aria-label={rotulo}
+        className="absolute left-3 top-3 z-10 flex h-11 w-11 cursor-grab touch-none items-center justify-center rounded-md bg-background/80 text-foreground active:cursor-grabbing">
+        <GripVertical className="h-5 w-5" />
+      </button>
+      {children}
     </div>
   );
 }

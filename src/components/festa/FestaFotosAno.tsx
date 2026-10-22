@@ -29,7 +29,7 @@ export default function FestaFotosAno({ ano, fotos, proporcao = "aspect-[4/3]", 
         <CarouselContent>
           {fotos.map((f, i) => (
             <CarouselItem key={f.url} aria-label={`Foto ${i + 1} de ${fotos.length}`}>
-              <img src={f.url} alt={f.alt ?? `FORTEM em ${ano}`} loading="lazy" draggable={false} className={`${proporcao} w-full select-none bg-card object-contain`} />
+              <img src={f.url} alt={f.alt ?? `FORTEM em ${ano}`} loading={Math.abs(i - atual) <= 1 || (atual === 0 && i === fotos.length - 1) ? "eager" : "lazy"} decoding="async" draggable={false} className={`${proporcao} w-full select-none bg-card object-contain`} />
             </CarouselItem>
           ))}
         </CarouselContent>

@@ -9,7 +9,8 @@ Deno.serve(async (req) => {
     const { data, error } = await sup.from("festa_fotos").select("id, ano, url, caminho, alt, ordem");
     if (error) throw error;
     const fotos = data ?? [];
-    const caminhos = fotos.filter((f) => f.caminho).map((f) => f.caminho as string);
+    // Fotos com link fixo (10 anos) gravado são usadas como estão; só as antigas são assinadas aqui.
+    const caminhos = fotos.filter((f) => f.caminho && !/^https?:\/\//.test(f.url)).map((f) => f.caminho as string);
     if (caminhos.length) {
       const { data: assinadas } = await sup.storage.from("festa-fotos").createSignedUrls(caminhos, 60 * 60 * 24);
       const mapa = new Map((assinadas ?? []).map((s) => [s.path, s.signedUrl]));
