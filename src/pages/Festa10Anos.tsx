@@ -240,21 +240,18 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
         </div>
       </div>
 
-      <div className="sticky top-[68px] z-20 mt-14 border-y border-border bg-background">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-2 sm:px-8">
-          <p className="text-sm"><strong className="font-bold uppercase tracking-[0.12em]">{ab.narracao.titulo}</strong> <span className="text-muted-foreground">{ab.narracao.autor} · {caps.length} capítulos · {ab.narracao.duracao}</span></p>
-          {comAudio.length > 0 && (
-            <button type="button" aria-pressed={tocando !== null && tudo} onClick={() => (tocando ? tocar(null) : tocar(comAudio[0].ano, comAudio.slice(1).map((c) => c.ano)))} className={`${btnAudio} bg-primary text-primary-foreground`}>
-              {tocando ? "Parar" : "Ouvir tudo"}
-            </button>
-          )}
+      {isMobile ? (
+        <div className="mt-14"><TrilhaAnos anos={caps.map((c) => c.ano)} ativo={tocando ?? ativo} onIr={irPara} /></div>
+      ) : (
+        <div className="sticky top-[68px] z-20 mt-14 border-y border-border bg-background">
+          {barraNarracao}
+          <nav aria-label="Anos da história" className="flex gap-1 overflow-x-auto px-5 pb-2 lg:hidden">
+            {caps.map((c) => <a key={c.ano} href={`#cap-${c.ano}`} aria-current={(tocando ?? ativo) === c.ano} className={`inline-flex min-h-11 shrink-0 items-center px-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${(tocando ?? ativo) === c.ano ? "festa-marca" : "text-muted-foreground"}`}>{c.ano}</a>)}
+          </nav>
         </div>
-        <nav aria-label="Anos da história" className="flex gap-1 overflow-x-auto px-5 pb-2 lg:hidden">
-          {caps.map((c) => <a key={c.ano} href={`#cap-${c.ano}`} aria-current={ativo === c.ano} className={`inline-flex min-h-11 shrink-0 items-center px-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${ativo === c.ano ? "festa-marca" : "text-muted-foreground"}`}>{c.ano}</a>)}
-        </nav>
-      </div>
+      )}
 
-      <div className="mx-auto mt-12 grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[12rem_1fr]">
+      <div className="mx-auto mt-12 grid max-w-7xl gap-10 px-5 pb-20 sm:px-8 md:pb-0 lg:grid-cols-[12rem_1fr]">
         <nav aria-label="Capítulos" className="hidden lg:block">
           <ol className="sticky top-[150px] space-y-1">
             {caps.map((c) => (
