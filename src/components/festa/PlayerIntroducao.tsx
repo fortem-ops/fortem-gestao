@@ -19,7 +19,7 @@ export default function PlayerIntroducao({ src, duracaoPadrao = 108 }: { src: st
   };
   const pct = dur ? Math.min(100, (atual / dur) * 100) : 0;
   return (
-    <div className="flex items-center gap-3 border border-[#4a4b4b] bg-[#1a1b1b] pr-3">
+    <div className="flex items-center gap-3 border border-border bg-card pr-3">
       <audio ref={ref} src={src} preload="none" className="hidden" data-testid="audio-introducao"
         onPlay={() => setTocando(true)} onPause={() => setTocando(false)} onEnded={() => { setTocando(false); setAtual(0); }}
         onTimeUpdate={(e) => setAtual(e.currentTarget.currentTime)}
@@ -30,7 +30,7 @@ export default function PlayerIntroducao({ src, duracaoPadrao = 108 }: { src: st
       </button>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em]">Ouça a introdução</p>
-        <div className="mt-2 h-1 w-full bg-[#4a4b4b]" aria-hidden><div className="festa-marca-bg h-full" style={{ width: `${pct}%` }} /></div>
+        <div className="mt-2 h-1 w-full bg-border" aria-hidden><div className="festa-marca-bg h-full" style={{ width: `${pct}%` }} /></div>
       </div>
       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{tempo(atual)} / {tempo(dur)}</span>
     </div>
