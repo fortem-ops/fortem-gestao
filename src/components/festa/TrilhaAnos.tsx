@@ -14,7 +14,7 @@ export default function TrilhaAnos({ anos, ativo, onIr, anoAtual = new Date().ge
   }, [ativo]);
 
   return (
-    <div className="sticky top-[68px] z-20 border-y border-card bg-background md:hidden">
+    <div className="sticky top-[68px] z-20 mt-14 border-y border-card bg-background md:hidden">
       <div className="flex items-center justify-between px-5 pt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
         <span>Trajetória</span><span aria-live="polite">{idx + 1} de {anos.length}</span>
       </div>

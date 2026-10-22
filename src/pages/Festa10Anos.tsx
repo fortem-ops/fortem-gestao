@@ -247,7 +247,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
       </div>
 
       {isMobile ? (
-        <div className="mt-14"><TrilhaAnos anos={caps.map((c) => c.ano)} ativo={tocando ?? ativo} onIr={irPara} /></div>
+        <TrilhaAnos anos={caps.map((c) => c.ano)} ativo={tocando ?? ativo} onIr={irPara} />
       ) : (
         <div className="sticky top-[68px] z-20 mt-14 border-y border-border bg-background">
           {barraNarracao}
