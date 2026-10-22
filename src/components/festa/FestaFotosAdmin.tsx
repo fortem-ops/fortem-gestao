@@ -125,7 +125,7 @@ export default function FestaFotosAdmin() {
             {lista.length > 0 && (
               <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={(e) => soltar(lista, e)}>
               <SortableContext items={lista.map((f) => f.id)} strategy={rectSortingStrategy} disabled={salvandoOrdem}>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
                 {lista.map((f, i) => (
                   <Arrastavel key={f.id} id={f.id} rotulo={`Arrastar foto ${i + 1} de ${ano}`}>
                     <img loading="lazy" src={f.url} alt={f.alt ?? ""} className="aspect-[4/3] w-full bg-muted object-contain" />
