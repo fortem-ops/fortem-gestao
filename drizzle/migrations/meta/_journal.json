@@ -1338,6 +1338,13 @@
       "when": 1792666612237,
       "tag": "0190_pix_automatico_p2a",
       "breakpoints": true
+    },
+    {
+      "idx": 191,
+      "version": "7",
+      "when": 1792666870273,
+      "tag": "0191_pix_automatico_estado_desempate",
+      "breakpoints": true
     }
   ]
 }
