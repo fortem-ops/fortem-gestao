@@ -1317,6 +1317,13 @@
       "when": 1792590165766,
       "tag": "0187_festa_preco_unico_novas_confirmacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1792663241433,
+      "tag": "0188_audit_log_drop_duplicate_indexes",
+      "breakpoints": true
     }
   ]
 }
