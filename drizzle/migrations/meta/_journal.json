@@ -1331,6 +1331,13 @@
       "when": 1792665246866,
       "tag": "0189_pix_automatico_p1_meio_mensalidades",
       "breakpoints": true
+    },
+    {
+      "idx": 190,
+      "version": "7",
+      "when": 1792666612237,
+      "tag": "0190_pix_automatico_p2a",
+      "breakpoints": true
     }
   ]
 }
