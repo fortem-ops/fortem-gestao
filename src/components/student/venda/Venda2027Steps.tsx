@@ -208,26 +208,15 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
       if (!item || !calc) throw new Error("Escolha o plano");
       if (!vendavel) throw new Error("Este plano 2027 ainda não está liberado para venda");
       const { data, error } = await db.rpc("fn_venda_2027_criar", {
-        p: {
-          aluno_id: alunoId,
-          catalogo_id: item.id,
-          servicos: servicosSel,
-          forma,
-          parcelas: forma === "cartao_parcelado" ? parcelas : 1,
-          forma_servicos: formaServicos,
-          parcelas_servicos: formaServicos === "cartao_parcelado" ? parcelasServicos : 1,
-          data_inicio: dataInicio,
-          primeiro_vencimento: primeiroVenc,
-          substituir,
-          observacoes,
-          idempotency_key: idem,
-          desconto: desconto || 0,
-          desconto_recorrente: ehStart && desconto > 0 && descontoRecorrente === "todos",
-        },
+        p: montarPayloadVenda2027({
+          alunoId, catalogoId: item.id, familia, duracao, servicosSel, forma, parcelas,
+          formaServicos, parcelasServicos, dataInicio, primeiroVenc, substituir, observacoes,
+          idem, desconto, descontoRecorrente,
+        }),
       });
       if (error) throw error;
       let contratoOk = true;
-      if (data?.contrato_id) {
+      if (data?.contrato_id && deveGerarDocumento2027(familia)) {
         const r = await gerarDocumentoContrato({
           alunoId,
           contratoId: data.contrato_id,
@@ -238,17 +227,22 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
         });
         contratoOk = r.success;
       }
-      return { contratoOk };
+      return { contratoOk, semContrato: !deveGerarDocumento2027(familia) };
     },
-    onSuccess: ({ contratoOk }) => {
+    onSuccess: ({ contratoOk, semContrato }: { contratoOk: boolean; semContrato?: boolean }) => {
       ["vendas-aluno", "creditos-aluno", "creditos_resumo", "creditos_aluno_lista", "contratos", "plano-vigente-venda", "contratos-ativos-venda"].forEach(
         (k) => qc.invalidateQueries({ queryKey: [k, alunoId] }),
       );
       qc.invalidateQueries({ queryKey: ["contratos"] });
       qc.invalidateQueries({ queryKey: ["cobrancas"] });
       invalidatePlanoCaches(qc, alunoId);
-      toast.success("Venda 2027 registrada");
-      if (!contratoOk) toast.warning("Contrato 2027 ainda desligado: o documento não foi gerado.");
+      if (semContrato) {
+        qc.invalidateQueries({ queryKey: ["contrato-consultoria-aluno", alunoId] });
+        toast.success("Venda registrada (plano sem contrato)");
+      } else {
+        toast.success("Venda 2027 registrada");
+        if (!contratoOk) toast.warning("Contrato 2027 ainda desligado: o documento não foi gerado.");
+      }
       onDone();
     },
     onError: (e: any) => toast.error(e.message),
@@ -264,13 +258,23 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
       <div className="space-y-2">
         <Label>Plano</Label>
         <div className="flex flex-wrap gap-2">
-          {FAMILIAS.map((f) => (
+          {FAMILIAS.filter((f) => f.value !== FAMILIA_CONSULTORIA || chipConsultoria).map((f) => (
             <Chip key={f.value} selected={familia === f.value} onClick={() => setFamilia(f.value)}>{f.label}</Chip>
           ))}
         </div>
       </div>
 
       {!soServicos && (<>
+      {consultoria ? (
+      <div className="space-y-2">
+        <Label>Duração</Label>
+        <div className="flex flex-wrap gap-2">
+          {DURACOES_CONSULTORIA.map((d) => (
+            <Chip key={d.value} selected={duracao === d.value} onClick={() => setDuracao(d.value)}>{d.label}</Chip>
+          ))}
+        </div>
+      </div>
+      ) : (
       <div className="space-y-2">
         <Label>Frequência</Label>
         <div className="flex flex-wrap gap-2">
@@ -279,11 +283,19 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
           ))}
         </div>
       </div>
+      )}
 
       <div className="space-y-2">
         <Label>Pagamento do plano</Label>
         {ehStart ? (
           <p className="text-sm text-muted-foreground">Start: recorrência mensal no cartão, sem taxa e sem fidelidade.</p>
+        ) : cicloMensal ? (
+          <p className="text-sm text-muted-foreground">Consultoria Online Mensal: recorrência mensal no cartão, sem taxa e sem fidelidade.</p>
+        ) : pacote ? (
+          <div className="flex flex-wrap gap-2">
+            <Chip selected={forma === "cartao_parcelado"} onClick={() => setPagamento("cartao_parcelado")}>Cartão parcelado</Chip>
+            <Chip selected={forma === "pix_vista"} onClick={() => setPagamento("pix_vista")}>Pix à vista</Chip>
+          </div>
         ) : (
           <div className="flex flex-wrap gap-2">
             <Chip selected={pagamento === "cartao_parcelado"} onClick={() => setPagamento("cartao_parcelado")}>Cartão até 12x</Chip>
@@ -295,7 +307,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
           <Select value={String(parcelas)} onValueChange={(v) => setParcelas(Number(v))}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+              {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
                 <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
               ))}
             </SelectContent>
