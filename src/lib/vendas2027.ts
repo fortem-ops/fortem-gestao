@@ -10,6 +10,8 @@ export type Item2027 = {
   modalidade_cobranca: "recorrencia_mensal" | "anual" | string;
   valor: number | string;
   taxa_recorrencia?: number | string | null;
+  /** Duração em meses; na modalidade "pacote" também é o máximo de parcelas. */
+  periodo_meses?: number | string | null;
 };
 
 export type Servico2027 = { codigo: string; valor: number | string };
@@ -84,6 +86,26 @@ function inteiroEntre(v: number | undefined, min: number, max: number, nome: str
   return n;
 }
 
+export const FAMILIA_CONSULTORIA_2027 = "consultoria_2027";
+
+/** Pacote de N meses (Consultoria 4/6 meses): total = valor − desconto, 1..N parcelas ou Pix à vista. */
+function calcularPacote(e: EntradaVenda2027, valorC: number, descC: number, servicosC: number): ResultadoVenda2027 {
+  const meses = Number(e.item.periodo_meses);
+  if (!Number.isInteger(meses) || meses < 1) throw new Error("Duração do pacote inválida");
+  if (e.forma === "recorrencia") throw new Error("Pacote não pode ser vendido em recorrência");
+  if (servicosC > 0) throw new Error("Pacote não aceita serviços na mesma venda");
+  if (descC >= valorC) throw new Error("Desconto maior que o valor do plano");
+  const n = e.forma === "pix_vista" ? 1 : inteiroEntre(e.parcelas, 1, meses, "Parcelas");
+  const planoC = valorC - descC;
+  return {
+    plano: { forma: e.forma, total: fromCents(planoC), parcelas: montarParcelas(planoC, 0, n) },
+    servicosAvulsos: null,
+    totalPlano: fromCents(planoC),
+    totalServicos: 0,
+    totalGeral: fromCents(planoC),
+  };
+}
+
 export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   const { item, forma } = e;
   const servicos = e.servicos ?? [];
@@ -95,6 +117,10 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
 
   const ehStart = item.familia === "start_2027";
   const ehMensal = item.modalidade_cobranca === "recorrencia_mensal";
+  // Consultoria Online mensal segue o Start: um ciclo por vez, sem taxa.
+  const cicloACiclo = ehStart || item.familia === FAMILIA_CONSULTORIA_2027;
+
+  if (item.modalidade_cobranca === "pacote") return calcularPacote(e, valorC, descC, servicosC);
 
   if (ehStart && !ehMensal) throw new Error("Start 2027 é só recorrência mensal");
   if (ehMensal && forma !== "recorrencia") throw new Error("Item mensal só pode ser vendido em recorrência");
@@ -116,10 +142,10 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   }
 
   // Recorrência mensal: Power/Pro = 12 cobranças de catálogo + taxa;
-  // Start = 1 cobrança por ciclo (sem taxa, renova mês a mês até o cancelamento).
-  const taxaC = ehStart ? 0 : toCents(item.taxa_recorrencia);
+  // Start e Consultoria = 1 cobrança por ciclo (sem taxa, renova mês a mês até o cancelamento).
+  const taxaC = cicloACiclo ? 0 : toCents(item.taxa_recorrencia);
   const mensalC = valorC + taxaC;
-  const nCobrancas = ehStart ? 1 : MESES_RECORRENCIA_2027;
+  const nCobrancas = cicloACiclo ? 1 : MESES_RECORRENCIA_2027;
   if (descC >= mensalC) throw new Error("Desconto maior que a mensalidade");
   const parcelasPlano: Parcela2027[] = Array.from({ length: nCobrancas }, (_, i) => {
     const v = i === 0 ? mensalC - descC : mensalC;
