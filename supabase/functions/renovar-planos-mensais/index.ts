@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
         .select("id, planos_catalogo!inner(familia)")
         .eq("ativo", true)
         .eq("renovacao_automatica", true)
-        .eq("planos_catalogo.familia", "start_2027")
+        .in("planos_catalogo.familia", ["start_2027", "consultoria_2027"])
         .lte("proxima_renovacao", today);
       if (s27Err) planos2027.erros.push({ etapa: "listar_start_2027", motivo: s27Err.message });
       for (const p of start2027 || []) {
