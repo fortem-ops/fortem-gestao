@@ -6,9 +6,10 @@ import { useAlunoAvaliacoesConsolidadas } from "@/components/avaliacoes-premium/
 import { useMobilidadeResumoReferencia } from "@/components/portal/referenciaResumoPortal";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
+import { agendaOculta } from "@/lib/portalAgenda";
 
 export default function PortalAssessments() {
-  const { student } = useStudentPortal();
+  const { student, somenteOnline } = useStudentPortal();
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(student?.id);
   const { data: resumoReferencia } = useMobilidadeResumoReferencia();
 
@@ -41,9 +42,11 @@ export default function PortalAssessments() {
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">A avaliação identifica mobilidade, equilíbrio entre os lados e força para orientar seu treino.</p>
             </div>
           </div>
-          <Button asChild className="min-h-11 w-full font-bold">
-            <Link to="/portal/agenda">Agendar avaliação funcional <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </Button>
+          {!agendaOculta(somenteOnline) && (
+            <Button asChild className="min-h-11 w-full font-bold">
+              <Link to="/portal/agenda">Agendar avaliação funcional <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          )}
         </div>
       </div>
     );

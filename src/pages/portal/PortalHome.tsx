@@ -474,12 +474,14 @@ export default function PortalHome() {
                         {s.usado} de {s.total} usados{saldoS <= 0 ? " · esgotado" : ""}
                       </p>
                     </div>
-                    <button
-                      onClick={() => navigate("/portal/agenda")}
-                      className="h-[45px] border border-[#4A4B4B] px-4 text-xs font-bold uppercase tracking-[0.08em] text-foreground"
-                    >
-                      Agendar
-                    </button>
+                    {!semAgenda && (
+                      <button
+                        onClick={() => navigate("/portal/agenda")}
+                        className="h-[45px] border border-[#4A4B4B] px-4 text-xs font-bold uppercase tracking-[0.08em] text-foreground"
+                      >
+                        Agendar
+                      </button>
+                    )}
                   </div>
                 );
               })}

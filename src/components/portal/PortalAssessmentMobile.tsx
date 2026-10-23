@@ -4,6 +4,8 @@ import { ptBR } from "date-fns/locale";
 import { AlertCircle, ArrowRight, ChevronDown, ClipboardCheck, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useStudentPortalOptional } from "@/contexts/StudentPortalContext";
+import { agendaOculta } from "@/lib/portalAgenda";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BodyMapSVG } from "@/components/student/assessment/funcionalV2/BodyMapSVG";
 import { useBodyMapShapes } from "@/components/student/assessment/funcionalV2/useBodyMapShapes";
@@ -392,6 +394,7 @@ function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: Resumo
 }
 
 function ReassessmentCard({ latestDate }: { latestDate: string }) {
+  const semAgenda = agendaOculta(useStudentPortalOptional()?.somenteOnline);
   const monthsSince = Math.floor(differenceInDays(new Date(), parseISO(latestDate)) / 30);
   const overdue = monthsSince >= MESES_IDEAL_REAVALIAR;
   const prevista = addMonths(parseISO(`${latestDate}T12:00:00`), MESES_IDEAL_REAVALIAR);
@@ -401,7 +404,7 @@ function ReassessmentCard({ latestDate }: { latestDate: string }) {
       <AlertCircle className="h-5 w-5 shrink-0 text-muted-foreground" />
       <div><p className="text-sm font-bold">Hora de reavaliar</p><p className="mt-1 text-xs text-muted-foreground">Sua última avaliação foi há {monthsSince} meses.</p></div>
     </div>
-    <Button asChild className="min-h-11 w-full font-bold"><Link to="/portal/agenda">Agendar reavaliação <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+    {!semAgenda && <Button asChild className="min-h-11 w-full font-bold"><Link to="/portal/agenda">Agendar reavaliação <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>}
   </div>;
 }
 
