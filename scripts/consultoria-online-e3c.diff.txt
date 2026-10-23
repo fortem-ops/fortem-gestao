@@ -1,5 +1,5 @@
 --- fn_mensalidade_manual_gerar.sql	2026-10-23 10:45:34.236407991 +0000
-+++ fn_mensalidade_manual_gerar.new.sql	2026-10-23 10:48:40.793369965 +0000
++++ fn_mensalidade_manual_gerar.new.sql	2026-10-23 10:51:18.063715078 +0000
 @@ -34,3 +34,3 @@
    END IF;
 -  IF k.plano_tipo = 'start_2027' THEN
@@ -7,7 +7,7 @@
      SELECT * INTO pl FROM planos WHERE id = k.plano_id;
 
 --- fn_mensalidade_manual_proximo.sql	2026-10-23 10:45:35.599504212 +0000
-+++ fn_mensalidade_manual_proximo.new.sql	2026-10-23 10:48:40.799046235 +0000
++++ fn_mensalidade_manual_proximo.new.sql	2026-10-23 10:51:18.069148088 +0000
 @@ -12,3 +12,3 @@
    SELECT * INTO k FROM contratos WHERE id = u.contrato_id;
 -  IF k.plano_tipo IS DISTINCT FROM 'start_2027' OR k.data_cancelamento IS NOT NULL OR k.status NOT IN ('ativo','encerrado') THEN RETURN NULL; END IF;
@@ -15,7 +15,7 @@
    SELECT * INTO pl FROM planos WHERE id = k.plano_id;
 
 --- fn_renovar_start_2027.sql	2026-10-23 10:45:36.989588051 +0000
-+++ fn_renovar_start_2027.new.sql	2026-10-23 10:48:40.803962805 +0000
++++ fn_renovar_start_2027.new.sql	2026-10-23 10:51:18.073300987 +0000
 @@ -18,3 +18,3 @@
    END IF;
 -  SELECT * INTO c FROM public.planos_catalogo WHERE id = pl.catalogo_id AND familia = 'start_2027';
@@ -23,10 +23,14 @@
    IF NOT FOUND THEN RETURN jsonb_build_object('plano_id', p_plano, 'pulado', 'não é Start 2027'); END IF;
 
 --- fn_recorrencia_2027_inadimplente_aviso.sql	2026-10-23 10:45:38.340572999 +0000
-+++ fn_recorrencia_2027_inadimplente_aviso.new.sql	2026-10-23 10:48:40.808590935 +0000
++++ fn_recorrencia_2027_inadimplente_aviso.new.sql	2026-10-23 10:51:18.077777477 +0000
 @@ -24,3 +24,3 @@
      CASE WHEN v_teste THEN '[TESTE] ' ELSE '' END || 'Mensalidade recusada 3 vezes: ' || coalesce(p.nome, 'sem nome'),
 -    CASE p.familia WHEN 'start_2027' THEN 'Start' WHEN 'power_2027' THEN 'Power' WHEN 'pro_2027' THEN 'Pro' ELSE coalesce(p.familia,'') END
 +    CASE p.familia WHEN 'start_2027' THEN 'Start' WHEN 'power_2027' THEN 'Power' WHEN 'pro_2027' THEN 'Pro' WHEN 'consultoria_2027' THEN 'Consultoria Online' ELSE coalesce(p.familia,'') END
        || ' ' || coalesce(p.frequencia,'') || CASE WHEN m.venda_origem_id IS NOT NULL THEN ' · recorrência no cartão (venda da equipe)' ELSE ' · assinatura no cartão' END || E'\n'
+@@ -32,2 +32,3 @@
+               WHEN p.familia = 'start_2027' THEN 'Crédito do ciclo não liberado. Ação: falar com o aluno; pagamento manual retoma a assinatura.'
++              WHEN p.familia = 'consultoria_2027' THEN 'Ação: falar com o aluno e cobrar a mensalidade.'
+               ELSE 'Créditos do plano mantidos. Ação: falar com o aluno e cobrar a mensalidade.' END,
 
