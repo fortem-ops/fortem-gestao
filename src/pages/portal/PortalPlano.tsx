@@ -121,9 +121,12 @@ export default function PortalPlano() {
     },
   });
 
+  // E4f: Consultoria Online não tem rescisão calculada nem executada pelo
+  // sistema — o pedido é comunicado ao administrador (tratamento manual).
+  const consultoria = contrato?.plano_tipo === "consultoria_2027";
   const { data: rescisao, isLoading: rescisaoLoading } = useCalcularRescisao(
     contrato?.id ?? "",
-    cancelEtapa === "calculo" || cancelEtapa === "confirmar"
+    (cancelEtapa === "calculo" || cancelEtapa === "confirmar") && !consultoria
   );
 
   if (!student) return null;
