@@ -384,7 +384,7 @@ export default function PortalPlano() {
                   Prefiro trancar o plano
                 </button>
                 <button
-                  onClick={() => setCancelEtapa("calculo")}
+                  onClick={() => setCancelEtapa(consultoria ? "confirmar" : "calculo")}
                   className="w-full py-3 rounded-xl bg-muted text-muted-foreground font-semibold text-sm"
                 >
                   Quero continuar com o cancelamento
