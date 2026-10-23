@@ -112,4 +112,6 @@
 - [x] E3c renovação do Mensal da Consultoria (migração 0198 + renovar-planos-mensais lista start_2027 e consultoria_2027; volta em scripts/consultoria-online-e3c.rollback.sql e voltando a linha 282 para .eq start_2027). Start/Power/Pro idênticos; aviso da Consultoria sem frase de créditos.
 - [x] E4a (conferências só leitura, 23/10/2026): NICOLAS TESTE na lista de teste; servidor libera item inativo só para aluno de teste; rescisão do Mensal sem multa, do pacote com retenção de 25% e base fixa de 12 meses (corrigir no banco antes da E6); Pix à vista = cobrança pendente com baixa manual; varredura de telas feita.
 - Decisões do dono para E4: chip Consultoria só para aluno de teste até a E6; pacote no cartão com padrão N parcelas; "livre" do aviso: ajuste na tela agora, banco junto com a E3d.
-- [ ] E4b–E4e, E3d, E5–E6 não autorizadas. Pendente etapa própria: corrigir fn_calcular_rescisao para pacote da Consultoria (sem multa/retenção) antes da E6.
+- [x] E4b (rótulos/mapas de vigência nas telas, 23/10/2026): "Consultoria Online" e "4 meses"; planos antigos com texto idêntico.
+- [ ] E4c–E4e, E3d, E5–E6 não autorizadas.
+- [ ] Etapa própria no banco ANTES da E6 (decisão do dono): cancelar pacote 4/6 meses = encerra plano e cancela parcelas não pagas, sem devolver o pago e sem multa; Mensal segue sem multa (corrigir fn_calcular_rescisao, que hoje retém 25% e usa base de 12 meses).
