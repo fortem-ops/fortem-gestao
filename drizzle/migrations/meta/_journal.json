@@ -1387,6 +1387,13 @@
       "when": 1792751976414,
       "tag": "0197_consultoria_online_e3b_venda",
       "breakpoints": true
+    },
+    {
+      "idx": 198,
+      "version": "7",
+      "when": 1792753307363,
+      "tag": "0198_consultoria_online_e3c_renovacao",
+      "breakpoints": true
     }
   ]
 }
