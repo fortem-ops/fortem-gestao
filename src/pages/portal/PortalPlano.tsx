@@ -486,7 +486,9 @@ export default function PortalPlano() {
                     <AlertTriangle className="w-4 h-4" /> Atenção — ação irreversível
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Ao confirmar, uma solicitação de cancelamento será enviada à equipe FORTEM, que entrará em contato para finalizar o processo.
+                    {consultoria
+                      ? `${TEXTO_RESCISAO_CONSULTORIA}: ao confirmar, o pedido é comunicado ao administrador, que trata manualmente. Nenhum valor de multa é calculado.`
+                      : "Ao confirmar, uma solicitação de cancelamento será enviada à equipe FORTEM, que entrará em contato para finalizar o processo."}
                   </p>
                 </div>
                 <div>
