@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -24,6 +25,7 @@ import {
   Loader2,
   RotateCcw,
   FilePlus,
+  Megaphone,
 } from "lucide-react";
 import {
   LABEL_PLANO,
@@ -35,6 +37,11 @@ import { DetalheServicos } from "@/components/financeiro/DialogRescisao";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
+import {
+  ehConsultoria, avisarAdminRescisaoConsultoria, quemEstaLogado, TEXTO_RESCISAO_CONSULTORIA,
+} from "@/lib/rescisaoConsultoria";
+import { FORMA_PAGAMENTO_LABELS, formatBRL } from "@/types/financeiro";
+import { toast } from "sonner";
 
 export type TratamentoMulta = "estorno" | "nova_cobranca";
 
@@ -50,6 +57,8 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onConfirmar: (payload: CancelamentoPayload) => Promise<void>;
+  /** Nome do aluno (usado no aviso ao administrador da Consultoria). */
+  alunoNome?: string;
 }
 
 const fmt = (n: number) =>
@@ -68,10 +77,14 @@ export function RescisaoDialog({
   open,
   onOpenChange,
   onConfirmar,
+  alunoNome,
 }: Props) {
   const hoje = new Date().toISOString().split("T")[0];
   const [loading, setLoading] = useState(false);
   const [dataCancelamento, setDataCancelamento] = useState(hoje);
+  const consultoria = ehConsultoria(contrato.plano_tipo);
+  const [motivoAviso, setMotivoAviso] = useState("");
+  const [avisando, setAvisando] = useState(false);
 
   const { data: venda } = useQuery({
     queryKey: ["venda-contrato-rescisao", contrato.plano_id],
@@ -92,10 +105,11 @@ export function RescisaoDialog({
   });
   const valoresContrato = calcularValoresContrato(contrato, venda);
 
-  // Fonte de verdade única: RPC fn_calcular_rescisao (banco)
+  // Fonte de verdade única: RPC fn_calcular_rescisao (banco).
+  // E4f: Consultoria NUNCA chama fn_calcular_rescisao.
   const { data: rpc, isLoading: loadingCalc } = useCalcularRescisao(
     contrato.id,
-    open,
+    open && !consultoria,
     dataCancelamento,
   );
 
@@ -153,13 +167,40 @@ export function RescisaoDialog({
     }
   };
 
+  const vigenciaLabel =
+    rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ??
+    (contrato.vigencia_tipo === "anual" ? "Anual (12 meses)" : "Mensal");
+
+  const handleAvisar = async () => {
+    setAvisando(true);
+    try {
+      await avisarAdminRescisaoConsultoria({
+        alunoId: contrato.aluno_id,
+        alunoNome: alunoNome || contrato.alunos?.nome || "Aluno",
+        vigenciaLabel,
+        valorLabel: formatBRL(contrato.valor_cobrado),
+        formaPagamentoLabel: FORMA_PAGAMENTO_LABELS[contrato.forma_pagamento],
+        motivo: motivoAviso,
+        quemPediu: await quemEstaLogado(),
+      });
+      toast.success("Administrador avisado. A rescisão será tratada manualmente.");
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Erro ao avisar o administrador: " + (e?.message ?? String(e)));
+    } finally {
+      setAvisando(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cancelamento de Contrato</DialogTitle>
           <DialogDescription>
-            Revise as condições, defina a data efetiva e o tratamento da multa.
+            {consultoria
+              ? "A Consultoria Online não tem rescisão calculada pelo sistema."
+              : "Revise as condições, defina a data efetiva e o tratamento da multa."}
           </DialogDescription>
         </DialogHeader>
 
@@ -169,10 +210,14 @@ export function RescisaoDialog({
             <Info label="Plano" value={LABEL_PLANO[contrato.plano_tipo]} />
             <Info
               label="Vigência"
-              value={rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? (contrato.vigencia_tipo === "anual" ? "Anual (12 meses)" : "Mensal")}
+              value={vigenciaLabel}
             />
-            <Info label="Mês atual" value={`${r.mes_atual || 1}º`} />
-            <Info label="Meses restantes" value={String(r.meses_restantes)} />
+            {!consultoria && (
+              <>
+                <Info label="Mês atual" value={`${r.mes_atual || 1}º`} />
+                <Info label="Meses restantes" value={String(r.meses_restantes)} />
+              </>
+            )}
             <Info
               label={valoresContrato.recorrente ? "Valor mensal" : "Valor da parcela"}
               value={fmt(valoresContrato.parcela)}
@@ -181,188 +226,223 @@ export function RescisaoDialog({
           </div>
         </Card>
 
-        {loadingCalc && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Calculando rescisão…
-          </div>
-        )}
+        {consultoria ? (
+          <>
+            <Alert className="border-blue-500/40 bg-blue-500/10">
+              <Megaphone className="h-4 w-4 text-blue-400" />
+              <AlertDescription className="text-blue-200">
+                <strong>{TEXTO_RESCISAO_CONSULTORIA}.</strong> Nenhuma multa é calculada e
+                nenhum cancelamento é executado pelo sistema — o pedido é comunicado ao
+                administrador, que trata manualmente.
+              </AlertDescription>
+            </Alert>
 
-        {/* Seção 2 — Cálculo rescisório */}
-        {r.tipo === "start_sem_multa" && (
-          <Alert className="border-green-600/40 bg-green-600/10">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <AlertDescription className="text-green-200">
-              Sem multa de cancelamento. Acesso mantido até o fim do ciclo pago.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {r.tipo === "recorrencia_com_multa" && (
-          <Card className="p-4 space-y-2">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              Multa de cancelamento — Recorrência
-            </h4>
-            <Separator />
-            <Row label="Mensalidades vincendas" value={fmt(r.valor_vincendo ?? 0)} />
-            <Row label={`Percentual de multa (mês ${r.mes_atual})`} value={`${r.percentual}%`} />
-            <Row label="Multa sobre vincendas" value={fmt(r.multa_base ?? 0)} />
-            <Row label="Serviços utilizados (cobrança)" value={fmt(r.servicos_utilizados)} />
-            <DetalheServicos itens={r.servicos_detalhe} />
-            <Separator />
-            <div className="flex justify-between items-center pt-1">
-              <span className="font-semibold">Multa calculada</span>
-              <span className="text-lg font-bold text-red-500">{fmt(r.total_devido)}</span>
-            </div>
-          </Card>
-        )}
-
-        {r.tipo === "parcelado_com_restituicao" && (
-          <Card className="p-4 space-y-2">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Coins className="h-4 w-4 text-green-500" />
-              Restituição — Parcelado
-            </h4>
-            <Separator />
-            <Row label="Valor total do contrato" value={fmt(r.valor_total_contrato ?? 0)} />
-            <Row label="Valor proporcional aos meses restantes" value={fmt(r.valor_proporcional ?? 0)} />
-            <Row label={`Restituição (${r.percentual}%)`} value={fmt(r.restituicao_bruta ?? 0)} />
-            <Row label="Serviços utilizados (cobrança)" value={`- ${fmt(r.servicos_utilizados)}`} />
-            <DetalheServicos itens={r.servicos_detalhe} />
-            <Separator />
-            {r.total_restituir > 0 ? (
-              <div className="flex justify-between items-center pt-1">
-                <span className="font-semibold">Valor a restituir</span>
-                <span className="text-lg font-bold text-green-500">
-                  {fmt(r.total_restituir)}
-                </span>
-              </div>
-            ) : (
-              <div className="flex justify-between items-center pt-1">
-                <span className="font-semibold">Saldo devedor</span>
-                <span className="text-lg font-bold text-red-500">
-                  {fmt(r.saldo_devedor ?? 0)}
-                </span>
+            <Card className="p-4 space-y-2">
+              <Label htmlFor="motivo-aviso" className="text-sm font-medium">
+                Motivo do cancelamento (opcional)
+              </Label>
+              <Textarea
+                id="motivo-aviso"
+                value={motivoAviso}
+                onChange={(e) => setMotivoAviso(e.target.value)}
+                placeholder="Ex.: mudança de cidade, motivos financeiros..."
+                rows={2}
+              />
+            </Card>
+          </>
+        ) : (
+          <>
+            {loadingCalc && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Calculando rescisão…
               </div>
             )}
-          </Card>
-        )}
 
-        {/* Seção 3 — Data efetiva */}
-        <Card className="p-4 space-y-2">
-          <Label htmlFor="data-cancel" className="flex items-center gap-2 text-sm font-medium">
-            <CalendarX className="h-4 w-4 text-yellow-500" /> Data efetiva do cancelamento
-          </Label>
-          <Input
-            id="data-cancel"
-            type="date"
-            value={dataCancelamento}
-            min={undefined}
-            onChange={(e) => setDataCancelamento(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            {isFutura
-              ? "Data futura: o cancelamento será agendado e refletido em Plano/Serviços."
-              : "Cancelamento efetivado imediatamente."}
-          </p>
-        </Card>
+            {/* Seção 2 — Cálculo rescisório */}
+            {r.tipo === "start_sem_multa" && (
+              <Alert className="border-green-600/40 bg-green-600/10">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <AlertDescription className="text-green-200">
+                  Sem multa de cancelamento. Acesso mantido até o fim do ciclo pago.
+                </AlertDescription>
+              </Alert>
+            )}
 
-        {/* Seção 4 — Multa editável + tratamento */}
-        {r.tipo !== "start_sem_multa" && (
-          <Card className="p-4 space-y-3">
-            <Label htmlFor="valor-multa" className="text-sm font-medium">
-              Ajustar multa (R$)
-            </Label>
-            <Input
-              id="valor-multa"
-              type="number"
-              min="0"
-              step="0.01"
-              value={valorMultaStr}
-              onChange={(e) => setValorMultaStr(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Valor calculado: {fmt(multaCalculada)}. Edite se houver negociação.
-            </p>
-
-            {temMulta && (
-              <>
+            {r.tipo === "recorrencia_com_multa" && (
+              <Card className="p-4 space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  Multa de cancelamento — Recorrência
+                </h4>
                 <Separator />
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Como tratar a multa</div>
-                  {tratamento === "estorno" ? (
-                    <div className="flex items-start gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-sm">
-                      <RotateCcw className="h-4 w-4 text-blue-400 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-blue-200">
-                          Estorno automático de {fmt(valorMulta)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Pagamento tradicional ({LABEL_PAGAMENTO[contrato.forma_pagamento]}): registramos o estorno no histórico de cobranças.
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-sm">
-                      <div className="flex items-start gap-2">
-                        <FilePlus className="h-4 w-4 text-orange-400 mt-0.5" />
-                        <div>
-                          <div className="font-medium text-orange-200">
-                            Nova cobrança de multa de {fmt(valorMulta)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Recorrência ({LABEL_PAGAMENTO[contrato.forma_pagamento]}): será gerada uma cobrança pendente para o aluno pagar a multa.
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="venc-multa" className="text-xs">
-                          Vencimento da cobrança da multa
-                        </Label>
-                        <Input
-                          id="venc-multa"
-                          type="date"
-                          value={vencimentoMulta}
-                          onChange={(e) => setVencimentoMulta(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
+                <Row label="Mensalidades vincendas" value={fmt(r.valor_vincendo ?? 0)} />
+                <Row label={`Percentual de multa (mês ${r.mes_atual})`} value={`${r.percentual}%`} />
+                <Row label="Multa sobre vincendas" value={fmt(r.multa_base ?? 0)} />
+                <Row label="Serviços utilizados (cobrança)" value={fmt(r.servicos_utilizados)} />
+                <DetalheServicos itens={r.servicos_detalhe} />
+                <Separator />
+                <div className="flex justify-between items-center pt-1">
+                  <span className="font-semibold">Multa calculada</span>
+                  <span className="text-lg font-bold text-red-500">{fmt(r.total_devido)}</span>
                 </div>
-              </>
+              </Card>
             )}
-          </Card>
-        )}
 
-        {/* Seção 5 — Condições */}
-        <Card className="p-4 space-y-2 text-sm">
-          <h4 className="font-medium mb-2">Após o cancelamento</h4>
-          <Condicao
-            icon={<CalendarX className="h-4 w-4 text-yellow-500" />}
-            text="Acesso mantido até a data efetiva do cancelamento."
-          />
-          <Condicao
-            icon={<CreditCard className="h-4 w-4 text-blue-400" />}
-            text="Cobranças pendentes posteriores à data serão canceladas automaticamente."
-          />
-          <Condicao
-            icon={<Coins className="h-4 w-4 text-purple-400" />}
-            text="Créditos restantes do ciclo ativo serão suspensos."
-          />
-          <Condicao
-            icon={<Ban className="h-4 w-4 text-red-400" />}
-            text="Serviços já utilizados (nutrição, fisioterapia) não são reembolsáveis."
-          />
-        </Card>
+            {r.tipo === "parcelado_com_restituicao" && (
+              <Card className="p-4 space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Coins className="h-4 w-4 text-green-500" />
+                  Restituição — Parcelado
+                </h4>
+                <Separator />
+                <Row label="Valor total do contrato" value={fmt(r.valor_total_contrato ?? 0)} />
+                <Row label="Valor proporcional aos meses restantes" value={fmt(r.valor_proporcional ?? 0)} />
+                <Row label={`Restituição (${r.percentual}%)`} value={fmt(r.restituicao_bruta ?? 0)} />
+                <Row label="Serviços utilizados (cobrança)" value={`- ${fmt(r.servicos_utilizados)}`} />
+                <DetalheServicos itens={r.servicos_detalhe} />
+                <Separator />
+                {r.total_restituir > 0 ? (
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="font-semibold">Valor a restituir</span>
+                    <span className="text-lg font-bold text-green-500">
+                      {fmt(r.total_restituir)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="font-semibold">Saldo devedor</span>
+                    <span className="text-lg font-bold text-red-500">
+                      {fmt(r.saldo_devedor ?? 0)}
+                    </span>
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {/* Seção 3 — Data efetiva */}
+            <Card className="p-4 space-y-2">
+              <Label htmlFor="data-cancel" className="flex items-center gap-2 text-sm font-medium">
+                <CalendarX className="h-4 w-4 text-yellow-500" /> Data efetiva do cancelamento
+              </Label>
+              <Input
+                id="data-cancel"
+                type="date"
+                value={dataCancelamento}
+                min={undefined}
+                onChange={(e) => setDataCancelamento(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {isFutura
+                  ? "Data futura: o cancelamento será agendado e refletido em Plano/Serviços."
+                  : "Cancelamento efetivado imediatamente."}
+              </p>
+            </Card>
+
+            {/* Seção 4 — Multa editável + tratamento */}
+            {r.tipo !== "start_sem_multa" && (
+              <Card className="p-4 space-y-3">
+                <Label htmlFor="valor-multa" className="text-sm font-medium">
+                  Ajustar multa (R$)
+                </Label>
+                <Input
+                  id="valor-multa"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={valorMultaStr}
+                  onChange={(e) => setValorMultaStr(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Valor calculado: {fmt(multaCalculada)}. Edite se houver negociação.
+                </p>
+
+                {temMulta && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Como tratar a multa</div>
+                      {tratamento === "estorno" ? (
+                        <div className="flex items-start gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-sm">
+                          <RotateCcw className="h-4 w-4 text-blue-400 mt-0.5" />
+                          <div>
+                            <div className="font-medium text-blue-200">
+                              Estorno automático de {fmt(valorMulta)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Pagamento tradicional ({LABEL_PAGAMENTO[contrato.forma_pagamento]}): registramos o estorno no histórico de cobranças.
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-sm">
+                          <div className="flex items-start gap-2">
+                            <FilePlus className="h-4 w-4 text-orange-400 mt-0.5" />
+                            <div>
+                              <div className="font-medium text-orange-200">
+                                Nova cobrança de multa de {fmt(valorMulta)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Recorrência ({LABEL_PAGAMENTO[contrato.forma_pagamento]}): será gerada uma cobrança pendente para o aluno pagar a multa.
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="venc-multa" className="text-xs">
+                              Vencimento da cobrança da multa
+                            </Label>
+                            <Input
+                              id="venc-multa"
+                              type="date"
+                              value={vencimentoMulta}
+                              onChange={(e) => setVencimentoMulta(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </Card>
+            )}
+
+            {/* Seção 5 — Condições */}
+            <Card className="p-4 space-y-2 text-sm">
+              <h4 className="font-medium mb-2">Após o cancelamento</h4>
+              <Condicao
+                icon={<CalendarX className="h-4 w-4 text-yellow-500" />}
+                text="Acesso mantido até a data efetiva do cancelamento."
+              />
+              <Condicao
+                icon={<CreditCard className="h-4 w-4 text-blue-400" />}
+                text="Cobranças pendentes posteriores à data serão canceladas automaticamente."
+              />
+              <Condicao
+                icon={<Coins className="h-4 w-4 text-purple-400" />}
+                text="Créditos restantes do ciclo ativo serão suspensos."
+              />
+              <Condicao
+                icon={<Ban className="h-4 w-4 text-red-400" />}
+                text="Serviços já utilizados (nutrição, fisioterapia) não são reembolsáveis."
+              />
+            </Card>
+          </>
+        )}
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading || avisando}>
             Voltar
           </Button>
-          <Button variant="destructive" onClick={handleConfirm} disabled={loading}>
-            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {isFutura ? "Agendar cancelamento" : "Confirmar cancelamento"}
-          </Button>
+          {consultoria ? (
+            <Button onClick={handleAvisar} disabled={avisando}>
+              {avisando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Megaphone className="h-4 w-4 mr-2" />}
+              Avisar o administrador
+            </Button>
+          ) : (
+            <Button variant="destructive" onClick={handleConfirm} disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isFutura ? "Agendar cancelamento" : "Confirmar cancelamento"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

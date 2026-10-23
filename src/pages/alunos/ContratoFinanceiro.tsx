@@ -694,6 +694,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           open={!!rescContrato}
           onOpenChange={(v) => !v && setRescContrato(null)}
           onConfirmar={handleCancelar}
+          alunoNome={alunoNome}
         />
       )}
 
