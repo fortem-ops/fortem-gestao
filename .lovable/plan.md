@@ -1,91 +1,113 @@
-# E3 Consultoria Online — venda no servidor (plano detalhado)
+# E4 — Telas da Consultoria Online (plano para aprovação)
 
-Somente plano. Cada sub-etapa (E3a–E3d) tem migração e aprovação separadas. Serviços: pacote 4/6 meses recusa serviços (decisão mantida). Mensal segue o Start: hoje o Start aceita serviços **cobrados à parte** (Pix ou até 6x), nunca dentro da mensalidade.
+Escopo: só telas internas. Banco (E3a–E3c) já pronto. Nada de /planos, cron, edge, cartão, Pix Automático, ligar itens (E6) ou comissão (E3d).
 
-## Regra que garante "Start/Power/Pro idênticos"
-Toda mudança entra como condição nova só verdadeira para `familia = 'consultoria_2027'`. Para as outras famílias, cada expressão alterada devolve exatamente o mesmo valor de hoje (ex.: `c.atividade` vale `treinamento_funcional` em todos os itens Start/Power/Pro, conferido no E1). Prova por ensaio antes/depois (seção Testes).
+## 1. Nova Venda > Planos 2027 > seletor Plano
 
-## 1. O que muda, função por função
+- Hoje (`Venda2027Steps`): chips fixos Start, Power, Pro, Só serviços; item achado por `familia + frequencia + modalidade_cobranca`.
+- Proposta: novo chip "Consultoria Online" entre Pro e Só serviços.
+- Para Consultoria o item é achado por `familia = consultoria_2027 + periodo_meses` (1, 4 ou 6), não pela frequência.
+- Itens desligados: a tela já tem o mecanismo de aluno de teste (`sistema_config.vendas_2027_teste_aluno_ids` + `itemVendavel2027`), que libera itens `ativo=false` só para os alunos dessa lista. Proposta: usar esse mesmo mecanismo.
+  - O chip "Consultoria Online" só aparece se existir item ativo OU se o aluno estiver na lista de teste. Clientes comuns não veem o chip.
+  - O site público não muda: ele lê só `fn_planos_publico_2027`, que filtra família e ativo.
+  - Confirmar na E4a que NICOLAS TESTE está na lista (só leitura). Se não estiver, incluir é uma alteração de dado pequena e separada, que precisa de aprovação.
+  - O servidor (`fn_venda_2027_criar`) continua sendo a trava final. Na E4a vou conferir se ele aceita item inativo para aluno de teste. Se não aceitar, o teste da venda inteira fica para a E6 ou para uma liberação específica.
 
-### Regras de tabela (E3a)
-| Regra | Hoje | Mudança |
-|---|---|---|
-| `planos_atividade_check` (planos) | aceita `treinamento_funcional`, `corrida` | + `consultoria_online` |
-| `contratos_plano_tipo_check` | lista com `start_2027`, `power_2027`, `pro_2027` | + `consultoria_2027` |
-| `contratos_vigencia_tipo_check` | `mensal`, `semestral`, `anual` | + `quadrimestral` (4 meses); 6 meses usa `semestral`, Mensal usa `mensal` |
-| `fn_planos_validar_tipo` | aceita nome do catálogo na mesma atividade | **sem mudança**: "Consultoria Online" + `consultoria_online` já casa com o catálogo novo; o legado continua na atividade `treinamento_funcional` |
+## 2. Formulário da Consultoria
 
-### `fn_venda_2027_gravar` (E3b) — 248 linhas; troca cirúrgica, mesma assinatura
-Hoje: Start = 1 ciclo, Power/Pro = 12 meses/12 parcelas; atividade gravada fixa `treinamento_funcional`; sempre cria crédito de Treino.
-Mudanças (só afetam a família nova):
-- `v_ciclo := v_ehstart OR familia = 'consultoria_2027'` substitui `v_ehstart` nos pontos de **ciclo mensal** (nº de cobranças, fim do ciclo, renovação automática, `vigencia_tipo`, `duracao_meses`, sem taxa). Para Start/Power/Pro `v_ciclo = v_ehstart`.
-- `v_pacote := modalidade = 'pacote'`: forma só `cartao_parcelado`/`pix_vista`; parcelas `1..periodo_meses`; recusa serviços; total = valor; fim = início + `periodo_meses`; `duracao_meses = periodo_meses`; `renovacao_automatica = false`; `vigencia_tipo` 4→`quadrimestral`, 6→`semestral`. As parcelas usam o mesmo laço atual (sobra na última), igual ao cálculo da E2.
-- Atividade do plano e do filtro de "substituir": `c.atividade` no lugar do texto fixo. Start/Power/Pro continuam `treinamento_funcional`; Consultoria vira `consultoria_online`, então **vender Consultoria não encerra o plano presencial** e vice-versa.
-- Créditos: para `consultoria_2027` não cria crédito de Treino nem movimento (hoje criaria um crédito com 0). Avaliações e bota já não geram nada (itens com 0).
-- `plano_tipo` do contrato = `c.familia` (já é assim) → `consultoria_2027`.
+- Some: Frequência. Entra: Duração (Mensal / 4 meses / 6 meses).
+- Forma de pagamento:
+  - Mensal: só recorrência no cartão (fixa, como no Start).
+  - 4 e 6 meses: "Cartão parcelado" (1 até 4 ou 1 até 6 parcelas, com padrão N) ou "Pix à vista". Recorrência não aparece.
+- Serviços:
+  - Mensal: igual ao Start (cobrados à parte).
+  - Pacote: lista desabilitada e marcações limpas, com o aviso "Pacotes da Consultoria não aceitam serviços na mesma venda. Registre os serviços em uma venda separada (Só serviços)."
+- Desconto: o mesmo campo de hoje. No Mensal aparece a opção "só 1ª / todas as mensalidades", igual ao Start. Esta é a única mudança na regra: `desconto_recorrente` passa a valer para Start OU Consultoria Mensal.
+- 1º vencimento e data de início: iguais aos de hoje.
+- Resumo, calculado por `calcularVenda2027` (E2):
+  - Mensal: "R$189,00 por mês (recorrência no cartão)".
+  - Pacote: "Total R$676,00 · 4x de R$169,00 · referência R$169,00/mês". 6 meses: R$894,00 · 6x R$149,00. Pix: "1x de R$…".
+  - Com desconto, mostra a sobra na última parcela (ex.: 3x R$225,33 com a última diferente, se houver).
+  - Linha fixa: "Sem créditos de treino · Sem contrato · Sem multa de cancelamento".
+- Botão Confirmar: desabilitado quando não há item, o cálculo falha ou o item não está liberado. O erro do cálculo local aparece em texto abaixo do resumo. Erros do servidor seguem no aviso que já existe, com o texto em português que o servidor envia.
 
-### `fn_venda_2027_criar` (E3b)
-Hoje aplica desconto: mensal abate a 1ª cobrança; anual reparte nas parcelas (sobra na última); só Start grava `desconto_recorrente`.
-Mudança: uma linha — `desconto_recorrente` vale para `start_2027` **ou** `consultoria_2027` (Mensal). Pacote cai no ramo "anual" já existente, que usa `contratos.parcelas` (N) e trava desconto ≥ valor. Nada muda para Power/Pro/Start.
+## 3. Depois da venda
 
-### Mensal recorrente (E3c)
-O Mensal manual segue o mesmo caminho do Start de balcão:
-- `fn_mensalidade_manual_gerar` (linha `IF k.plano_tipo = 'start_2027'`) e `fn_mensalidade_manual_proximo` (`IS DISTINCT FROM 'start_2027'`): passam a aceitar `IN ('start_2027','consultoria_2027')`.
-- `fn_renovar_start_2027` (filtro `familia = 'start_2027'` na linha do catálogo): passa a aceitar as duas famílias. As checagens de proposta do site (linhas 21/23) ficam como estão — Consultoria nunca tem proposta.
-- Função de borda `renovar-planos-mensais`, **só no bloco 2027** (linha 282): `.eq("planos_catalogo.familia","start_2027")` vira `.in(..., ["start_2027","consultoria_2027"])`. Bloco legado intocado. Republicar.
-- `fn_recorrencia_2027_inadimplente_aviso`: só o rótulo — `WHEN 'consultoria_2027' THEN 'Consultoria Online'` (hoje cairia no texto técnico).
-- `planos-recorrencia-diario` e `fn_recorrencia_2027_devidas/_reservar/_resultado`: **sem mudança** (não olham família; cobram qualquer mensalidade válida com `meio='cartao'`).
-- `fn_mensalidade_2027_validar`: **sem mudança** (confere contrato/token, não família).
-- `fn_creditos_mensais_2027`: **sem mudança** (só Start e bota do Pro; Consultoria fica fora por construção). Confirmado por ensaio.
+- Em `Venda2027Steps`, quando a família for `consultoria_2027`, não chamar `gerarDocumentoContrato`. Aviso: "Venda registrada (plano sem contrato)". Não mostrar o aviso "Contrato 2027 ainda desligado".
+- O `VendaDialog` legado não é usado pela Consultoria e não muda.
+- Cobranças: as mesmas que o servidor já cria hoje (E3b).
+  - Cartão parcelado / recorrência: cobranças pendentes, pagas pelo fluxo atual (link do cartão / baixa).
+  - Pix à vista: uma cobrança de R$676/R$894 com desconto, gerada pelo mesmo caminho do Pix das vendas 2027 de hoje. Na E4a vou só conferir esse caminho, sem alterar.
+- Perfil do aluno:
+  - Plano/Serviços: "Consultoria Online · Mensal / 4 meses / 6 meses", sem créditos.
+  - Pagamentos: sem mudança.
+  - Contrato: o registro financeiro aparece com o selo "Sem documento de contrato", em vez de pendente/assinatura.
 
-### Comissão (E3d)
-- `fn_carteira_ativos_por_profissional` hoje conta qualquer aluno com plano ativo (fora agregadora/VIP) → Consultoria **entraria** na carteira ativa. Mudança: excluir planos com `atividade = 'consultoria_online'` (para quem só tem Consultoria). Start/Power/Pro iguais.
-- Comissão de avaliação: depende de avaliação com mobilidade + força; não é afetada.
+## 4. Telas que traduzem vigência e tipo
 
-### Funções que NÃO mudam (citam famílias, mas só servem o site/propostas)
-`fn_planos_publico_2027`, `fn_proposta_plano_2027_criar`, `fn_checkout_2027_calcular/_template/_email_dados`, `fn_consultas_2027_termo`, `fn_golive_2027_ativar/_snapshot`, `fn_mensalidade_2027_espelho`, `fn_mensalidade_2027_fim_contrato`, `fn_recorrencia_2027_proximo_ciclo`, `fn_recorrencia_2027_cronograma`, `fn_recorrencia_2027_cancelar`. Todas filtram por proposta do site, que a Consultoria nunca tem.
+| Local | Hoje com os valores novos | Correção mínima | Risco Start/Power/Pro |
+|---|---|---|---|
+| `types/financeiro.ts` PlanoTipo/PLANO_LABELS | `consultoria_2027` sem rótulo (mostra o código) | adicionar tipo + rótulo "Consultoria Online" | nenhum (só adiciona) |
+| `types/contratoTemplates.ts` PLANOS_ORDEM | ausente | NÃO adicionar (sem modelo de contrato) | nenhum |
+| `ContratoFinanceiro` selo de vigência | quadrimestral vira "Mensal" | adicionar "4 meses"; rótulo do plano via LABEL_PLANO | nenhum |
+| `CardContrato` | quadrimestral/semestral viram "Mensal"; a frequência sai vazia | mapa de vigência único (Mensal/4 meses/Semestral/Anual); esconder a frequência para Consultoria | baixo (o anual não muda) |
+| `RescisaoDialog` | tudo que não é anual vira "Mensal"; o tipo vem de `fn_calcular_rescisao` (não conferido para Consultoria) | rótulo pelo mesmo mapa; para Consultoria forçar "Sem multa de cancelamento" e esconder o ajuste de multa | médio. Conferir na E4a o retorno da função; não alterar a função na E4 |
+| `contratoValores.duracaoRealContrato` | usa as datas primeiro (o pacote acerta); sem datas, quadrimestral dá 1 | `quadrimestral → 4` | nenhum |
+| `AlterarTipoCobrancaDialog` | quadrimestral conta como 1 parcela | bloquear para `consultoria_2027` com o aviso "Não disponível para Consultoria Online" | nenhum |
+| `contratos-calc.ts` (legado) | tipo só mensal/semestral/anual | sem uso pela Consultoria. Só ampliar o tipo se o TS exigir | nenhum |
+| `InadimplentesWidget`, relatórios que usam PLANO_LABELS | mostram o código | resolvido pelo rótulo | nenhum |
 
-## 2. Venda sem contrato
-- `contratos` (registro financeiro) é criado normalmente, com `plano_tipo = consultoria_2027`, vigência e cobranças. Não é contrato jurídico.
-- Nenhum documento: o servidor não lê `contrato_templates`; o documento é gerado pela tela depois. Na E4 a tela pula essa geração para a família nova e mostra "plano sem contrato".
-- Ativação do aluno: igual às outras vendas (plano ativo + cobranças); não depende de documento.
-- Perfil (E4): contrato aparece como "Sem documento de contrato".
+- Valor mensal de referência (R$169/R$149) aparece só no resumo da venda e no ContratoFinanceiro dos pacotes, nunca como cobrança.
+- Antes de editar, a E4a faz uma varredura (`rg vigencia_tipo|plano_tipo|PLANO_LABELS`) e acrescenta à tabela qualquer outro local encontrado.
 
-## 3. Vigência e parcelas
-- 4 meses: plano e contrato de início até início + 4 meses; 1 a 4 cobranças mensais a partir do 1º vencimento (Pix = 1).
-- 6 meses: idem com 6.
-- Mensal: 1 cobrança de R$ 189,00 (− desconto), ciclo de 1 mês, `renovacao_automatica=true`, `proxima_renovacao` = fim do ciclo; depois do pagamento, `fn_mensalidade_manual_gerar` cria a próxima mensalidade em `planos_2027_mensalidades` e a rotina diária cobra no cartão, com as mesmas retentativas.
+## 5. Aviso de inadimplência ("Consultoria Online livre")
 
-## 4. Conferências
-- Créditos: nenhum crédito de treino → não agenda nem ocupa vaga.
-- Clube: `fn_clube_nivel_por_plano` usa `nivel_clube` do catálogo → Bronze. Pontos de presença vêm de treino realizado → zero. Com plano presencial junto, `fn_plano_principal_ativo` prioriza o presencial (Consultoria fica como "outro").
-- Resgates do Clube (`fn_clube_resgatar`): família nova não está em `planos_elegiveis` e cai no custo padrão — sem mudança (ver pergunta 2).
-- Agregadoras: não envolvidas.
-- Previsibilidade/LTV: leem `cobrancas` → contam os valores reais; vendas de teste (`teste_2027`) já ficam de fora.
+- A palavra "livre" vem da frequência do item, que está como "livre". Proposta: nada no banco. Na tela que mostra o aviso, se o texto começar com "Consultoria Online livre", trocar por "Consultoria Online".
+- Mais limpo, mas fica para outra etapa com aprovação: ajustar `fn_recorrencia_2027_inadimplente_aviso` para omitir a frequência na Consultoria (mudança no banco, fora da E4).
+- Recomendação: o ajuste na tela agora e a correção no banco junto com a E3d.
 
-## 5. Sub-etapas, testes e volta
-1. **E3a** regras de tabela. Ensaio: inserir plano/contrato de Consultoria no NICOLAS TESTE e desfazer.
-2. **E3b** `fn_venda_2027_gravar` + `fn_venda_2027_criar`.
-3. **E3c** mensal (3 funções + rótulo + bloco 2027 de `renovar-planos-mensais`).
-4. **E3d** carteira ativa.
+## 6. Testes
 
-Ensaios (sempre com ROLLBACK, NICOLAS TESTE, nada gravado):
-- Consultoria: Mensal sem/com desconto R$ 20 (1ª cobrança 169,00); 4 meses 4x (4×169,00); 6 meses 6x com R$ 10 (5×147,33 + 147,35); 4 meses 3x com R$ 0,01 (3×225,33); Pix à vista (1×894,00); recusas: 5x/7x, desconto ≥ valor, serviços no pacote. Conferir venda, plano, contrato, cobranças e ausência de créditos; Mensal: renovação e geração da 2ª mensalidade.
-- Prova Start/Power/Pro: **antes** de cada migração, rodar vendas de ensaio (Start 1x com desconto recorrente, Power 3x anual 12x com serviços, Pro livre recorrência) e guardar uma impressão digital (md5 das linhas criadas sem ids/datas); **depois**, repetir e comparar — tem que ser igual. Mais: contagens e md5 do catálogo e das funções não tocadas; `renovar-planos-mensais` em ensaio com o Start.
-- Testes do sistema (1.034) rodados ao fim.
+- Unitários:
+  - Seleção do item por duração.
+  - Formas permitidas por duração.
+  - Serviços bloqueados no pacote.
+  - `desconto_recorrente` só para Start / Consultoria Mensal.
+  - Pular o documento para `consultoria_2027`.
+  - Mapa de vigência (quadrimestral → "4 meses" / 4 meses).
+- Prova de Start/Power/Pro iguais: os testes atuais de `vendas2027`, `consultoria2027` e da seção continuam passando. Teste novo: para Start/Power/Pro, o objeto enviado ao `fn_venda_2027_criar` fica idêntico ao de hoje (snapshot do payload por caso).
+- Roteiro manual no NICOLAS TESTE, sem pagamento real (só se o servidor aceitar a venda de teste):
+  - Mensal sem desconto e com R$20.
+  - 4 meses em 4x e em 3x com R$0,01.
+  - 6 meses em 6x com R$10.
+  - 6 meses Pix.
+  - Pacote tentando serviço.
+  - Em cada um: conferir o perfil (plano, selo sem documento, cobranças) e cancelar/estornar só nos dados de teste, com o roteiro de limpeza aprovado antes.
+- /planos intacto: conferir com Playwright que a página e a prévia não listam Consultoria e que a contagem do catálogo público segue 20.
 
-Volta: um script por sub-etapa em `scripts/consultoria-online-e3x.rollback.sql`, com o corpo anterior de cada função (copiado do banco antes de aplicar) e as regras antigas; recusa rodar se já existir venda de Consultoria. Função de borda: republicar a versão anterior.
+## 7. Sub-etapas (cada uma com aprovação própria)
 
-## 6. Riscos
-- `fn_venda_2027_gravar` é grande: a troca é feita sobre o texto atual do banco, com diff mostrado linha a linha antes de aplicar.
-- `quadrimestral` é valor novo de vigência: telas que traduzem esse campo podem mostrar o texto cru (tratado na E4).
-- Aluno com Consultoria + presencial: planos com atividades diferentes não se substituem; renovação do Start não confunde porque compara a mesma atividade.
+- **E4a** — conferências somente leitura: lista de teste, servidor com item inativo, retorno de `fn_calcular_rescisao`, caminho do Pix, varredura de telas. Relatório, sem código.
+- **E4b** — rótulos e mapas (tabela da seção 4, sem a Rescisão) + testes.
+- **E4c** — formulário de venda (seções 1 e 2) + pular o documento (seção 3) + testes.
+- **E4d** — Rescisão sem multa e bloqueio de Alterar tipo de cobrança para Consultoria + ajuste do aviso (seção 5).
+- **E4e** — roteiro manual no NICOLAS TESTE e limpeza dos dados de teste.
 
-## O que NÃO será tocado
-Bloco legado de `renovar-planos-mensais`, `planos-recorrencia-diario`, funções de cobrança do cartão, Pix Automático e liberações, flags, checkout e funções do site, `fn_mensalidade_2027_validar`, modelos de contrato, item legado (R$ 774), telas e app do aluno (E4/E5), dados reais.
+Rollback: as mudanças são só de tela. Basta reverter os arquivos da sub-etapa (histórico do projeto). Nada no banco. Nada publicado até ordem do dono.
+
+## Não será tocado
+
+/planos e o checkout público, edge functions, crons, funções do banco, flags, cartão/Rede, Pix Automático, comissões (E3d), itens do catálogo (seguem `ativo=false`), VendaDialog legado, modelos de contrato, dados reais.
+
+## Riscos
+
+- O servidor pode recusar item inativo mesmo para aluno de teste. Nesse caso o teste de ponta a ponta só acontece na E6.
+- `fn_calcular_rescisao` pode aplicar multa de recorrência ao Mensal. Na E4d a tela mostra "sem multa", mas o cálculo do servidor continuaria o mesmo até ser ajustado em outra etapa.
+- O ajuste do aviso "livre" pela tela depende do texto exato. Por isso o teste usa o texto real.
 
 ## Perguntas (com recomendação)
-1. Vigência de 4 meses: novo valor `quadrimestral` ou gravar `mensal`/outro já existente? **Recomendo `quadrimestral`** (fiel ao prazo, sem afetar os outros).
-2. Aluno só Consultoria pode resgatar recompensas do Clube? **Recomendo: sim, com o custo padrão das recompensas**, sem mudança agora.
-3. Na carteira ativa (comissão), aluno com Consultoria + presencial conta normalmente pelo presencial? **Recomendo: sim**; só quem tem apenas Consultoria fica fora.
-4. Mensal pode ter serviços cobrados à parte, como o Start? **Recomendo: sim**, igual ao Start.
+
+1. Chip visível para toda a equipe com o aviso "em breve", ou só para aluno de teste até a E6? Recomendo: só para aluno de teste.
+2. Pacote no cartão: padrão em N parcelas ou em 1? Recomendo: N (4x / 6x).
+3. Se a rescisão do servidor calcular multa para a Consultoria, corrigir no banco antes da E6? Recomendo: sim, em etapa própria.
+4. "livre" no aviso: só ajustar na tela agora? Recomendo: tela agora, banco junto com a E3d.
