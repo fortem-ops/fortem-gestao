@@ -115,5 +115,6 @@
 - [x] E4b (rótulos/mapas de vigência nas telas, 23/10/2026): "Consultoria Online" e "4 meses"; planos antigos com texto idêntico.
 - [x] E4c (formulário de venda da Consultoria + venda sem contrato, 23/10/2026): chip só para aluno de teste/item liberado, Duração, formas por duração, serviços bloqueados no pacote, resumo, sem documento, selo "Sem documento de contrato".
 - [x] E4d parcial (23/10/2026, sem rescisão): Alterar tipo de cobrança bloqueado para Consultoria; "Consultoria Online livre" exibido como "Consultoria Online" nas notificações (só exibição); campo de encerrar plano da Consultoria com texto próprio e padrão desmarcado.
-- [ ] Tela de rescisão da Consultoria, E4e, E3d, E5, E6 e a correção de rescisão no banco continuam não autorizadas.
+- [x] E5a (23/10/2026, só tela): app esconde Agenda (menu, /portal/agenda → Treinos, botões da Home e de avaliação) só quando fn_aluno_somente_online = true confirmado; carregando/erro = comportamento atual.
+- [ ] Não autorizadas: E5b (trava no servidor, antes da E6, aprovação separada), E5c, tela de rescisão da Consultoria, E4e, E3d, E6 e a correção de rescisão no banco.
 - [ ] Etapa própria no banco ANTES da E6 (decisão do dono): cancelar pacote 4/6 meses = encerra plano e cancela parcelas não pagas, sem devolver o pago e sem multa; Mensal segue sem multa (corrigir fn_calcular_rescisao, que hoje retém 25% e usa base de 12 meses).

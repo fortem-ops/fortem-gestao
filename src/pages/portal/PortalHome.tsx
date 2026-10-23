@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
+import { agendaOculta } from "@/lib/portalAgenda";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { Activity, ArrowRight, Utensils, Footprints, ChevronRight, MessageCircle } from "lucide-react";
@@ -55,7 +56,8 @@ function inicioSemana(d: Date) {
 }
 
 export default function PortalHome() {
-  const { student } = useStudentPortal();
+  const { student, somenteOnline } = useStudentPortal();
+  const semAgenda = agendaOculta(somenteOnline);
   const navigate = useNavigate();
 
   const hora = new Date().getHours();
@@ -338,7 +340,7 @@ export default function PortalHome() {
               ) : (
                 <button className={btnPrimario} onClick={() => navigate("/portal/treinos")}>Ver treino</button>
               )}
-              <button className={btnFilete} onClick={() => navigate("/portal/agenda")}>Remarcar</button>
+              {!semAgenda && <button className={btnFilete} onClick={() => navigate("/portal/agenda")}>Remarcar</button>}
             </div>
             {checkinHoje && (
               <Link to="/portal/treinos" className="flex min-h-[44px] items-center text-xs font-semibold text-[#B1B3B3]">
@@ -351,7 +353,7 @@ export default function PortalHome() {
             <p id="proximo-treino" className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Próximo treino</p>
             <p className="text-xl font-black text-foreground">Você não tem treino agendado</p>
             <div className="flex gap-2">
-              <button className={btnPrimario} onClick={() => navigate("/portal/agenda")}>Agendar treino</button>
+              {!semAgenda && <button className={btnPrimario} onClick={() => navigate("/portal/agenda")}>Agendar treino</button>}
               {treinoAtual && (
                 <button className={btnFilete} onClick={() => navigate("/portal/treinos")}>Ver treino</button>
               )}
@@ -472,12 +474,14 @@ export default function PortalHome() {
                         {s.usado} de {s.total} usados{saldoS <= 0 ? " · esgotado" : ""}
                       </p>
                     </div>
-                    <button
-                      onClick={() => navigate("/portal/agenda")}
-                      className="h-[45px] border border-[#4A4B4B] px-4 text-xs font-bold uppercase tracking-[0.08em] text-foreground"
-                    >
-                      Agendar
-                    </button>
+                    {!semAgenda && (
+                      <button
+                        onClick={() => navigate("/portal/agenda")}
+                        className="h-[45px] border border-[#4A4B4B] px-4 text-xs font-bold uppercase tracking-[0.08em] text-foreground"
+                      >
+                        Agendar
+                      </button>
+                    )}
                   </div>
                 );
               })}

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { cn } from "@/lib/utils";
+import { filtrarNavPortal } from "@/lib/portalAgenda";
 
 const navItems = [
   { to: "/portal/home", label: "Início", icon: House },
@@ -20,7 +21,8 @@ const navItems = [
 
 export function PortalLayout() {
   const { signOut, user } = useAuth();
-  const { student, loading, unlinked } = useStudentPortal();
+  const { student, loading, unlinked, somenteOnline } = useStudentPortal();
+  const itensNav = filtrarNavPortal(navItems, somenteOnline);
   const navigate = useNavigate();
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe } = usePushNotifications();
 
@@ -116,8 +118,8 @@ export function PortalLayout() {
 
       {/* Bottom nav */}
       <nav data-portal="true" className="fixed bottom-0 inset-x-0 border-t border-border bg-background z-40">
-        <div className="max-w-3xl mx-auto grid grid-cols-5">
-          {navItems.map((item) => (
+        <div className={cn("max-w-3xl mx-auto grid", itensNav.length === 4 ? "grid-cols-4" : "grid-cols-5")}>
+          {itensNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

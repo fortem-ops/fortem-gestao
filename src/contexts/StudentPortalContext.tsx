@@ -3,12 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
+import type { SomenteOnline } from "@/lib/portalAgenda";
 
 interface StudentPortalContextType {
   student: Tables<"alunos"> | null;
   loading: boolean;
   unlinked: boolean;
   refetch: () => void;
+  /** true só quando confirmado "só Consultoria Online"; null = carregando/erro. */
+  somenteOnline?: SomenteOnline;
+  somenteOnlineLoading?: boolean;
 }
 
 const StudentPortalContext = createContext<StudentPortalContextType | undefined>(undefined);
@@ -45,14 +49,32 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // E5a: aluno só Consultoria Online? Erro = null (comportamento atual).
+  const alunoId = data?.id;
+  const { data: somenteOnlineData, isLoading: somenteOnlineLoading, isError: somenteOnlineErro } = useQuery({
+    queryKey: ["portal-somente-online", alunoId],
+    enabled: !!alunoId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+    queryFn: async () => {
+      const { data: r, error } = await supabase.rpc("fn_aluno_somente_online", { p_aluno_id: alunoId! });
+      if (error) throw error;
+      return r === true;
+    },
+  });
+  const somenteOnline: SomenteOnline = somenteOnlineErro || somenteOnlineData === undefined ? null : somenteOnlineData;
+
   const value = useMemo<StudentPortalContextType>(
     () => ({
       student: data ?? null,
       loading: authLoading || !linkDone || isLoading,
       unlinked: !!user && linkDone && !isLoading && !data,
       refetch: () => { void refetch(); },
+      somenteOnline,
+      somenteOnlineLoading: !!alunoId && somenteOnlineLoading,
     }),
-    [data, authLoading, linkDone, isLoading, user, refetch],
+    [data, authLoading, linkDone, isLoading, user, refetch, somenteOnline, alunoId, somenteOnlineLoading],
   );
 
   return <StudentPortalContext.Provider value={value}>{children}</StudentPortalContext.Provider>;
