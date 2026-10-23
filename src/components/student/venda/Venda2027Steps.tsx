@@ -91,6 +91,8 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
   const [dataInicio, setDataInicio] = useState(hoje);
   const [primeiroVenc, setPrimeiroVenc] = useState(hoje);
   const [substituir, setSubstituir] = useState(temPlanoAtivo);
+  // Consultoria: padrão desmarcado; o servidor só encerra plano da mesma atividade (consultoria_online).
+  const [substituirConsultoria, setSubstituirConsultoria] = useState(false);
   const [observacoes, setObservacoes] = useState("");
   const [desconto, setDesconto] = useState(0);
   const [descontoRecorrente, setDescontoRecorrente] = useState<"" | "primeiro" | "todos">("");
@@ -210,7 +212,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
       const { data, error } = await db.rpc("fn_venda_2027_criar", {
         p: montarPayloadVenda2027({
           alunoId, catalogoId: item.id, familia, duracao, servicosSel, forma, parcelas,
-          formaServicos, parcelasServicos, dataInicio, primeiroVenc, substituir, observacoes,
+          formaServicos, parcelasServicos, dataInicio, primeiroVenc, substituir: consultoria ? substituirConsultoria : substituir, observacoes,
           idem, desconto, descontoRecorrente,
         }),
       });
@@ -383,8 +385,17 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
 
       {temPlanoAtivo && !soServicos && (
         <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={substituir} onCheckedChange={(v) => setSubstituir(!!v)} />
-          Encerrar o plano atual do aluno
+          {consultoria ? (
+            <>
+              <Checkbox checked={substituirConsultoria} onCheckedChange={(v) => setSubstituirConsultoria(!!v)} />
+              Encerrar o plano de Consultoria atual do aluno
+            </>
+          ) : (
+            <>
+              <Checkbox checked={substituir} onCheckedChange={(v) => setSubstituir(!!v)} />
+              Encerrar o plano atual do aluno
+            </>
+          )}
         </label>
       )}
 
