@@ -26,6 +26,7 @@ BEGIN
       INSERT INTO rede_tokenizacoes(aluno_id, tokenization_id, status, origem, cartao_salvo_id, token_code, token_expiration, cardholder_name, last4)
       VALUES (aluno, 'TESTE-TOK-E3C', 'active', 'link_cadastro', cs, 'TESTE', '12/2030', 'NICOLAS TESTE', '0000') RETURNING id INTO tk;
       UPDATE contratos SET cartao_token_id = cs WHERE id = k;
+      UPDATE vendas SET origem = 'manual' WHERE id = v; -- como no ensaio recorrencia-manual-2027 (aluno de teste nasce 'teste_2027')
       a := fn_manual_primeiro_ciclo_reservar(v, 'e3c-' || (it->>'nome'), 'token');
       pr := (a->>'pagamento_id')::uuid;
       a := fn_manual_primeiro_ciclo_liquidar(v, pr, jsonb_build_object('tid','TEST-C1','nsu','1','return_code','00'));
