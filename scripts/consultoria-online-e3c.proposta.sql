@@ -239,6 +239,7 @@ BEGIN
       || 'WhatsApp ' || coalesce(p.whatsapp, '-') || E'\n\n'
       || CASE WHEN v_teste THEN 'Teste: não cobrar nada.'
               WHEN p.familia = 'start_2027' THEN 'Crédito do ciclo não liberado. Ação: falar com o aluno; pagamento manual retoma a assinatura.'
+              WHEN p.familia = 'consultoria_2027' THEN 'Ação: falar com o aluno e cobrar a mensalidade.'
               ELSE 'Créditos do plano mantidos. Ação: falar com o aluno e cobrar a mensalidade.' END,
     'comercial', 'alta', 'simples', v_criador) RETURNING id INTO v_notif;
   INSERT INTO notificacao_destinatarios(notificacao_id, usuario_id)

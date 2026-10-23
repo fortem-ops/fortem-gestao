@@ -46,7 +46,7 @@ BEGIN
       FOREACH tab IN ARRAY ARRAY['vendas','planos','contratos','cobrancas','ciclos_credito','creditos_aluno','planos_2027_mensalidades','pagamentos_rede'] LOOP
         EXECUTE format($q$SELECT count(*), md5(COALESCE(string_agg(j::text, '|' ORDER BY j::text), '')) FROM (
           SELECT (SELECT jsonb_object_agg(e.key, e.value) FROM jsonb_each(to_jsonb(t)) e
-                  WHERE e.key <> 'id' AND e.key NOT LIKE '%%\_id' AND e.key NOT IN ('idempotency_key','criado_por','vendedor_id','registrado_por')
+                  WHERE e.key <> 'id' AND e.key NOT LIKE '%%\_id' AND e.key NOT IN ('idempotency_key','criado_por','vendedor_id','registrado_por','referencia')
                     AND NOT (jsonb_typeof(e.value) = 'string' AND (e.value #>> '{}') ~ '^\d{4}-\d\d-\d\dT')) j
           FROM public.%I t WHERE t.created_at >= now()
             AND (to_jsonb(t) ? 'aluno_id' AND (to_jsonb(t)->>'aluno_id') = %L
