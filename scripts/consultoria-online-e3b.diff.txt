@@ -1,0 +1,139 @@
+--- fn_venda_2027_gravar.sql	2026-10-23 10:19:31.681252255 +0000
++++ gravar.new.sql	2026-10-23 10:20:44.933651676 +0000
+@@ -22,4 +22,5 @@
+   s record;
+   v_ehstart boolean; v_ehmensal boolean;
++  v_cons boolean; v_ciclo boolean; v_pacote boolean; v_meses int;
+   v_valor_c bigint; v_taxa_c bigint := 0; v_serv_c bigint := 0; v_mensal_c bigint;
+   v_plano_total_c bigint; v_total_c bigint; v_base bigint; v_pbase bigint; v_parc bigint; v_pparc bigint;
+@@ -56,11 +57,21 @@
+   v_ehstart := c.familia = 'start_2027';
+   v_ehmensal := c.modalidade_cobranca = 'recorrencia_mensal';
++  v_cons := c.familia = 'consultoria_2027';
++  v_ciclo := v_ehstart OR (v_cons AND v_ehmensal);
++  v_pacote := c.modalidade_cobranca = 'pacote';
++  IF v_pacote AND NOT v_cons THEN RAISE EXCEPTION 'Pacote só existe na Consultoria Online'; END IF;
++  IF v_cons AND NOT (v_ehmensal OR v_pacote) THEN RAISE EXCEPTION 'Consultoria Online é mensal ou pacote'; END IF;
++  IF v_pacote AND COALESCE(c.periodo_meses, 0) NOT IN (4, 6) THEN RAISE EXCEPTION 'Pacote da Consultoria deve ser de 4 ou 6 meses'; END IF;
++  IF v_pacote AND jsonb_array_length(COALESCE(p->'servicos', '[]'::jsonb)) > 0 THEN
++    RAISE EXCEPTION 'Pacote da Consultoria não aceita serviços na mesma venda; venda os serviços separadamente';
++  END IF;
+ 
+   IF v_ehstart AND NOT v_ehmensal THEN RAISE EXCEPTION 'Start 2027 é só recorrência mensal'; END IF;
+   IF v_ehmensal AND v_forma <> 'recorrencia' THEN RAISE EXCEPTION 'Item mensal só pode ser vendido em recorrência'; END IF;
+   IF NOT v_ehmensal AND v_forma NOT IN ('cartao_parcelado','pix_vista') THEN RAISE EXCEPTION 'Forma de pagamento inválida'; END IF;
++  IF v_pacote AND v_forma = 'cartao_parcelado' AND (v_n < 1 OR v_n > c.periodo_meses) THEN RAISE EXCEPTION 'Parcelas devem ser entre 1 e %', c.periodo_meses; END IF;
+   IF v_forma = 'cartao_parcelado' AND (v_n < 1 OR v_n > 12) THEN RAISE EXCEPTION 'Parcelas devem ser entre 1 e 12'; END IF;
+   IF v_forma = 'pix_vista' THEN v_n := 1; END IF;
+-  IF v_forma = 'recorrencia' THEN v_n := CASE WHEN v_ehstart THEN 1 ELSE 12 END; END IF;
++  IF v_forma = 'recorrencia' THEN v_n := CASE WHEN v_ciclo THEN 1 ELSE 12 END; END IF;
+   IF v_forma_s NOT IN ('cartao_parcelado','pix_vista') THEN RAISE EXCEPTION 'Forma de pagamento dos serviços inválida'; END IF;
+   IF v_forma_s = 'pix_vista' THEN v_n_s := 1; END IF;
+@@ -71,5 +82,5 @@
+ 
+   v_valor_c := round(c.valor * 100);
+-  IF v_ehmensal AND NOT v_ehstart THEN v_taxa_c := round(COALESCE(c.taxa_recorrencia, 0) * 100); END IF;
++  IF v_ehmensal AND NOT v_ciclo THEN v_taxa_c := round(COALESCE(c.taxa_recorrencia, 0) * 100); END IF;
+   IF jsonb_array_length(COALESCE(p->'servicos', '[]'::jsonb)) <> (
+        SELECT count(*) FROM jsonb_array_elements_text(COALESCE(p->'servicos', '[]'::jsonb)) x(id)
+@@ -82,7 +93,8 @@
+   v_embutir := NOT v_ehmensal;
+   v_mensal_c := v_valor_c + v_taxa_c;
+-  v_plano_total_c := CASE WHEN v_ehstart THEN v_mensal_c WHEN v_ehmensal THEN v_mensal_c * 12 ELSE v_valor_c END;
++  v_plano_total_c := CASE WHEN v_ciclo THEN v_mensal_c WHEN v_ehmensal THEN v_mensal_c * 12 ELSE v_valor_c END;
+ 
+-  v_fim_plano := CASE WHEN v_ehstart THEN (v_ini + interval '1 month')::date ELSE (v_ini + interval '12 months')::date END;
++  v_meses := CASE WHEN v_ciclo THEN 1 WHEN v_pacote THEN c.periodo_meses ELSE 12 END;
++  v_fim_plano := CASE WHEN v_ciclo THEN (v_ini + interval '1 month')::date WHEN v_pacote THEN (v_ini + make_interval(months => v_meses))::date ELSE (v_ini + interval '12 months')::date END;
+   v_fim_ciclo := (v_ini + interval '1 month' - interval '1 day')::date;
+   v_valid12 := (v_ini + interval '12 months')::date;
+@@ -97,7 +109,7 @@
+       observacoes = COALESCE(observacoes || ' | ', '') || 'Encerrado: substituído por venda 2027 em ' || CURRENT_DATE
+     WHERE aluno_id = v_aluno AND status IN ('ativo','suspenso')
+-      AND plano_id IN (SELECT id FROM public.planos WHERE aluno_id = v_aluno AND ativo AND atividade = 'treinamento_funcional');
++      AND plano_id IN (SELECT id FROM public.planos WHERE aluno_id = v_aluno AND ativo AND atividade = c.atividade);
+     UPDATE public.planos SET ativo = false
+-    WHERE aluno_id = v_aluno AND ativo AND atividade = 'treinamento_funcional';
++    WHERE aluno_id = v_aluno AND ativo AND atividade = c.atividade;
+   END IF;
+ 
+@@ -114,10 +126,10 @@
+   INSERT INTO public.planos (aluno_id, tipo, data_inicio, duracao_meses, valor, ativo, servicos, atividade,
+     data_fim, catalogo_id, plano_codigo, forma_pagamento_padrao, parcelas_padrao, renovacao_automatica, observacoes)
+-  VALUES (v_aluno, c.nome, v_ini, CASE WHEN v_ehstart THEN 1 ELSE 12 END, v_plano_total_c / 100.0, true, ARRAY[]::text[], 'treinamento_funcional',
+-    v_fim_plano, c.id, c.codigo, v_forma_venda, v_n, v_ehstart,
++  VALUES (v_aluno, c.nome, v_ini, v_meses, v_plano_total_c / 100.0, true, ARRAY[]::text[], c.atividade,
++    v_fim_plano, c.id, c.codigo, v_forma_venda, v_n, v_ciclo,
+     CASE WHEN v_teste THEN 'TESTE 2027' END)
+   RETURNING id INTO v_plano_id;
+   UPDATE public.vendas SET plano_id = v_plano_id WHERE id = v_venda_id;
+-  IF v_ehstart THEN UPDATE public.planos SET proxima_renovacao = v_fim_plano WHERE id = v_plano_id; END IF;
++  IF v_ciclo THEN UPDATE public.planos SET proxima_renovacao = v_fim_plano WHERE id = v_plano_id; END IF;
+ 
+   FOR s IN
+@@ -158,5 +170,5 @@
+     parcelas, status, criado_por, servicos_inclusos, catalogo_id, observacoes)
+   VALUES (v_aluno, v_plano_id, c.familia, v_freq, v_qtd,
+-    CASE WHEN v_ehstart THEN 'mensal' ELSE 'anual' END, v_ini, v_fim_plano, v_forma_contrato,
++    CASE WHEN v_ciclo THEN 'mensal' WHEN v_pacote AND v_meses = 4 THEN 'quadrimestral' WHEN v_pacote AND v_meses = 6 THEN 'semestral' ELSE 'anual' END, v_ini, v_fim_plano, v_forma_contrato,
+     v_plano_total_c / 100.0, v_total_c / 100.0, v_taxa_c / 100.0,
+     v_n, 'ativo', v_uid, jsonb_build_object('servicos_2027', v_serv_vendas), c.id,
+@@ -165,14 +177,14 @@
+ 
+   INSERT INTO public.ciclos_credito (contrato_id, creditos_liberados, data_inicio, data_fim, status)
+-  VALUES (v_contrato_id, v_qtd, v_ini, CASE WHEN v_ehstart THEN v_fim_ciclo ELSE v_fim_plano END, 'ativo');
++  VALUES (v_contrato_id, v_qtd, v_ini, CASE WHEN v_ciclo THEN v_fim_ciclo ELSE v_fim_plano END, 'ativo');
+ 
+   IF p_sem_cobrancas THEN
+     NULL; -- venda do site: cobranças espelho ficam para a fase B
+   ELSIF v_ehmensal THEN
+-    FOR i IN 1..(CASE WHEN v_ehstart THEN 1 ELSE 12 END) LOOP
++    FOR i IN 1..(CASE WHEN v_ciclo THEN 1 ELSE 12 END) LOOP
+       INSERT INTO public.cobrancas (contrato_id, aluno_id, numero_ciclo, valor, data_vencimento, status,
+         forma_pagamento, meio_registro, descricao, composicao)
+       VALUES (v_contrato_id, v_aluno, i, v_mensal_c / 100.0, (v_venc + make_interval(months => i - 1))::date, 'pendente',
+-        v_forma_venda, 'manual_admin', CASE WHEN v_ehstart THEN 'Mensalidade ciclo ' || to_char(v_ini, 'DD/MM/YYYY') ELSE 'Mensalidade ' || i || '/12' END || ' — ' || COALESCE(c.nome_exibicao, c.nome) || ' ' || c.frequencia::text,
++        v_forma_venda, 'manual_admin', CASE WHEN v_ciclo THEN 'Mensalidade ciclo ' || to_char(v_ini, 'DD/MM/YYYY') ELSE 'Mensalidade ' || i || '/12' END || ' — ' || COALESCE(c.nome_exibicao, c.nome) || ' ' || c.frequencia::text,
+         jsonb_build_object('plano', v_mensal_c / 100.0, 'servicos', 0, 'servicos_vendas', '[]'::jsonb));
+     END LOOP;
+@@ -206,5 +218,7 @@
+   END IF;
+ 
+-  IF v_ehstart THEN
++  IF v_cons THEN
++    NULL; -- Consultoria Online: sem crédito de Treino
++  ELSIF v_ehstart THEN
+     INSERT INTO public.creditos_aluno (aluno_id, origem_tipo, origem_id, atividade, quantidade_inicial, ilimitado,
+       data_validade, competencia, reposicao_pct)
+@@ -218,6 +232,8 @@
+     RETURNING id INTO v_cred;
+   END IF;
+-  INSERT INTO public.creditos_movimentos (credito_id, tipo, quantidade, registrado_por, observacao)
+-  VALUES (v_cred, 'compra', v_qtd, v_uid, 'Plano 2027: ' || c.codigo);
++  IF NOT v_cons THEN
++    INSERT INTO public.creditos_movimentos (credito_id, tipo, quantidade, registrado_por, observacao)
++    VALUES (v_cred, 'compra', v_qtd, v_uid, 'Plano 2027: ' || c.codigo);
++  END IF;
+ 
+   k := 0;
+--- fn_venda_2027_criar.sql	2026-10-23 10:19:32.376733612 +0000
++++ criar.new.sql	2026-10-23 10:20:44.933785326 +0000
+@@ -13,3 +13,3 @@
+   r jsonb; c record; v_venda uuid; v_plano uuid; v_contrato uuid;
+-  v_ehstart boolean; v_ehmensal boolean; v_plano_c bigint; v_novo_c bigint; v_serv_c bigint; v_n int;
++  v_ehstart boolean; v_ehmensal boolean; v_ciclo boolean; v_plano_c bigint; v_novo_c bigint; v_serv_c bigint; v_n int;
+   v_base bigint; v_pbase bigint; v_parc bigint; v_pparc bigint; cb record; i int := 0;
+@@ -34,2 +34,3 @@
+   v_ehmensal := c.modalidade_cobranca = 'recorrencia_mensal';
++  v_ciclo := v_ehstart OR (c.familia = 'consultoria_2027' AND v_ehmensal);
+ 
+@@ -41,3 +42,3 @@
+     WHERE id = cb.id;
+-    IF v_ehstart AND v_rec THEN
++    IF v_ciclo AND v_rec THEN
+       UPDATE public.planos SET desconto_recorrente = v_desc_c / 100.0 WHERE id = v_plano;
+@@ -63,3 +64,3 @@
+   UPDATE public.contratos SET valor_cobrado = valor_cobrado - v_desc_c / 100.0 WHERE id = v_contrato;
+-  RETURN r || jsonb_build_object('desconto', v_desc_c / 100.0, 'desconto_recorrente', v_ehstart AND v_rec);
++  RETURN r || jsonb_build_object('desconto', v_desc_c / 100.0, 'desconto_recorrente', v_ciclo AND v_rec);
+ END;
