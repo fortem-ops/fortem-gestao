@@ -113,5 +113,6 @@
 - [x] E4a (conferências só leitura, 23/10/2026): NICOLAS TESTE na lista de teste; servidor libera item inativo só para aluno de teste; rescisão do Mensal sem multa, do pacote com retenção de 25% e base fixa de 12 meses (corrigir no banco antes da E6); Pix à vista = cobrança pendente com baixa manual; varredura de telas feita.
 - Decisões do dono para E4: chip Consultoria só para aluno de teste até a E6; pacote no cartão com padrão N parcelas; "livre" do aviso: ajuste na tela agora, banco junto com a E3d.
 - [x] E4b (rótulos/mapas de vigência nas telas, 23/10/2026): "Consultoria Online" e "4 meses"; planos antigos com texto idêntico.
-- [ ] E4c–E4e, E3d, E5–E6 não autorizadas.
+- [x] E4c (formulário de venda da Consultoria + venda sem contrato, 23/10/2026): chip só para aluno de teste/item liberado, Duração, formas por duração, serviços bloqueados no pacote, resumo, sem documento, selo "Sem documento de contrato".
+- [ ] E4d, E4e, E3d, E5, E6 não autorizadas.
 - [ ] Etapa própria no banco ANTES da E6 (decisão do dono): cancelar pacote 4/6 meses = encerra plano e cancela parcelas não pagas, sem devolver o pago e sem multa; Mensal segue sem multa (corrigir fn_calcular_rescisao, que hoje retém 25% e usa base de 12 meses).
