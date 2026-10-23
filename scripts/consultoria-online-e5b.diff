@@ -1,0 +1,44 @@
+--- fn_agendar_treino_uuid_date__.sql	2026-10-23 12:17:26.933217187 +0000
++++ t_new.sql	2026-10-23 12:18:09.345592318 +0000
+@@ -16,6 +16,11 @@
+     RETURN jsonb_build_object('ok', false, 'erro', 'nao_autenticado');
+   END IF;
+ 
++  -- E5b: aluno só com Consultoria Online não agenda pelo app (equipe usa fn_agendar_servico_equipe)
++  IF public.fn_aluno_somente_online(_aluno_id) THEN
++    RETURN jsonb_build_object('ok', false, 'erro', 'somente_online');
++  END IF;
++
+   SELECT * INTO _slot FROM treino_slots WHERE id = p_slot_id AND ativo = true;
+   IF NOT FOUND THEN
+     RETURN jsonb_build_object('ok', false, 'erro', 'slot_invalido');
+@@ -112,5 +117,4 @@
+     'creditos_restantes', (_ciclo.creditos_liberados - _ciclo.creditos_usados - 1)
+   );
+ END;
+-$function$
+-
++$function$
+\ No newline at end of file
+--- fn_agendar_servico_uuid_date__.sql	2026-10-23 12:17:27.630329275 +0000
++++ s_new.sql	2026-10-23 12:18:09.345665548 +0000
+@@ -23,6 +23,11 @@
+     RETURN jsonb_build_object('ok', false, 'erro', 'aluno_nao_encontrado');
+   END IF;
+ 
++  -- E5b: aluno só com Consultoria Online não agenda pelo app (equipe usa fn_agendar_servico_equipe)
++  IF public.fn_aluno_somente_online(_aluno_id) THEN
++    RETURN jsonb_build_object('ok', false, 'erro', 'somente_online');
++  END IF;
++
+   SELECT * INTO _tpl
+   FROM public.agenda_servicos
+   WHERE id = p_agenda_servico_id AND aluno_id IS NULL;
+@@ -134,5 +139,4 @@
+   END IF;
+   RETURN jsonb_build_object('ok', false, 'erro', 'erro_interno', 'detalhe', SQLERRM);
+ END;
+-$function$
+-
++$function$
+\ No newline at end of file
