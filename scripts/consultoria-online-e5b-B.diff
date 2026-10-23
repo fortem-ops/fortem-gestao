@@ -1,0 +1,7 @@
+- aluno_own_treino_agendamentos  FOR ALL    USING (A) WITH CHECK (A)
++ aluno_own_treino_agendamentos_select FOR SELECT USING (A)
++ aluno_own_treino_agendamentos_insert FOR INSERT WITH CHECK (A AND NOT fn_aluno_somente_online(aluno_id))
++ aluno_own_treino_agendamentos_update FOR UPDATE USING (A) WITH CHECK (A)
++ aluno_own_treino_agendamentos_delete FOR DELETE USING (A)
+  staff_all_treino_agendamentos  FOR ALL    (sem mudança)
+  onde A = (aluno_id = fn_current_aluno_id()) AND (auth.uid() IS NOT NULL)
