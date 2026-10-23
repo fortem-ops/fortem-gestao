@@ -118,5 +118,7 @@
 - [x] E5a (23/10/2026, só tela): app esconde Agenda (menu, /portal/agenda → Treinos, botões da Home e de avaliação) só quando fn_aluno_somente_online = true confirmado; carregando/erro = comportamento atual.
 - [x] E5b-prep (23/10/2026, nada aplicado): scripts/consultoria-online-e5b.{antes,proposta,proposta-corpo,rollback,ensaio}.sql e .diff. Proposta A = recusa 'somente_online' em fn_agendar_treino e fn_agendar_servico(uuid,date). Propostas separadas: B (INSERT direto do aluno em treino_agendamentos via RLS) e C (fn_agendar_servico de 5 argumentos sem checagem de quem chama, executável por anon).
 - [ ] E5c (só descrita): app traduz erro 'somente_online' em mensagem "Seu plano é Consultoria Online; agendamentos são feitos pela equipe" e esconde a ação; sem código ainda.
-- [ ] Não autorizadas: E5b aplicar (e ensaio), propostas B e C, E5c, tela de rescisão da Consultoria, E4e, E3d, E6 e a correção de rescisão no banco.
+- [x] E5b-A aplicada (migração 0199, 23/10/2026): fn_agendar_treino e fn_agendar_servico(uuid,date) recusam 'somente_online'; ensaio em scripts/consultoria-online-e5b.ensaio-resultado.txt; volta em scripts/consultoria-online-e5b.rollback.sql.
+- [x] E5b-B e E5b-C preparadas, não aplicadas: scripts/consultoria-online-e5b-B.* e -C.* (antes/proposta/rollback/diff/ensaio).
+- [ ] Não autorizadas: aplicar B e C (e rodar seus ensaios), E5c, tela de rescisão da Consultoria, E4e, E3d, E6 e a correção de rescisão no banco.
 - [ ] Etapa própria no banco ANTES da E6 (decisão do dono): cancelar pacote 4/6 meses = encerra plano e cancela parcelas não pagas, sem devolver o pago e sem multa; Mensal segue sem multa (corrigir fn_calcular_rescisao, que hoje retém 25% e usa base de 12 meses).
