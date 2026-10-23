@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Megaphone } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -11,6 +12,12 @@ import {
   Contrato, FORMA_PAGAMENTO_LABELS, PLANO_LABELS, FREQUENCIA_LABELS, formatBRL,
   type ServicoUtilizadoDetalhe,
 } from '@/types/financeiro';
+import { rotuloVigenciaNovo } from '@/lib/vigenciaLabels';
+import {
+  ehConsultoria, avisarAdminRescisaoConsultoria, quemEstaLogado, TEXTO_RESCISAO_CONSULTORIA,
+} from '@/lib/rescisaoConsultoria';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Props {
   contrato: Contrato;
@@ -21,13 +28,50 @@ interface Props {
 
 export function DialogRescisao({ contrato, open, onOpenChange, onConfirm }: Props) {
   const [motivo, setMotivo] = useState('');
-  const { data: rescisao, isLoading } = useCalcularRescisao(contrato.id, open);
+  const [avisando, setAvisando] = useState(false);
+  const consultoria = ehConsultoria(contrato.plano_tipo);
+  // E4f: Consultoria NUNCA chama fn_calcular_rescisao.
+  const { data: rescisao, isLoading } = useCalcularRescisao(contrato.id, open && !consultoria);
   const cancelar = useCancelarContrato();
+
+  const { data: alunoNome } = useQuery({
+    queryKey: ['rescisao-aluno-nome', contrato.aluno_id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('alunos').select('nome').eq('id', contrato.aluno_id).maybeSingle();
+      return (data?.nome as string) ?? '';
+    },
+    enabled: open && consultoria && !contrato.alunos?.nome,
+    staleTime: 60_000,
+  });
+
+  const vigenciaLabel = rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? 'Mensal';
 
   const handleConfirmar = async () => {
     await cancelar.mutateAsync({ id: contrato.id, motivo: motivo || undefined });
     onOpenChange(false);
     onConfirm?.();
+  };
+
+  const handleAvisar = async () => {
+    setAvisando(true);
+    try {
+      await avisarAdminRescisaoConsultoria({
+        alunoId: contrato.aluno_id,
+        alunoNome: contrato.alunos?.nome || alunoNome || 'Aluno',
+        vigenciaLabel,
+        valorLabel: formatBRL(contrato.valor_cobrado),
+        formaPagamentoLabel: FORMA_PAGAMENTO_LABELS[contrato.forma_pagamento],
+        motivo,
+        quemPediu: await quemEstaLogado(),
+      });
+      toast.success('Administrador avisado. A rescisão será tratada manualmente.');
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error('Erro ao avisar o administrador: ' + (e?.message ?? String(e)));
+    } finally {
+      setAvisando(false);
+    }
   };
 
   return (
@@ -39,11 +83,41 @@ export function DialogRescisao({ contrato, open, onOpenChange, onConfirm }: Prop
             Solicitação de cancelamento do contrato
           </DialogTitle>
           <DialogDescription>
-            Revise os valores abaixo antes de confirmar. O cancelamento é irreversível.
+            {consultoria
+              ? 'A Consultoria Online não tem rescisão calculada pelo sistema.'
+              : 'Revise os valores abaixo antes de confirmar. O cancelamento é irreversível.'}
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading || !rescisao ? (
+        {consultoria ? (
+          <div className="space-y-4">
+            <section className="rounded-lg border p-4 space-y-1.5 text-sm">
+              <h3 className="font-semibold text-base mb-2">Resumo do contrato</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Info label="Plano" value={PLANO_LABELS[contrato.plano_tipo]} />
+                <Info label="Vigência" value={vigenciaLabel} />
+                <Info label="Valor" value={formatBRL(contrato.valor_cobrado)} />
+                <Info label="Pagamento" value={FORMA_PAGAMENTO_LABELS[contrato.forma_pagamento]} />
+              </div>
+            </section>
+
+            <div className="rounded-md bg-blue-500/10 border border-blue-500/30 p-3 text-sm">
+              <strong>{TEXTO_RESCISAO_CONSULTORIA}.</strong> Nenhuma multa é calculada e
+              nenhum cancelamento é executado pelo sistema — o pedido é comunicado ao
+              administrador, que trata manualmente.
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Motivo do cancelamento (opcional)</label>
+              <Textarea
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Ex.: mudança de cidade, motivos financeiros..."
+                rows={2}
+              />
+            </div>
+          </div>
+        ) : isLoading || !rescisao ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -142,17 +216,24 @@ export function DialogRescisao({ contrato, open, onOpenChange, onConfirm }: Prop
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={cancelar.isPending}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={cancelar.isPending || avisando}>
             Voltar
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirmar}
-            disabled={isLoading || cancelar.isPending}
-          >
-            {cancelar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirmar cancelamento
-          </Button>
+          {consultoria ? (
+            <Button onClick={handleAvisar} disabled={avisando}>
+              {avisando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}
+              Avisar o administrador
+            </Button>
+          ) : (
+            <Button
+              variant="destructive"
+              onClick={handleConfirmar}
+              disabled={isLoading || cancelar.isPending}
+            >
+              {cancelar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar cancelamento
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
