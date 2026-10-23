@@ -1,103 +1,88 @@
--- E5b ENSAIO — NÃO EXECUTADO. Rodar inteiro numa única transação; termina em ROLLBACK.
--- Aluno: NICOLAS TESTE (085acf57-2dbe-464d-9acc-e1b0f5b77032). Impressão digital sem ids/timestamps.
--- Roteiro:
---  F0  impressão digital "antes" (Start/Power/Pro: resultado das RPCs em cenário fixo, sem ids)
---  F1  aplica a proposta (A) dentro da transação
---  C1  só Consultoria Mensal vigente -> fn_agendar_treino e fn_agendar_servico devolvem somente_online;
---      contagem de treino_agendamentos/agenda_servicos/consumo_servicos/creditos_movimentos e saldo de ciclos_credito iguais
---  C2  Consultoria + Start vigentes -> agenda normal (ok=true)
---  C3  sem plano vigente -> mesmo erro de antes (não é somente_online)
---  C4  Start / Power / Pro: resultado das RPCs antes x depois idêntico (impressão digital)
---  C5  equipe (coordenador) agenda serviço para aluno só Consultoria via fn_agendar_servico_equipe -> ok=true
-BEGIN;
-
-CREATE TEMP TABLE _fp(caso text, etapa text, resultado text) ON COMMIT DROP;
-CREATE TEMP TABLE _ctx AS SELECT
-  '085acf57-2dbe-464d-9acc-e1b0f5b77032'::uuid AS aluno,
-  (SELECT user_id FROM public.alunos WHERE id='085acf57-2dbe-464d-9acc-e1b0f5b77032') AS aluno_uid,
-  (SELECT ur.user_id FROM public.user_roles ur WHERE ur.role IN ('admin','coordenador') LIMIT 1) AS staff_uid,
-  (SELECT id FROM public.treino_slots WHERE ativo LIMIT 1) AS slot,
-  (SELECT id FROM public.agenda_servicos WHERE aluno_id IS NULL AND visivel_portal LIMIT 1) AS tpl;
-
--- Datas: próxima ocorrência do dia da semana do slot / do modelo (>= amanhã)
-CREATE TEMP TABLE _datas AS SELECT
-  (SELECT d::date FROM generate_series(current_date+1, current_date+7, '1 day') d, _ctx
-     WHERE extract(dow FROM d)::int = (SELECT dia_semana FROM public.treino_slots WHERE id=_ctx.slot) LIMIT 1) AS d_treino,
-  (current_date + 8) AS d_servico;  -- ajustar ao dia válido do modelo antes de rodar
-
-CREATE OR REPLACE FUNCTION pg_temp.contagem() RETURNS text LANGUAGE sql AS $$
-  SELECT concat_ws('|',
-    (SELECT count(*) FROM public.treino_agendamentos WHERE aluno_id=(SELECT aluno FROM _ctx)),
-    (SELECT count(*) FROM public.agenda_servicos     WHERE aluno_id=(SELECT aluno FROM _ctx)),
-    (SELECT count(*) FROM public.consumo_servicos    WHERE aluno_id=(SELECT aluno FROM _ctx)),
-    (SELECT count(*) FROM public.creditos_movimentos m JOIN public.creditos_aluno c ON c.id=m.credito_id WHERE c.aluno_id=(SELECT aluno FROM _ctx)),
-    (SELECT coalesce(sum(creditos_usados),0) FROM public.ciclos_credito WHERE aluno_id=(SELECT aluno FROM _ctx)));
-$$;
-
-CREATE OR REPLACE FUNCTION pg_temp.como(uid uuid) RETURNS void LANGUAGE sql AS $$
-  SELECT set_config('request.jwt.claims', json_build_object('sub',uid,'role','authenticated')::text, true),
-         set_config('role','authenticated', true);
-$$;
-CREATE OR REPLACE FUNCTION pg_temp.limpo(j jsonb) RETURNS text LANGUAGE sql AS $$
-  SELECT (j - 'id' - 'agendamento_id')::text;  -- sem ids
-$$;
-
--- Cenário de plano: desativa os planos vigentes do teste (desfeito no ROLLBACK) e cria o plano do caso
-CREATE OR REPLACE FUNCTION pg_temp.cenario(familias text[]) RETURNS void LANGUAGE plpgsql AS $$
-DECLARE f text;
+-- E5b-A ENSAIO (transação desfeita: termina sempre em RAISE EXCEPTION; nada fica gravado)
+-- Fases antes/depois; cada cenário roda num sub-bloco desfeito. Impressão digital sem ids/timestamps/referências.
+DO $ens$
+DECLARE
+  aluno constant uuid := '085acf57-2dbe-464d-9acc-e1b0f5b77032';
+  staff constant uuid := '66aa47d0-dc40-493d-8370-7d80eb54b8d6';
+  fake_uid uuid;  -- login real de aluno (sem papel de equipe), emprestado só dentro da transação
+  slot constant uuid := 'ce3a980f-9b45-4da6-bb41-527991f063a9';   -- treino, segunda 06:00
+  tpl  constant uuid := '3569cf5c-5308-475d-bbac-e46d26c10c05';   -- Reabilitação fixo, segunda 16:30
+  dia  constant date := '2026-10-26';
+  cats jsonb := jsonb_build_object('start','c7292e78-e758-4088-a073-059e15f2910d','power','42e1e025-906e-472f-8f88-d45a18fc8bd8',
+                                   'pro','559ce8ff-43fa-4768-bfca-0ad6e376bc6d','consultoria','c958faf4-f3ba-4b8f-960a-019b4c31aa38');
+  cens text[] := ARRAY['start','power','pro','sem_plano','consultoria','consultoria+start','equipe_consultoria'];
+  fase text; cen text; f text; res text; r1 jsonb; r2 jsonb; k uuid; antes text; depois text;
+  out jsonb := '{}'; meta_a text; meta_d text;
+  g constant text := E'\n  -- E5b: aluno só com Consultoria Online não agenda pelo app (equipe usa fn_agendar_servico_equipe)\n  IF public.fn_aluno_somente_online(_aluno_id) THEN\n    RETURN jsonb_build_object(''ok'', false, ''erro'', ''somente_online'');\n  END IF;\n';
+  bt constant text := E'  IF _aluno_id IS NULL THEN\n    RETURN jsonb_build_object(''ok'', false, ''erro'', ''nao_autenticado'');\n  END IF;\n';
+  bs constant text := E'  IF _aluno_id IS NULL THEN\n    RETURN jsonb_build_object(''ok'', false, ''erro'', ''aluno_nao_encontrado'');\n  END IF;\n';
 BEGIN
-  RESET role;
-  UPDATE public.planos SET ativo=false WHERE aluno_id=(SELECT aluno FROM _ctx) AND ativo;
-  DELETE FROM public.treino_agendamentos WHERE aluno_id=(SELECT aluno FROM _ctx) AND data >= current_date;
-  FOREACH f IN ARRAY familias LOOP
-    INSERT INTO public.planos (aluno_id, catalogo_id, nome, atividade, ativo, data_inicio, data_fim)
-    SELECT (SELECT aluno FROM _ctx), c.id, c.nome, c.atividade, true, current_date, current_date + 30
-    FROM public.planos_catalogo c WHERE c.familia=f ORDER BY c.periodo_meses NULLS LAST LIMIT 1;
+  SELECT u.id INTO fake_uid FROM auth.users u
+   WHERE NOT EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role <> 'aluno')
+     AND NOT EXISTS (SELECT 1 FROM profiles pr WHERE pr.user_id=u.id AND pr.ativo=false)
+   ORDER BY (SELECT count(*) FROM alunos a WHERE a.user_id=u.id), u.created_at LIMIT 1;
+  SELECT string_agg(p.oid::regprocedure||'|'||pg_get_userbyid(p.proowner)||'|'||p.prosecdef||'|'||p.proconfig::text||'|'||p.proacl::text||'|'||pg_get_function_result(p.oid), ' ; ' ORDER BY 1)
+    INTO meta_a FROM pg_proc p WHERE p.oid IN ('fn_agendar_treino(uuid,date)'::regprocedure,'fn_agendar_servico(uuid,date)'::regprocedure);
+  FOREACH fase IN ARRAY ARRAY['antes','depois'] LOOP
+    IF fase = 'depois' THEN
+      -- mesmo texto de consultoria-online-e5b.proposta.sql (gerado pela mesma inserção)
+      EXECUTE replace(pg_get_functiondef('fn_agendar_treino(uuid,date)'::regprocedure), bt, bt||g);
+      EXECUTE replace(pg_get_functiondef('fn_agendar_servico(uuid,date)'::regprocedure), bs, bs||g);
+    END IF;
+    FOREACH cen IN ARRAY cens LOOP
+      res := NULL;
+      BEGIN
+        UPDATE alunos SET user_id = NULL WHERE user_id = fake_uid;
+        UPDATE alunos SET user_id = fake_uid WHERE id = aluno;
+        UPDATE planos SET ativo = false WHERE aluno_id = aluno AND ativo;
+        UPDATE creditos_aluno SET ativo = false WHERE aluno_id = aluno AND ativo;
+        FOREACH f IN ARRAY (CASE cen WHEN 'sem_plano' THEN ARRAY[]::text[] WHEN 'consultoria+start' THEN ARRAY['consultoria','start']
+                                 WHEN 'equipe_consultoria' THEN ARRAY['consultoria'] ELSE ARRAY[cen] END) LOOP
+          INSERT INTO planos (aluno_id, catalogo_id, tipo, atividade, ativo, data_inicio, data_fim)
+          SELECT aluno, c.id, c.nome, c.atividade, true, current_date, current_date + 30 FROM planos_catalogo c WHERE c.id = (cats->>f)::uuid;
+        END LOOP;
+        -- créditos idênticos em todos os cenários (para a recusa não vir de falta de crédito)
+        UPDATE ciclos_credito cc SET status = 'expirado' FROM contratos c WHERE c.id = cc.contrato_id AND c.aluno_id = aluno AND cc.status = 'ativo';
+        UPDATE creditos_aluno SET ativo = false WHERE aluno_id = aluno AND ativo;
+        INSERT INTO contratos (aluno_id, plano_tipo, vigencia_tipo, data_inicio, data_fim, forma_pagamento, valor_base, valor_cobrado, status)
+        VALUES (aluno, 'outro', 'mensal', current_date, current_date + 30, 'pix', 0, 0, 'ativo') RETURNING id INTO k;
+        DELETE FROM ciclos_credito WHERE contrato_id = k;
+        INSERT INTO ciclos_credito (contrato_id, creditos_liberados, creditos_usados, data_inicio, data_fim, status)
+        VALUES (k, 5, 0, current_date, current_date + 30, 'ativo');
+        INSERT INTO creditos_aluno (aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ativo, data_validade)
+        VALUES (aluno, 'plano', 'Reabilitação', 2, 0, true, current_date + 30);
+        antes := (SELECT concat_ws('/', (SELECT count(*) FROM treino_agendamentos WHERE aluno_id=aluno), (SELECT count(*) FROM agenda_servicos WHERE aluno_id=aluno),
+                  (SELECT count(*) FROM consumo_servicos WHERE aluno_id=aluno), (SELECT sum(creditos_usados) FROM ciclos_credito WHERE contrato_id=k),
+                  (SELECT sum(quantidade_usada) FROM creditos_aluno WHERE aluno_id=aluno AND ativo), (SELECT count(*) FROM agenda_servicos_excecoes WHERE agenda_id=tpl)));
+        IF cen = 'equipe_consultoria' THEN
+          PERFORM set_config('request.jwt.claims', json_build_object('sub',staff,'role','authenticated')::text, true);
+          r1 := NULL;
+          r2 := public.fn_agendar_servico_equipe(p_aluno_id => aluno, p_agenda_servico_id => tpl, p_data => dia);
+        ELSE
+          PERFORM set_config('request.jwt.claims', json_build_object('sub',fake_uid,'role','authenticated')::text, true);
+          r1 := public.fn_agendar_treino(slot, dia);
+          r2 := public.fn_agendar_servico(tpl, dia);
+        END IF;
+        PERFORM set_config('request.jwt.claims', '', true);
+        depois := (SELECT concat_ws('/', (SELECT count(*) FROM treino_agendamentos WHERE aluno_id=aluno), (SELECT count(*) FROM agenda_servicos WHERE aluno_id=aluno),
+                  (SELECT count(*) FROM consumo_servicos WHERE aluno_id=aluno), (SELECT sum(creditos_usados) FROM ciclos_credito WHERE contrato_id=k),
+                  (SELECT sum(quantidade_usada) FROM creditos_aluno WHERE aluno_id=aluno AND ativo), (SELECT count(*) FROM agenda_servicos_excecoes WHERE agenda_id=tpl)));
+        res := concat_ws(' # ', coalesce((r1 - 'agendamento_id' - 'id')::text,'-'), coalesce((r2 - 'agendamento_id' - 'id')::text,'-'), antes||'->'||depois,
+          md5(coalesce((SELECT string_agg(concat_ws(',',slot_id,data,horario_inicio,horario_fim,status,credito_debitado,observacoes),';' ORDER BY slot_id)
+                 FROM treino_agendamentos WHERE aluno_id=aluno AND created_at >= now()),'')
+            || coalesce((SELECT string_agg(concat_ws(',',atividade,local,dia_semana,horario_inicio,horario_fim,tipo,data_especifica,profissional_id,observacoes),';')
+                 FROM agenda_servicos WHERE aluno_id=aluno AND created_at >= now()),'')));
+        RAISE EXCEPTION 'E5B_DESFAZ';
+      EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM <> 'E5B_DESFAZ' THEN res := 'ERRO: '||SQLERRM; END IF;
+      END;
+      out := out || jsonb_build_object(fase||':'||cen, res);
+    END LOOP;
   END LOOP;
-  -- ciclo de crédito presencial com saldo, se houver plano presencial (colunas conforme ciclos_credito)
-END $$;
-
-CREATE OR REPLACE FUNCTION pg_temp.rodar(caso text, etapa text, familias text[]) RETURNS void LANGUAGE plpgsql AS $$
-DECLARE a text; r1 jsonb; r2 jsonb;
-BEGIN
-  PERFORM pg_temp.cenario(familias);
-  a := pg_temp.contagem();
-  PERFORM pg_temp.como((SELECT aluno_uid FROM _ctx));
-  r1 := public.fn_agendar_treino((SELECT slot FROM _ctx), (SELECT d_treino FROM _datas));
-  r2 := public.fn_agendar_servico((SELECT tpl FROM _ctx), (SELECT d_servico FROM _datas));
-  RESET role;
-  INSERT INTO _fp VALUES (caso, etapa, concat_ws(' || ', pg_temp.limpo(r1), pg_temp.limpo(r2),
-    CASE WHEN a = pg_temp.contagem() THEN 'nada_gravado' ELSE 'gravou' END));
-END $$;
-
--- F0: ANTES (funções atuais)
-SELECT pg_temp.rodar('start','antes',ARRAY['start_2027']);
-SELECT pg_temp.rodar('power','antes',ARRAY['power_2027']);
-SELECT pg_temp.rodar('pro','antes',ARRAY['pro_2027']);
-SELECT pg_temp.rodar('sem_plano','antes',ARRAY[]::text[]);
-
--- F1: aplicar aqui o conteúdo entre BEGIN/COMMIT de consultoria-online-e5b.proposta.sql (sem BEGIN/COMMIT)
-\ir consultoria-online-e5b.proposta-corpo.sql
-
--- DEPOIS
-SELECT pg_temp.rodar('start','depois',ARRAY['start_2027']);
-SELECT pg_temp.rodar('power','depois',ARRAY['power_2027']);
-SELECT pg_temp.rodar('pro','depois',ARRAY['pro_2027']);
-SELECT pg_temp.rodar('sem_plano','depois',ARRAY[]::text[]);
-SELECT pg_temp.rodar('consultoria_so','depois',ARRAY['consultoria_2027']);       -- esperado: somente_online x2 + nada_gravado
-SELECT pg_temp.rodar('consultoria_start','depois',ARRAY['consultoria_2027','start_2027']); -- esperado: ok=true
-
--- C5: equipe agenda para aluno só Consultoria
-SELECT pg_temp.cenario(ARRAY['consultoria_2027']);
-SELECT pg_temp.como((SELECT staff_uid FROM _ctx));
-INSERT INTO _fp SELECT 'equipe_consultoria','depois',
-  pg_temp.limpo(public.fn_agendar_servico_equipe((SELECT tpl FROM _ctx),(SELECT aluno FROM _ctx),(SELECT d_servico FROM _datas)));
-RESET role;
-
--- Verificações
-SELECT caso, etapa, resultado FROM _fp ORDER BY caso, etapa;
-SELECT a.caso, a.resultado = d.resultado AS identico
-FROM _fp a JOIN _fp d ON d.caso=a.caso AND a.etapa='antes' AND d.etapa='depois';  -- todos devem ser true
-
-ROLLBACK;
--- Depois do ROLLBACK: conferir contagens do NICOLAS TESTE iguais às de antes do ensaio.
+  SELECT string_agg(p.oid::regprocedure||'|'||pg_get_userbyid(p.proowner)||'|'||p.prosecdef||'|'||p.proconfig::text||'|'||p.proacl::text||'|'||pg_get_function_result(p.oid), ' ; ' ORDER BY 1)
+    INTO meta_d FROM pg_proc p WHERE p.oid IN ('fn_agendar_treino(uuid,date)'::regprocedure,'fn_agendar_servico(uuid,date)'::regprocedure);
+  out := out || jsonb_build_object('meta_identica', meta_a = meta_d, 'meta', meta_d,
+    'md5_treino', (SELECT md5(pg_get_functiondef('fn_agendar_treino(uuid,date)'::regprocedure))), 'md5_servico', (SELECT md5(pg_get_functiondef('fn_agendar_servico(uuid,date)'::regprocedure))),
+    'guard_presente', (SELECT bool_and(prosrc LIKE '%somente_online%') FROM pg_proc WHERE oid IN ('fn_agendar_treino(uuid,date)'::regprocedure,'fn_agendar_servico(uuid,date)'::regprocedure)));
+  RAISE EXCEPTION 'E5B_RESULTADO %', out;
+END $ens$;

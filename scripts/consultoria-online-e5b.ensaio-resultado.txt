@@ -1,0 +1,11 @@
+E5b-A ensaio (23/10/2026, transação desfeita) — resultado (sem ids/timestamps)
+treino # serviço # contagens antes->depois (agend.treino/agenda/consumo/créd.ciclo usados/créd.serviço usados/exceções) # md5 linhas
+antes=depois  start / power / pro / sem_plano / consultoria+start:
+  {"ok":true,"creditos_restantes":4} # {"ok":true} # 0/0/0/0/0/4->1/1/0/1/1/5 # 51e2139cefc41cc1b4a30c2ecfddb279
+antes  consultoria:  igual ao acima (sem trava)
+depois consultoria:  {"ok":false,"erro":"somente_online"} x2 # 0/0/0/0/0/4->0/0/0/0/0/4 # (nada gravado)
+antes=depois  equipe_consultoria (fn_agendar_servico_equipe): {"ok":true} # ->0/1/0/0/1/5 # 1647607ff271eed1574a7b62e143a661
+meta (owner/SECURITY DEFINER/search_path/proacl/retorno) antes = depois: true
+md5 texto ensaiado = md5 proposta: treino 545c028131c4b63f4e2fa372b5c3d629, servico a3e66167f4a02a6384338912a26a8fd1
+NICOLAS TESTE antes/depois do ensaio e depois de aplicar: 0/0/2/1/3/f56f7fcb.../0/b6c306d7.../null (idêntico)
+Aplicado: migração 0199 (DO com a mesma inserção + checagem de md5). Pós: md5 e proacl conferidos.

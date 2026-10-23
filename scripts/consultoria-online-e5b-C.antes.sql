@@ -1,0 +1,4 @@
+-- E5b-C ANTES (2026-10-23): public.fn_agendar_servico(uuid,uuid,timestamptz,uuid,text)
+-- owner postgres | SECURITY DEFINER | search_path=public | md5(def)=273fa1a806d8233e16607d4cdf6fca8f
+-- proacl = {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+-- Definição completa: ver consultoria-online-e5b.antes.sql (seção "Referência (não muda)").
