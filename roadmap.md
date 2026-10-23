@@ -100,3 +100,9 @@
   - Suspensão, multa 2%/juros 1% a.m. e multa 25/20/15%: iguais ao cartão, sem mudança.
   - Checkout exige caixa de consentimento do débito automático (texto revisado pelo advogado no fim; sem prazo extra no contrato para "sem autorização").
   - P2/P4: funções de cobrança do cartão e o gatilho fn_mensalidade_2027_validar (hoje exige token do aluno) devem ignorar meio pix_automatico antes da 1ª linha Pix.
+
+## Consultoria Online (venda interna 2027)
+- [x] Portal: botão "Entrar com Microsoft" removido e login Microsoft desligado.
+- [x] E1 banco aditivo (migração 0195; volta em scripts/consultoria-online-e1.rollback.sql): família consultoria_2027, atividade consultoria_online, modalidade pacote, 3 itens desligados (Mensal 189, 4 meses 676, 6 meses 894; duração/máx. parcelas em periodo_meses), fn_aluno_somente_online. Ensaio desfeito ok.
+- [ ] E2–E6 não autorizadas. Decisões do dono: desconto permitido (Mensal igual ao Start); Mensal = regra do Start (sem taxa/fidelidade, cancelamento do Start); 4/6 meses até 4x/6x ou Pix, sem renovação, plano encerra na data final sem aviso; sem contrato, sem multa, sem comissão; Clube Bronze sem pontos de presença; app esconde só a Agenda; equipe pode agendar avaliação; Pix Automático fora.
+- [ ] Para E3: planos_atividade_check (planos) e contratos_plano_tipo_check não aceitam consultoria; fn_planos_validar_tipo exige nome do catálogo na mesma atividade.

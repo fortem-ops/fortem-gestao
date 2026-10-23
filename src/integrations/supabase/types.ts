@@ -11693,6 +11693,10 @@ export type Database = {
         Returns: Json
       }
       fn_aluno_last_access: { Args: { _aluno_id: string }; Returns: Json }
+      fn_aluno_somente_online: {
+        Args: { p_aluno_id: string }
+        Returns: boolean
+      }
       fn_auditoria_fiscal_agenda_servicos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_contratos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_creditos: { Args: never; Returns: Json }
