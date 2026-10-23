@@ -94,3 +94,24 @@ describe("E5a — /portal/agenda", () => {
     expect(screen.queryByText("TELA AGENDA")).toBeNull();
   });
 });
+
+import PortalAssessments from "@/pages/portal/PortalAssessments";
+vi.mock("@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas", () => ({
+  useAlunoAvaliacoesConsolidadas: () => ({ data: { funcional: { latest: null } }, isLoading: false }),
+}));
+vi.mock("@/components/portal/referenciaResumoPortal", () => ({ useMobilidadeResumoReferencia: () => ({ data: undefined }) }));
+
+describe("E5a — botão de agendar avaliação", () => {
+  const abrir = () => render(<MemoryRouter><PortalAssessments /></MemoryRouter>);
+  it("só Consultoria: escondido, sem aviso", () => {
+    ctx = { ...base, student: { ...base.student, sexo: "M" }, somenteOnline: true };
+    abrir();
+    expect(screen.queryByText(/Agendar avaliação funcional/)).toBeNull();
+    expect(screen.queryByText(/WhatsApp|Fale com a equipe/i)).toBeNull();
+  });
+  it.each([false, null])("presencial/erro (%s): visível como hoje", (v) => {
+    ctx = { ...base, student: { ...base.student, sexo: "M" }, somenteOnline: v };
+    abrir();
+    expect(screen.getByText(/Agendar avaliação funcional/)).toBeInTheDocument();
+  });
+});
