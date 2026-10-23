@@ -1,3 +1,4 @@
+import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
 import { useState, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -95,7 +96,7 @@ export default function Notificar() {
                         <span className={`text-sm line-clamp-1 ${unread ? "font-semibold" : ""}`}>{n.titulo}</span>
                         <PrioridadeBadge prioridade={n.prioridade} />
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{n.descricao}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{descricaoNotificacaoExibicao(n.descricao)}</p>
                       <div className="flex items-center gap-2 mt-1.5">
                         <CategoriaBadge categoria={n.categoria} />
                         <StatusBadge status={n.status} />

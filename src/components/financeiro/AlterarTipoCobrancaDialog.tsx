@@ -55,6 +55,7 @@ export function AlterarTipoCobrancaDialog({ open, onOpenChange, contrato, cobran
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bloqueado = cobrancas.some((c) => ["pago", "estornado", "isento"].includes(c.status) || c.tid);
+  const consultoria = contrato.plano_tipo === "consultoria_2027";
   const total = Number(contrato.valor_base ?? contrato.valor_cobrado ?? 0);
   const n = tipo === "recorrencia"
     ? contrato.vigencia_tipo === "anual" ? 12 : contrato.vigencia_tipo === "semestral" ? 6 : 1
@@ -93,7 +94,9 @@ export function AlterarTipoCobrancaDialog({ open, onOpenChange, contrato, cobran
           <DialogTitle>Alterar tipo de cobrança</DialogTitle>
           <DialogDescription>Substitui as cobranças em aberto deste contrato. Nada é cobrado no cartão.</DialogDescription>
         </DialogHeader>
-        {bloqueado ? (
+        {consultoria ? (
+          <p className="text-sm text-destructive">Não disponível para Consultoria Online</p>
+        ) : bloqueado ? (
           <p className="text-sm text-destructive">Este contrato já tem cobrança paga ou estornada; o tipo de cobrança não pode ser alterado.</p>
         ) : (
           <div className="space-y-4">
@@ -145,7 +148,7 @@ export function AlterarTipoCobrancaDialog({ open, onOpenChange, contrato, cobran
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
-          <Button onClick={salvar} disabled={saving || bloqueado || !primeiro}>
+          <Button onClick={salvar} disabled={saving || bloqueado || consultoria || !primeiro}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Confirmar
           </Button>
         </DialogFooter>

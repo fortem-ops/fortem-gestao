@@ -1,3 +1,4 @@
+import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,7 +175,7 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
           {n.prazo && <span>· Prazo: {format(new Date(n.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>}
         </div>
         <div className="max-h-[35vh] overflow-y-auto pr-1">
-          <p className="text-sm whitespace-pre-wrap pt-1">{n.descricao}</p>
+          <p className="text-sm whitespace-pre-wrap pt-1">{descricaoNotificacaoExibicao(n.descricao)}</p>
         </div>
         {aluno && (
           <div className="text-sm bg-muted/50 rounded p-2">
