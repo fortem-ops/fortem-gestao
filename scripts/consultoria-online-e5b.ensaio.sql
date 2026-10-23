@@ -4,7 +4,7 @@ DO $ens$
 DECLARE
   aluno constant uuid := '085acf57-2dbe-464d-9acc-e1b0f5b77032';
   staff constant uuid := '66aa47d0-dc40-493d-8370-7d80eb54b8d6';
-  fake_uid uuid := gen_random_uuid();
+  fake_uid uuid;  -- login real de aluno (sem papel de equipe), emprestado só dentro da transação
   slot constant uuid := 'ce3a980f-9b45-4da6-bb41-527991f063a9';   -- treino, segunda 06:00
   tpl  constant uuid := '3569cf5c-5308-475d-bbac-e46d26c10c05';   -- Reabilitação fixo, segunda 16:30
   dia  constant date := '2026-10-26';
@@ -17,6 +17,10 @@ DECLARE
   bt constant text := E'  IF _aluno_id IS NULL THEN\n    RETURN jsonb_build_object(''ok'', false, ''erro'', ''nao_autenticado'');\n  END IF;\n';
   bs constant text := E'  IF _aluno_id IS NULL THEN\n    RETURN jsonb_build_object(''ok'', false, ''erro'', ''aluno_nao_encontrado'');\n  END IF;\n';
 BEGIN
+  SELECT u.id INTO fake_uid FROM auth.users u
+   WHERE NOT EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role <> 'aluno')
+     AND NOT EXISTS (SELECT 1 FROM profiles pr WHERE pr.user_id=u.id AND pr.ativo=false)
+   ORDER BY (SELECT count(*) FROM alunos a WHERE a.user_id=u.id), u.created_at LIMIT 1;
   SELECT string_agg(p.oid::regprocedure||'|'||pg_get_userbyid(p.proowner)||'|'||p.prosecdef||'|'||p.proconfig::text||'|'||p.proacl::text||'|'||pg_get_function_result(p.oid), ' ; ' ORDER BY 1)
     INTO meta_a FROM pg_proc p WHERE p.oid IN ('fn_agendar_treino(uuid,date)'::regprocedure,'fn_agendar_servico(uuid,date)'::regprocedure);
   FOREACH fase IN ARRAY ARRAY['antes','depois'] LOOP
@@ -28,6 +32,7 @@ BEGIN
     FOREACH cen IN ARRAY cens LOOP
       res := NULL;
       BEGIN
+        UPDATE alunos SET user_id = NULL WHERE user_id = fake_uid;
         UPDATE alunos SET user_id = fake_uid WHERE id = aluno;
         UPDATE planos SET ativo = false WHERE aluno_id = aluno AND ativo;
         UPDATE creditos_aluno SET ativo = false WHERE aluno_id = aluno AND ativo;
