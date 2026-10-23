@@ -6,6 +6,8 @@ import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { useCalcularRescisao } from "@/hooks/useContratos";
 import { getLimite, getDiasUsados, calcDias, type LicencaTipo } from "@/lib/licencas";
 import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+import { avisarAdminRescisaoConsultoria, TEXTO_RESCISAO_CONSULTORIA } from "@/lib/rescisaoConsultoria";
+import { FORMA_PAGAMENTO_LABELS, formatBRL } from "@/types/financeiro";
 
 import { differenceInDays, format, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
