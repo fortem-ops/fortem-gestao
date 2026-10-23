@@ -5,7 +5,8 @@ import type { Contrato } from "@/types/financeiro";
 import { FORMA_PAGAMENTO_LABELS, formatBRL } from "@/types/financeiro";
 
 // ---- mocks ----------------------------------------------------------------
-const rpcSpy = vi.fn(async (fn: string) => {
+const rpcSpy = vi.fn(async (...args: any[]) => {
+  const fn = args[0] as string;
   if (fn === "fn_calcular_rescisao") {
     return { data: { tipo: "start_sem_multa", descricao: "ok" }, error: null };
   }
@@ -34,7 +35,7 @@ vi.mock("@/integrations/supabase/client", () => {
   };
 });
 
-const createNotificacaoSpy = vi.fn(async () => "notif-id");
+const createNotificacaoSpy = vi.fn(async (..._args: any[]) => "notif-id");
 vi.mock("@/lib/notificar", () => ({
   createNotificacao: (input: any) => createNotificacaoSpy(input),
   expandRecipients: vi.fn(async () => ["admin-1"]),
