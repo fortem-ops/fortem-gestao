@@ -6,6 +6,8 @@ import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { useCalcularRescisao } from "@/hooks/useContratos";
 import { getLimite, getDiasUsados, calcDias, type LicencaTipo } from "@/lib/licencas";
 import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+import { avisarAdminRescisaoConsultoria, TEXTO_RESCISAO_CONSULTORIA } from "@/lib/rescisaoConsultoria";
+import { FORMA_PAGAMENTO_LABELS, formatBRL } from "@/types/financeiro";
 
 import { differenceInDays, format, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -119,9 +121,12 @@ export default function PortalPlano() {
     },
   });
 
+  // E4f: Consultoria Online não tem rescisão calculada nem executada pelo
+  // sistema — o pedido é comunicado ao administrador (tratamento manual).
+  const consultoria = contrato?.plano_tipo === "consultoria_2027";
   const { data: rescisao, isLoading: rescisaoLoading } = useCalcularRescisao(
     contrato?.id ?? "",
-    cancelEtapa === "calculo" || cancelEtapa === "confirmar"
+    (cancelEtapa === "calculo" || cancelEtapa === "confirmar") && !consultoria
   );
 
   if (!student) return null;
@@ -174,14 +179,27 @@ export default function PortalPlano() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      await (supabase as any).rpc("fn_notificar_criar_notificacao", {
-        p_titulo: `Solicitação de cancelamento — ${student!.nome}`,
-        p_descricao: `O aluno ${student!.nome} solicitou o cancelamento do plano ${planoTipo} pelo portal.\n\nMotivo: ${cancelMotivo || "Não informado"}\n\nO plano deve ser analisado pela equipe antes de efetivar o cancelamento.`,
-        p_categoria: "aluno",
-        p_tipo: "solicitacao",
-        p_prioridade: "alta",
-        p_aluno_id: student!.id,
-      });
+      if (consultoria && contrato) {
+        // E4f: aviso ao administrador com os dados do contrato (sem cálculo).
+        await avisarAdminRescisaoConsultoria({
+          alunoId: student!.id,
+          alunoNome: student!.nome,
+          vigenciaLabel: rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? "Mensal",
+          valorLabel: formatBRL(Number(contrato.valor_cobrado ?? 0)),
+          formaPagamentoLabel: FORMA_PAGAMENTO_LABELS[contrato.forma_pagamento as keyof typeof FORMA_PAGAMENTO_LABELS] ?? String(contrato.forma_pagamento),
+          motivo: cancelMotivo,
+          quemPediu: `${student!.nome} (pelo portal do aluno)`,
+        });
+      } else {
+        await (supabase as any).rpc("fn_notificar_criar_notificacao", {
+          p_titulo: `Solicitação de cancelamento — ${student!.nome}`,
+          p_descricao: `O aluno ${student!.nome} solicitou o cancelamento do plano ${planoTipo} pelo portal.\n\nMotivo: ${cancelMotivo || "Não informado"}\n\nO plano deve ser analisado pela equipe antes de efetivar o cancelamento.`,
+          p_categoria: "aluno",
+          p_tipo: "solicitacao",
+          p_prioridade: "alta",
+          p_aluno_id: student!.id,
+        });
+      }
       toast.success("Solicitação enviada! A equipe FORTEM entrará em contato em breve.");
       setCancelEtapa("persuasao");
       setCancelMotivo("");
@@ -366,7 +384,7 @@ export default function PortalPlano() {
                   Prefiro trancar o plano
                 </button>
                 <button
-                  onClick={() => setCancelEtapa("calculo")}
+                  onClick={() => setCancelEtapa(consultoria ? "confirmar" : "calculo")}
                   className="w-full py-3 rounded-xl bg-muted text-muted-foreground font-semibold text-sm"
                 >
                   Quero continuar com o cancelamento
@@ -468,9 +486,23 @@ export default function PortalPlano() {
                     <AlertTriangle className="w-4 h-4" /> Atenção — ação irreversível
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Ao confirmar, uma solicitação de cancelamento será enviada à equipe FORTEM, que entrará em contato para finalizar o processo.
+                    {consultoria
+                      ? `${TEXTO_RESCISAO_CONSULTORIA}: ao confirmar, o pedido é comunicado ao administrador, que trata manualmente. Nenhum valor de multa é calculado.`
+                      : "Ao confirmar, uma solicitação de cancelamento será enviada à equipe FORTEM, que entrará em contato para finalizar o processo."}
                   </p>
                 </div>
+                {consultoria && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Motivo (opcional)</p>
+                    <textarea
+                      value={cancelMotivo}
+                      onChange={e => setCancelMotivo(e.target.value)}
+                      placeholder="Ex.: mudança de cidade, motivos financeiros..."
+                      rows={2}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground resize-none"
+                    />
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-muted-foreground mb-2">
                     Para confirmar, digite <strong className="text-foreground">CANCELAR</strong> abaixo:
@@ -484,7 +516,7 @@ export default function PortalPlano() {
                   />
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setCancelEtapa("calculo")} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold">
+                  <button onClick={() => setCancelEtapa(consultoria ? "persuasao" : "calculo")} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold">
                     Voltar
                   </button>
                   <button

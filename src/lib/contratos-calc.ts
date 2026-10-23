@@ -10,6 +10,8 @@ export type FormaPagamento =
 
 export interface Contrato {
   id: string;
+  aluno_id?: string;
+  alunos?: { id: string; nome: string };
   plano_id?: string | null;
   plano_tipo: PlanoTipo;
 
