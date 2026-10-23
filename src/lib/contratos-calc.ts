@@ -1,4 +1,4 @@
-export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'consultoria_2027' | 'outro';
+export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'outro';
 export type FormaPagamento =
   | 'cartao_recorrencia'
   | 'cartao_parcelado'
@@ -163,7 +163,7 @@ export function calcCreditosPorFrequencia(
   return tabela[frequencia]?.[vigencia] ?? 0;
 }
 
-export const LABEL_PLANO: Record<PlanoTipo, string> = {
+export const LABEL_PLANO: Record<PlanoTipo | 'consultoria_2027', string> = {
   start: 'Start',
   start_plus: 'Start+',
   power: 'Power',
