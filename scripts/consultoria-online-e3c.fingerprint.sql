@@ -30,7 +30,7 @@ BEGIN
       pr := (a->>'pagamento_id')::uuid;
       a := fn_manual_primeiro_ciclo_liquidar(v, pr, jsonb_build_object('tid','TEST-C1','nsu','1','return_code','00'));
       a := fn_mensalidade_manual_gerar(v);
-      out := out || (it->>'nome') || ' gerar=' || a::text - 'contrato_id' || ' ';
+      out := out || (it->>'nome') || ' gerar=' || (a - 'contrato_id')::text || ' ';
       SELECT * INTO m2 FROM planos_2027_mensalidades WHERE venda_origem_id = v AND numero = 2;
       IF m2.id IS NOT NULL THEN
         out := out || 'm2=' || m2.valor_centavos || '@' || m2.vencimento || ' ';
