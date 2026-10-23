@@ -425,6 +425,22 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  // Consultoria Online 2027 é vendida sem documento de contrato.
+  const { data: temConsultoriaSemDoc = false } = useQuery({
+    queryKey: ["contrato-consultoria-aluno", student.id],
+    enabled: !!student.id && contratoDoc === null,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("contratos")
+        .select("id")
+        .eq("aluno_id", student.id)
+        .eq("plano_tipo", "consultoria_2027")
+        .in("status", ["ativo", "suspenso"])
+        .limit(1);
+      return Array.isArray(data) && data.length > 0;
+    },
+  });
+
   async function copiarLinkAceite() {
     if (!contratoDoc?.id) return;
     setCopiandoLinkAceite(true);
@@ -1149,7 +1165,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
               </div>
             </div>
             {!contratoDoc ? (
-              <Badge variant="outline" className="status-info text-xs">Sem contrato</Badge>
+              <Badge variant="outline" className="status-info text-xs">{temConsultoriaSemDoc ? "Sem documento de contrato" : "Sem contrato"}</Badge>
             ) : contratoDoc.aceite ? (
               <div className="space-y-1">
                 <Badge variant="outline" className="status-active text-xs">Assinado</Badge>
