@@ -7,10 +7,10 @@
  */
 export type SomenteOnline = boolean | null;
 
-export function agendaOculta(somenteOnline: SomenteOnline): boolean {
+export function agendaOculta(somenteOnline: SomenteOnline | undefined): boolean {
   return somenteOnline === true;
 }
 
-export function filtrarNavPortal<T extends { to: string }>(itens: T[], somenteOnline: SomenteOnline): T[] {
+export function filtrarNavPortal<T extends { to: string }>(itens: T[], somenteOnline: SomenteOnline | undefined): T[] {
   return agendaOculta(somenteOnline) ? itens.filter((i) => i.to !== "/portal/agenda") : itens;
 }
