@@ -1,0 +1,9 @@
+--- supabase/functions/renovar-planos-mensais/index.ts (atual, linha 282)
++++ proposta (NÃO aplicada)
+@@ bloco "Planos 2027" @@
+       .eq("ativo", true)
+       .eq("renovacao_automatica", true)
+-      .eq("planos_catalogo.familia", "start_2027")
++      .in("planos_catalogo.familia", ["start_2027", "consultoria_2027"])
+       .lte("proxima_renovacao", today);
+# Reverter: voltar a linha para .eq("planos_catalogo.familia", "start_2027") e republicar a função.
