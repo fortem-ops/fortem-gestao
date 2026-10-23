@@ -123,3 +123,9 @@
 - [x] E4f (23/10/2026, só tela + testes): rescisão da Consultoria vira aviso ao admin. DialogRescisao, RescisaoDialog e PortalPlano não chamam fn_calcular_rescisao nem executam cancelamento para consultoria_2027; mostram "Rescisão da Consultoria Online é tratada pelo administrador" + botão "Avisar o administrador", que usa o fluxo de Notificar existente (createNotificacao → fn_notificar_criar_notificacao, liberada para autenticados, destino all_admins/all_coordenadores) com aluno, plano, vigência, valor, forma, motivo e quem pediu. Helper em src/lib/rescisaoConsultoria.ts; testes em src/test/e4fRescisaoConsultoria.test.tsx (6 testes: Consultoria sem cálculo nem execução + aviso com dados certos; Start/Power/Pro inalterados). Sem mudança de banco/edge.
 - [ ] Correção de fn_calcular_rescisao no banco NÃO feita, por decisão do dono: a Consultoria nunca usa essa função (rescisão é manual pelo admin). Risco registrado: se alguém chamar fn_calcular_rescisao para um contrato consultoria_2027 por outro caminho (SQL direto, relatório futuro), a função ainda retém 25% e usa base de 12 meses — valores que NÃO valem para a Consultoria.
 - [ ] Não autorizadas: aplicar B e C (e rodar seus ensaios), E5c, E4e, E3d e E6.
+
+## E6 — Consultoria Online ligada (2026-10-23) — FEITA
+- 3 itens consultoria_2027 (Mensal 189; 4m 676; 6m 894) com ativo=true; legado "Consultoria Online - 6 meses" (774) e demais 68 itens intactos (md5 igual).
+- Venda liberada para alunos reais na equipe (Nova Venda); /planos não mostra Consultoria.
+- Rollback: scripts/consultoria-online-e6.rollback.sql
+- Seguem não autorizadas: E5b-B, E5b-C, E5c, E3d, E4e.
