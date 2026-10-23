@@ -21,7 +21,6 @@ export default function PortalLogin() {
   const [loginFalhou, setLoginFalhou] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const { signIn, user, resetAuthState } = useAuth();
   const navigate = useNavigate();
 
@@ -115,23 +114,6 @@ export default function PortalLogin() {
     setAppleLoading(false);
   }
 
-  async function handleMicrosoftSignIn() {
-    setMicrosoftLoading(true);
-    const result = await lovable.auth.signInWithOAuth("microsoft", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setMicrosoftLoading(false);
-      toast.error("Não foi possível iniciar o login com Microsoft", { description: "Tente novamente ou use e-mail e senha." });
-      return;
-    }
-    if (result.redirected) {
-      // O navegador vai para a Microsoft; a sessão chega pelo retorno.
-      return;
-    }
-    // Sessão definida sem redirect: o useEffect acima navega para o destino.
-    setMicrosoftLoading(false);
-  }
 
   async function handleResetSession() {
     setLoading(true);
@@ -191,20 +173,6 @@ export default function PortalLogin() {
             {appleLoading ? "Abrindo Apple..." : "Entrar com Apple"}
           </button>
 
-          <button
-            type="button"
-            onClick={handleMicrosoftSignIn}
-            disabled={microsoftLoading}
-            className="mb-6 flex min-h-[48px] w-full items-center justify-center gap-3 border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-[#F0F0F0] disabled:opacity-60"
-          >
-            <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5">
-              <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
-              <path fill="#00A4EF" d="M1 12.5h10.5V23H1z" />
-              <path fill="#7FBA00" d="M12.5 1H23v10.5H12.5z" />
-              <path fill="#FFB900" d="M12.5 12.5H23V23H12.5z" />
-            </svg>
-            {microsoftLoading ? "Abrindo Microsoft..." : "Entrar com Microsoft"}
-          </button>
 
           <div className="mb-6 space-y-1">
             <h1 className="text-[28px] font-black uppercase leading-none text-[#F0F0F0]">Entrar</h1>
