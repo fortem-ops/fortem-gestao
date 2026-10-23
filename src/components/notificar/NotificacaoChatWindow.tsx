@@ -1,3 +1,4 @@
+import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -166,7 +167,7 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
           {n && (
             <div className="relative">
               <ScrollArea className="max-h-32 rounded border border-border/50 bg-muted/40">
-                <div className="text-xs p-2 whitespace-pre-wrap">{n.descricao}</div>
+                <div className="text-xs p-2 whitespace-pre-wrap">{descricaoNotificacaoExibicao(n.descricao)}</div>
               </ScrollArea>
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-muted/40 to-transparent rounded-b" aria-hidden="true" />
             </div>
