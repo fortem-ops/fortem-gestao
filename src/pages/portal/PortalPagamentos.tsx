@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 import { usePortalCartoes } from "@/hooks/usePortalCartoes";
 import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
+import { rotuloVigenciaNovo } from "@/lib/vigenciaLabels";
 
 type Cobranca = {
   id: string; numero_ciclo: number | null; valor: number;
@@ -86,7 +87,7 @@ function ContratoBloco({ contrato, onCobrancas }: {
   return (
     <section className="space-y-4 border-t border-border pt-6">
       <h2 className="text-base font-bold uppercase break-words">
-        Contrato {tituloPlano}{contrato.vigencia_tipo && ` · ${contrato.vigencia_tipo}`} · {totalParcelas}x
+        Contrato {tituloPlano}{contrato.vigencia_tipo && ` · ${rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? contrato.vigencia_tipo}`} · {totalParcelas}x
       </h2>
       <div className="space-y-2">
         <div className="flex justify-between gap-4 text-sm">

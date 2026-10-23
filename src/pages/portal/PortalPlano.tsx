@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { rotuloVigenciaNovo } from "@/lib/vigenciaLabels";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -543,7 +544,7 @@ export default function PortalPlano() {
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 uppercase tracking-wide">Ativo</span>
                       {c.vigencia_tipo && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
-                          {c.vigencia_tipo}
+                          {rotuloVigenciaNovo(c.vigencia_tipo, c.plano_tipo) ?? c.vigencia_tipo}
                         </span>
                       )}
                     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ehConsultoria, rotuloVigenciaNovo } from '@/lib/vigenciaLabels';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, CreditCard, Zap, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,7 +55,9 @@ export function CardContrato({ contrato }: { contrato: Contrato }) {
           <div>
             <CardTitle className="text-lg">{PLANO_LABELS[contrato.plano_tipo]}</CardTitle>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {FREQUENCIA_LABELS[contrato.frequencia_semanal]} · {contrato.vigencia_tipo === 'anual' ? 'Anual' : 'Mensal'}
+              {ehConsultoria(contrato.plano_tipo)
+                ? rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? 'Mensal'
+                : <>{FREQUENCIA_LABELS[contrato.frequencia_semanal]} · {rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? (contrato.vigencia_tipo === 'anual' ? 'Anual' : 'Mensal')}</>}
             </p>
           </div>
           <Badge variant="outline" className={STATUS_VARIANT[contrato.status]}>

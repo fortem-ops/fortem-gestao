@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { rotuloVigenciaNovo } from "@/lib/vigenciaLabels";
 import {
   Dialog,
   DialogContent,
@@ -168,7 +169,7 @@ export function RescisaoDialog({
             <Info label="Plano" value={LABEL_PLANO[contrato.plano_tipo]} />
             <Info
               label="Vigência"
-              value={contrato.vigencia_tipo === "anual" ? "Anual (12 meses)" : "Mensal"}
+              value={rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? (contrato.vigencia_tipo === "anual" ? "Anual (12 meses)" : "Mensal")}
             />
             <Info label="Mês atual" value={`${r.mes_atual || 1}º`} />
             <Info label="Meses restantes" value={String(r.meses_restantes)} />

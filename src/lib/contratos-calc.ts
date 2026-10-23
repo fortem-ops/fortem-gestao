@@ -13,7 +13,7 @@ export interface Contrato {
   plano_id?: string | null;
   plano_tipo: PlanoTipo;
 
-  vigencia_tipo: 'mensal' | 'semestral' | 'anual';
+  vigencia_tipo: 'mensal' | 'quadrimestral' | 'semestral' | 'anual';
   forma_pagamento: FormaPagamento;
   data_inicio: string;
   data_fim: string | null;
@@ -163,13 +163,14 @@ export function calcCreditosPorFrequencia(
   return tabela[frequencia]?.[vigencia] ?? 0;
 }
 
-export const LABEL_PLANO: Record<PlanoTipo, string> = {
+export const LABEL_PLANO: Record<PlanoTipo | 'consultoria_2027', string> = {
   start: 'Start',
   start_plus: 'Start+',
   power: 'Power',
   pro: 'Pro',
   max: 'Max',
   corrida: 'Grupo de Corrida',
+  consultoria_2027: 'Consultoria Online',
   outro: 'Outro',
 };
 
