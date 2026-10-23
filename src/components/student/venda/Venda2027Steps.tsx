@@ -315,7 +315,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
         )}
         {forma === "recorrencia" && (
           <p className="text-xs text-muted-foreground">
-            {ehStart
+            {cicloMensal
               ? "Sem fidelidade: 1 mensalidade por ciclo, renovada todo mês até o cancelamento; baixa manual."
               : "12 mensalidades criadas de uma vez; baixa manual a cada pagamento."}
           </p>
