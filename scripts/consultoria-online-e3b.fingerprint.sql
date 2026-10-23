@@ -34,7 +34,7 @@ BEGIN
       || ' creditos=' || COALESCE((SELECT md5(string_agg(j::text, '|' ORDER BY j::text)) FROM (SELECT (SELECT jsonb_object_agg(e.key, e.value) FROM jsonb_each(to_jsonb(t)) e
            WHERE e.key <> 'id' AND e.key NOT LIKE '%\_id' AND e.key NOT LIKE '%\_at') j FROM public.creditos_aluno t WHERE t.origem_id IN (SELECT unnest(ids) UNION SELECT pl)) q), '-')
       || ' movs=' || COALESCE((SELECT md5(string_agg(j::text, '|' ORDER BY j::text)) FROM (SELECT (SELECT jsonb_object_agg(e.key, e.value) FROM jsonb_each(to_jsonb(t)) e
-           WHERE e.key <> 'id' AND e.key NOT LIKE '%\_id' AND e.key NOT LIKE '%\_at' AND e.key <> 'registrado_por') j FROM public.creditos_movimentos t
+           WHERE e.key <> 'id' AND e.key NOT LIKE '%\_id' AND e.key NOT LIKE '%\_at' AND e.key NOT IN ('registrado_por','data')) j FROM public.creditos_movimentos t
            WHERE t.credito_id IN (SELECT id FROM public.creditos_aluno WHERE origem_id IN (SELECT unnest(ids) UNION SELECT pl))) q), '-')
       || ' resp=' || md5((r - 'venda_id' - 'plano_id' - 'contrato_id' - 'servico_venda_ids')::text)
       || E'\n';
