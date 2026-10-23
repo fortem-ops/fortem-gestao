@@ -1,0 +1,14 @@
+# E3c — impressão digital ANTES (2026-10-23, funções atuais). Roteiro: scripts/consultoria-online-e3c.fingerprint.sql (tudo desfeito).
+# Para comparar depois, rodar baseline (funções atuais) e nova versão NA MESMA transação desfeita, como na E3b:
+# algumas datas de pagamento seguem o dia corrente (CURRENT_DATE), então md5 de dias diferentes podem divergir sem erro real.
+start_1x_desc50_rec gerar={"gerado": false, "motivo": "ja_gerado", "idempotente": true} m2=34900@2026-12-01 m2_res=pago m3=34900@2027-01-01 renov=ok 2026-12-01..2026-12-31
+  vendas=2:e13187d1fd545fa3019bc9e2da044cc9
+  planos=2:aa110ba52a36503a23823d9f87ab103d
+  contratos=2:12deb8d08f143cfaca18d6fda691a8f3
+  cobrancas=3:7844224a1201a9aa4fa3ca9f17de55c6
+  ciclos_credito=2:710ecc2ed05bf76ab50e1b7b3d26332e
+  creditos_aluno=1:7bee2e47ae2f5cd0986dc9af5ea7e172
+  planos_2027_mensalidades=2:741979c7717d304aa9b22a33c4b53981
+  pagamentos_rede=2:369e3bd43df2b2bcb1eb757eef2cbab7
+  creditos_movimentos=1:f52f5b7784ff120b26bacd4a337b2979
+# Consultoria Mensal HOJE (comportamento atual, não é alvo de igualdade): gerar={"gerado": true, "quantidade": 0} m2=- renov=não é Start 2027
