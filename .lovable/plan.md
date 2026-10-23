@@ -1,96 +1,91 @@
-# Consultoria Online nos Planos 2027 — plano revisado
+# E3 Consultoria Online — venda no servidor (plano detalhado)
 
-Somente plano. Nada de migração, código, dado ou publicação. Cada etapa tem aprovação separada.
+Somente plano. Cada sub-etapa (E3a–E3d) tem migração e aprovação separadas. Serviços: pacote 4/6 meses recusa serviços (decisão mantida). Mensal segue o Start: hoje o Start aceita serviços **cobrados à parte** (Pix ou até 6x), nunca dentro da mensalidade.
 
-## Decisões do dono (registradas)
-- Venda só interna (Perfil do aluno > Nova Venda > Planos 2027). Não aparece em /planos.
-- Mensal R$ 189,00: recorrência no cartão igual ao Start (renova mês a mês até cancelar, sem fidelidade, sem taxa de R$ 24,90, retentativas D0/D+1/D+3).
-- 4 meses R$ 676,00 (até 4x ou Pix à vista) e 6 meses R$ 894,00 (até 6x ou Pix à vista); sem recorrência, sem renovação automática.
-- Desconto sobre o plano permitido nas três durações.
-- Sem contrato por enquanto; sem multa de cancelamento; sem comissão.
-- App: esconder só a Agenda; Treinos, Clube, Loja e Carteirinha continuam. Equipe pode agendar avaliação pelo painel.
-- Itens nascem desligados (`ativo=false`) até o dono mandar ligar.
-- Pix Automático fora; a família nova só poderá entrar em `planos_pix_automatico_planos` no futuro, sem mudança agora.
+## Regra que garante "Start/Power/Pro idênticos"
+Toda mudança entra como condição nova só verdadeira para `familia = 'consultoria_2027'`. Para as outras famílias, cada expressão alterada devolve exatamente o mesmo valor de hoje (ex.: `c.atividade` vale `treinamento_funcional` em todos os itens Start/Power/Pro, conferido no E1). Prova por ensaio antes/depois (seção Testes).
 
-## O que foi conferido no sistema
-- `fn_venda_2027_gravar` cria a venda, o plano do aluno, o registro financeiro em `contratos` (que guarda vigência e cobranças) e as cobranças. Ele **não** lê `contrato_templates` nem cria documento.
-- O documento do contrato (PDF/aceite em `contratos_documentos`) é gerado **depois**, pela tela (`gerarDocumentoContrato`, a partir do `contrato_id` devolvido). Se não houver modelo, hoje a tela trata como "contrato não gerado" (`contratoOk=false`), sem desfazer a venda.
-- `fn_mensalidade_2027_validar` confere o `contrato_id` da mensalidade (registro financeiro), não o documento.
-- `fn_renovar_start_2027`, `fn_planos_publico_2027`, `fn_proposta_plano_2027_criar`, `fn_venda_2027_criar` e `fn_creditos_mensais_2027` escolhem comportamento pela família (`start_2027` etc.).
-- Item legado "Consultoria Online - 6 meses" (R$ 774,00, sem versão, sem família) existe e segue a lógica antiga por nome.
+## 1. O que muda, função por função
 
-## Como fica a venda "sem contrato" (caminho mais simples e seguro)
-- O registro financeiro em `contratos` **continua sendo criado**, como em toda venda: ele não é um contrato jurídico, é o que liga plano, vigência, cobranças, mensalidades e estorno. Não é contrato falso; sem ele cobranças, recorrência e relatórios quebram.
-- O que **não** acontece para a família nova: nenhum documento, PDF, link de assinatura, aceite ou e-mail de contrato. A tela pula `gerarDocumentoContrato` quando a família é `consultoria_2027` e mostra "Venda registrada (plano sem contrato)", em vez do aviso de falha.
-- No perfil e no app, o contrato aparece como "Sem documento de contrato" (não como "pendente de assinatura"), para não gerar cobrança de assinatura pela equipe.
-- Ativação do aluno: igual às outras vendas (pelo plano e pelas cobranças), sem depender de documento.
-- Para quando houver contrato: criar modelos em `contrato_templates` com `plano_tipo = consultoria_2027` (recorrência e parcelado), retirar o desvio da tela e gerar o documento das vendas já feitas pelo botão de gerar contrato que a equipe já usa.
+### Regras de tabela (E3a)
+| Regra | Hoje | Mudança |
+|---|---|---|
+| `planos_atividade_check` (planos) | aceita `treinamento_funcional`, `corrida` | + `consultoria_online` |
+| `contratos_plano_tipo_check` | lista com `start_2027`, `power_2027`, `pro_2027` | + `consultoria_2027` |
+| `contratos_vigencia_tipo_check` | `mensal`, `semestral`, `anual` | + `quadrimestral` (4 meses); 6 meses usa `semestral`, Mensal usa `mensal` |
+| `fn_planos_validar_tipo` | aceita nome do catálogo na mesma atividade | **sem mudança**: "Consultoria Online" + `consultoria_online` já casa com o catálogo novo; o legado continua na atividade `treinamento_funcional` |
 
-## 1. Catálogo e tela de venda
-- Família nova `consultoria_2027`, atividade `consultoria_online`, nome "Consultoria Online", `versao=2027`, sem créditos, sem fixar horário, sem bota, sem reposição, sem licença.
-- Coluna nova `duracao_meses` no catálogo (nula = comportamento atual). Itens:
-  - Mensal: `recorrencia_mensal`, R$ 189,00, taxa 0, fidelidade 0.
-  - 4 meses: `pacote`, R$ 676,00, `duracao_meses=4`, máx. 4 parcelas.
-  - 6 meses: `pacote`, R$ 894,00, `duracao_meses=6`, máx. 6 parcelas.
-- O nome do novo é sempre "Consultoria Online" com família; o legado não tem família nem versão, então o filtro dos 2027 (`versao` não nula) nunca o mostra e o filtro legado (`versao` nula) nunca mostra o novo.
-- Tela: seletor Frequência some; entra Duração (Mensal / 4 meses / 6 meses). Resumo mostra total, parcelas e "sem contrato".
+### `fn_venda_2027_gravar` (E3b) — 248 linhas; troca cirúrgica, mesma assinatura
+Hoje: Start = 1 ciclo, Power/Pro = 12 meses/12 parcelas; atividade gravada fixa `treinamento_funcional`; sempre cria crédito de Treino.
+Mudanças (só afetam a família nova):
+- `v_ciclo := v_ehstart OR familia = 'consultoria_2027'` substitui `v_ehstart` nos pontos de **ciclo mensal** (nº de cobranças, fim do ciclo, renovação automática, `vigencia_tipo`, `duracao_meses`, sem taxa). Para Start/Power/Pro `v_ciclo = v_ehstart`.
+- `v_pacote := modalidade = 'pacote'`: forma só `cartao_parcelado`/`pix_vista`; parcelas `1..periodo_meses`; recusa serviços; total = valor; fim = início + `periodo_meses`; `duracao_meses = periodo_meses`; `renovacao_automatica = false`; `vigencia_tipo` 4→`quadrimestral`, 6→`semestral`. As parcelas usam o mesmo laço atual (sobra na última), igual ao cálculo da E2.
+- Atividade do plano e do filtro de "substituir": `c.atividade` no lugar do texto fixo. Start/Power/Pro continuam `treinamento_funcional`; Consultoria vira `consultoria_online`, então **vender Consultoria não encerra o plano presencial** e vice-versa.
+- Créditos: para `consultoria_2027` não cria crédito de Treino nem movimento (hoje criaria um crédito com 0). Avaliações e bota já não geram nada (itens com 0).
+- `plano_tipo` do contrato = `c.familia` (já é assim) → `consultoria_2027`.
 
-## 2. Cálculo (centavos, com e sem desconto)
-- `calcularVenda2027` ganha o caso "pacote de N meses": total = valor − desconto, dividido em até N parcelas, sobra na última. Mensal da Consultoria usa o caminho do Start (1 cobrança por ciclo, sem taxa).
-- Desconto: não pode ser negativo nem ≥ valor (já é assim hoje para Start/Power/Pro); validação repetida no servidor em `fn_venda_2027_criar`.
-- Testes novos (exemplos):
-  - 4 meses 4x sem desconto: 4 × 169,00 = 676,00.
-  - 6 meses 6x sem desconto: 6 × 149,00 = 894,00.
-  - 6 meses com desconto R$ 10,00 em 6x: 884,00 → 5 × 147,33 + 147,35.
-  - 4 meses com desconto R$ 0,01 em 3x: 675,99 → 225,33 + 225,33 + 225,33.
-  - 5x no pacote de 4 meses → recusado; 7x no de 6 → recusado.
-  - Desconto = valor ou maior → recusado; negativo → recusado.
-  - Mensal R$ 189,00 com desconto R$ 20,00 → 1ª cobrança 169,00.
-  - Start/Power/Pro: resultados idênticos aos atuais (testes existentes seguem passando).
-- Desconto nas renovações do Mensal: mesma pergunta do Start ("só no 1º mês" ou "todos os meses", `planos.desconto_recorrente`).
+### `fn_venda_2027_criar` (E3b)
+Hoje aplica desconto: mensal abate a 1ª cobrança; anual reparte nas parcelas (sobra na última); só Start grava `desconto_recorrente`.
+Mudança: uma linha — `desconto_recorrente` vale para `start_2027` **ou** `consultoria_2027` (Mensal). Pacote cai no ramo "anual" já existente, que usa `contratos.parcelas` (N) e trava desconto ≥ valor. Nada muda para Power/Pro/Start.
 
-## 3. Servidor (mínimo, aditivo)
-- `fn_venda_2027_gravar` / `fn_venda_2027_criar`: aceitar `consultoria_2027`; pacote cria vigência de N meses e N parcelas; Mensal cria um ciclo como o Start.
-- `fn_renovar_start_2027`: incluir `consultoria_2027` na mesma regra de renovação mensal (sem mexer no Start).
-- Rotina diária da recorrência e `fn_mensalidade_2027_validar`: aceitam a família nova com as regras do Start; nenhuma regra do cartão muda.
-- `fn_creditos_mensais_2027`: família nova não recebe créditos (confirmar por teste).
-- `fn_planos_publico_2027` e `fn_proposta_plano_2027_criar`: ignorar explicitamente `consultoria_2027` (o site nunca mostra nem aceita).
-- Agendamento: `fn_agendar_treino` (e serviços pelo aluno) recusa quem é "somente online"; agendamento pela equipe continua permitido.
-- Função nova `fn_aluno_somente_online(aluno)`: verdadeiro quando o plano principal ativo (`fn_plano_principal_ativo`) é `consultoria_2027` **e** não há outro plano presencial ativo.
-- Comissão: família nova fora das regras automáticas.
+### Mensal recorrente (E3c)
+O Mensal manual segue o mesmo caminho do Start de balcão:
+- `fn_mensalidade_manual_gerar` (linha `IF k.plano_tipo = 'start_2027'`) e `fn_mensalidade_manual_proximo` (`IS DISTINCT FROM 'start_2027'`): passam a aceitar `IN ('start_2027','consultoria_2027')`.
+- `fn_renovar_start_2027` (filtro `familia = 'start_2027'` na linha do catálogo): passa a aceitar as duas famílias. As checagens de proposta do site (linhas 21/23) ficam como estão — Consultoria nunca tem proposta.
+- Função de borda `renovar-planos-mensais`, **só no bloco 2027** (linha 282): `.eq("planos_catalogo.familia","start_2027")` vira `.in(..., ["start_2027","consultoria_2027"])`. Bloco legado intocado. Republicar.
+- `fn_recorrencia_2027_inadimplente_aviso`: só o rótulo — `WHEN 'consultoria_2027' THEN 'Consultoria Online'` (hoje cairia no texto técnico).
+- `planos-recorrencia-diario` e `fn_recorrencia_2027_devidas/_reservar/_resultado`: **sem mudança** (não olham família; cobram qualquer mensalidade válida com `meio='cartao'`).
+- `fn_mensalidade_2027_validar`: **sem mudança** (confere contrato/token, não família).
+- `fn_creditos_mensais_2027`: **sem mudança** (só Start e bota do Pro; Consultoria fica fora por construção). Confirmado por ensaio.
 
-## 4. App do aluno
-- Menu: some "Agenda" quando `fn_aluno_somente_online` = verdadeiro.
-- `/portal/agenda` por URL direta: volta para Treinos com aviso curto.
-- Tela inicial: somem "Agendar treino", "Remarcar" e próximo agendamento; entra destaque para Treinos.
-- Servidor recusa o agendamento pelo aluno (não depende só da tela).
-- Treinos, Clube, Loja, Carteirinha: sem mudança. Check-in facial sem agendamento não faz nada; lembretes de agenda não disparam sem agendamento; sem créditos, não ocupa vaga nem capacidade.
-- Aluno com Consultoria **e** plano presencial: Agenda continua visível e funcionando normalmente (a regra exige ausência de plano presencial); a Consultoria aparece como plano adicional.
+### Comissão (E3d)
+- `fn_carteira_ativos_por_profissional` hoje conta qualquer aluno com plano ativo (fora agregadora/VIP) → Consultoria **entraria** na carteira ativa. Mudança: excluir planos com `atividade = 'consultoria_online'` (para quem só tem Consultoria). Start/Power/Pro iguais.
+- Comissão de avaliação: depende de avaliação com mobilidade + força; não é afetada.
 
-## Etapas (cada uma com aprovação)
-1. **E1 – Banco aditivo**: coluna `duracao_meses`, família/atividade aceitas, 3 itens desligados, `fn_aluno_somente_online`. Ensaio com ROLLBACK.
-2. **E2 – Cálculo**: `calcularVenda2027` + testes acima.
-3. **E3 – Venda no servidor**: `fn_venda_2027_gravar/criar`, renovação mensal, exclusão do site, sem créditos. Ensaio com ROLLBACK no NICOLAS TESTE (Mensal, 4x, 6x, Pix, com e sem desconto) conferindo parcelas e total ao centavo.
-4. **E4 – Tela de venda**: opção, Duração, resumo, "sem contrato". Venda de teste só no NICOLAS TESTE com baixa simulada.
-5. **E5 – App do aluno**: menu, rota, tela inicial, bloqueio no servidor. Teste no navegador com aluno de teste (só Consultoria, e Consultoria + presencial).
-6. **E6 – Ligar os itens** (`ativo=true`), quando o dono mandar.
+### Funções que NÃO mudam (citam famílias, mas só servem o site/propostas)
+`fn_planos_publico_2027`, `fn_proposta_plano_2027_criar`, `fn_checkout_2027_calcular/_template/_email_dados`, `fn_consultas_2027_termo`, `fn_golive_2027_ativar/_snapshot`, `fn_mensalidade_2027_espelho`, `fn_mensalidade_2027_fim_contrato`, `fn_recorrencia_2027_proximo_ciclo`, `fn_recorrencia_2027_cronograma`, `fn_recorrencia_2027_cancelar`. Todas filtram por proposta do site, que a Consultoria nunca tem.
 
-## Testes sem pagamento real
-Só NICOLAS TESTE ou ensaios com ROLLBACK; nenhum cartão ou Pix real; nenhum e-mail/WhatsApp real; recorrência conferida com a rotina em modo simulação.
+## 2. Venda sem contrato
+- `contratos` (registro financeiro) é criado normalmente, com `plano_tipo = consultoria_2027`, vigência e cobranças. Não é contrato jurídico.
+- Nenhum documento: o servidor não lê `contrato_templates`; o documento é gerado pela tela depois. Na E4 a tela pula essa geração para a família nova e mostra "plano sem contrato".
+- Ativação do aluno: igual às outras vendas (plano ativo + cobranças); não depende de documento.
+- Perfil (E4): contrato aparece como "Sem documento de contrato".
 
-## Rollback
-- E1/E3: scripts de volta restauram as versões anteriores das funções e desligam os itens; colunas novas ficam sem uso.
-- E2/E4/E5: reverter o código; itens desligados escondem a opção.
+## 3. Vigência e parcelas
+- 4 meses: plano e contrato de início até início + 4 meses; 1 a 4 cobranças mensais a partir do 1º vencimento (Pix = 1).
+- 6 meses: idem com 6.
+- Mensal: 1 cobrança de R$ 189,00 (− desconto), ciclo de 1 mês, `renovacao_automatica=true`, `proxima_renovacao` = fim do ciclo; depois do pagamento, `fn_mensalidade_manual_gerar` cria a próxima mensalidade em `planos_2027_mensalidades` e a rotina diária cobra no cartão, com as mesmas retentativas.
+
+## 4. Conferências
+- Créditos: nenhum crédito de treino → não agenda nem ocupa vaga.
+- Clube: `fn_clube_nivel_por_plano` usa `nivel_clube` do catálogo → Bronze. Pontos de presença vêm de treino realizado → zero. Com plano presencial junto, `fn_plano_principal_ativo` prioriza o presencial (Consultoria fica como "outro").
+- Resgates do Clube (`fn_clube_resgatar`): família nova não está em `planos_elegiveis` e cai no custo padrão — sem mudança (ver pergunta 2).
+- Agregadoras: não envolvidas.
+- Previsibilidade/LTV: leem `cobrancas` → contam os valores reais; vendas de teste (`teste_2027`) já ficam de fora.
+
+## 5. Sub-etapas, testes e volta
+1. **E3a** regras de tabela. Ensaio: inserir plano/contrato de Consultoria no NICOLAS TESTE e desfazer.
+2. **E3b** `fn_venda_2027_gravar` + `fn_venda_2027_criar`.
+3. **E3c** mensal (3 funções + rótulo + bloco 2027 de `renovar-planos-mensais`).
+4. **E3d** carteira ativa.
+
+Ensaios (sempre com ROLLBACK, NICOLAS TESTE, nada gravado):
+- Consultoria: Mensal sem/com desconto R$ 20 (1ª cobrança 169,00); 4 meses 4x (4×169,00); 6 meses 6x com R$ 10 (5×147,33 + 147,35); 4 meses 3x com R$ 0,01 (3×225,33); Pix à vista (1×894,00); recusas: 5x/7x, desconto ≥ valor, serviços no pacote. Conferir venda, plano, contrato, cobranças e ausência de créditos; Mensal: renovação e geração da 2ª mensalidade.
+- Prova Start/Power/Pro: **antes** de cada migração, rodar vendas de ensaio (Start 1x com desconto recorrente, Power 3x anual 12x com serviços, Pro livre recorrência) e guardar uma impressão digital (md5 das linhas criadas sem ids/datas); **depois**, repetir e comparar — tem que ser igual. Mais: contagens e md5 do catálogo e das funções não tocadas; `renovar-planos-mensais` em ensaio com o Start.
+- Testes do sistema (1.034) rodados ao fim.
+
+Volta: um script por sub-etapa em `scripts/consultoria-online-e3x.rollback.sql`, com o corpo anterior de cada função (copiado do banco antes de aplicar) e as regras antigas; recusa rodar se já existir venda de Consultoria. Função de borda: republicar a versão anterior.
+
+## 6. Riscos
+- `fn_venda_2027_gravar` é grande: a troca é feita sobre o texto atual do banco, com diff mostrado linha a linha antes de aplicar.
+- `quadrimestral` é valor novo de vigência: telas que traduzem esse campo podem mostrar o texto cru (tratado na E4).
+- Aluno com Consultoria + presencial: planos com atividades diferentes não se substituem; renovação do Start não confunde porque compara a mesma atividade.
 
 ## O que NÃO será tocado
-Start/Power/Pro e preços, item legado "Consultoria Online - 6 meses", funções de cobrança do cartão, Pix Automático (P2–P8) e liberações, flags, checkout /planos, modelos de contrato existentes, crons de negócio além do caminho mensal já usado pelo Start, dados reais.
+Bloco legado de `renovar-planos-mensais`, `planos-recorrencia-diario`, funções de cobrança do cartão, Pix Automático e liberações, flags, checkout e funções do site, `fn_mensalidade_2027_validar`, modelos de contrato, item legado (R$ 774), telas e app do aluno (E4/E5), dados reais.
 
-## Riscos
-- Família nova num lugar que lista famílias fixas e não foi visto: mitigado pelo levantamento em E3 de todas as funções que citam `start_2027`.
-- Venda sem documento contestada depois: fica registrada como "sem contrato" até o modelo existir.
-
-## Perguntas que restam (com recomendação)
-1. Quando o contrato existir, gerar documento para quem já comprou? **Recomendo: sim, pelo botão já existente, com aceite do aluno.**
-2. No fim do pacote de 4/6 meses, o que acontece com o acesso ao app? **Recomendo: plano encerra na data final e a equipe recebe aviso 7 dias antes para oferecer renovação.**
-3. Cancelamento do Mensal: vale a regra do Start (sem multa, encerra no fim do ciclo pago)? **Recomendo: sim.**
-4. Aluno de Consultoria entra no Clube em qual nível? **Recomendo: Bronze, sem pontos de presença.**
+## Perguntas (com recomendação)
+1. Vigência de 4 meses: novo valor `quadrimestral` ou gravar `mensal`/outro já existente? **Recomendo `quadrimestral`** (fiel ao prazo, sem afetar os outros).
+2. Aluno só Consultoria pode resgatar recompensas do Clube? **Recomendo: sim, com o custo padrão das recompensas**, sem mudança agora.
+3. Na carteira ativa (comissão), aluno com Consultoria + presencial conta normalmente pelo presencial? **Recomendo: sim**; só quem tem apenas Consultoria fica fora.
+4. Mensal pode ter serviços cobrados à parte, como o Start? **Recomendo: sim**, igual ao Start.
