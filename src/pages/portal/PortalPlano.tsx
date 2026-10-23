@@ -491,6 +491,18 @@ export default function PortalPlano() {
                       : "Ao confirmar, uma solicitação de cancelamento será enviada à equipe FORTEM, que entrará em contato para finalizar o processo."}
                   </p>
                 </div>
+                {consultoria && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Motivo (opcional)</p>
+                    <textarea
+                      value={cancelMotivo}
+                      onChange={e => setCancelMotivo(e.target.value)}
+                      placeholder="Ex.: mudança de cidade, motivos financeiros..."
+                      rows={2}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground resize-none"
+                    />
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-muted-foreground mb-2">
                     Para confirmar, digite <strong className="text-foreground">CANCELAR</strong> abaixo:
@@ -504,7 +516,7 @@ export default function PortalPlano() {
                   />
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setCancelEtapa("calculo")} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold">
+                  <button onClick={() => setCancelEtapa(consultoria ? "persuasao" : "calculo")} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold">
                     Voltar
                   </button>
                   <button
