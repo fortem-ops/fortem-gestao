@@ -22,6 +22,20 @@ import {
 } from "@/lib/vendas2027";
 import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import {
+  DURACOES_CONSULTORIA,
+  FAMILIA_CONSULTORIA,
+  deveGerarDocumento2027,
+  ehCicloMensal2027,
+  ehConsultoriaFamilia,
+  ehPacoteConsultoria,
+  formaEfetiva2027,
+  maxParcelas2027,
+  montarPayloadVenda2027,
+  mostrarChipConsultoria,
+  rotuloDuracao,
+  selecionarItem2027,
+} from "@/lib/vendaConsultoria2027";
 
 const db = supabase as any;
 
@@ -29,8 +43,11 @@ const FAMILIAS = [
   { value: "start_2027", label: "Start" },
   { value: "power_2027", label: "Power" },
   { value: "pro_2027", label: "Pro" },
+  { value: FAMILIA_CONSULTORIA, label: "Consultoria Online" },
   { value: "servicos", label: "Só serviços" },
 ];
+export const AVISO_SERVICOS_PACOTE =
+  "Pacotes da Consultoria não aceitam serviços na mesma venda. Registre os serviços em uma venda separada (Só serviços).";
 const FREQS = [
   { value: "1x", label: "1x" },
   { value: "2x", label: "2x" },
@@ -63,8 +80,9 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
   const qc = useQueryClient();
   const hoje = format(new Date(), "yyyy-MM-dd");
 
-  const [familia, setFamilia] = useState("power_2027");
+  const [familia, setFamiliaState] = useState("power_2027");
   const [freq, setFreq] = useState("2x");
+  const [duracao, setDuracaoState] = useState(1);
   const [pagamento, setPagamento] = useState<FormaPlano2027>("cartao_parcelado");
   const [parcelas, setParcelas] = useState(12);
   const [servicosSel, setServicosSel] = useState<string[]>([]);
@@ -104,15 +122,39 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
 
   const soServicos = familia === "servicos";
   const ehStart = familia === "start_2027";
-  const forma: FormaPlano2027 = ehStart ? "recorrencia" : pagamento;
+  const consultoria = ehConsultoriaFamilia(familia);
+  const pacote = ehPacoteConsultoria(familia, duracao);
+  // Ciclo mensal (uma cobrança por ciclo): Start ou Consultoria Mensal.
+  const cicloMensal = ehCicloMensal2027(familia, duracao);
+  const forma: FormaPlano2027 = formaEfetiva2027(familia, duracao, pagamento);
   const modalidade = forma === "recorrencia" ? "recorrencia_mensal" : "anual";
-  const item = soServicos ? null : catalogo.find(
-    (c: any) => c.familia === familia && String(c.frequencia) === freq && c.modalidade_cobranca === modalidade,
+  const maxParcelas = maxParcelas2027(familia, duracao);
+  const item = soServicos ? null : selecionarItem2027(catalogo as any[], familia, freq, modalidade, duracao);
+  const chipConsultoria = mostrarChipConsultoria(
+    alunoDeTeste,
+    catalogo.some((c: any) => c.familia === FAMILIA_CONSULTORIA && itemVendavel2027(c, hoje, false)),
   );
+
+  const setFamilia = (f: string) => {
+    if (ehConsultoriaFamilia(f) && !consultoria) {
+      setDuracao(duracao);
+    } else if (!ehConsultoriaFamilia(f) && consultoria) {
+      setParcelas(12);
+    }
+    setFamiliaState(f);
+  };
+  function setDuracao(d: number) {
+    setDuracaoState(d);
+    if (d > 1) {
+      setParcelas(d);
+      setServicosSel([]);
+      if (pagamento === "recorrencia") setPagamento("cartao_parcelado");
+    }
+  }
   const vendavel = soServicos ? servicosSel.length > 0 : item ? itemVendavel2027(item, hoje, alunoDeTeste) : false;
   const servicosItens = servicos.filter((s: any) => servicosSel.includes(s.id));
 
-  const calc = useMemo(() => {
+  const { calc, calcErro } = useMemo(() => {
     if (soServicos) {
       try {
         const sv = calcularServicos2027(
@@ -120,27 +162,30 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
           formaServicos,
           parcelasServicos,
         );
-        return { plano: { forma: formaServicos, total: 0, parcelas: [] }, servicosAvulsos: sv, totalPlano: 0, totalServicos: sv.total, totalGeral: sv.total };
+        return { calc: { plano: { forma: formaServicos, total: 0, parcelas: [] }, servicosAvulsos: sv, totalPlano: 0, totalServicos: sv.total, totalGeral: sv.total } as any, calcErro: null };
       } catch {
-        return null;
+        return { calc: null, calcErro: null };
       }
     }
-    if (!item) return null;
+    if (!item) return { calc: null, calcErro: null };
     try {
-      return calcularVenda2027({
-        item,
-        forma,
-        parcelas,
-        servicos: servicosItens.map((s: any) => ({ codigo: s.codigo, valor: s.valor })),
-        formaServicos,
-        parcelasServicos,
-        descontoPlano: desconto,
-      });
-    } catch (e) {
-      return null;
+      return {
+        calc: calcularVenda2027({
+          item,
+          forma,
+          parcelas,
+          servicos: servicosItens.map((s: any) => ({ codigo: s.codigo, valor: s.valor })),
+          formaServicos,
+          parcelasServicos,
+          descontoPlano: desconto,
+        }),
+        calcErro: null,
+      };
+    } catch (e: any) {
+      return { calc: null, calcErro: consultoria ? String(e?.message ?? e) : null };
     }
-  }, [soServicos, item, forma, parcelas, servicosItens, formaServicos, parcelasServicos, desconto]);
-  const faltaEscolhaStart = ehStart && desconto > 0 && !descontoRecorrente;
+  }, [soServicos, item, forma, parcelas, servicosItens, formaServicos, parcelasServicos, desconto, consultoria]);
+  const faltaEscolhaStart = cicloMensal && desconto > 0 && !descontoRecorrente;
 
   const vender = useMutation({
     mutationFn: async () => {
