@@ -135,7 +135,7 @@ describe("E4f — DialogRescisao com Consultoria", () => {
     fireEvent.click(screen.getByRole("button", { name: /Avisar o administrador/i }));
 
     await waitFor(() => expect(createNotificacaoSpy).toHaveBeenCalledTimes(1));
-    const payload = createNotificacaoSpy.mock.calls[0][0];
+    const payload = createNotificacaoSpy.mock.calls[0]![0];
     expect(payload.titulo).toContain("Nicolas Teste");
     expect(payload.descricao).toContain("Aluno: Nicolas Teste");
     expect(payload.descricao).toContain("Plano: Consultoria Online");
