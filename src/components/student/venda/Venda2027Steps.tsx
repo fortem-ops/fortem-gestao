@@ -325,9 +325,12 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
 
       <div className="space-y-2">
         <Label>Serviços complementares</Label>
+        {pacote && (
+          <Alert><AlertDescription>{AVISO_SERVICOS_PACOTE}</AlertDescription></Alert>
+        )}
         <div className="space-y-2">
           {servicos.map((s: any) => {
-            const ok = itemVendavel2027(s, hoje, alunoDeTeste);
+            const ok = !pacote && itemVendavel2027(s, hoje, alunoDeTeste);
             return (
               <label key={s.id} className={cn("flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm", !ok && "opacity-50")}>
                 <span className="flex items-center gap-2">
@@ -393,12 +396,12 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
             value={desconto || ""}
             onChange={(e) => setDesconto(Math.max(0, Number(e.target.value) || 0))}
           />
-          {!ehStart && desconto > 0 && (
+          {!cicloMensal && desconto > 0 && (
             <p className="text-xs text-muted-foreground">
               {forma === "recorrencia" ? "Abatido da 1ª mensalidade." : "Abatido do total do plano e dividido nas parcelas."}
             </p>
           )}
-          {ehStart && desconto > 0 && (
+          {cicloMensal && desconto > 0 && (
             <div className="space-y-1">
               <p className="text-sm">Aplicar este desconto também nas mensalidades seguintes?</p>
               <div className="flex flex-wrap gap-2">
@@ -417,6 +420,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
       </div>
 
       {!item && !soServicos && <Alert><AlertDescription>Combinação não existe no catálogo 2027.</AlertDescription></Alert>}
+      {calcErro && <p className="text-xs text-destructive" role="alert">{calcErro}</p>}
       {item && !vendavel && (
         <Alert variant="destructive"><AlertDescription>Este plano 2027 ainda não está liberado para venda.</AlertDescription></Alert>
       )}
@@ -424,9 +428,22 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
       {calc && (
         <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-2">
           <div className="flex justify-between font-semibold">
-            <span>{soServicos ? "Serviços 2027" : `${item?.nome_exibicao ?? item?.nome} ${freq === "livre" ? "Livre" : freq}`}</span>
+            <span>{soServicos ? "Serviços 2027" : consultoria ? `Consultoria Online · ${rotuloDuracao(duracao)}` : `${item?.nome_exibicao ?? item?.nome} ${freq === "livre" ? "Livre" : freq}`}</span>
             <span>{formatBRL(calc.totalGeral)}</span>
           </div>
+          {consultoria && (
+            <div className="space-y-0.5" data-testid="resumo-consultoria">
+              {cicloMensal ? (
+                <p>{formatBRL(calc.plano.parcelas[0]?.plano ?? calc.plano.total)} por mês (recorrência no cartão)</p>
+              ) : (
+                <p>
+                  Total {formatBRL(calc.plano.total)} · {calc.plano.parcelas.length}x de {formatBRL(calc.plano.parcelas[0]?.plano ?? 0)}
+                  {" · "}referência {formatBRL(Math.round((calc.plano.total / duracao) * 100) / 100)}/mês
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Sem créditos de treino · Sem contrato · Sem multa de cancelamento</p>
+            </div>
+          )}
           <table className="w-full text-xs">
             <thead className="text-muted-foreground">
               <tr><th className="text-left font-normal">Parcela</th><th className="text-right font-normal">Plano</th><th className="text-right font-normal">Serviços</th><th className="text-right font-normal">Total</th></tr>
