@@ -179,14 +179,27 @@ export default function PortalPlano() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      await (supabase as any).rpc("fn_notificar_criar_notificacao", {
-        p_titulo: `Solicitação de cancelamento — ${student!.nome}`,
-        p_descricao: `O aluno ${student!.nome} solicitou o cancelamento do plano ${planoTipo} pelo portal.\n\nMotivo: ${cancelMotivo || "Não informado"}\n\nO plano deve ser analisado pela equipe antes de efetivar o cancelamento.`,
-        p_categoria: "aluno",
-        p_tipo: "solicitacao",
-        p_prioridade: "alta",
-        p_aluno_id: student!.id,
-      });
+      if (consultoria && contrato) {
+        // E4f: aviso ao administrador com os dados do contrato (sem cálculo).
+        await avisarAdminRescisaoConsultoria({
+          alunoId: student!.id,
+          alunoNome: student!.nome,
+          vigenciaLabel: rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ?? "Mensal",
+          valorLabel: formatBRL(Number(contrato.valor_cobrado ?? 0)),
+          formaPagamentoLabel: FORMA_PAGAMENTO_LABELS[contrato.forma_pagamento as keyof typeof FORMA_PAGAMENTO_LABELS] ?? String(contrato.forma_pagamento),
+          motivo: cancelMotivo,
+          quemPediu: `${student!.nome} (pelo portal do aluno)`,
+        });
+      } else {
+        await (supabase as any).rpc("fn_notificar_criar_notificacao", {
+          p_titulo: `Solicitação de cancelamento — ${student!.nome}`,
+          p_descricao: `O aluno ${student!.nome} solicitou o cancelamento do plano ${planoTipo} pelo portal.\n\nMotivo: ${cancelMotivo || "Não informado"}\n\nO plano deve ser analisado pela equipe antes de efetivar o cancelamento.`,
+          p_categoria: "aluno",
+          p_tipo: "solicitacao",
+          p_prioridade: "alta",
+          p_aluno_id: student!.id,
+        });
+      }
       toast.success("Solicitação enviada! A equipe FORTEM entrará em contato em breve.");
       setCancelEtapa("persuasao");
       setCancelMotivo("");
