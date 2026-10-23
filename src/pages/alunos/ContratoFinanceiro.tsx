@@ -75,6 +75,7 @@ import { ComprovanteEstornoDialog } from "@/components/financeiro/ComprovanteEst
 import { useEstornosDoContrato, useMeuNome, type EstornoRegistro } from "@/hooks/useEstorno";
 import type { ComprovanteEstornoDados } from "@/lib/estornoPdf";
 import { ultimoDiaDoMes, novaDataFimValida } from "@/lib/reativarContrato";
+import { rotuloVigenciaNovo } from "@/lib/vigenciaLabels";
 
 
 
@@ -954,11 +955,12 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
               </Badge>
               <Badge variant="outline">{LABEL_PLANO[contrato.plano_tipo] ?? contrato.plano_tipo}</Badge>
               <Badge variant="outline">
-                {contrato.vigencia_tipo === "anual"
+                {rotuloVigenciaNovo(contrato.vigencia_tipo, contrato.plano_tipo) ??
+                  (contrato.vigencia_tipo === "anual"
                   ? "Anual"
                   : contrato.vigencia_tipo === "semestral"
                     ? "Semestral"
-                    : "Mensal"}
+                    : "Mensal")}
 
               </Badge>
               <Badge variant="outline">{LABEL_PAGAMENTO[contrato.forma_pagamento]}</Badge>

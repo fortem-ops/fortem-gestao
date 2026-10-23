@@ -1,4 +1,4 @@
-export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'outro';
+export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'consultoria_2027' | 'outro';
 export type FormaPagamento =
   | 'cartao_recorrencia'
   | 'cartao_parcelado'
@@ -13,7 +13,7 @@ export interface Contrato {
   plano_id?: string | null;
   plano_tipo: PlanoTipo;
 
-  vigencia_tipo: 'mensal' | 'semestral' | 'anual';
+  vigencia_tipo: 'mensal' | 'quadrimestral' | 'semestral' | 'anual';
   forma_pagamento: FormaPagamento;
   data_inicio: string;
   data_fim: string | null;
@@ -170,6 +170,7 @@ export const LABEL_PLANO: Record<PlanoTipo, string> = {
   pro: 'Pro',
   max: 'Max',
   corrida: 'Grupo de Corrida',
+  consultoria_2027: 'Consultoria Online',
   outro: 'Outro',
 };
 

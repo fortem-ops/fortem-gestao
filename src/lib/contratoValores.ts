@@ -45,6 +45,7 @@ export function duracaoRealContrato(contrato: ContratoParaValores): number {
   if (entreDatas) return entreDatas;
   if (contrato.vigencia_tipo === "anual") return 12;
   if (contrato.vigencia_tipo === "semestral") return 6;
+  if (contrato.vigencia_tipo === "quadrimestral") return 4;
   return 1;
 }
 
