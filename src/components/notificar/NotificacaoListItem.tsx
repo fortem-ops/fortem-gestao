@@ -32,15 +32,15 @@ export function NotificacaoListItem({ n, remetente, unread, selected, resumo, de
       {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-primary" />}
       {unread && <span className="absolute left-2.5 top-[15px] h-2 w-2 rounded-[2px] bg-primary" />}
       <div className="flex items-center justify-between gap-2">
-        <span className={cn("truncate text-sm", unread ? "font-bold text-foreground" : "text-foreground/90")}>{linha1}</span>
+        <span className={cn("min-w-0 flex-1 truncate text-sm", unread ? "font-bold text-foreground" : "text-foreground/90")}>{linha1}</span>
         <span className="shrink-0 text-[11px] text-muted-foreground">{hora}</span>
       </div>
       <div className="mt-0.5 flex items-center justify-between gap-2">
-        <span className={cn("truncate text-sm", unread ? "font-semibold text-foreground" : "text-foreground/80")}>{n.titulo}</span>
+        <span className={cn("min-w-0 flex-1 truncate text-sm", unread ? "font-semibold text-foreground" : "text-foreground/80")}>{n.titulo}</span>
         <PrioridadeSelo prioridade={n.prioridade} />
       </div>
       <div className="mt-0.5 flex items-center justify-between gap-2">
-        <span className="truncate text-xs text-muted-foreground">{descricaoNotificacaoExibicao(n.descricao)}</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{descricaoNotificacaoExibicao(n.descricao)}</span>
         <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
           {resumo?.temAnexo && <Paperclip className="h-3 w-3" aria-label="Com anexo" />}
           {(resumo?.total ?? 0) > 0 && (
