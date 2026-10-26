@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Paperclip, Send, X, Minus, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
@@ -90,6 +90,18 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
   useEffect(() => {
     return () => { if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl); };
   }, [filePreviewUrl]);
+
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    const ph = el.placeholder;
+    el.placeholder = ""; // o placeholder infla a altura medida quando o campo está vazio
+    el.style.height = "auto";
+    const h = el.scrollHeight;
+    el.placeholder = ph;
+    el.style.height = `${h}px`;
+  }, [comentario]);
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -195,13 +207,20 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
             <input type="file" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild><span><Paperclip className="w-4 h-4" /></span></Button>
           </label>
-          <Input
-            className="h-8 text-sm"
-            placeholder="Mensagem... (Ctrl+V cola imagem)"
+          <Textarea
+            ref={taRef}
+            rows={1}
+            className="min-h-0 max-h-[132px] resize-none overflow-y-auto py-1.5 text-sm"
+            placeholder="Mensagem... (Enter envia · Shift+Enter nova linha · Ctrl+V cola imagem)"
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
             onPaste={handlePaste}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMut.mutate(); } }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                sendMut.mutate();
+              }
+            }}
           />
           <Button size="icon" className="h-8 w-8" onClick={() => sendMut.mutate()} disabled={sendMut.isPending}>
             <Send className="w-4 h-4" />
