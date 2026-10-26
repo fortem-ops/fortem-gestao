@@ -5,16 +5,39 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, Send, X, Archive, ArchiveRestore } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Paperclip, Send, X, Archive, ArchiveRestore, Check, RotateCcw, MoreHorizontal, User, Calendar, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isSameDay, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { addComentario, getAnexoUrl, markVisualizada, updateStatus, NOTIF_STATUS, type NotifStatus } from "@/lib/notificar";
+import { addComentario, getAnexoUrl, markVisualizada, updateStatus, NOTIF_CATEGORIAS, type NotifStatus } from "@/lib/notificar";
 import { useNotificacaoDetail } from "@/hooks/useNotificacoes";
-import { CategoriaBadge, PrioridadeBadge, StatusBadge } from "./NotificacaoBadge";
+import { PrioridadeSelo } from "./NotificacaoBadge";
+import { NotificacaoAtividade } from "./NotificacaoAtividade";
+
+const STATUS_VISIVEL: Record<string, string> = {
+  em_andamento: "Em andamento",
+  respondida: "Respondida",
+  concluida: "Concluída",
+};
+
+function iniciais(nome?: string) {
+  if (!nome) return "—";
+  const partes = nome.trim().split(/\s+/);
+  return ((partes[0]?.[0] ?? "") + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
+}
+
+function DiaSeparador({ data }: { data: string }) {
+  const d = new Date(data);
+  const rotulo = isToday(d) ? "Hoje" : isYesterday(d) ? "Ontem" : format(d, "dd/MM/yyyy", { locale: ptBR });
+  return (
+    <div className="flex items-center gap-3 py-1" role="separator" aria-label={rotulo}>
+      <div className="h-px flex-1 bg-border" />
+      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{rotulo}</span>
+      <div className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
 
 export function NotificacaoDetail({ id }: { id: string | null }) {
   const { user } = useAuth();
@@ -146,6 +169,26 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao arquivar"),
   });
+
+  const [atividadeOpen, setAtividadeOpen] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const totalComents = data?.coments?.length ?? 0;
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [id, totalComents, !!data?.notif]);
+
+  const paraTexto = useMemo(() => {
+    const dests: any[] = data?.dests ?? [];
+    if (dests.length === 1) {
+      return dests[0].usuario_id === user?.id ? "você" : (profileMap[dests[0].usuario_id] ?? "—");
+    }
+    const nomes: string[] = [];
+    if (dests.some((d) => d.usuario_id === user?.id)) nomes.push("você");
+    dests.forEach((d) => { if (d.usuario_id !== user?.id) nomes.push(profileMap[d.usuario_id] ?? "—"); });
+    const visiveis = nomes.slice(0, 3).join(", ");
+    return nomes.length > 3 ? `${visiveis} +${nomes.length - 3}` : visiveis || "—";
+  }, [data?.dests, profileMap, user?.id]);
 
   if (!id) {
     return (
