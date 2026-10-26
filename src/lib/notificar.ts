@@ -158,3 +158,77 @@ export async function getAnexoUrl(path: string) {
   const { data } = await supabase.storage.from("notificacao-anexos").createSignedUrl(path, 3600);
   return data?.signedUrl;
 }
+
+// ===== Ações em lote (uma requisição por operação, sempre .in) =====
+
+async function uidAtual(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) throw new Error("Não autenticado");
+  return uid;
+}
+
+export async function loteMarcarLida(comoDestinatario: string[]) {
+  if (!comoDestinatario.length) return;
+  const uid = await uidAtual();
+  const agora = new Date().toISOString();
+  const { error } = await supabase
+    .from("notificacao_destinatarios")
+    .update({ visualizado_em: agora, ultima_leitura_em: agora })
+    .in("notificacao_id", comoDestinatario)
+    .eq("usuario_id", uid)
+    .is("visualizado_em", null);
+  if (error) throw error;
+  const { error: e2 } = await supabase
+    .from("notificacao_destinatarios")
+    .update({ status: "visualizada" })
+    .in("notificacao_id", comoDestinatario)
+    .eq("usuario_id", uid)
+    .eq("status", "nao_visualizada");
+  if (e2) throw e2;
+}
+
+export async function loteMarcarNaoLida(comoDestinatario: string[]) {
+  if (!comoDestinatario.length) return;
+  const uid = await uidAtual();
+  const { error } = await supabase
+    .from("notificacao_destinatarios")
+    .update({ visualizado_em: null })
+    .in("notificacao_id", comoDestinatario)
+    .eq("usuario_id", uid);
+  if (error) throw error;
+}
+
+/** arquivar=true arquiva; false desarquiva (criador → em_andamento; destinatário → visualizada). */
+export async function loteArquivar(comoDestinatario: string[], comoCriador: string[], arquivar: boolean) {
+  const uid = await uidAtual();
+  if (comoCriador.length) {
+    const { error } = await supabase
+      .from("notificacoes")
+      .update({ status: arquivar ? "arquivada" : "em_andamento" })
+      .in("id", comoCriador)
+      .eq("criado_por", uid);
+    if (error) throw error;
+  }
+  if (comoDestinatario.length) {
+    const { error } = await supabase
+      .from("notificacao_destinatarios")
+      .update({ status: arquivar ? "arquivada" : "visualizada" })
+      .in("notificacao_id", comoDestinatario)
+      .eq("usuario_id", uid);
+    if (error) throw error;
+  }
+}
+
+export async function loteFixar(comoDestinatario: string[], fixar: boolean) {
+  if (!comoDestinatario.length) return;
+  const uid = await uidAtual();
+  let q = supabase
+    .from("notificacao_destinatarios")
+    .update({ fixada_em: fixar ? new Date().toISOString() : null })
+    .in("notificacao_id", comoDestinatario)
+    .eq("usuario_id", uid);
+  if (fixar) q = q.is("fixada_em", null);
+  const { error } = await q;
+  if (error) throw error;
+}
