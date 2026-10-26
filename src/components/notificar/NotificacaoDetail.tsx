@@ -95,7 +95,8 @@ export function NotificacaoDetail({ id, onFechar }: { id: string | null; onFecha
   // Snapshot de ultima_leitura_em ANTES de marcar como lida; depois marca como vista
   const [snap, setSnap] = useState<{ id: string; valor: string | null } | null>(null);
   useEffect(() => {
-    if (!id || !user || !data?.notif || (data.notif as any).id !== id) return;
+    if (!id) { if (snap) setSnap(null); return; }
+    if (!user || !data?.notif || (data.notif as any).id !== id) return;
     if (snap?.id === id) return;
     const md = (data.dests ?? []).find((d: any) => d.usuario_id === user.id) as any;
     setSnap({ id, valor: md?.ultima_leitura_em ?? null });
