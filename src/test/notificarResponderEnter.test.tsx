@@ -20,6 +20,12 @@ vi.mock("@/lib/notificar", () => ({
     { value: "concluida", label: "Concluída", className: "" },
     { value: "arquivada", label: "Arquivada", className: "" },
   ],
+  NOTIF_PRIORIDADES: [
+    { value: "normal", label: "Normal", className: "" },
+    { value: "alta", label: "Alta", className: "" },
+    { value: "urgente", label: "Urgente", className: "" },
+  ],
+  NOTIF_CATEGORIAS: [{ value: "geral", label: "Geral" }],
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
