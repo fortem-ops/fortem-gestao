@@ -55,6 +55,7 @@ export default function Notificar() {
     () => Array.from(new Set([...recebidas, ...enviadas].map((n) => n.id))),
     [recebidas, enviadas],
   );
+  const recebidasIds = useMemo(() => new Set(recebidas.map((n) => n.id)), [recebidas]);
   const { data: resumo = {} } = useComentariosResumo(allIds);
   const meusIds = useMemo(() => enviadas.filter((n) => n.criado_por === user?.id).map((n) => n.id), [enviadas, user?.id]);
   const { data: destResumo } = useDestinatariosResumo(meusIds);

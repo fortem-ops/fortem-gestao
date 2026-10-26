@@ -75,10 +75,11 @@ export function useUnreadCount() {
       if (!user) return 0;
       const { count } = await supabase
         .from("notificacao_destinatarios")
-        .select("id", { count: "exact", head: true })
+        .select("id, notificacoes!inner(status)", { count: "exact", head: true })
         .eq("usuario_id", user.id)
         .is("visualizado_em", null)
-        .neq("status", "arquivada");
+        .neq("status", "arquivada")
+        .not("notificacoes.status", "in", "(arquivada,concluida)");
       return count ?? 0;
     },
     enabled: !!user,
