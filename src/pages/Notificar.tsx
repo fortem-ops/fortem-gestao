@@ -55,6 +55,7 @@ export default function Notificar() {
     () => Array.from(new Set([...recebidas, ...enviadas].map((n) => n.id))),
     [recebidas, enviadas],
   );
+  const recebidasIds = useMemo(() => new Set(recebidas.map((n) => n.id)), [recebidas]);
   const { data: resumo = {} } = useComentariosResumo(allIds);
   const meusIds = useMemo(() => enviadas.filter((n) => n.criado_por === user?.id).map((n) => n.id), [enviadas, user?.id]);
   const { data: destResumo } = useDestinatariosResumo(meusIds);
@@ -108,6 +109,12 @@ export default function Notificar() {
   ];
 
   const trocarPasta = (p: Pasta) => { setPasta(p); setSelected(null); };
+
+  const mostraDestinatarios = (n: Item) =>
+    n.criado_por === user?.id &&
+    (pasta === "enviadas" ||
+      pasta === "aguardando" ||
+      (pasta === "arquivadas" && !recebidasIds.has(n.id)));
 
   return (
     <div className="grid grid-cols-1 gap-4 md:h-[calc(100vh-140px)] md:grid-cols-[232px_380px_minmax(0,1fr)]">
@@ -178,7 +185,7 @@ export default function Notificar() {
                   unread={isUnread(n)}
                   selected={selected === n.id}
                   resumo={resumo[n.id]}
-                  destinatarios={n.criado_por === user?.id ? destResumo?.[n.id] : undefined}
+                  destinatarios={mostraDestinatarios(n) ? destResumo?.[n.id] : undefined}
                   onClick={() => setSelected(n.id)}
                 />
               ))}
