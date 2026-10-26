@@ -194,6 +194,11 @@
     --ring: 0 74% 51%;
     --radius: 0rem;
     font-family: 'Manrope', sans-serif;
+    /* Re-resolve cor herdada no escopo do portal (sem isso, filhos sem classe
+       herdam o --foreground do tema claro do aparelho). */
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+    color-scheme: dark;
   }
   [data-portal="true"] h1,
   [data-portal="true"] h2,
