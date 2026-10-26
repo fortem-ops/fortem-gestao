@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Paperclip, Send, X, Archive, ArchiveRestore, Check, RotateCcw, MoreHorizontal, User, Calendar, MapPin } from "lucide-react";
+import { Paperclip, Send, X, Archive, ArchiveRestore, Check, RotateCcw, MoreHorizontal, User, Calendar, MapPin, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { format, isSameDay, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,7 +39,7 @@ function DiaSeparador({ data }: { data: string }) {
   );
 }
 
-export function NotificacaoDetail({ id }: { id: string | null }) {
+export function NotificacaoDetail({ id, onFechar }: { id: string | null; onFechar?: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { data, isLoading } = useNotificacaoDetail(id);
@@ -92,14 +92,17 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
   };
 
 
-  // Mark as viewed
+  // Snapshot de ultima_leitura_em ANTES de marcar como lida; depois marca como vista
+  const [snap, setSnap] = useState<{ id: string; valor: string | null } | null>(null);
   useEffect(() => {
-    if (id && user) {
-      markVisualizada(id, user.id).then(() =>
-        qc.invalidateQueries({ queryKey: ["notif"] })
-      );
-    }
-  }, [id, user, qc]);
+    if (!id || !user || !data?.notif || (data.notif as any).id !== id) return;
+    if (snap?.id === id) return;
+    const md = (data.dests ?? []).find((d: any) => d.usuario_id === user.id) as any;
+    setSnap({ id, valor: md?.ultima_leitura_em ?? null });
+    markVisualizada(id, user.id).then(() =>
+      qc.invalidateQueries({ queryKey: ["notif"] })
+    );
+  }, [id, user, data, snap, qc]);
 
   const { data: profileMap = {} } = useQuery({
     queryKey: ["profiles-map"],
@@ -170,14 +173,60 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     onError: (e: any) => toast.error(e.message ?? "Erro ao arquivar"),
   });
 
+  const naoLidaMut = useMutation({
+    mutationFn: async () => {
+      if (!id || !user) return;
+      const { error } = await supabase
+        .from("notificacao_destinatarios")
+        .update({ visualizado_em: null })
+        .eq("notificacao_id", id)
+        .eq("usuario_id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notif"] });
+      toast.success("Marcada como não lida");
+      onFechar?.();
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao marcar como não lida"),
+  });
+
   const [atividadeOpen, setAtividadeOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const novasRef = useRef<HTMLDivElement>(null);
   const totalComents = data?.coments?.length ?? 0;
+
+  // Se chegar comentário novo com a conversa aberta, marcar como lida de novo (snapshot permanece)
+  const prevTotalRef = useRef<{ id: string; total: number } | null>(null);
+  useEffect(() => {
+    if (!id || !user || snap?.id !== id || (data?.notif as any)?.id !== id) return;
+    const prev = prevTotalRef.current;
+    prevTotalRef.current = { id, total: totalComents };
+    if (prev && prev.id === id && totalComents > prev.total) {
+      markVisualizada(id, user.id).then(() => qc.invalidateQueries({ queryKey: ["notif"] }));
+    }
+  }, [id, user, snap, totalComents, data?.notif, qc]);
+
+  const primeiroNovoId = useMemo(() => {
+    if (!id || snap?.id !== id || !snap.valor) return null;
+    const t = new Date(snap.valor).getTime();
+    const c = (data?.coments ?? []).find(
+      (x: any) => x.usuario_id !== user?.id && new Date(x.created_at).getTime() > t,
+    );
+    return (c as any)?.id ?? null;
+  }, [id, snap, data?.coments, user?.id]);
+
+  const rolouSeparadorRef = useRef<string | null>(null);
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
+    if (primeiroNovoId && novasRef.current && rolouSeparadorRef.current !== id) {
+      rolouSeparadorRef.current = id;
+      novasRef.current.scrollIntoView({ block: "start" });
+      return;
+    }
     el.scrollTop = totalComents > 0 ? el.scrollHeight : 0;
-  }, [id, totalComents, !!data?.notif]);
+  }, [id, totalComents, !!data?.notif, primeiroNovoId]);
 
   const paraTexto = useMemo(() => {
     const dests: any[] = data?.dests ?? [];
@@ -230,6 +279,19 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
               >
                 {n.status === "concluida" ? <RotateCcw className="w-4 h-4 mr-1" /> : <Check className="w-4 h-4 mr-1" />}
                 {n.status === "concluida" ? "Reabrir" : "Concluir"}
+              </Button>
+            )}
+            {!!myDest && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                aria-label="Marcar como não lida"
+                title="Marcar como não lida"
+                onClick={() => naoLidaMut.mutate()}
+                disabled={naoLidaMut.isPending}
+              >
+                <Mail className="w-4 h-4" />
               </Button>
             )}
             {(isCriador || !!myDest) && (
@@ -320,6 +382,13 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
             return (
               <div key={c.id} className="space-y-3">
                 {mudouDia && <DiaSeparador data={c.created_at} />}
+                {c.id === primeiroNovoId && (
+                  <div ref={novasRef} className="flex items-center gap-3 py-1" role="separator" aria-label="Novas mensagens">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Novas mensagens</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                )}
                 <CommentBubble c={c} mine={c.usuario_id === user?.id} authorName={profileMap[c.usuario_id]} />
               </div>
             );
