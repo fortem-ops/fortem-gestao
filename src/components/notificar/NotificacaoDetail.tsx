@@ -1,10 +1,10 @@
 import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,6 +28,14 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     return null;
   }, [file]);
   useEffect(() => { return () => { if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl); }; }, [filePreviewUrl]);
+
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [comentario]);
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -244,12 +252,20 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
             <input type="file" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <Button variant="ghost" size="icon" asChild><span><Paperclip className="w-4 h-4" /></span></Button>
           </label>
-          <Input
-            placeholder="Comentário... (Ctrl+V cola imagem)"
+          <Textarea
+            ref={taRef}
+            rows={1}
+            placeholder="Responder... (Enter envia · Shift+Enter nova linha · Ctrl+V cola imagem)"
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
             onPaste={handlePaste}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMut.mutate(); } }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                sendMut.mutate();
+              }
+            }}
+            className="min-h-0 max-h-[136px] resize-none overflow-y-auto py-2 text-sm"
           />
           <Button size="icon" onClick={() => sendMut.mutate()} disabled={sendMut.isPending}>
             <Send className="w-4 h-4" />
