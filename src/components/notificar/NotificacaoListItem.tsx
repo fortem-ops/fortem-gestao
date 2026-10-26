@@ -12,10 +12,11 @@ interface Props {
   selected: boolean;
   resumo?: ComentarioResumo;
   destinatarios?: number;
+  novas?: number;
   onClick: () => void;
 }
 
-export function NotificacaoListItem({ n, remetente, unread, selected, resumo, destinatarios, onClick }: Props) {
+export function NotificacaoListItem({ n, remetente, unread, selected, resumo, destinatarios, novas = 0, onClick }: Props) {
   const d = new Date(n.created_at);
   const linha1 = destinatarios !== undefined
     ? `Para: ${destinatarios} ${destinatarios === 1 ? "destinatário" : "destinatários"}`
@@ -42,6 +43,7 @@ export function NotificacaoListItem({ n, remetente, unread, selected, resumo, de
       <div className="mt-0.5 flex items-center justify-between gap-2">
         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{descricaoNotificacaoExibicao(n.descricao)}</span>
         <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+          {novas > 0 && <span className="text-[11px] font-semibold text-primary">{novas} {novas === 1 ? "nova" : "novas"}</span>}
           {resumo?.temAnexo && <Paperclip className="h-3 w-3" aria-label="Com anexo" />}
           {(resumo?.total ?? 0) > 0 && (
             <span className="flex items-center gap-0.5 text-[11px]">

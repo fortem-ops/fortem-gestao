@@ -102,12 +102,18 @@ export async function createNotificacao(input: {
 }
 
 export async function markVisualizada(notificacaoId: string, userId: string) {
+  const agora = new Date().toISOString();
   await supabase
     .from("notificacao_destinatarios")
-    .update({ visualizado_em: new Date().toISOString(), status: "visualizada" })
+    .update({ visualizado_em: agora, status: "visualizada", ultima_leitura_em: agora })
     .eq("notificacao_id", notificacaoId)
     .eq("usuario_id", userId)
     .is("visualizado_em", null);
+  await supabase
+    .from("notificacao_destinatarios")
+    .update({ ultima_leitura_em: agora })
+    .eq("notificacao_id", notificacaoId)
+    .eq("usuario_id", userId);
 }
 
 export async function updateStatus(notificacaoId: string, status: NotifStatus) {

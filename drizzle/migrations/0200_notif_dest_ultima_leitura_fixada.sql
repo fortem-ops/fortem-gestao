@@ -1,0 +1,2 @@
+ALTER TABLE public.notificacao_destinatarios ADD COLUMN ultima_leitura_em timestamptz NULL, ADD COLUMN fixada_em timestamptz NULL;
+UPDATE public.notificacao_destinatarios SET ultima_leitura_em = visualizado_em WHERE visualizado_em IS NOT NULL;

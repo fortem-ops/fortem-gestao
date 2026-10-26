@@ -1401,6 +1401,13 @@
       "when": 1792758643297,
       "tag": "0199_consultoria_online_e5b_trava_agenda",
       "breakpoints": true
+    },
+    {
+      "idx": 200,
+      "version": "7",
+      "when": 1793027611004,
+      "tag": "0200_notif_dest_ultima_leitura_fixada",
+      "breakpoints": true
     }
   ]
 }
