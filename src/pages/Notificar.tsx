@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { isToday, isYesterday } from "date-fns";
-import { Archive, Clock, Inbox, Send } from "lucide-react";
+import { Archive, ArchiveRestore, Clock, Inbox, Mail, MailOpen, Pin, PinOff, Send, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -15,7 +17,7 @@ import {
 import { NewNotificacaoDialog } from "@/components/notificar/NewNotificacaoDialog";
 import { NotificacaoDetail } from "@/components/notificar/NotificacaoDetail";
 import { NotificacaoListItem } from "@/components/notificar/NotificacaoListItem";
-import { NOTIF_CATEGORIAS } from "@/lib/notificar";
+import { NOTIF_CATEGORIAS, loteArquivar, loteFixar, loteMarcarLida, loteMarcarNaoLida } from "@/lib/notificar";
 
 type Pasta = "entrada" | "enviadas" | "aguardando" | "arquivadas";
 type Chip = "todas" | "nao_lidas" | "alta" | "prazo";
@@ -37,6 +39,11 @@ export default function Notificar() {
   const [search, setSearch] = useState("");
   const [chip, setChip] = useState<Chip>("todas");
   const [filterCat, setFilterCat] = useState("todas");
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [confirmArq, setConfirmArq] = useState(false);
+  const [loteBusy, setLoteBusy] = useState(false);
+  const qc = useQueryClient();
+  useEffect(() => { setSelecionadas(new Set()); }, [pasta, chip, filterCat, search]);
 
   const recebidas = useNotificacoesRecebidas().data ?? [];
   const enviadas = useNotificacoesEnviadas().data ?? [];
@@ -56,6 +63,11 @@ export default function Notificar() {
     [recebidas, enviadas],
   );
   const recebidasIds = useMemo(() => new Set(recebidas.map((n) => n.id)), [recebidas]);
+  const fixadaMap = useMemo(() => {
+    const m = new Map<string, string>();
+    recebidas.forEach((n) => { if (n.fixada_em) m.set(n.id, n.fixada_em); });
+    return m;
+  }, [recebidas]);
   const { data: resumo = {} } = useComentariosResumo(allIds, user?.id);
   const meusIds = useMemo(() => enviadas.filter((n) => n.criado_por === user?.id).map((n) => n.id), [enviadas, user?.id]);
   const { data: destResumo } = useDestinatariosResumo(meusIds);
@@ -94,12 +106,79 @@ export default function Notificar() {
     const g: { label: string; items: Item[] }[] = [
       { label: "HOJE", items: [] }, { label: "ONTEM", items: [] }, { label: "ANTERIORES", items: [] },
     ];
+    const usarFixadas = pasta !== "arquivadas";
+    const fixadas = usarFixadas
+      ? filtered.filter((n) => fixadaMap.has(n.id))
+          .sort((a, b) => fixadaMap.get(b.id)!.localeCompare(fixadaMap.get(a.id)!))
+      : [];
     filtered.forEach((n) => {
+      if (usarFixadas && fixadaMap.has(n.id)) return;
       const d = new Date(n.created_at);
       g[isToday(d) ? 0 : isYesterday(d) ? 1 : 2].items.push(n);
     });
-    return g.filter((x) => x.items.length);
-  }, [filtered]);
+    return [{ label: "FIXADAS", items: fixadas }, ...g].filter((x) => x.items.length);
+  }, [filtered, pasta, fixadaMap]);
+
+  const toggleMarcada = (id: string) => setSelecionadas((prev) => {
+    const s = new Set(prev);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    return s;
+  });
+
+  const ids = [...selecionadas];
+  const comoDestinatario = ids.filter((id) => recebidasIds.has(id));
+  const comoCriador = ids.filter((id) => enviadas.some((n) => n.id === id && n.criado_por === user?.id));
+  const naoDest = ids.length - comoDestinatario.length;
+  const emArquivadas = pasta === "arquivadas";
+  const todasFixadas = comoDestinatario.length > 0 && comoDestinatario.every((id) => fixadaMap.has(id));
+  const plural = (n: number) => `${n} ${n === 1 ? "conversa" : "conversas"}`;
+
+  const executarLote = async (acao: () => Promise<void>, msg: string, fecharDetalhe: boolean) => {
+    setLoteBusy(true);
+    try {
+      await acao();
+      qc.invalidateQueries({ queryKey: ["notif"] });
+      toast.success(msg);
+      if (fecharDetalhe && selected && selecionadas.has(selected)) setSelected(null);
+      setSelecionadas(new Set());
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao aplicar ação em lote");
+    } finally {
+      setLoteBusy(false);
+    }
+  };
+
+  const avisarIgnoradas = () => { if (naoDest > 0) toast.info(`${naoDest} ignoradas (você não é destinatário)`); };
+
+  const acaoLida = () => {
+    if (!comoDestinatario.length) { avisarIgnoradas(); return; }
+    const n = comoDestinatario.length;
+    executarLote(() => loteMarcarLida(comoDestinatario), `${plural(n)} ${n === 1 ? "marcada" : "marcadas"} como lida${n === 1 ? "" : "s"}`, false);
+    avisarIgnoradas();
+  };
+  const acaoNaoLida = () => {
+    if (!comoDestinatario.length) { avisarIgnoradas(); return; }
+    const n = comoDestinatario.length;
+    executarLote(() => loteMarcarNaoLida(comoDestinatario), `${plural(n)} ${n === 1 ? "marcada" : "marcadas"} como não lida${n === 1 ? "" : "s"}`, true);
+    avisarIgnoradas();
+  };
+  const rodarArquivar = () => {
+    const dest = comoDestinatario.filter((id) => !comoCriador.includes(id));
+    const total = new Set([...dest, ...comoCriador]).size;
+    const verbo = emArquivadas ? (total === 1 ? "desarquivada" : "desarquivadas") : (total === 1 ? "arquivada" : "arquivadas");
+    executarLote(() => loteArquivar(dest, comoCriador, !emArquivadas), `${plural(total)} ${verbo}`, true);
+  };
+  const acaoArquivar = () => {
+    if (!emArquivadas && comoCriador.length > 0) { setConfirmArq(true); return; }
+    rodarArquivar();
+  };
+  const acaoFixar = () => {
+    if (!comoDestinatario.length) { avisarIgnoradas(); return; }
+    const alvo = todasFixadas ? comoDestinatario : comoDestinatario.filter((id) => !fixadaMap.has(id));
+    const n = alvo.length;
+    executarLote(() => loteFixar(alvo, !todasFixadas), `${plural(n)} ${todasFixadas ? (n === 1 ? "desafixada" : "desafixadas") : (n === 1 ? "fixada" : "fixadas")}`, false);
+    avisarIgnoradas();
+  };
 
   const PASTAS: { value: Pasta; label: string; icon: typeof Inbox; count?: number }[] = [
     { value: "entrada", label: "Caixa de entrada", icon: Inbox, count: naoLidas },
@@ -149,6 +228,49 @@ export default function Notificar() {
       <section className="flex min-h-[50vh] flex-col rounded-md border bg-card md:min-h-0">
         <div className="space-y-2 border-b p-3">
           <Input placeholder="Buscar por assunto, texto ou remetente..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          {selecionadas.size > 0 ? (
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-xs font-semibold">{selecionadas.size} {selecionadas.size === 1 ? "selecionada" : "selecionadas"}</span>
+              {([
+                { label: "Marcar como lida", icon: MailOpen, fn: acaoLida },
+                { label: "Marcar como não lida", icon: Mail, fn: acaoNaoLida },
+                emArquivadas
+                  ? { label: "Desarquivar", icon: ArchiveRestore, fn: acaoArquivar }
+                  : { label: "Arquivar", icon: Archive, fn: acaoArquivar },
+                todasFixadas
+                  ? { label: "Desafixar", icon: PinOff, fn: acaoFixar }
+                  : { label: "Fixar", icon: Pin, fn: acaoFixar },
+              ]).map((b) => (
+                <button
+                  key={b.label}
+                  type="button"
+                  title={b.label}
+                  aria-label={b.label}
+                  disabled={loteBusy}
+                  onClick={b.fn}
+                  className="flex h-7 w-7 items-center justify-center border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                >
+                  <b.icon className="h-3.5 w-3.5" />
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSelecionadas(new Set(filtered.map((n) => n.id)))}
+                className="ml-1 text-xs text-primary hover:underline"
+              >
+                Selecionar todas
+              </button>
+              <button
+                type="button"
+                title="Cancelar"
+                aria-label="Cancelar seleção"
+                onClick={() => setSelecionadas(new Set())}
+                className="ml-auto flex h-7 items-center gap-1 border px-2 text-xs text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-3.5 w-3.5" /> Cancelar
+              </button>
+            </div>
+          ) : (
           <div className="flex flex-wrap items-center gap-1.5">
             {CHIPS.map((c) => (
               <button
@@ -170,6 +292,7 @@ export default function Notificar() {
               </SelectContent>
             </Select>
           </div>
+          )}
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto">
           {grupos.length === 0 ? (
@@ -191,6 +314,10 @@ export default function Notificar() {
                       : 0
                   }
                   destinatarios={mostraDestinatarios(n) ? destResumo?.[n.id] : undefined}
+                  fixada={pasta !== "arquivadas" && fixadaMap.has(n.id)}
+                  marcada={selecionadas.has(n.id)}
+                  modoSelecao={selecionadas.size > 0}
+                  onToggleMarcada={() => toggleMarcada(n.id)}
                   onClick={() => setSelected(n.id)}
                 />
               ))}
@@ -202,6 +329,25 @@ export default function Notificar() {
       <div className="min-h-[70vh] overflow-hidden rounded-md border bg-card md:min-h-0">
         <NotificacaoDetail id={selected} onFechar={() => setSelected(null)} />
       </div>
+
+      <AlertDialog open={confirmArq} onOpenChange={setConfirmArq}>
+        <AlertDialogContent className="rounded-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {comoCriador.length === 1
+                ? "Arquivar 1 conversa para todos os destinatários?"
+                : `Arquivar ${comoCriador.length} conversas para todos os destinatários?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Conversas criadas por você serão arquivadas para todos. As demais selecionadas serão arquivadas só para você.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none">Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="rounded-none" onClick={() => { setConfirmArq(false); rodarArquivar(); }}>Arquivar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
