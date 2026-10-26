@@ -4,7 +4,6 @@ import { isToday, isYesterday } from "date-fns";
 import { Archive, Clock, Inbox, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -111,7 +110,7 @@ export default function Notificar() {
   const trocarPasta = (p: Pasta) => { setPasta(p); setSelected(null); };
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:h-[calc(100vh-140px)] md:grid-cols-[232px_380px_1fr]">
+    <div className="grid grid-cols-1 gap-4 md:h-[calc(100vh-140px)] md:grid-cols-[232px_380px_minmax(0,1fr)]">
       <aside className="flex flex-col gap-3 md:min-h-0">
         <div>
           <h1 className="text-lg font-bold uppercase tracking-wide">Notificar</h1>
@@ -165,7 +164,7 @@ export default function Notificar() {
             </Select>
           </div>
         </div>
-        <ScrollArea className="flex-1">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {grupos.length === 0 ? (
             <p className="p-4 text-center text-sm text-muted-foreground">Nenhuma notificação neste filtro.</p>
           ) : grupos.map((g) => (
@@ -185,7 +184,7 @@ export default function Notificar() {
               ))}
             </div>
           ))}
-        </ScrollArea>
+        </div>
       </section>
 
       <div className="min-h-[70vh] overflow-hidden rounded-md border bg-card md:min-h-0">
