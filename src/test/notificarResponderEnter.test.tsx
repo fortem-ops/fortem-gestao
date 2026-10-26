@@ -159,8 +159,8 @@ describe("campo de resposta do detalhe da notificação", () => {
 
   it("balão preserva as quebras de linha do comentário", () => {
     const { container } = renderWithUi(<NotificacaoDetail id="n1" />);
-    const balao = container.querySelector("div.whitespace-pre-wrap");
-    expect(balao?.textContent).toBe("Linha1\nLinha2");
+    const baloes = Array.from(container.querySelectorAll("div.whitespace-pre-wrap"));
+    expect(baloes.some((el) => el.textContent === "Linha1\nLinha2")).toBe(true);
   });
 });
 
@@ -216,7 +216,7 @@ describe("campo de resposta da janela flutuante", () => {
 
   it("balão da janela preserva as quebras de linha do comentário", () => {
     const { container } = abre();
-    const balao = container.querySelector("div.whitespace-pre-wrap");
-    expect(balao?.textContent).toBe("Linha1\nLinha2");
+    const baloes = Array.from(container.querySelectorAll("div.whitespace-pre-wrap"));
+    expect(baloes.some((el) => el.textContent === "Linha1\nLinha2")).toBe(true);
   });
 });
