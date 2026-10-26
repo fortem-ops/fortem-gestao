@@ -172,72 +172,124 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
           <span className="text-sm font-medium text-primary">Solte para anexar</span>
         </div>
       )}
-      <div className="p-4 border-b space-y-2 shrink-0">
+      <div className="p-4 border-b space-y-3 shrink-0">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-xl font-semibold">{n.titulo}</h2>
-          <div className="flex items-center gap-2">
-            <PrioridadeBadge prioridade={n.prioridade} />
-            <StatusBadge status={n.status} />
+          <h2 className="text-xl font-semibold break-words min-w-0">{n.titulo}</h2>
+          <div className="flex items-center gap-1 shrink-0">
+            {isCriador && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => statusMut.mutate(n.status === "concluida" ? "em_andamento" : "concluida")}
+                disabled={statusMut.isPending}
+              >
+                {n.status === "concluida" ? <RotateCcw className="w-4 h-4 mr-1" /> : <Check className="w-4 h-4 mr-1" />}
+                {n.status === "concluida" ? "Reabrir" : "Concluir"}
+              </Button>
+            )}
+            {(isCriador || !!myDest) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                aria-label={estaArquivada ? "Desarquivar" : "Arquivar"}
+                title={estaArquivada ? "Desarquivar" : "Arquivar"}
+                onClick={() => arquivarMut.mutate()}
+                disabled={arquivarMut.isPending}
+              >
+                {estaArquivada ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+              </Button>
+            )}
+            {isCriador && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Mais ações">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => statusMut.mutate("em_andamento" as NotifStatus)}>Marcar como: Em andamento</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => statusMut.mutate("respondida" as NotifStatus)}>Marcar como: Respondida</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-          <CategoriaBadge categoria={n.categoria} />
-          <span>· {profileMap[n.criado_por] ?? "—"}</span>
-          <span>· {format(new Date(n.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
-          {n.prazo && <span>· Prazo: {format(new Date(n.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>}
-        </div>
-        <div className="max-h-[35vh] overflow-y-auto pr-1">
-          <p className="text-sm whitespace-pre-wrap pt-1">{descricaoNotificacaoExibicao(n.descricao)}</p>
-        </div>
-        {aluno && (
-          <div className="text-sm bg-muted/50 rounded p-2">
-            👤 Aluno vinculado: <span className="font-medium">{aluno.nome}</span>
+
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-md bg-foreground text-background flex items-center justify-center text-sm font-semibold">
+            {iniciais(profileMap[n.criado_por])}
           </div>
-        )}
-        {n.tipo === "reuniao" && n.reuniao_data && (
-          <div className="text-sm bg-muted/50 rounded p-2">
-            📅 Reunião: {format(new Date(n.reuniao_data), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-            {n.reuniao_local && <> · 📍 {n.reuniao_local}</>}
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold truncate">{profileMap[n.criado_por] ?? "—"}</div>
+            <div className="text-xs text-muted-foreground truncate">Para: {paraTexto}</div>
           </div>
-        )}
-        <div className="flex items-center gap-2 pt-2 flex-wrap">
-          <Select value={n.status} onValueChange={(v) => statusMut.mutate(v as NotifStatus)} disabled={!isCriador}>
-            <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>{NOTIF_STATUS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
-          </Select>
-          {(isCriador || !!myDest) && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => arquivarMut.mutate()}
-              disabled={arquivarMut.isPending}
-            >
-              {estaArquivada ? <ArchiveRestore className="w-3.5 h-3.5 mr-1" /> : <Archive className="w-3.5 h-3.5 mr-1" />}
-              {estaArquivada ? "Desarquivar" : "Arquivar"}
-            </Button>
+          <div className="text-xs text-muted-foreground shrink-0">
+            {format(new Date(n.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap text-xs">
+          <PrioridadeSelo prioridade={n.prioridade} />
+          {n.categoria && (
+            <span className="rounded-sm border px-1.5 py-px text-muted-foreground">
+              {NOTIF_CATEGORIAS.find((c) => c.value === n.categoria)?.label ?? n.categoria}
+            </span>
           )}
-          <span className="text-xs text-muted-foreground">{data.dests.length} destinatário(s) · {data.dests.filter((d: any) => d.visualizado_em).length} visualizou</span>
+          {n.prazo && (
+            <span className="text-muted-foreground">Prazo: {format(new Date(n.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+          )}
+          {aluno && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <User className="w-3.5 h-3.5" /> Aluno: <span className="text-foreground">{aluno.nome}</span>
+            </span>
+          )}
+          {n.tipo === "reuniao" && n.reuniao_data && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <Calendar className="w-3.5 h-3.5" /> {format(new Date(n.reuniao_data), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+              {n.reuniao_local && <><MapPin className="w-3.5 h-3.5 ml-1" /> {n.reuniao_local}</>}
+            </span>
+          )}
+          {STATUS_VISIVEL[n.status] && (
+            <span className="rounded-sm bg-muted px-1.5 py-px text-muted-foreground">{STATUS_VISIVEL[n.status]}</span>
+          )}
+          <span className="ml-auto flex items-center gap-3 text-muted-foreground">
+            <span>{data.dests.filter((d: any) => d.visualizado_em).length} visualizaram</span>
+            <Button variant="link" size="sm" className="h-9 px-0 text-xs" onClick={() => setAtividadeOpen(true)}>
+              Ver atividade
+            </Button>
+          </span>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0 p-4">
+      <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto p-4">
         <div className="space-y-3">
-          {data.coments.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">Sem comentários ainda.</p>
-          )}
-          {data.coments.map((c: any) => (
-            <CommentBubble key={c.id} c={c} mine={c.usuario_id === user?.id} authorName={profileMap[c.usuario_id]} />
-          ))}
-          <Separator className="my-4" />
-          <div className="text-xs text-muted-foreground">Histórico</div>
-          {data.hist.map((h: any) => (
-            <div key={h.id} className="text-xs text-muted-foreground">
-              · {h.acao.replace("_", " ")} {h.usuario_id ? `por ${profileMap[h.usuario_id] ?? "—"}` : ""} em {format(new Date(h.created_at), "dd/MM HH:mm", { locale: ptBR })}
-            </div>
-          ))}
+          <DiaSeparador data={n.created_at} />
+          <div className="border rounded-md p-4">
+            <p className="text-sm whitespace-pre-wrap">{descricaoNotificacaoExibicao(n.descricao)}</p>
+            <div className="text-xs text-muted-foreground mt-2">{format(new Date(n.created_at), "HH:mm", { locale: ptBR })}</div>
+          </div>
+          {data.coments.map((c: any, i: number) => {
+            const anterior = i === 0 ? n.created_at : data.coments[i - 1].created_at;
+            const mudouDia = !isSameDay(new Date(anterior), new Date(c.created_at));
+            return (
+              <div key={c.id} className="space-y-3">
+                {mudouDia && <DiaSeparador data={c.created_at} />}
+                <CommentBubble c={c} mine={c.usuario_id === user?.id} authorName={profileMap[c.usuario_id]} />
+              </div>
+            );
+          })}
         </div>
-      </ScrollArea>
+      </div>
+
+      <NotificacaoAtividade
+        open={atividadeOpen}
+        onOpenChange={setAtividadeOpen}
+        hist={data.hist}
+        dests={data.dests}
+        profileMap={profileMap}
+      />
 
       <div className="p-3 border-t space-y-2 shrink-0">
         {file && (
