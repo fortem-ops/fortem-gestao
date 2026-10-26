@@ -95,8 +95,12 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
   useEffect(() => {
     const el = taRef.current;
     if (!el) return;
+    const ph = el.placeholder;
+    el.placeholder = ""; // o placeholder infla a altura medida quando o campo está vazio
     el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const h = el.scrollHeight;
+    el.placeholder = ph;
+    el.style.height = `${h}px`;
   }, [comentario]);
 
   const handlePaste = (e: React.ClipboardEvent) => {
