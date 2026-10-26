@@ -6,6 +6,14 @@ export function PrioridadeBadge({ prioridade }: { prioridade: string }) {
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${p?.className ?? ""}`}>{p?.label ?? prioridade}</span>;
 }
 
+export function PrioridadeSelo({ prioridade }: { prioridade: string }) {
+  if (prioridade === "urgente")
+    return <span className="shrink-0 rounded-sm bg-foreground px-1.5 py-px text-[10px] font-bold tracking-wide text-background">URGENTE</span>;
+  if (prioridade === "alta")
+    return <span className="shrink-0 rounded-sm border border-foreground/60 px-1.5 py-px text-[10px] font-bold tracking-wide text-foreground">ALTA</span>;
+  return null;
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const s = NOTIF_STATUS.find((x) => x.value === status);
   return <Badge variant="outline" className="text-xs">{s?.label ?? status}</Badge>;

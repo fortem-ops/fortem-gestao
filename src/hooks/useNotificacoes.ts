@@ -134,6 +134,36 @@ export function useNotificacaoRealtime() {
   }, [user, qc]);
 }
 
+export interface ComentarioResumo {
+  total: number;
+  temAnexo: boolean;
+  autores: string[];
+}
+
+export function useComentariosResumo(ids: string[]) {
+  const sorted = [...ids].sort();
+  return useQuery({
+    queryKey: ["notif", "coment-resumo", sorted],
+    queryFn: async () => {
+      const map: Record<string, ComentarioResumo> = {};
+      if (sorted.length === 0) return map;
+      const { data, error } = await supabase
+        .from("notificacao_comentarios")
+        .select("notificacao_id,usuario_id,anexo_url")
+        .in("notificacao_id", sorted);
+      if (error) throw error;
+      (data ?? []).forEach((c) => {
+        const r = (map[c.notificacao_id] ??= { total: 0, temAnexo: false, autores: [] });
+        r.total += 1;
+        if (c.anexo_url) r.temAnexo = true;
+        if (!r.autores.includes(c.usuario_id)) r.autores.push(c.usuario_id);
+      });
+      return map;
+    },
+    enabled: sorted.length > 0,
+  });
+}
+
 export function useNotificacaoDetail(id: string | null) {
   return useQuery({
     queryKey: ["notif", "detail", id],

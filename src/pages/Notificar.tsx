@@ -1,120 +1,189 @@
-import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { isToday, isYesterday } from "date-fns";
+import { Archive, Clock, Inbox, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { useNotificacoesRecebidas, useNotificacoesEnviadas, useNotificacaoRealtime } from "@/hooks/useNotificacoes";
+import { cn } from "@/lib/utils";
+import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
+import {
+  useNotificacoesRecebidas, useNotificacoesEnviadas, useNotificacaoRealtime, useComentariosResumo,
+  type NotificacaoListItem as Item,
+} from "@/hooks/useNotificacoes";
 import { NewNotificacaoDialog } from "@/components/notificar/NewNotificacaoDialog";
 import { NotificacaoDetail } from "@/components/notificar/NotificacaoDetail";
-import { CategoriaBadge, PrioridadeBadge, StatusBadge } from "@/components/notificar/NotificacaoBadge";
-import { NOTIF_CATEGORIAS, NOTIF_PRIORIDADES } from "@/lib/notificar";
+import { NotificacaoListItem } from "@/components/notificar/NotificacaoListItem";
+import { NOTIF_CATEGORIAS } from "@/lib/notificar";
+
+type Pasta = "entrada" | "enviadas" | "aguardando" | "arquivadas";
+type Chip = "todas" | "nao_lidas" | "alta" | "prazo";
+
+const CHIPS: { value: Chip; label: string }[] = [
+  { value: "todas", label: "Todas" },
+  { value: "nao_lidas", label: "Não lidas" },
+  { value: "alta", label: "Alta prioridade" },
+  { value: "prazo", label: "Com prazo" },
+];
+
+const globalArq = (n: Item) => n.status === "arquivada" || n.status === "concluida";
 
 export default function Notificar() {
   useNotificacaoRealtime();
-  const [tab, setTab] = useState<"recebidas" | "enviadas" | "arquivadas">("recebidas");
+  const { user } = useAuth();
+  const [pasta, setPasta] = useState<Pasta>("entrada");
   const [selected, setSelected] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [filterPrio, setFilterPrio] = useState<string>("todas");
-  const [filterCat, setFilterCat] = useState<string>("todas");
+  const [chip, setChip] = useState<Chip>("todas");
+  const [filterCat, setFilterCat] = useState("todas");
 
-  const recebidas = useNotificacoesRecebidas();
-  const enviadas = useNotificacoesEnviadas();
+  const recebidas = useNotificacoesRecebidas().data ?? [];
+  const enviadas = useNotificacoesEnviadas().data ?? [];
 
-  const all = tab === "enviadas" ? enviadas.data ?? [] : recebidas.data ?? [];
+  const { data: profileMap = {} } = useQuery({
+    queryKey: ["profiles-map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id,full_name");
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((p) => { map[p.user_id] = p.full_name; });
+      return map;
+    },
+  });
+
+  const allIds = useMemo(
+    () => Array.from(new Set([...recebidas, ...enviadas].map((n) => n.id))),
+    [recebidas, enviadas],
+  );
+  const { data: resumo = {} } = useComentariosResumo(allIds);
+
+  const pastas = useMemo(() => {
+    const entrada = recebidas.filter((n) => !globalArq(n) && n.dest_status !== "arquivada");
+    const env = enviadas.filter((n) => !globalArq(n));
+    const aguardando = env.filter((n) => !(resumo[n.id]?.autores ?? []).some((a) => a !== user?.id));
+    const arqMap = new Map<string, Item>();
+    recebidas.filter((n) => globalArq(n) || n.dest_status === "arquivada").forEach((n) => arqMap.set(n.id, n));
+    enviadas.filter(globalArq).forEach((n) => { if (!arqMap.has(n.id)) arqMap.set(n.id, n); });
+    const arquivadas = [...arqMap.values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return { entrada, enviadas: env, aguardando, arquivadas };
+  }, [recebidas, enviadas, resumo, user?.id]);
+
+  const isUnread = (n: Item) => n.visualizado_em === null;
+  const naoLidas = pastas.entrada.filter(isUnread).length;
+  const nomeRemetente = (n: Item) => profileMap[n.criado_por] ?? "—";
+
   const filtered = useMemo(() => {
-    return all.filter((n) => {
-      const globalArquivada = n.status === "arquivada" || n.status === "concluida";
-      const destArquivada = n.dest_status === "arquivada";
-      const isArquivada = tab === "enviadas" ? globalArquivada : (globalArquivada || destArquivada);
-      if (tab === "arquivadas" && !isArquivada) return false;
-      if (tab !== "arquivadas" && isArquivada) return false;
-      if (search && !n.titulo.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterPrio !== "todas" && n.prioridade !== filterPrio) return false;
+    const q = search.trim().toLowerCase();
+    return pastas[pasta].filter((n) => {
+      if (q) {
+        const hay = `${n.titulo} ${descricaoNotificacaoExibicao(n.descricao)} ${profileMap[n.criado_por] ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (chip === "nao_lidas" && !isUnread(n)) return false;
+      if (chip === "alta" && n.prioridade !== "alta" && n.prioridade !== "urgente") return false;
+      if (chip === "prazo" && !n.prazo) return false;
       if (filterCat !== "todas" && n.categoria !== filterCat) return false;
       return true;
     });
-  }, [all, tab, search, filterPrio, filterCat]);
+  }, [pastas, pasta, search, chip, filterCat, profileMap]);
+
+  const grupos = useMemo(() => {
+    const g: { label: string; items: Item[] }[] = [
+      { label: "HOJE", items: [] }, { label: "ONTEM", items: [] }, { label: "ANTERIORES", items: [] },
+    ];
+    filtered.forEach((n) => {
+      const d = new Date(n.created_at);
+      g[isToday(d) ? 0 : isYesterday(d) ? 1 : 2].items.push(n);
+    });
+    return g.filter((x) => x.items.length);
+  }, [filtered]);
+
+  const PASTAS: { value: Pasta; label: string; icon: typeof Inbox; count?: number }[] = [
+    { value: "entrada", label: "Caixa de entrada", icon: Inbox, count: naoLidas },
+    { value: "enviadas", label: "Enviadas", icon: Send },
+    { value: "aguardando", label: "Aguardando resposta", icon: Clock, count: pastas.aguardando.length },
+    { value: "arquivadas", label: "Arquivadas", icon: Archive },
+  ];
+
+  const trocarPasta = (p: Pasta) => { setPasta(p); setSelected(null); };
 
   return (
-    <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Bell className="h-6 w-6 text-primary shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold">Notificar</h1>
-            <p className="text-sm text-muted-foreground">Comunicação interna entre profissionais</p>
+    <div className="grid grid-cols-1 gap-4 md:h-[calc(100vh-140px)] md:grid-cols-[232px_380px_1fr]">
+      <aside className="flex flex-col gap-3 md:min-h-0">
+        <NewNotificacaoDialog />
+        <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+          {PASTAS.map((p) => {
+            const ativo = pasta === p.value;
+            return (
+              <button
+                key={p.value}
+                onClick={() => trocarPasta(p.value)}
+                className={cn(
+                  "relative flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted/60",
+                  ativo ? "bg-muted font-semibold text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {ativo && <span className="absolute inset-y-1 left-0 hidden w-[3px] rounded-full bg-primary md:block" />}
+                <p.icon className="h-4 w-4" />
+                <span className="whitespace-nowrap">{p.label}</span>
+                {!!p.count && <span className="ml-auto pl-2 text-xs font-semibold text-primary">{p.count}</span>}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <section className="flex min-h-[50vh] flex-col rounded-md border bg-card md:min-h-0">
+        <div className="space-y-2 border-b p-3">
+          <Input placeholder="Buscar por assunto, texto ou remetente..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-1.5">
+            {CHIPS.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setChip(c.value)}
+                className={cn(
+                  "rounded-md border px-2 py-0.5 text-xs transition-colors",
+                  chip === c.value ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+            <Select value={filterCat} onValueChange={setFilterCat}>
+              <SelectTrigger className="ml-auto h-7 w-[120px] text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Categorias</SelectItem>
+                {NOTIF_CATEGORIAS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <NewNotificacaoDialog />
-      </header>
-
-      <Tabs value={tab} onValueChange={(v) => { setTab(v as any); setSelected(null); }}>
-        <TabsList>
-          <TabsTrigger value="recebidas">Recebidas</TabsTrigger>
-          <TabsTrigger value="enviadas">Enviadas</TabsTrigger>
-          <TabsTrigger value="arquivadas">Arquivadas</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={tab}>
-          <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 md:h-[calc(100vh-260px)]">
-            <div className="border rounded-lg flex flex-col bg-card">
-              <div className="p-3 space-y-2 border-b">
-                <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
-                <div className="grid grid-cols-2 gap-2">
-                  <Select value={filterPrio} onValueChange={setFilterPrio}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Prioridade" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todas">Todas prioridades</SelectItem>
-                      {NOTIF_PRIORIDADES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filterCat} onValueChange={setFilterCat}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todas">Todas categorias</SelectItem>
-                      {NOTIF_CATEGORIAS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <ScrollArea className="flex-1">
-                {filtered.length === 0 ? (
-                  <p className="p-4 text-sm text-muted-foreground text-center">Nenhuma notificação.</p>
-                ) : filtered.map((n) => {
-                  const unread = tab === "recebidas" && !n.visualizado_em;
-                  return (
-                    <button
-                      key={n.id}
-                      onClick={() => setSelected(n.id)}
-                      className={`w-full text-left p-3 border-b hover:bg-accent/50 transition ${selected === n.id ? "bg-accent" : ""} ${unread ? "border-l-2 border-l-primary" : ""}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className={`text-sm line-clamp-1 ${unread ? "font-semibold" : ""}`}>{n.titulo}</span>
-                        <PrioridadeBadge prioridade={n.prioridade} />
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{descricaoNotificacaoExibicao(n.descricao)}</p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <CategoriaBadge categoria={n.categoria} />
-                        <StatusBadge status={n.status} />
-                        <span className="text-[10px] text-muted-foreground ml-auto">
-                          {format(new Date(n.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </ScrollArea>
+        <ScrollArea className="flex-1">
+          {grupos.length === 0 ? (
+            <p className="p-4 text-center text-sm text-muted-foreground">Nenhuma notificação neste filtro.</p>
+          ) : grupos.map((g) => (
+            <div key={g.label}>
+              <div className="border-b bg-background/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{g.label}</div>
+              {g.items.map((n) => (
+                <NotificacaoListItem
+                  key={n.id}
+                  n={n}
+                  remetente={nomeRemetente(n)}
+                  unread={isUnread(n)}
+                  selected={selected === n.id}
+                  resumo={resumo[n.id]}
+                  onClick={() => setSelected(n.id)}
+                />
+              ))}
             </div>
-            <div className="border rounded-lg bg-card overflow-hidden min-h-[70vh] md:min-h-0">
-              <NotificacaoDetail id={selected} />
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          ))}
+        </ScrollArea>
+      </section>
+
+      <div className="min-h-[70vh] overflow-hidden rounded-md border bg-card md:min-h-0">
+        <NotificacaoDetail id={selected} />
+      </div>
     </div>
   );
 }
