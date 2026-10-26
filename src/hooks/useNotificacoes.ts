@@ -20,6 +20,8 @@ export interface NotificacaoListItem {
   created_at: string;
   // joined
   visualizado_em?: string | null;
+  ultima_leitura_em?: string | null;
+  fixada_em?: string | null;
   dest_status?: string;
   criador_nome?: string;
 }
@@ -32,7 +34,7 @@ export function useNotificacoesRecebidas() {
       if (!user) return [];
       const { data, error } = await supabase
         .from("notificacao_destinatarios")
-        .select("visualizado_em,status,notificacoes(*)")
+        .select("visualizado_em,ultima_leitura_em,fixada_em,status,notificacoes(*)")
         .eq("usuario_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -41,6 +43,8 @@ export function useNotificacoesRecebidas() {
         .map((r: any) => ({
           ...(r.notificacoes as any),
           visualizado_em: r.visualizado_em,
+          ultima_leitura_em: r.ultima_leitura_em,
+          fixada_em: r.fixada_em,
           dest_status: r.status,
         })) as NotificacaoListItem[];
       return rows;
