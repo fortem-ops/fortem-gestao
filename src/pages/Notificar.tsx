@@ -110,7 +110,7 @@ export default function Notificar() {
 
   const trocarPasta = (p: Pasta) => { setPasta(p); setSelected(null); };
 
-  const mostraDestinatarios = (n: NotificacaoListItem) =>
+  const mostraDestinatarios = (n: Item) =>
     n.criado_por === user?.id &&
     (pasta === "enviadas" ||
       pasta === "aguardando" ||
