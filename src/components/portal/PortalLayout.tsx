@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +26,14 @@ export function PortalLayout() {
   const itensNav = filtrarNavPortal(navItems, somenteOnline);
   const navigate = useNavigate();
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe } = usePushNotifications();
+
+  // Diálogos, sheets e toasts montam em document.body (fora do wrapper):
+  // aplica o tema do portal ao body enquanto o portal estiver aberto.
+  useEffect(() => {
+    document.body.setAttribute("data-portal", "true");
+    return () => document.body.removeAttribute("data-portal");
+  }, []);
+
 
   if (loading) {
     return (
@@ -87,6 +96,8 @@ export function PortalLayout() {
               size="icon"
               onClick={() => signOut().then(() => navigate("/portal/login"))}
               title="Sair"
+              aria-label="Sair"
+              className="text-foreground"
             >
               <LogOut className="w-4 h-4" />
             </Button>
