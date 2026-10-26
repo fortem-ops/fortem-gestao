@@ -107,7 +107,6 @@ function PixPagamento({ r, onAtualizar }: { r: Resultado; onAtualizar: (r: Resul
 export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: () => void }) {
   const [titular, setTitular] = useState<Pessoa>(vazio());
   const [whatsapp, setWhatsapp] = useState("");
-  const [email, setEmail] = useState("");
   const [vinculo, setVinculo] = useState<Vinculo | "">("");
   const [acomp, setAcomp] = useState<Pessoa[]>([]);
   const [voucher, setVoucher] = useState("");
@@ -163,7 +162,6 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
     const err: Record<string, string> = {};
     if (titular.nome.trim().length < 3) err.nome = "Informe seu nome completo.";
     if (!whatsappValido(whatsapp)) err.whatsapp = "Informe um celular com DDD, por exemplo (51) 99999-9999.";
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) err.email = "Informe um e-mail válido.";
     if (!vinculo) err.vinculo = "Selecione seu vínculo com a FORTEM.";
     acomp.forEach((a, i) => { if (a.nome.trim().length < 2) err[`a${i}`] = "Informe o nome do acompanhante."; });
     setErros(err);
@@ -173,7 +171,7 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
     try {
       const d = await chamar({
         acao: "confirmar",
-        nome: titular.nome.trim(), whatsapp: whatsapp.replace(/\D/g, ""), email: email.trim(), vinculo,
+        nome: titular.nome.trim(), whatsapp: whatsapp.replace(/\D/g, ""), vinculo,
         consumo: titular.consumo, intolerancias: titular.intolerancias,
         acompanhantes: acomp.map((a) => ({ nome: a.nome.trim(), consumo: a.consumo, intolerancias: a.intolerancias })),
         voucher: voucherOk ?? "",
@@ -189,21 +187,17 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
 
   return (
     <form onSubmit={enviar} noValidate className="space-y-7">
+      <p className="text-sm text-[#b1b3b3]">Preencha os dados <strong className="font-bold text-white">somente de adultos</strong>. Crianças são isentas e não precisam ser cadastradas.</p>
       <div>
         <label htmlFor="festa-nome" className="text-sm font-medium">Nome completo <span aria-hidden>*</span></label>
         <Input id="festa-nome" autoComplete="name" maxLength={120} value={titular.nome} onChange={(e) => setTitular({ ...titular, nome: e.target.value })} aria-invalid={!!erros.nome} className="mt-2 h-12" />
         {erros.nome && <p className="mt-1.5 text-sm text-destructive" role="alert">{erros.nome}</p>}
       </div>
-      <div className="grid gap-7 sm:grid-cols-2">
+      <div>
         <div>
           <label htmlFor="festa-whatsapp" className="text-sm font-medium">WhatsApp <span aria-hidden>*</span></label>
           <Input id="festa-whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="(51) 99999-9999" maxLength={15} value={whatsapp} onChange={(e) => setWhatsapp(maskWhatsApp(e.target.value))} aria-invalid={!!erros.whatsapp} className="mt-2 h-12" />
           {erros.whatsapp && <p className="mt-1.5 text-sm text-destructive" role="alert">{erros.whatsapp}</p>}
-        </div>
-        <div>
-          <label htmlFor="festa-email" className="text-sm font-medium">E-mail <span className="text-muted-foreground">(opcional)</span></label>
-          <Input id="festa-email" type="email" autoComplete="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!erros.email} className="mt-2 h-12" />
-          {erros.email && <p className="mt-1.5 text-sm text-destructive" role="alert">{erros.email}</p>}
         </div>
       </div>
       <fieldset>
@@ -226,6 +220,8 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
           <p className="text-sm font-medium">Acompanhantes</p>
           <p className="text-sm text-muted-foreground" aria-live="polite">{n} de {lim} acompanhantes</p>
         </div>
+        <p className="text-sm text-[#b1b3b3]">Preencha os dados <strong className="font-bold text-white">somente de adultos</strong>. Crianças são isentas e não precisam ser cadastradas.</p>
+        <p className="text-sm text-[#b1b3b3]">Até {lim} acompanhantes adultos, cada um com seus próprios dados. Valor de {brlCentavos(cfg.valores.pessoaCentavos)} por adulto.</p>
         {acomp.map((a, i) => (
           <div key={i} className="space-y-5 border border-border p-5">
             <div className="flex items-end gap-2">
