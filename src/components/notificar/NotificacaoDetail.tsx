@@ -175,7 +175,8 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
   const totalComents = data?.coments?.length ?? 0;
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    el.scrollTop = totalComents > 0 ? el.scrollHeight : 0;
   }, [id, totalComents, !!data?.notif]);
 
   const paraTexto = useMemo(() => {
@@ -386,7 +387,7 @@ function CommentBubble({ c, mine, authorName }: { c: any; mine: boolean; authorN
 
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+      <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "bg-foreground text-background" : "bg-muted"}`}>
         {!mine && <div className="text-xs font-semibold opacity-80 mb-0.5">{authorName ?? "—"}</div>}
         {hasText && <div className="whitespace-pre-wrap">{c.comentario}</div>}
         {url && isImage && (
@@ -395,8 +396,8 @@ function CommentBubble({ c, mine, authorName }: { c: any; mine: boolean; authorN
           </a>
         )}
         {url && !isImage && (
-          <a href={url} target="_blank" rel="noreferrer" className="text-xs underline block mt-1">
-            📎 {c.anexo_nome ?? "Anexo"}
+          <a href={url} target="_blank" rel="noreferrer" className="text-xs underline mt-1 inline-flex items-center gap-1">
+            <Paperclip className="w-3 h-3" /> {c.anexo_nome ?? "Anexo"}
           </a>
         )}
         <div className="text-[10px] opacity-70 mt-1">{format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}</div>
