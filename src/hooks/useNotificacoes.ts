@@ -143,25 +143,36 @@ export interface ComentarioResumo {
   total: number;
   temAnexo: boolean;
   autores: string[];
+  /** created_at (ordem crescente) dos comentários de outros usuários */
+  outrosCreatedAt: string[];
 }
 
-export function useComentariosResumo(ids: string[]) {
+/** Conta comentários de outros usuários feitos depois de `desde`. */
+export function contarNovasDepois(resumo: ComentarioResumo | undefined, desde: string | null | undefined): number {
+  if (!resumo || !desde) return 0;
+  const t = new Date(desde).getTime();
+  return resumo.outrosCreatedAt.filter((c) => new Date(c).getTime() > t).length;
+}
+
+export function useComentariosResumo(ids: string[], userId?: string) {
   const sorted = [...ids].sort();
   return useQuery({
-    queryKey: ["notif", "coment-resumo", sorted],
+    queryKey: ["notif", "coment-resumo", sorted, userId],
     queryFn: async () => {
       const map: Record<string, ComentarioResumo> = {};
       if (sorted.length === 0) return map;
       const { data, error } = await supabase
         .from("notificacao_comentarios")
-        .select("notificacao_id,usuario_id,anexo_url")
-        .in("notificacao_id", sorted);
+        .select("notificacao_id,usuario_id,anexo_url,created_at")
+        .in("notificacao_id", sorted)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       (data ?? []).forEach((c) => {
-        const r = (map[c.notificacao_id] ??= { total: 0, temAnexo: false, autores: [] });
+        const r = (map[c.notificacao_id] ??= { total: 0, temAnexo: false, autores: [], outrosCreatedAt: [] });
         r.total += 1;
         if (c.anexo_url) r.temAnexo = true;
         if (!r.autores.includes(c.usuario_id)) r.autores.push(c.usuario_id);
+        if (c.usuario_id !== userId) r.outrosCreatedAt.push(c.created_at);
       });
       return map;
     },

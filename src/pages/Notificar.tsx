@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
 import {
-  useNotificacoesRecebidas, useNotificacoesEnviadas, useNotificacaoRealtime, useComentariosResumo, useDestinatariosResumo,
+  useNotificacoesRecebidas, useNotificacoesEnviadas, useNotificacaoRealtime, useComentariosResumo, useDestinatariosResumo, contarNovasDepois,
   type NotificacaoListItem as Item,
 } from "@/hooks/useNotificacoes";
 import { NewNotificacaoDialog } from "@/components/notificar/NewNotificacaoDialog";
@@ -56,7 +56,7 @@ export default function Notificar() {
     [recebidas, enviadas],
   );
   const recebidasIds = useMemo(() => new Set(recebidas.map((n) => n.id)), [recebidas]);
-  const { data: resumo = {} } = useComentariosResumo(allIds);
+  const { data: resumo = {} } = useComentariosResumo(allIds, user?.id);
   const meusIds = useMemo(() => enviadas.filter((n) => n.criado_por === user?.id).map((n) => n.id), [enviadas, user?.id]);
   const { data: destResumo } = useDestinatariosResumo(meusIds);
 
@@ -185,6 +185,11 @@ export default function Notificar() {
                   unread={isUnread(n)}
                   selected={selected === n.id}
                   resumo={resumo[n.id]}
+                  novas={
+                    n.visualizado_em === null && n.ultima_leitura_em
+                      ? contarNovasDepois(resumo[n.id], n.ultima_leitura_em)
+                      : 0
+                  }
                   destinatarios={mostraDestinatarios(n) ? destResumo?.[n.id] : undefined}
                   onClick={() => setSelected(n.id)}
                 />
@@ -195,7 +200,7 @@ export default function Notificar() {
       </section>
 
       <div className="min-h-[70vh] overflow-hidden rounded-md border bg-card md:min-h-0">
-        <NotificacaoDetail id={selected} />
+        <NotificacaoDetail id={selected} onFechar={() => setSelected(null)} />
       </div>
     </div>
   );
