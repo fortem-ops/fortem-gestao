@@ -163,10 +163,9 @@ export default function Notificar() {
     avisarIgnoradas();
   };
   const rodarArquivar = () => {
-    const dest = comoDestinatario.filter((id) => !comoCriador.includes(id));
-    const total = new Set([...dest, ...comoCriador]).size;
+    const total = new Set([...comoDestinatario, ...comoCriador]).size;
     const verbo = emArquivadas ? (total === 1 ? "desarquivada" : "desarquivadas") : (total === 1 ? "arquivada" : "arquivadas");
-    executarLote(() => loteArquivar(dest, comoCriador, !emArquivadas), `${plural(total)} ${verbo}`, true);
+    executarLote(() => loteArquivar(comoDestinatario, comoCriador, !emArquivadas), `${plural(total)} ${verbo}`, true);
   };
   const acaoArquivar = () => {
     if (!emArquivadas && comoCriador.length > 0) { setConfirmArq(true); return; }
