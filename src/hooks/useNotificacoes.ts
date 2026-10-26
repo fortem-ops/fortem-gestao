@@ -164,6 +164,25 @@ export function useComentariosResumo(ids: string[]) {
   });
 }
 
+export function useDestinatariosResumo(ids: string[]) {
+  const sorted = [...ids].sort();
+  return useQuery({
+    queryKey: ["notif", "dest-resumo", sorted],
+    queryFn: async () => {
+      const map: Record<string, number> = {};
+      if (sorted.length === 0) return map;
+      const { data, error } = await supabase
+        .from("notificacao_destinatarios")
+        .select("notificacao_id")
+        .in("notificacao_id", sorted);
+      if (error) throw error;
+      (data ?? []).forEach((d) => { map[d.notificacao_id] = (map[d.notificacao_id] ?? 0) + 1; });
+      return map;
+    },
+    enabled: sorted.length > 0,
+  });
+}
+
 export function useNotificacaoDetail(id: string | null) {
   return useQuery({
     queryKey: ["notif", "detail", id],
