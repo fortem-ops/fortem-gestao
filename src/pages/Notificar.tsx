@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
 import {
-  useNotificacoesRecebidas, useNotificacoesEnviadas, useNotificacaoRealtime, useComentariosResumo,
+  useNotificacoesRecebidas, useNotificacoesEnviadas, useNotificacaoRealtime, useComentariosResumo, useDestinatariosResumo,
   type NotificacaoListItem as Item,
 } from "@/hooks/useNotificacoes";
 import { NewNotificacaoDialog } from "@/components/notificar/NewNotificacaoDialog";
@@ -57,6 +57,8 @@ export default function Notificar() {
     [recebidas, enviadas],
   );
   const { data: resumo = {} } = useComentariosResumo(allIds);
+  const meusIds = useMemo(() => enviadas.filter((n) => n.criado_por === user?.id).map((n) => n.id), [enviadas, user?.id]);
+  const { data: destResumo } = useDestinatariosResumo(meusIds);
 
   const pastas = useMemo(() => {
     const entrada = recebidas.filter((n) => !globalArq(n) && n.dest_status !== "arquivada");
@@ -111,6 +113,10 @@ export default function Notificar() {
   return (
     <div className="grid grid-cols-1 gap-4 md:h-[calc(100vh-140px)] md:grid-cols-[232px_380px_1fr]">
       <aside className="flex flex-col gap-3 md:min-h-0">
+        <div>
+          <h1 className="text-lg font-bold uppercase tracking-wide">Notificar</h1>
+          <p className="text-xs text-muted-foreground">Comunicação interna entre profissionais</p>
+        </div>
         <NewNotificacaoDialog />
         <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
           {PASTAS.map((p) => {
@@ -173,6 +179,7 @@ export default function Notificar() {
                   unread={isUnread(n)}
                   selected={selected === n.id}
                   resumo={resumo[n.id]}
+                  destinatarios={n.criado_por === user?.id ? destResumo?.[n.id] : undefined}
                   onClick={() => setSelected(n.id)}
                 />
               ))}
