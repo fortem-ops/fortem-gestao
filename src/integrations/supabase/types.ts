@@ -5803,27 +5803,33 @@ export type Database = {
         Row: {
           assinatura_digital: string | null
           created_at: string
+          fixada_em: string | null
           id: string
           notificacao_id: string
           status: Database["public"]["Enums"]["notif_dest_status"]
+          ultima_leitura_em: string | null
           usuario_id: string
           visualizado_em: string | null
         }
         Insert: {
           assinatura_digital?: string | null
           created_at?: string
+          fixada_em?: string | null
           id?: string
           notificacao_id: string
           status?: Database["public"]["Enums"]["notif_dest_status"]
+          ultima_leitura_em?: string | null
           usuario_id: string
           visualizado_em?: string | null
         }
         Update: {
           assinatura_digital?: string | null
           created_at?: string
+          fixada_em?: string | null
           id?: string
           notificacao_id?: string
           status?: Database["public"]["Enums"]["notif_dest_status"]
+          ultima_leitura_em?: string | null
           usuario_id?: string
           visualizado_em?: string | null
         }
