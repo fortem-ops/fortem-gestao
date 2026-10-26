@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Paperclip, Send, X, Archive, ArchiveRestore, Check, RotateCcw, MoreHorizontal, User, Calendar, MapPin, Mail } from "lucide-react";
+import { Paperclip, Send, X, Archive, ArchiveRestore, Check, RotateCcw, MoreHorizontal, User, Calendar, MapPin, Mail, Pin, PinOff } from "lucide-react";
 import { toast } from "sonner";
 import { format, isSameDay, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -192,6 +192,23 @@ export function NotificacaoDetail({ id, onFechar }: { id: string | null; onFecha
     onError: (e: any) => toast.error(e.message ?? "Erro ao marcar como não lida"),
   });
 
+  const fixarMut = useMutation({
+    mutationFn: async () => {
+      if (!id || !user || !myDest) return;
+      const { error } = await supabase
+        .from("notificacao_destinatarios")
+        .update({ fixada_em: myDest.fixada_em ? null : new Date().toISOString() })
+        .eq("notificacao_id", id)
+        .eq("usuario_id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notif"] });
+      toast.success(myDest?.fixada_em ? "Conversa desafixada" : "Conversa fixada");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao fixar"),
+  });
+
   const [atividadeOpen, setAtividadeOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const novasRef = useRef<HTMLDivElement>(null);
@@ -293,6 +310,19 @@ export function NotificacaoDetail({ id, onFechar }: { id: string | null; onFecha
                 disabled={naoLidaMut.isPending}
               >
                 <Mail className="w-4 h-4" />
+              </Button>
+            )}
+            {!!myDest && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                aria-label={myDest.fixada_em ? "Desafixar" : "Fixar no topo"}
+                title={myDest.fixada_em ? "Desafixar" : "Fixar no topo"}
+                onClick={() => fixarMut.mutate()}
+                disabled={fixarMut.isPending}
+              >
+                {myDest.fixada_em ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
               </Button>
             )}
             {(isCriador || !!myDest) && (
