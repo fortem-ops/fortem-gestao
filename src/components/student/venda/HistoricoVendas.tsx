@@ -528,7 +528,13 @@ export function HistoricoVendas({ alunoId }: Props) {
           onOpenChange={(o) => !o && setCobrandoVenda(null)}
           vendaId={cobrandoVenda.id}
           alunoId={alunoId}
-          valor={Number(cobrandoVenda.valor_final ?? cobrandoVenda.valor ?? 0)}
+          valor={
+            cobrandoVenda.origem === "manual" && cobrandoVenda.tipo_cobranca === "recorrencia"
+              ? Math.round((Number(cobrandoVenda.valor_final ?? cobrandoVenda.valor ?? 0) / Math.max(1, Number(cobrandoVenda.parcelas ?? 1))) * 100) / 100
+              : Number(cobrandoVenda.valor_final ?? cobrandoVenda.valor ?? 0)
+          }
+          recorrencia={cobrandoVenda.origem === "manual" && cobrandoVenda.tipo_cobranca === "recorrencia"}
+          parcelasTotais={Number(cobrandoVenda.parcelas ?? 12)}
           onSuccess={() => {
             qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
             setCobrandoVenda(null);
