@@ -7,7 +7,6 @@ import { ArrowDown, ArrowUp, GripVertical, Heart, ImagePlus, MessageCircle, Tras
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { festa10AnosConfig as cfg } from "@/config/festa10anos";
 import { agruparFotosPorAno, carregarFestaFotos, reduzirFoto, LINK_FIXO_SEGUNDOS, type FestaFoto } from "@/lib/festaFotos";
 import FestaAutorFotoAjuste from "@/components/festa/FestaAutorFotoAjuste";
 import FestaAudioAno from "@/components/festa/FestaAudioAno";
@@ -114,7 +113,7 @@ export default function FestaFotosAdmin() {
     <div className="space-y-4">
       <FestaAutorFotoAjuste />
       <p className="text-sm text-muted-foreground">As fotos aparecem na linha do tempo da página da festa. Anos com mais de uma foto viram slide.</p>
-      {cfg.historia.anos.map(({ ano }) => {
+      {ANOS_HISTORIA.map((ano) => {
         const lista = porAno[ano] ?? [];
         return (
           <Card key={ano} className="p-5">
@@ -163,12 +162,6 @@ export default function FestaFotosAdmin() {
           </Card>
         );
       })}
-      {ANOS_HISTORIA.filter((a) => !cfg.historia.anos.some((x) => x.ano === a)).map((ano) => (
-        <Card key={ano} className="p-5">
-          <h3 className="text-xl font-bold">{ano}</h3>
-          <FestaAudioAno ano={ano} audio={audios[ano]} />
-        </Card>
-      ))}
       <AlertDialog open={!!apagarCom} onOpenChange={(o) => !o && setApagarCom(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
