@@ -1408,6 +1408,13 @@
       "when": 1793027611004,
       "tag": "0200_notif_dest_ultima_leitura_fixada",
       "breakpoints": true
+    },
+    {
+      "idx": 201,
+      "version": "7",
+      "when": 1793103298714,
+      "tag": "0201_venda_paga_baixa_cobranca_unica",
+      "breakpoints": true
     }
   ]
 }
