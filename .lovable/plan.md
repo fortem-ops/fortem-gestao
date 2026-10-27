@@ -1,19 +1,11 @@
-# Aba "Treinos" na Central de Tarefas do Jonas
+# Corrigir erro ao cadastrar voucher da festa
 
-## O que foi conferido
-- Jonas Santos Hubner é coordenador, perfil ativo.
-- Ele tem 13 tarefas "Atualizar treino" em aberto, todas no nome dele, com vencimento de 29/10 a 28/12/2026. Nenhuma está atrasada.
-- A tela já busca essas tarefas: os filtros (só tarefas dele + alunos da carteira, sem comerciais) devolvem 260 tarefas, incluindo as 13 de treino.
-- A tela tem duas abas principais (Programadas e Atrasadas) e, dentro de cada uma, só mostra a sub-aba de um grupo quando ele tem pelo menos 1 tarefa.
+## Causa (confirmada no banco)
+Os vouchers novos dão desconto em valor por pessoa e gravam o desconto percentual como 0. Uma regra antiga da tabela exige percentual entre 1 e 100, então todo cadastro novo é recusado.
 
-## Causa provável (ainda não confirmada na tela dele)
-Como nenhuma tarefa de treino do Jonas está atrasada, a sub-aba "Treinos" aparece só em **Programadas** e some em **Atrasadas**. Se ele estiver olhando a aba Atrasadas, não vê "Treinos". A outra hipótese é a tela dele ter ficado com dados antigos carregados.
-
-## Passos
-1. Abrir a Central de Tarefas entrando como Jonas (pede sua aprovação para entrar com a conta dele) e conferir as abas Programadas e Atrasadas.
-2. Se for o caso acima: deixar as sub-abas de grupo (Treinos, Avaliações, Relatórios etc.) sempre visíveis nas duas abas, mostrando 0 e a mensagem de lista vazia quando não houver tarefas — assim "Treinos" nunca some.
-3. Se aparecer outro motivo (erro ao carregar, tarefa filtrada), corrigir esse motivo em vez do passo 2 e informar.
+## Correção
+- Ajustar essa regra para aceitar percentual de 0 a 100. Nada mais muda: o voucher Equipe10 (100%) continua igual e o limite de R$ 0,01 a R$ 75,00 por pessoa segue valendo.
+- Depois, cadastrar um voucher de teste dentro de uma transação desfeita para confirmar que passa, sem deixar registro.
 
 ## Detalhes técnicos
-- Arquivo: `src/pages/TaskCenter.tsx`, `GroupedTaskTabs`: trocar o filtro `buckets[g.id].length > 0` por mostrar todos os grupos (mantendo "Vídeos" só para coordenador/admin; "Comercial" só para admin).
-- Sem banco, sem mudar regras de quem vê quais tarefas.
+Migração: `DROP CONSTRAINT festa_vouchers_desconto_pct_check` e recriar com `CHECK (desconto_pct >= 0 AND desconto_pct <= 100)`. Sem mudar código, `fn_festa_voucher_criar` ou o cálculo do valor.
