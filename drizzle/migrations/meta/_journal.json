@@ -1422,6 +1422,13 @@
       "when": 1793104037474,
       "tag": "0202_festa_vouchers_valor",
       "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1793114001447,
+      "tag": "0203_festa_vouchers_pct_permite_zero",
+      "breakpoints": true
     }
   ]
 }
