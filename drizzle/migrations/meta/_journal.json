@@ -1415,6 +1415,13 @@
       "when": 1793103298714,
       "tag": "0201_venda_paga_baixa_cobranca_unica",
       "breakpoints": true
+    },
+    {
+      "idx": 202,
+      "version": "7",
+      "when": 1793104037474,
+      "tag": "0202_festa_vouchers_valor",
+      "breakpoints": true
     }
   ]
 }
