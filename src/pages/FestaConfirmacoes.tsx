@@ -20,6 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FestaFotosAdmin from "@/components/festa/FestaFotosAdmin";
+import FestaVouchersAdmin from "@/components/festa/FestaVouchersAdmin";
 
 const STATUS: Record<string, string> = { aguardando_pagamento: "Aguardando pagamento", confirmado: "Pago", isento: "Isento", cancelado: "Cancelado" };
 const STATUS_COR: Record<string, string> = { aguardando_pagamento: "status-warning", confirmado: "status-active", isento: "status-info", cancelado: "" };
@@ -187,8 +188,10 @@ export default function FestaConfirmacoes() {
       <TabsList>
         <TabsTrigger value="confirmacoes">Confirmações</TabsTrigger>
         <TabsTrigger value="fotos">Fotos da história</TabsTrigger>
+        <TabsTrigger value="vouchers">Voucher's</TabsTrigger>
       </TabsList>
       <TabsContent value="fotos" className="mt-4"><FestaFotosAdmin /></TabsContent>
+      <TabsContent value="vouchers" className="mt-4"><FestaVouchersAdmin /></TabsContent>
       <TabsContent value="confirmacoes" className="mt-4 space-y-6">
       {semConfirmacao.length > 0 && (
         <Card className="status-warning p-4 text-sm">

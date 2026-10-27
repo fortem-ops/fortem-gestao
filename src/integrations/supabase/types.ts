@@ -4608,8 +4608,10 @@ export type Database = {
       festa_vouchers: {
         Row: {
           ativo: boolean
+          codigo_exibicao: string | null
           codigo_hash: string
           criado_em: string
+          desconto_centavos_pessoa: number | null
           desconto_pct: number
           descricao: string | null
           id: string
@@ -4618,8 +4620,10 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          codigo_exibicao?: string | null
           codigo_hash: string
           criado_em?: string
+          desconto_centavos_pessoa?: number | null
           desconto_pct?: number
           descricao?: string | null
           id?: string
@@ -4628,8 +4632,10 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          codigo_exibicao?: string | null
           codigo_hash?: string
           criado_em?: string
+          desconto_centavos_pessoa?: number | null
           desconto_pct?: number
           descricao?: string | null
           id?: string
@@ -12429,9 +12435,25 @@ export type Database = {
       }
       fn_festa_gestao: { Args: { _uid: string }; Returns: boolean }
       fn_festa_total_confirmados: { Args: never; Returns: number }
+      fn_festa_total_desconto: {
+        Args: {
+          p_acompanhantes: number
+          p_desconto_pessoa: number
+          p_isento: boolean
+        }
+        Returns: number
+      }
       fn_festa_total_novo: {
         Args: { p_acompanhantes: number; p_isento?: boolean }
         Returns: number
+      }
+      fn_festa_voucher_criar: {
+        Args: {
+          p_codigo: string
+          p_desconto_centavos: number
+          p_descricao: string
+        }
+        Returns: string
       }
       fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }

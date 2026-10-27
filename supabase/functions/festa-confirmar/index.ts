@@ -40,9 +40,10 @@ async function limitar(sup: any, req: Request, acao: string, max: number, janela
 
 async function voucherValido(sup: any, codigo: string) {
   if (!codigo) return null;
-  const { data } = await sup.from("festa_vouchers").select("id, desconto_pct, usos, usos_max, ativo")
+  const { data } = await sup.from("festa_vouchers").select("id, desconto_pct, desconto_centavos_pessoa, usos, usos_max, ativo")
     .eq("codigo_hash", await sha256(codigo.trim().toLowerCase())).maybeSingle();
-  if (!data?.ativo || data.desconto_pct !== 100) return null;
+  if (!data?.ativo) return null;
+  if (data.desconto_pct !== 100 && !(data.desconto_centavos_pessoa > 0)) return null;
   if (data.usos_max != null && data.usos >= data.usos_max) return null;
   return data;
 }
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
     if (acao === "voucher") {
       if (!(await limitar(sup, req, "voucher", 10, 60))) return jsonResponse({ erro: "Muitas tentativas. Aguarde alguns minutos." }, 429);
       const v = await voucherValido(sup, String(body?.codigo ?? ""));
-      return jsonResponse({ valido: !!v });
+      return jsonResponse({ valido: !!v, isento: v?.desconto_pct === 100, desconto_pessoa_centavos: v && v.desconto_pct !== 100 ? v.desconto_centavos_pessoa : 0 });
     }
 
     if (acao === "status" || acao === "novo_pix") {
@@ -168,13 +169,14 @@ Deno.serve(async (req) => {
 
       const v = await voucherValido(sup, d.voucher);
       if (d.voucher && !v) return jsonResponse({ erro: "Voucher inválido." }, 400);
-      const total = totalFesta(d.acompanhantes.length, !!v);
+      const isentoV = v?.desconto_pct === 100;
+      const total = totalFesta(d.acompanhantes.length, isentoV, isentoV ? 0 : (v?.desconto_centavos_pessoa ?? 0));
       const acesso = tokenAleatorio();
       const { data: c, error } = await sup.from("festa_confirmacoes").insert({
         nome: d.nome, whatsapp, email: d.email || null, vinculo: d.vinculo,
         consumo: d.consumo, intolerancias: d.intolerancias,
         acompanhantes: d.acompanhantes.map((a) => a.nome), total_pessoas: 1 + d.acompanhantes.length,
-        status: v ? "isento" : "aguardando_pagamento", origem: "site",
+        status: total === 0 ? "isento" : "aguardando_pagamento", origem: "site",
         voucher_id: v?.id ?? null, total_centavos: total, acesso_hash: await sha256(acesso),
       }).select("*").single();
       if (error) {

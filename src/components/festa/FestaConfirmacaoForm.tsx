@@ -112,6 +112,8 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
   const [voucher, setVoucher] = useState("");
   const [voucherOk, setVoucherOk] = useState<string | null>(null);
   const [voucherMsg, setVoucherMsg] = useState("");
+  const [vIsento, setVIsento] = useState(false);
+  const [vDesc, setVDesc] = useState(0);
   const [aplicando, setAplicando] = useState(false);
   const [website, setWebsite] = useState("");
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -119,7 +121,8 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const topo = useRef<HTMLDivElement>(null);
   const aberto = confirmacoesAbertas();
-  const total = useMemo(() => calcularTotalFesta(acomp.length, !!voucherOk), [acomp.length, voucherOk]);
+  const precoPessoa = calcularTotalFesta(0, !!voucherOk && vIsento, voucherOk ? vDesc : 0);
+  const total = useMemo(() => calcularTotalFesta(acomp.length, !!voucherOk && vIsento, voucherOk ? vDesc : 0), [acomp.length, voucherOk, vIsento, vDesc]);
 
   useEffect(() => {
     if (resultado && resultado.status !== "aguardando_pagamento") onConfirmado?.();
@@ -151,8 +154,12 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
     setVoucherMsg(""); setAplicando(true);
     try {
       const d = await chamar({ acao: "voucher", codigo: voucher.trim() });
-      if (d?.valido) { setVoucherOk(voucher.trim()); setVoucherMsg("Voucher aplicado. Valores isentos para todos os inscritos."); }
-      else { setVoucherOk(null); setVoucherMsg("Voucher inválido."); }
+      if (d?.valido) {
+        const isento = !!d.isento; const desc = Number(d.desconto_pessoa_centavos) || 0;
+        setVIsento(isento); setVDesc(desc); setVoucherOk(voucher.trim());
+        setVoucherMsg(isento ? "Voucher aplicado. Valores isentos para todos os inscritos." : `Voucher aplicado. Desconto de ${brlCentavos(desc)} por pessoa.`);
+      }
+      else { setVoucherOk(null); setVIsento(false); setVDesc(0); setVoucherMsg("Voucher inválido."); }
     } catch (e) { setVoucherMsg((e as Error).message); }
     setAplicando(false);
   };
@@ -249,8 +256,8 @@ export default function FestaConfirmacaoForm({ onConfirmado }: { onConfirmado?: 
       </div>
 
       <div className="border border-border bg-card p-5 text-sm" aria-live="polite">
-        <div className="flex justify-between gap-3"><span>1 convidado</span><span>{voucherOk ? "R$ 0,00" : brlCentavos(cfg.valores.pessoaCentavos)}</span></div>
-        {n > 0 && <div className="mt-2 flex justify-between gap-3"><span>{n} {n === 1 ? "acompanhante" : "acompanhantes"} · {brlCentavos(cfg.valores.pessoaCentavos)} cada</span><span className="shrink-0">{voucherOk ? "R$ 0,00" : brlCentavos(n * cfg.valores.pessoaCentavos)}</span></div>}
+        <div className="flex justify-between gap-3"><span>1 convidado</span><span>{brlCentavos(precoPessoa)}</span></div>
+        {n > 0 && <div className="mt-2 flex justify-between gap-3"><span>{n} {n === 1 ? "acompanhante" : "acompanhantes"} · {brlCentavos(precoPessoa)} cada</span><span className="shrink-0">{brlCentavos(n * precoPessoa)}</span></div>}
         <div className="mt-4 flex justify-between border-t border-border pt-4 text-base font-bold"><span>Total</span><span>{brlCentavos(total)}</span></div>
       </div>
 
