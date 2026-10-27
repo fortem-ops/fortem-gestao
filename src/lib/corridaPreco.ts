@@ -53,8 +53,9 @@ export interface CampanhaItem {
   vagas_utilizadas?: number | null;
 }
 
-/** Valor cheio da inscrição NB 42k (referência para o "de/por"). */
-export const NB_INSCRICAO_VALOR_CHEIO = 289;
+/** Valor cheio da inscrição NB 42k, derivado do banco: a linha cortesia_nb é 50% OFF. */
+export const valorCheioNb = (item?: Pick<CampanhaItem, "valor"> | null) =>
+  item ? Number(item.valor) * 2 : null;
 
 /** O desconto de 50% na inscrição da NB está disponível? (data válida + vagas). */
 export function descontoNbDisponivel(item?: CampanhaItem | null, hoje: Date = new Date()) {
@@ -201,7 +202,7 @@ export function calcularResumoCorrida(params: ResumoParams): ResumoCorrida | nul
       linhas.push({
         label: `${prefixo}: ${c.descricao} — ${distanciaCortesia} · ${dataProva("NB", distanciaCortesia)}`,
         valor: valorDescontoNb,
-        nota: valorDescontoNb > 0 ? `de ${brl(NB_INSCRICAO_VALOR_CHEIO)} por ${brl(valorDescontoNb)}` : undefined,
+        nota: valorDescontoNb > 0 ? `de ${brl(valorCheioNb(c)!)} por ${brl(valorDescontoNb)}` : undefined,
       });
       hoje += valorDescontoNb;
     }
