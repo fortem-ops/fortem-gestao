@@ -1,38 +1,23 @@
-# Fase 2 — Notificar: detalhe estilo e-mail (somente visual)
+# Botão "Cobrar" ao lado de "Dar baixa" (mensalidade avulsa no cartão)
 
-## Arquivos
-- `src/components/notificar/NotificacaoDetail.tsx` — cabeçalho, ações, conversa.
-- novo `src/components/notificar/NotificacaoAtividade.tsx` — painel "Ver atividade" (Sheet).
-- `NotificacaoBadge.tsx` — só reaproveitar `PrioridadeSelo` (sem mudança, a menos que falte algo).
+## Situação confirmada no banco
+- Mensalidade 1/12 — Power 2x, venc. 27/10/2026, R$ 453,90, cartão recorrente, **pendente**, nenhuma tentativa ainda.
+- Venda manual 2027 (R$ 5.446,80 em 12x) criada hoje, também pendente. O aluno tem 2 cartões salvos.
+- Já existe a cobrança de um clique com cartão salvo (a mesma janela "Pagar com cartão" do Histórico de Vendas), que para o 1º ciclo de venda manual já reserva, liquida e liga pagamento, cobrança, venda e ciclo sem duplicar.
 
-Não tocados: `supabase/`, `src/lib/notificar.ts`, `NotificacaoChatWindow.tsx`, `src/pages/Notificar.tsx`, testes. Campo de resposta (Textarea, ref de altura, onKeyDown, onPaste, arrastar, placeholder, sendMut) fica byte-idêntico.
+## O que muda
+1. Na lista de cobranças do contrato (aba Contrato do aluno), em cada mensalidade em aberto, aparece **"Cobrar"** ao lado de "Dar baixa" — só para administradores.
+2. Ao clicar, abre a janela já existente de pagamento com cartão salvo (escolher cartão, confirmar). O valor vem sempre do servidor, nunca da tela.
+3. Depois de aprovada, a mensalidade fica "Pago" com o TID; se recusada, mostra o motivo e continua em aberto. Nada é cobrado duas vezes: um segundo clique cai na trava de idempotência existente.
 
-## 1. Cabeçalho (3 linhas)
-- a) `h2 text-xl font-semibold break-words` à esquerda; ações à direita.
-- b) Avatar 40px quadrado `rounded-md bg-foreground text-background` com iniciais do remetente (`profileMap[criado_por]`); nome em negrito; abaixo "Para: ..." calculado com `useMemo` a partir de `data.dests` + `profileMap`: "você" primeiro se eu for destinatário, até 3 nomes, "+N" para o resto; um só destinatário = o nome. Data `dd/MM/yyyy HH:mm` à direita.
-- c) Etiquetas: `PrioridadeSelo` só urgente/alta; categoria com `variant="outline"`; "Prazo: ..." se houver; "Aluno: Nome" (User) se houver; reunião (Calendar + data/hora, MapPin + local) quando `tipo === "reuniao"`; status discreto só para em_andamento/respondida/concluida. À direita: "N visualizaram" e botão-link "Ver atividade".
-- Removidos: StatusBadge, PrioridadeBadge, CategoriaBadge secundário, caixa de rolagem da descrição e blocos com emoji.
+## Limite desta etapa
+- O botão só aparece quando a mensalidade é o **1º ciclo de uma venda manual com cartão** (o caso de hoje), porque é o único caminho de cobrança avulsa já protegido. Para as mensalidades seguintes o botão fica oculto; cobrá-las avulsamente exige um caminho novo no servidor e plano próprio.
+- Sem alteração em banco, cron, flags, site /planos ou Pix.
 
-## 2. Ações rápidas
-- Sai o `<Select>` de status.
-- "Concluir" (outline, Check) → `statusMut("concluida")`; se já concluída vira "Reabrir" (RotateCcw) → `statusMut("em_andamento")`. Só `isCriador`.
-- Ícone Arquivar/Desarquivar (Archive/ArchiveRestore, aria-label correspondente) com `arquivarMut` e condição atual `(isCriador || myDest)`.
-- Ícone "Mais ações" (MoreHorizontal) com `DropdownMenu`: "Marcar como: Em andamento" e "Marcar como: Respondida". Só criador.
-- Botões `h-9`/`min-w-9` (≥36px).
+## Antes de cobrar de verdade
+- Conferir por leitura que o servidor calcula R$ 453,90 (1 mensalidade, não o total) para esta venda recorrente e acha esta cobrança pelo vínculo do contrato. Se não bater, paro e reporto sem cobrar.
+- A cobrança real da Mariana(o) só acontece quando você clicar; eu não disparo nenhuma cobrança.
 
-## 3. Conversa
-- `ScrollArea` → `<div ref={listRef} className="flex-1 min-h-0 overflow-y-auto p-4">`.
-- Primeira mensagem: cartão `border rounded-md p-4 whitespace-pre-wrap` com `descricaoNotificacaoExibicao(n.descricao)` e hora `text-xs text-muted-foreground`.
-- Separador de dia (HOJE / ONTEM / dd/MM/yyyy, via `isToday`/`isYesterday`) antes da descrição e sempre que o dia mudar.
-- `CommentBubble`: meus `bg-foreground text-background`, outros `bg-muted`; anexos, imagem, autor e hora iguais.
-- Efeito em `[id, data?.coments?.length]` rola o contêiner até o fim.
-- Removidos o `Separator` e o bloco "Histórico" do fim.
-
-## 4. NotificacaoAtividade.tsx
-- Props `open, onOpenChange, hist, dests, profileMap`; `Sheet side="right"`, `SheetTitle` "Atividade" (fechar acessível já vem no Sheet).
-- "Destinatários": nome + "Visualizou em dd/MM HH:mm" ou "Ainda não visualizou".
-- "Histórico": ordenado por `created_at` crescente, "{h.acao.replace("_", " ")} por Nome em dd/MM HH:mm".
-
-## Verificação
-- Typecheck; `vitest run src/test/notificarResponderEnter.test.tsx` (ajuste só se um mock precisar de Sheet/DropdownMenu, sem criar teste novo).
-- Conferir que `supabase/` não mudou.
+## Detalhes técnicos
+- `src/pages/alunos/ContratoFinanceiro.tsx`: botão `Cobrar` (ícone CreditCard) na lista `todas.map`, condição `podeCancelar && roles.isAdmin && aberta && numero_ciclo===1 && forma cartao_recorrencia/cartao_parcelado` + venda manual 2027 vinculada ao contrato (busca da venda pelo contrato/aluno+catalogo). Abre `PagarCartaoDialog` com `vendaId`, `alunoId`, `valor` exibido, `recorrencia`, `parcelasTotais`; `onSuccess` → `invalidarPagamentos`.
+- Teste: um caso em teste existente garantindo que o botão não aparece para ciclo > 1 nem para cobrança paga.
