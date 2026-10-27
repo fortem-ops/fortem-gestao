@@ -1,0 +1,2 @@
+ALTER TABLE public.festa_vouchers DROP CONSTRAINT festa_vouchers_desconto_pct_check;
+ALTER TABLE public.festa_vouchers ADD CONSTRAINT festa_vouchers_desconto_pct_check CHECK (desconto_pct >= 0 AND desconto_pct <= 100);
