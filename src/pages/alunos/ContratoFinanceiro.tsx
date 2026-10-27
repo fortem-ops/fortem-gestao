@@ -76,6 +76,9 @@ import { useEstornosDoContrato, useMeuNome, type EstornoRegistro } from "@/hooks
 import type { ComprovanteEstornoDados } from "@/lib/estornoPdf";
 import { ultimoDiaDoMes, novaDataFimValida } from "@/lib/reativarContrato";
 import { rotuloVigenciaNovo } from "@/lib/vigenciaLabels";
+import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
+import { invalidarPagamentos } from "@/hooks/useCartoesCobranca";
+import { podeCobrarPrimeiroCiclo } from "@/lib/cobrarMensalidade";
 
 
 
@@ -161,7 +164,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vendas")
-        .select("id, plano_id, valor_final, parcelas, tipo_cobranca, created_at")
+        .select("id, plano_id, valor_final, parcelas, tipo_cobranca, created_at, origem, status_pagamento")
         .eq("aluno_id", alunoId)
         .eq("tipo", "plano")
         .order("created_at", { ascending: false });
@@ -813,6 +816,14 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
   const [copiandoLink, setCopiandoLink] = useState(false);
   const [estornoCobranca, setEstornoCobranca] = useState<any | null>(null);
   const [comprovante, setComprovante] = useState<ComprovanteEstornoDados | null>(null);
+  const [cobrarOpen, setCobrarOpen] = useState(false);
+  const qcCard = useQueryClient();
+  const vendaInfo = venda as (VendaVinculada & { id?: string; origem?: string | null; status_pagamento?: string | null }) | undefined;
+  const vendaCobravel =
+    vendaInfo?.id && vendaInfo.origem === "manual" && vendaInfo.tipo_cobranca === "recorrencia" &&
+    ["pendente", "falha"].includes(vendaInfo.status_pagamento ?? "")
+      ? vendaInfo
+      : null;
 
   const { data: contratoDoc } = useQuery({
     queryKey: ["contrato-documento", contrato.id],
@@ -1202,6 +1213,23 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
                             Dar baixa
                           </Button>
                         )}
+                        {vendaCobravel && podeCobrarPrimeiroCiclo({
+                          isAdmin,
+                          status: c.status,
+                          numeroCiclo: c.numero_ciclo,
+                          formaContrato: contrato.forma_pagamento,
+                          tentativas: Number((c as any).tentativas ?? 0),
+                        }) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => setCobrarOpen(true)}
+                          >
+                            <CreditCard className="h-3 w-3" />
+                            Cobrar
+                          </Button>
+                        )}
                         {podeEstornar && (
                           <Button
                             variant="outline"
@@ -1273,6 +1301,22 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
               executado_em: comp.executado_em,
               executado_por_nome: meuNome || "Administrador",
             });
+          }}
+        />
+      )}
+
+      {vendaCobravel && cobrarOpen && (
+        <PagarCartaoDialog
+          open={cobrarOpen}
+          onOpenChange={setCobrarOpen}
+          vendaId={vendaCobravel.id!}
+          alunoId={contrato.aluno_id}
+          valor={Number(cobrancas.find((x: any) => x.numero_ciclo === 1)?.valor ?? 0)}
+          recorrencia
+          parcelasTotais={Number(vendaCobravel.parcelas ?? 12)}
+          onSuccess={() => {
+            setCobrarOpen(false);
+            invalidarPagamentos(qcCard);
           }}
         />
       )}
