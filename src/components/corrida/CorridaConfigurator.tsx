@@ -22,7 +22,7 @@ import {
   dataProva,
   brl,
   nomePlanoExibicao,
-  NB_INSCRICAO_VALOR_CHEIO,
+  valorCheioNb,
   PROVA_LABEL,
   maxParcelasPeriodo,
   periodoEfetivo,
@@ -576,7 +576,7 @@ const CorridaConfigurator = () => {
               active={incluirNb}
               onClick={() => setIncluirNb((v) => !v)}
               title="Incluir inscrição NB 42k 2027 (50% OFF)"
-              subtitle={`de ${brl(NB_INSCRICAO_VALOR_CHEIO)} por ${brl(Number(oferta.cortesia.valor))}`}
+              subtitle={`de ${brl(valorCheioNb(oferta.cortesia)!)} por ${brl(Number(oferta.cortesia.valor))}`}
               price={brl(Number(oferta.cortesia.valor))}
             />
             {incluirNb && (
@@ -587,7 +587,7 @@ const CorridaConfigurator = () => {
                 </p>
                 <span className="text-right whitespace-nowrap">
                   <span className="block text-xs text-muted-foreground line-through">
-                    de {brl(NB_INSCRICAO_VALOR_CHEIO)}
+                    de {brl(valorCheioNb(oferta.cortesia)!)}
                   </span>
                   <span className="block font-display font-bold">
                     {brl(Number(oferta.cortesia.valor))}

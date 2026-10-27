@@ -1,4 +1,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { brl, valorCheioNb } from "@/lib/corridaPreco";
 import { ScrollReveal } from "./ScrollReveal";
 
 const faqs = [
@@ -11,16 +14,35 @@ const faqs = [
     a: "Você pode cancelar quando quiser. Em planos anuais, o cancelamento antes do fim do período gera multa de 15% sobre o valor do período não utilizado — o restante é devolvido. Inscrições em prova (promocionais ou com valor integral) não são estornadas em nenhuma hipótese, já que representam uma compra de inscrição já processada junto à organização da prova.",
   },
   {
-    q: "Como funciona a inscrição da NB 42k 2027 com 50% de desconto?",
-    a: "Ao fechar seu plano, você garante a inscrição na NB 42k 2027 por R$ 144,50 — metade dos R$ 289,00. São apenas 10 vagas nessa condição, válidas até 30/11 ou enquanto durarem as vagas, o que acontecer primeiro.",
-  },
-  {
     q: "Sou iniciante, consigo acompanhar?",
     a: "Sim. O acompanhamento é próximo, com os treinadores ajustando o plano ao seu nível desde o primeiro treino.",
   },
 ];
 
-const CorridaFaqSection = () => (
+const fmt = (v: number) => brl(v).replace(/\u00a0/g, " ");
+
+const CorridaFaqSection = () => {
+  // Valor da condição NB vem de corrida_campanha_itens (linha cortesia_nb, 50% OFF).
+  const { data: nb } = useQuery({
+    queryKey: ["corrida-faq-cortesia-nb"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("corrida_campanha_itens")
+        .select("valor")
+        .eq("tipo", "cortesia_nb")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const itens = [...faqs];
+  if (nb && Number(nb.valor) > 0) {
+    itens.splice(2, 0, {
+      q: "Como funciona a inscrição da NB 42k 2027 com 50% de desconto?",
+      a: `Ao fechar seu plano, você garante a inscrição na NB 42k 2027 por ${fmt(Number(nb.valor))} — metade dos ${fmt(valorCheioNb(nb)!)}. São apenas 10 vagas nessa condição, válidas até 30/11 ou enquanto durarem as vagas, o que acontecer primeiro.`,
+    });
+  }
+  return (
   <section className="py-24 md:py-32 bg-muted/50">
     <div className="container mx-auto px-6">
       <ScrollReveal className="text-center mb-12">
@@ -30,7 +52,7 @@ const CorridaFaqSection = () => (
 
       <ScrollReveal className="max-w-3xl mx-auto">
         <Accordion type="single" collapsible className="space-y-4">
-          {faqs.map((f, i) => (
+          {itens.map((f, i) => (
             <AccordionItem
               key={f.q}
               value={`item-${i}`}
@@ -48,6 +70,7 @@ const CorridaFaqSection = () => (
       </ScrollReveal>
     </div>
   </section>
-);
+  );
+};
 
 export default CorridaFaqSection;

@@ -3,6 +3,7 @@ import {
   periodoEfetivo,
   maxParcelasPeriodo,
   calcularResumoCorrida,
+  valorCheioNb,
   dataProva,
   nomePlanoExibicao,
   type CampanhaItem,
@@ -345,5 +346,17 @@ describe("só corrida — Mensal", () => {
     )!;
     expect(r.hoje).toBe(200);
     expect(r.recorrente).toBe(200);
+  });
+});
+
+describe("NB 50% OFF — valor cheio vem do banco", () => {
+  it("cortesia_nb R$ 144,50 mostra 'de R$ 289,00 por R$ 144,50'", () => {
+    const cortesia = item({ tipo: "cortesia_nb", descricao: "Inscrição NB", valor: 144.5 });
+    const r = calcularResumoCorrida(params({ oferta: ofertaBase({ cortesia }) }))!;
+    const nb = r.linhas.find((l) => l.valor === 144.5)!;
+    expect(nb.nota?.replace(/\u00a0/g, " ")).toBe("de R$ 289,00 por R$ 144,50");
+  });
+  it("se o banco mudar a cortesia para R$ 150, o valor cheio passa a R$ 300", () => {
+    expect(valorCheioNb({ valor: 150 })).toBe(300);
   });
 });

@@ -31,9 +31,6 @@ const PLANO_BASE_LABEL: Record<string, string> = {
   max: "Max",
 };
 
-const VALOR_PROVA = 289;
-// Inscrição NB 42k 2027 na condição promocional (50% OFF)
-const VALOR_CORTESIA_NB = 144.5;
 
 // Hash SHA-256 do CPF autorizado a testar cobrança real com valor simbólico.
 const CPF_TESTE_HASH = "9d4b1135d02aa574942b053143c2c76ceb5d4d472be2c04138b314d179482ee3";
@@ -535,12 +532,27 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (!templateProvas) throw new Error("template_provas_nao_encontrado");
 
+        // Valores das provas vêm sempre de corrida_campanha_itens; sem fallback.
+        const { data: itensProva, error: itensProvaErr } = await admin
+          .from("corrida_campanha_itens")
+          .select("tipo, valor")
+          .in("tipo", ["mipoa", "cortesia_nb"]);
+        if (itensProvaErr) throw new Error(`falha_valores_provas: ${itensProvaErr.message}`);
+        const valorItem = (tipo: string) => {
+          const v = Number((itensProva ?? []).find((i: any) => i.tipo === tipo)?.valor);
+          return Number.isFinite(v) && v > 0 ? v : null;
+        };
+        const VALOR_CORTESIA_NB = valorItem("cortesia_nb");
+        const VALOR_MIPOA = valorItem("mipoa");
+        if (cortesiaNb?.ativo && VALOR_CORTESIA_NB === null) throw new Error("valor_cortesia_nb_nao_encontrado");
+        if (mipoa?.ativo && VALOR_MIPOA === null) throw new Error("valor_mipoa_nao_encontrado");
+
         const linhas: string[] = [];
         if (cortesiaNb?.ativo) {
-          linhas.push(`New Balance 42K Porto Alegre 2027 — ${cortesiaNb?.distancia ?? ""} — ${brl(VALOR_CORTESIA_NB)} (50% OFF de ${brl(VALOR_PROVA)})`.replace(/ — {2}/g, " — "));
+          linhas.push(`New Balance 42K Porto Alegre 2027 — ${cortesiaNb?.distancia ?? ""} — ${brl(VALOR_CORTESIA_NB!)} (50% OFF de ${brl(VALOR_CORTESIA_NB! * 2)})`.replace(/ — {2}/g, " — "));
         }
         if (mipoa?.ativo) {
-          linhas.push(`Maratona Internacional de Porto Alegre (MIPOA) — ${mipoa?.distancia ?? ""} — ${brl(VALOR_PROVA)}`.replace(/ — {2}/g, " — "));
+          linhas.push(`Maratona Internacional de Porto Alegre (MIPOA) — ${mipoa?.distancia ?? ""} — ${brl(VALOR_MIPOA!)}`.replace(/ — {2}/g, " — "));
         }
 
         const varsProvas: Record<string, string> = {
