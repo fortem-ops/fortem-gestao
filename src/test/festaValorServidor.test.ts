@@ -15,4 +15,6 @@ describe("preço da festa no servidor", () => {
     expect(valorPagoFestaCorreto("70.00", 7000)).toBe(true);
     expect(valorPagoFestaCorreto("75.00", 7000)).toBe(false);
   });
+  it("voucher R$ 20 por pessoa: 3 pessoas = R$ 165", () => expect(totalFesta(2, false, 2000)).toBe(16500));
+  it("desconto maior que R$ 75 não fica negativo", () => expect(totalFesta(1, false, 9000)).toBe(0));
 });
