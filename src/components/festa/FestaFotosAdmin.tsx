@@ -7,7 +7,6 @@ import { ArrowDown, ArrowUp, GripVertical, Heart, ImagePlus, MessageCircle, Tras
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { festa10AnosConfig as cfg } from "@/config/festa10anos";
 import { agruparFotosPorAno, carregarFestaFotos, reduzirFoto, LINK_FIXO_SEGUNDOS, type FestaFoto } from "@/lib/festaFotos";
 import FestaAutorFotoAjuste from "@/components/festa/FestaAutorFotoAjuste";
 import FestaAudioAno from "@/components/festa/FestaAudioAno";
