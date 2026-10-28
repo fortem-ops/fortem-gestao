@@ -1485,6 +1485,13 @@
       "when": 1793191534612,
       "tag": "0211_msg_filtro_cliente_desde",
       "breakpoints": true
+    },
+    {
+      "idx": 212,
+      "version": "7",
+      "when": 1793199206244,
+      "tag": "0212_whatsapp_mensagens_midia_reacao",
+      "breakpoints": true
     }
   ]
 }

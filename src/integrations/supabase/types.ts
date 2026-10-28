@@ -11097,6 +11097,10 @@ export type Database = {
           direcao: string
           enviado_por: string | null
           id: string
+          media_id: string | null
+          media_mime: string | null
+          media_path: string | null
+          reacao_a_wamid: string | null
           status: string
           tipo: string
           wamid: string | null
@@ -11108,6 +11112,10 @@ export type Database = {
           direcao: string
           enviado_por?: string | null
           id?: string
+          media_id?: string | null
+          media_mime?: string | null
+          media_path?: string | null
+          reacao_a_wamid?: string | null
           status?: string
           tipo?: string
           wamid?: string | null
@@ -11119,6 +11127,10 @@ export type Database = {
           direcao?: string
           enviado_por?: string | null
           id?: string
+          media_id?: string | null
+          media_mime?: string | null
+          media_path?: string | null
+          reacao_a_wamid?: string | null
           status?: string
           tipo?: string
           wamid?: string | null
