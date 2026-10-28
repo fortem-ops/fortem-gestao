@@ -138,3 +138,9 @@
 - Rollback: scripts/consultoria-online-e6.rollback.sql
 - Seguem não autorizadas: E5b-B, E5b-C, E5c, E3d, E4e.
 - [x] Disparos etapa 5: trava real_liberado liberada (0209); envio depende do clique do dono, máx. 50 por clique; presos >10 min viram falhou.
+
+## Cliente desde (alunos.aluno_desde)
+- [x] Coluna nullable (migração 0210), rollback `scripts/alunos-aluno-desde.rollback.sql`
+- [x] Resumo do aluno + Trajetória com fallback; lápis edita aluno_desde quando não há plano
+- [x] Filtro "Cliente desde (de/até)" na lista de alunos
+- [ ] Carga dos valores da planilha (aguardando dono; fora desta tarefa)

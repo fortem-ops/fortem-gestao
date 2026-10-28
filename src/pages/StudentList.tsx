@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import AddStudentDialog from "@/components/student/AddStudentDialog";
 import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialog";
 import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
+import { dataClienteDesde, menorInicioPorAluno, matchClienteDesde } from "@/lib/clienteDesde";
 import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus, ACTIVE_STATUS_KEYS } from "@/lib/studentStatus";
 import { selecionarPlanoExibicao, planoDataFim } from "@/lib/planoPrincipal";
@@ -32,7 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 
 const ALUNOS_COLUMNS =
-  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id, cpf_ultimos3, rg, data_nascimento, cep, logradouro, cidade";
+  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id, cpf_ultimos3, rg, data_nascimento, cep, logradouro, cidade, aluno_desde";
 
 function parseServiceCount(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
@@ -248,6 +249,24 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         })
       );
 
+      // Menor data_inicio de TODOS os planos (ativos ou não) para "Cliente desde"
+      const iniciosRows: { aluno_id: string; data_inicio: string | null }[] = [];
+      await Promise.all(
+        chunk(ids, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("planos")
+            .select("aluno_id, data_inicio")
+            .in("aluno_id", part)
+            .not("data_inicio", "is", null);
+          if (error) {
+            console.error("Erro ao buscar início dos planos (Cliente desde):", error, { chunkSize: part.length });
+            return;
+          }
+          iniciosRows.push(...((data as any[]) || []));
+        })
+      );
+      const menorInicioMap = menorInicioPorAluno(iniciosRows);
+
       const licencasMap: Record<string, AlunoLicenca[]> = {};
       ((licencas as unknown as AlunoLicenca[]) || []).forEach((l) => {
         (licencasMap[l.aluno_id] ||= []).push(l);
@@ -314,7 +333,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         bucket.servico[c.atividade] = cur;
       });
 
-      const enriched = students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], corridaOnly: !!corridaOnlyMap[s.id], licencas: licencasMap[s.id] || [] }));
+      const enriched = students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], corridaOnly: !!corridaOnlyMap[s.id], licencas: licencasMap[s.id] || [], alunoDesde: dataClienteDesde(menorInicioMap[s.id], s.aluno_desde) }));
       console.log("[StudentList] Alunos enriquecidos:", enriched.length);
       return enriched;
     },
@@ -428,7 +447,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      const matches = matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados;
+      const matchCliDesde = matchClienteDesde((s as any).alunoDesde ?? null, filters.clienteDesdeDe, filters.clienteDesdeAte);
+
+      const matches = matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados && matchCliDesde;
       if (!matches) {
         if (!matchMode) droppedReasons["modo"] = (droppedReasons["modo"] || 0) + 1;
         else if (!matchSearch) droppedReasons["search"] = (droppedReasons["search"] || 0) + 1;

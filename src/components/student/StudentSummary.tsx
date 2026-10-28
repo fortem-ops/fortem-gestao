@@ -3,7 +3,8 @@ import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriang
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { dataClienteDesde } from "@/lib/clienteDesde";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -201,6 +202,10 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
   const primeiroPlanoDat = primeiroPlano?.data_inicio ?? null;
+  // Sem plano: usa a data manual alunos.aluno_desde (estado local para refletir a edição na hora)
+  const [alunoDesdeManual, setAlunoDesdeManual] = useState<string | null>((student as any).aluno_desde ?? null);
+  useEffect(() => { setAlunoDesdeManual((student as any).aluno_desde ?? null); }, [student.id, (student as any).aluno_desde]);
+  const alunoDesdeDat = dataClienteDesde(primeiroPlanoDat, alunoDesdeManual);
 
   const { data: origemLead } = useQuery({
     queryKey: ["pipeline_metadata_origem", student.id],
@@ -232,7 +237,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   ] as const;
 
   const { data: trajetoria } = useQuery({
-    queryKey: ["trajetoria_aluno", student.id],
+    queryKey: ["trajetoria_aluno", student.id, alunoDesdeManual],
     queryFn: async () => {
       const names = TRAJ_STAGES.map((t) => t.stageName);
       const [stagesRes, agendaRes, planoRes] = await Promise.all([
@@ -291,6 +296,10 @@ export function StudentSummary({ student }: { student: Aluno }) {
           sourceDate = primeiroPlano.data_inicio as string;
           sourceLabel = "plano";
           sourceRef = { table: "planos", id: primeiroPlano.id, field: "data_inicio" };
+        } else if (t.key === "aluno" && !primeiroPlano && alunoDesdeManual) {
+          // Sem plano: mesma regra do cartão "Aluno desde" (data manual do cadastro)
+          sourceDate = alunoDesdeManual;
+          sourceLabel = "cadastro manual";
         }
 
         const finalDate = sourceDate ?? mov?.moved_at ?? (t.key === "lead" ? student.created_at : null);
@@ -312,7 +321,21 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [editingTraj, setEditingTraj] = useState<string | null>(null);
 
   async function saveAlunoDesde(date: Date) {
-    if (!primeiroPlano?.id) return;
+    if (!primeiroPlano?.id) {
+      // Sem plano: grava a data manual em alunos.aluno_desde
+      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const { error } = await supabase.from("alunos").update({ aluno_desde: iso } as any).eq("id", student.id);
+      if (error) {
+        toast.error("Erro ao atualizar Aluno desde");
+      } else {
+        toast.success("Aluno desde atualizado");
+        setAlunoDesdeManual(iso);
+        queryClient.invalidateQueries({ queryKey: ["trajetoria_aluno", student.id] });
+        queryClient.invalidateQueries({ queryKey: ["alunos_with_plans"] });
+      }
+      setEditingAlunoDesde(false);
+      return;
+    }
     // Proteção: nunca alterar o início de um plano em vigor (mudaria a vigência e o status do aluno).
     if ((primeiroPlano as any).ativo) {
       toast.error("O plano mais antigo ainda está em vigor — altere a data de início pela aba Plano.");
@@ -691,9 +714,9 @@ export function StudentSummary({ student }: { student: Aluno }) {
             <span className="text-xs text-muted-foreground">Aluno desde</span>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-sm font-semibold text-foreground">
-                {primeiroPlanoDat
+                {alunoDesdeDat
                   ? (() => {
-                      const d = new Date(primeiroPlanoDat + "T00:00:00");
+                      const d = new Date(alunoDesdeDat + "T00:00:00");
                       const hoje = new Date();
                       const diffMs = hoje.getTime() - d.getTime();
                       const diffDays = Math.floor(diffMs / 86400000);
@@ -709,7 +732,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
                     })()
                   : "—"}
               </p>
-              {isCoordAdmin && primeiroPlano?.id && (
+              {isCoordAdmin && (
                 <Popover open={editingAlunoDesde} onOpenChange={setEditingAlunoDesde}>
                   <PopoverTrigger asChild>
                     <button className="text-muted-foreground hover:text-primary transition-colors">
@@ -721,7 +744,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
                       type="text"
                       inputMode="numeric"
                       placeholder="dd/mm/aaaa"
-                      defaultValue={primeiroPlanoDat ? new Date(primeiroPlanoDat + "T00:00:00").toLocaleDateString("pt-BR") : ""}
+                      defaultValue={alunoDesdeDat ? new Date(alunoDesdeDat + "T00:00:00").toLocaleDateString("pt-BR") : ""}
                       className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
                       onChange={(e) => {
                         let v = e.target.value.replace(/\D/g, "").slice(0, 8);
@@ -742,8 +765,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
                     />
                     <CalendarComponent
                       mode="single"
-                      selected={primeiroPlanoDat ? new Date(primeiroPlanoDat + "T00:00:00") : undefined}
-                      defaultMonth={primeiroPlanoDat ? new Date(primeiroPlanoDat + "T00:00:00") : undefined}
+                      selected={alunoDesdeDat ? new Date(alunoDesdeDat + "T00:00:00") : undefined}
+                      defaultMonth={alunoDesdeDat ? new Date(alunoDesdeDat + "T00:00:00") : undefined}
                       onSelect={async (date) => { if (date) await saveAlunoDesde(date); }}
                       className={cn("p-0 pointer-events-auto")}
                     />
