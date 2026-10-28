@@ -1,3 +1,4 @@
+import { planoBaseAtivoDe, sugerirVarianteCorrida } from "@/lib/corridaPlanoBase";
 import { useState, useEffect, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,8 +51,6 @@ const FREQ_OPTIONS: { value: Frequencia; label: string; desc: string }[] = [
   { value: "livre", label: "Livre", desc: "Acesso ilimitado no período" },
 ];
 
-/** Prioridade para sugerir a variante de Corrida a partir do plano base ativo. */
-const PRIORIDADE_PLANO_BASE = ["max", "pro", "power", "start_plus", "start"] as const;
 
 const LABEL_PLANO_BASE: Record<string, string> = {
   start: "Start", start_plus: "Start+", power: "Power", pro: "Pro", max: "Max",
@@ -233,14 +232,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   });
 
   // Plano base mais relevante entre os contratos ativos (ignora Corrida)
-  const planoBaseAtivo: string | null = (() => {
-    const tipos = new Set(
-      (contratosAtivos as any[])
-        .map((c) => c.plano_tipo)
-        .filter((t: string) => t && t !== "corrida"),
-    );
-    return PRIORIDADE_PLANO_BASE.find((t) => tipos.has(t)) ?? null;
-  })();
+  const planoBaseAtivo: string | null = planoBaseAtivoDe(
+    (contratosAtivos as any[]).map((c) => c.plano_tipo),
+  );
 
   // Calcula término do vigente (data_fim ou início + duração)
   const fimVigente = (() => {
@@ -297,14 +291,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   // Pré-seleciona a variante de Corrida correspondente ao plano base ativo
   useEffect(() => {
     if (!modoCorrida || planoId || planosFiltrados.length === 0) return;
-    const compat = planosFiltrados.filter(
-      (p: any) => (p.plano_base_requerido ?? null) === planoBaseAtivo,
-    );
-    const lista = compat.length > 0 ? compat : planosFiltrados;
-    const ordenada = [...lista].sort(
-      (a: any, b: any) => (a.periodo_meses || 0) - (b.periodo_meses || 0),
-    );
-    setPlanoId(ordenada[0].id);
+    const sug = sugerirVarianteCorrida<any>(planosFiltrados, planoBaseAtivo);
+    if (sug) setPlanoId(sug.id);
   }, [modoCorrida, planoId, planosFiltrados.length, planoBaseAtivo]);
 
   // Modo do contrato: Corrida é sempre adicional; demais mantêm o comportamento atual
