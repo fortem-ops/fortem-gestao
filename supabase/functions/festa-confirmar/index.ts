@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { FESTA_PRAZO_FIM, criarPixFesta, conferirPixFesta, cancelarPixFesta } from "../_shared/festa-pix.ts";
+import { FESTA_PRAZO_FIM, criarPixFesta, conferirPixFesta, cancelarPixFesta, deveGerarPix } from "../_shared/festa-pix.ts";
 import { totalFesta } from "../_shared/festa-valor.ts";
 const LIMITE_ACOMP = 3;
 
