@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { selecaoVazia, aoMudarBusca, aoMudarRecorte, marcarIds, limparIds, buscaParaSalvar, type Selecao } from "@/lib/disparosSelecao";
+import { X } from "lucide-react";
 
 type Row = { id: string; nome: string; status: string; tem_email: boolean; tem_whats: boolean; motivo: MotivoExclusao | null; cliente_desde: string | null };
 type Resp = { total: number; com_email: number; com_whats: number; elegiveis: number; excl_equipe: number; excl_optout: number; excl_confirmou: number; excl_sem_contato: number; rows: Row[] };
@@ -101,6 +103,19 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
           })}
         </div>
         <Input placeholder="Buscar por nome, e-mail ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        {!todos && ids.size > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">{ids.size} selecionados:</span>
+            {chipsSel.map((id) => (
+              <Badge key={id} variant="secondary" className="gap-1 pr-1">
+                {nomes.get(id) || "—"}
+                <button type="button" aria-label={`Remover ${nomes.get(id) ?? ""}`} onClick={() => setSel(marcarIds(sel, [{ id, nome: "" }], false))}><X className="h-3 w-3" /></button>
+              </Badge>
+            ))}
+            {ids.size > 10 && <span className="text-muted-foreground">+ {ids.size - 10}</span>}
+            <Button size="sm" variant="link" onClick={() => setSel(limparIds(sel))}>Limpar seleção</Button>
+          </div>
+        )}
         <div className="flex flex-wrap items-end gap-3">
           {([["Cliente desde (de)", desdeDe, setDesdeDe], ["Cliente desde (até)", desdeAte, setDesdeAte]] as const).map(([rotulo, val, set]) => (
             <div key={rotulo} className="space-y-1">
@@ -128,8 +143,8 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
         {data && data.elegiveis > 0 && (
           <div className="text-sm flex flex-wrap items-center gap-2">
             {todos
-              ? <>Todos os {data.elegiveis} do filtro selecionados.<Button size="sm" variant="link" onClick={() => { setTodos(false); setRemovidos(new Set()); setIds(new Set()); }}>Limpar seleção</Button></>
-              : <Button size="sm" variant="link" className="px-0" onClick={() => { setTodos(true); setRemovidos(new Set()); }}>Selecionar todos os {data.elegiveis} do filtro</Button>}
+              ? <>Todos os {data.elegiveis} do filtro selecionados.<Button size="sm" variant="link" onClick={() => setSel(selecaoVazia())}>Limpar seleção</Button></>
+              : <Button size="sm" variant="link" className="px-0" onClick={() => setSel({ ...sel, todos: true, removidos: new Set() })}>Selecionar todos os {data.elegiveis} do filtro</Button>}
           </div>
         )}
         <Card>
