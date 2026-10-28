@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Plus, Ban, Loader2, Mail, MessageCircle, Check, Minus } from "lucide-react";
+import { Plus, Ban, Loader2, MessageCircle, Check, Minus } from "lucide-react";
+import { toast } from "sonner";
+import DisparosMensagem from "./DisparosMensagem";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +18,14 @@ type Resp = { total: number; com_email: number; com_whats: number; elegiveis: nu
 const POR_PAGINA = 50;
 const PASSOS = ["Público", "Mensagem", "Revisão e envio"];
 
-function Publico() {
-  const [canal, setCanal] = useState<CanalDisparo>("whatsapp");
+export type EstadoPublico = {
+  filtro: { chips: SituacaoChip[]; busca: string; exclConfirmados: boolean; exclSemContato: boolean };
+  selecao: { modo: "todos"; removidos: string[] } | { modo: "ids"; ids: string[] };
+  selecionados: number;
+};
+
+function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
+  const canal: CanalDisparo = "whatsapp"; // dono: só WhatsApp no fluxo avulso por enquanto
   const [chips, setChips] = useState<SituacaoChip[]>(["ativos"]);
   const [busca, setBusca] = useState("");
   const [buscaD, setBuscaD] = useState("");
@@ -57,18 +65,20 @@ function Publico() {
     else { const s = new Set(ids); elegiveisPagina.forEach((r) => (paginaToda ? s.delete(r.id) : s.add(r.id))); setIds(s); }
   };
   const selecionados = todos ? Math.max(0, (data?.elegiveis ?? 0) - removidos.size) : ids.size;
+  useEffect(() => {
+    onEstado({
+      filtro: { chips, busca: buscaD, exclConfirmados: exclConf, exclSemContato: exclSem },
+      selecao: todos ? { modo: "todos", removidos: [...removidos] } : { modo: "ids", ids: [...ids] },
+      selecionados,
+    });
+  }, [chips, buscaD, exclConf, exclSem, todos, removidos, ids, selecionados]); // eslint-disable-line react-hooks/exhaustive-deps
   const totalPaginas = Math.max(1, Math.ceil((data?.total ?? 0) / POR_PAGINA));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground mr-1">Canal:</span>
-          {(["whatsapp", "email"] as const).map((c) => (
-            <Button key={c} size="sm" variant={canal === c ? "default" : "outline"} onClick={() => setCanal(c)}>
-              {c === "email" ? <Mail className="h-4 w-4 mr-1" /> : <MessageCircle className="h-4 w-4 mr-1" />}{c === "email" ? "E-mail" : "WhatsApp"}
-            </Button>
-          ))}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <MessageCircle className="h-4 w-4" />Canal: WhatsApp
         </div>
         <div className="flex flex-wrap gap-2">
           {CHIPS.map((c) => {
@@ -147,23 +157,47 @@ export default function DisparosAvulsos() {
   const [novo, setNovo] = useState(false);
   const [passo, setPasso] = useState(0);
   const [optout, setOptout] = useState(false);
+  const [estado, setEstado] = useState<EstadoPublico | null>(null);
+  const [campanhaId, setCampanhaId] = useState<string | null>(null);
+  const [nome, setNome] = useState("Novo disparo");
+  const [salvando, setSalvando] = useState(false);
+
+  const irPara = async (i: number) => {
+    if (i === 0 || (i === passo)) { setPasso(i); return; }
+    if (!estado || estado.selecionados < 1) { toast.error("Selecione pelo menos 1 cadastro no Público."); return; }
+    if (passo === 0) {
+      setSalvando(true);
+      const payload = { nome: nome.trim() || "Novo disparo", canal: "whatsapp", filtro: estado.filtro, selecao: estado.selecao };
+      const q = campanhaId
+        ? supabase.from("msg_campanhas").update(payload as never).eq("id", campanhaId).select("id").single()
+        : supabase.from("msg_campanhas").insert({ ...payload, status: "rascunho" } as never).select("id").single();
+      const { data, error } = await q;
+      setSalvando(false);
+      if (error) { toast.error("Não foi possível salvar o rascunho: " + error.message); return; }
+      setCampanhaId((data as { id: string }).id);
+    }
+    setPasso(i);
+  };
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 justify-end">
         <Button variant="outline" onClick={() => setOptout(true)}><Ban className="h-4 w-4 mr-1" />Gerenciar opt-out</Button>
-        {!novo && <Button onClick={() => { setNovo(true); setPasso(0); }}><Plus className="h-4 w-4 mr-1" />Novo disparo</Button>}
+        {!novo && <Button onClick={() => { setNovo(true); setPasso(0); setCampanhaId(null); setNome("Novo disparo"); }}><Plus className="h-4 w-4 mr-1" />Novo disparo</Button>}
       </div>
       {novo ? (
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               {PASSOS.map((p, i) => (
-                <Button key={p} size="sm" variant={passo === i ? "default" : "ghost"} onClick={() => setPasso(i)}>{i + 1}. {p}</Button>
+                <Button key={p} size="sm" variant={passo === i ? "default" : "ghost"} disabled={salvando} onClick={() => irPara(i)}>{i + 1}. {p}</Button>
               ))}
+              <Input className="h-8 w-48" value={nome} onChange={(e) => setNome(e.target.value)} aria-label="Nome do disparo" />
+              {passo === 0 && <Button size="sm" disabled={salvando} onClick={() => irPara(1)}>{salvando && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Avançar</Button>}
               <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setNovo(false)}>Fechar</Button>
             </div>
-            <div className={passo === 0 ? "" : "hidden"}><Publico /></div>
-            {passo > 0 && <p className="py-12 text-center text-sm text-muted-foreground">Em breve.</p>}
+            <div className={passo === 0 ? "" : "hidden"}><Publico onEstado={setEstado} /></div>
+            {passo === 1 && campanhaId && <DisparosMensagem campanhaId={campanhaId} />}
+            {passo === 2 && <p className="py-12 text-center text-sm text-muted-foreground">Em breve.</p>}
             <Label className="sr-only">Assistente</Label>
           </CardContent>
         </Card>
