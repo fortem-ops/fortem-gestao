@@ -78,3 +78,19 @@ describe("etapa 4", () => {
       .toEqual({ enviado: 1, falhou: 1, ignorado: 1, pendente: 2, total: 5 });
   });
 });
+
+import { destinatarioPreso, LOTE_LIMITE, AVISO_LOTE } from "@/lib/disparos";
+describe("etapa 5 — lote e presos", () => {
+  const agora = new Date("2026-10-28T12:00:00Z").getTime();
+  it("lote máximo é 50", () => { expect(LOTE_LIMITE).toBe(50); expect(AVISO_LOTE).toContain("no máximo 50"); });
+  it("enviando há 11 min sem enviado_em é preso", () => {
+    expect(destinatarioPreso({ status: "enviando", enviado_em: null, reservado_em: "2026-10-28T11:49:00Z" }, agora)).toBe(true);
+  });
+  it("enviando há 5 min não é preso", () => {
+    expect(destinatarioPreso({ status: "enviando", enviado_em: null, reservado_em: "2026-10-28T11:55:00Z" }, agora)).toBe(false);
+  });
+  it("já enviado ou pendente nunca é preso", () => {
+    expect(destinatarioPreso({ status: "enviando", enviado_em: "2026-10-28T11:00:00Z", reservado_em: "2026-10-28T10:00:00Z" }, agora)).toBe(false);
+    expect(destinatarioPreso({ status: "pendente", enviado_em: null, reservado_em: null }, agora)).toBe(false);
+  });
+});

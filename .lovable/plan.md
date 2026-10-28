@@ -77,3 +77,6 @@ Ações: `teste` (envia 1 e-mail e/ou 1 WhatsApp para contato digitado, não gra
 - Etapa 3 concluída: migração 0206 (botão fixo em msg_modelos; msg_campanhas, msg_campanha_destinatarios, msg_testes, só admin), passo Mensagem só WhatsApp (decisão do dono), envio de teste para telefone digitado via `disparo-campanha` (ação `teste`, 20/h por usuário). E-mail fora do fluxo avulso por ora.
 - Etapa 4 (CONCLUÍDA): Revisar e enviar + `preparar` (snapshot, dedupe por telefone) + confirmação do total + Histórico; sem link de descadastro (e-mail fora do fluxo); envio real travado por msg_config.real_liberado=false.
 - Etapa 5: liberar real_liberado por migração separada, com aprovação do dono, e enviar o primeiro lote de 50.
+
+## Etapa 5 — concluída
+Trava `real_liberado` liberada pela migração 0209 (rollback: scripts/msg-liberar-envio.rollback.sql). Coluna `reservado_em` e recuperação de presos (>10 min em enviando → falhou, nunca pendente) na 0208. O envio depende só do clique do dono; cada clique envia no máximo 50 (lote_limite), ordem alfabética.

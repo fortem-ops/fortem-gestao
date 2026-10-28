@@ -137,3 +137,4 @@
 - Venda liberada para alunos reais na equipe (Nova Venda); /planos não mostra Consultoria.
 - Rollback: scripts/consultoria-online-e6.rollback.sql
 - Seguem não autorizadas: E5b-B, E5b-C, E5c, E3d, E4e.
+- [x] Disparos etapa 5: trava real_liberado liberada (0209); envio depende do clique do dono, máx. 50 por clique; presos >10 min viram falhou.
