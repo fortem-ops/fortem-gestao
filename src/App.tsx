@@ -88,6 +88,7 @@ const RelatoriosTecnicos = lazyWithReload(() => import("./pages/relatorios/Tecni
 const RelatoriosCRM = lazyWithReload(() => import("./pages/relatorios/CRM"));
 const RelatoriosEquipe = lazyWithReload(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazyWithReload(() => import("./pages/WhatsApp"));
+const Disparos = lazyWithReload(() => import("./pages/Disparos"));
 const Corrida = lazyWithReload(() => import("./pages/Corrida"));
 const PlanosRota = lazyWithReload(() => import("./pages/PlanosRota"));
 const Privacidade = lazyWithReload(() => import("./pages/Privacidade"));
@@ -609,6 +610,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <AdminNotificacoesEmail />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/comercial/disparos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Disparos />
                   </Suspense>
                 }
               />
