@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { separarReacoes, chaveTelefone, iniciais, indicePrimeiraNaoLida } from "@/lib/whatsappChat";
 
 type Conversa = {
   id: string;
@@ -26,6 +27,9 @@ type Mensagem = {
   status: string;
   created_at: string;
   enviado_por: string | null;
+  wamid: string | null;
+  reacao_a_wamid: string | null;
+  media_id: string | null;
 };
 
 type ProfileInfo = { full_name: string | null; avatar_url: string | null };
@@ -51,6 +55,8 @@ export default function WhatsAppChat() {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [soNaoLidas, setSoNaoLidas] = useState(false);
+  const [naoLidasAoAbrir, setNaoLidasAoAbrir] = useState<{ id: string; n: number } | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -82,6 +88,39 @@ export default function WhatsAppChat() {
       return (data ?? []) as unknown as Mensagem[];
     },
   });
+
+  const alunosQuery = useQuery({
+    queryKey: ["whatsapp-alunos-mapa"],
+    queryFn: async () => {
+      const { data } = await supabase.from("alunos").select("nome, telefone, foto_url").not("telefone", "is", null).limit(5000);
+      const map: Record<string, { nome: string; foto: string | null }> = {};
+      (data ?? []).forEach((a: any) => {
+        const k = chaveTelefone(a.telefone);
+        if (k && !map[k]) map[k] = { nome: a.nome, foto: a.foto_url ?? null };
+      });
+      return map;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const midiaIds = useMemo(
+    () => (mensagensQuery.data ?? []).filter((m) => m.media_id).map((m) => m.id),
+    [mensagensQuery.data],
+  );
+  const midiaQuery = useQuery({
+    queryKey: ["whatsapp-midia", midiaIds.join(",")],
+    enabled: midiaIds.length > 0,
+    staleTime: 50 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase.functions.invoke("whatsapp-midia", { body: { ids: midiaIds } });
+      return ((data as any)?.urls ?? {}) as Record<string, string>;
+    },
+  });
+
+  const contato = (c: Conversa) => {
+    const a = alunosQuery.data?.[chaveTelefone(c.telefone) ?? ""];
+    return { nome: a?.nome ?? c.nome_contato ?? formatPhone(c.telefone), foto: a?.foto ?? null };
+  };
 
   const profilesQuery = useQuery({
     queryKey: ["profiles-map"],
@@ -145,6 +184,7 @@ export default function WhatsAppChat() {
     if (!selectedId) return;
     const conv = (qc.getQueryData<Conversa[]>(["whatsapp-conversas"]) ?? []).find((c) => c.id === selectedId);
     if (conv && !((conv as any).nao_lidas > 0)) return;
+    setNaoLidasAoAbrir({ id: selectedId, n: conv?.nao_lidas ?? 0 });
     supabase
       .from("whatsapp_conversas" as never)
       .update({ nao_lidas: 0 } as never)
@@ -160,13 +200,18 @@ export default function WhatsAppChat() {
   const conversas = conversasQuery.data ?? [];
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return conversas;
-    return conversas.filter(
+    const base = soNaoLidas ? conversas.filter((c) => c.nao_lidas > 0 || c.id === selectedId) : conversas;
+    if (!s) return base;
+    return base.filter(
       (c) =>
         c.telefone.toLowerCase().includes(s) ||
-        (c.nome_contato ?? "").toLowerCase().includes(s),
+        (c.nome_contato ?? "").toLowerCase().includes(s) ||
+        (alunosQuery.data?.[chaveTelefone(c.telefone) ?? ""]?.nome ?? "").toLowerCase().includes(s),
     );
-  }, [conversas, search]);
+  }, [conversas, search, soNaoLidas, selectedId, alunosQuery.data]);
+  const totalNaoLidas = conversas.filter((c) => c.nao_lidas > 0).length;
+  const { linha, reacoes } = useMemo(() => separarReacoes(mensagensQuery.data ?? []), [mensagensQuery.data]);
+  const idxNaoLida = naoLidasAoAbrir && naoLidasAoAbrir.id === selectedId ? indicePrimeiraNaoLida(linha, naoLidasAoAbrir.n) : -1;
 
   const selected = conversas.find((c) => c.id === selectedId) ?? null;
 
@@ -216,6 +261,12 @@ export default function WhatsAppChat() {
               className="pl-8"
             />
           </div>
+          <div className="flex gap-1 mt-2">
+            <Button size="sm" variant={soNaoLidas ? "outline" : "secondary"} className="h-7 text-xs" onClick={() => setSoNaoLidas(false)}>Todas</Button>
+            <Button size="sm" variant={soNaoLidas ? "secondary" : "outline"} className="h-7 text-xs" onClick={() => setSoNaoLidas(true)}>
+              Não lidas{totalNaoLidas > 0 ? ` (${totalNaoLidas})` : ""}
+            </Button>
+          </div>
         </div>
         <ScrollArea className="flex-1">
           {conversasQuery.isLoading ? (
@@ -230,24 +281,28 @@ export default function WhatsAppChat() {
             <ul className="divide-y divide-border">
               {filtered.map((c) => {
                 const isActive = c.id === selectedId;
-                const label = c.nome_contato ?? formatPhone(c.telefone);
+                const ct = contato(c);
+                const label = ct.nome;
+                const temNova = c.nao_lidas > 0;
                 return (
                   <li key={c.id}>
                     <button
                       onClick={() => setSelectedId(c.id)}
                       className={cn(
-                        "w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors flex flex-col gap-0.5",
+                        "w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors flex items-center gap-3",
                         isActive && "bg-muted",
                       )}
                     >
+                      <Avatar nome={label} foto={ct.foto} />
+                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-sm truncate">{label}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
+                        <span className={cn("text-sm truncate", temNova ? "font-bold" : "font-medium")}>{label}</span>
+                        <span className={cn("text-[10px] shrink-0", temNova ? "text-primary font-semibold" : "text-muted-foreground")}>
                           {formatTime(c.ultima_mensagem_at)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-muted-foreground truncate">
+                        <span className={cn("text-xs truncate", temNova ? "text-foreground font-semibold" : "text-muted-foreground")}>
                           {c.ultima_mensagem ?? "—"}
                         </span>
                         {c.nao_lidas > 0 && (
@@ -255,6 +310,7 @@ export default function WhatsAppChat() {
                             {c.nao_lidas > 99 ? "99+" : c.nao_lidas}
                           </span>
                         )}
+                      </div>
                       </div>
                     </button>
                   </li>
@@ -273,15 +329,12 @@ export default function WhatsAppChat() {
           </div>
         ) : (
           <>
-            <div className="p-3 border-b border-border">
-              <div className="font-medium">
-                {selected.nome_contato ?? formatPhone(selected.telefone)}
+            <div className="p-3 border-b border-border flex items-center gap-3">
+              <Avatar nome={contato(selected).nome} foto={contato(selected).foto} />
+              <div>
+                <div className="font-medium">{contato(selected).nome}</div>
+                <div className="text-xs text-muted-foreground">{formatPhone(selected.telefone)}</div>
               </div>
-              {selected.nome_contato && (
-                <div className="text-xs text-muted-foreground">
-                  {formatPhone(selected.telefone)}
-                </div>
-              )}
             </div>
             <ScrollArea className="flex-1 p-4">
               {mensagensQuery.isLoading ? (
@@ -290,11 +343,18 @@ export default function WhatsAppChat() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {(mensagensQuery.data ?? []).map((m) => {
+                  {linha.map((m, i) => {
                     const enviada = m.direcao === "enviada";
+                    const emojis = m.wamid ? reacoes[m.wamid] : undefined;
+                    const url = midiaQuery.data?.[m.id];
                     return (
+                      <div key={m.id}>
+                      {i === idxNaoLida && (
+                        <div className="flex items-center gap-2 my-3 text-[11px] font-semibold text-primary">
+                          <div className="flex-1 h-px bg-primary/40" />Mensagens não lidas<div className="flex-1 h-px bg-primary/40" />
+                        </div>
+                      )}
                       <div
-                        key={m.id}
                         className={cn("flex flex-col", enviada ? "items-end" : "items-start")}
                       >
                         <div
@@ -305,9 +365,21 @@ export default function WhatsAppChat() {
                               : "bg-muted text-foreground rounded-bl-sm",
                           )}
                         >
-                          <div className="whitespace-pre-wrap break-words">
-                            {m.conteudo ?? `[${m.tipo}]`}
-                          </div>
+                          {m.media_id && (
+                            url ? (
+                              <a href={url} target="_blank" rel="noreferrer">
+                                <img src={url} alt={m.tipo === "sticker" ? "Figurinha" : "Foto"} loading="lazy"
+                                  className={cn("rounded-lg", m.tipo === "sticker" ? "w-40 h-40 object-contain" : "max-w-full max-h-72 object-cover")} />
+                              </a>
+                            ) : (
+                              <div className="text-xs opacity-70 italic">{m.tipo === "sticker" ? "Figurinha" : "Foto"} {midiaQuery.isLoading ? "carregando…" : "indisponível"}</div>
+                            )
+                          )}
+                          {(m.conteudo || !m.media_id) && (
+                            <div className="whitespace-pre-wrap break-words">
+                              {m.conteudo || `[${m.tipo}]`}
+                            </div>
+                          )}
                           <div
                             className={cn(
                               "text-[10px] mt-1 opacity-70",
@@ -320,11 +392,15 @@ export default function WhatsAppChat() {
                             })}
                           </div>
                         </div>
+                        {emojis && (
+                          <div className="-mt-2 px-2 py-0.5 rounded-full bg-card border border-border text-sm shadow-sm relative">{emojis.join(" ")}</div>
+                        )}
                         {enviada && m.enviado_por && profilesQuery.data?.[m.enviado_por]?.full_name && (
                           <div className="text-[10px] opacity-60 mt-0.5 text-right pr-1">
                             {profilesQuery.data[m.enviado_por].full_name}
                           </div>
                         )}
+                      </div>
                       </div>
                     );
                   })}
@@ -357,6 +433,16 @@ export default function WhatsAppChat() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function Avatar({ nome, foto }: { nome: string; foto: string | null }) {
+  return foto ? (
+    <img src={foto} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" loading="lazy" />
+  ) : (
+    <div className="w-9 h-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold shrink-0">
+      {iniciais(nome)}
     </div>
   );
 }
