@@ -89,6 +89,7 @@ const comercialItems = [
 
 const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
+  { title: "Disparo de Mensagens", url: "/comercial/disparos", icon: Send },
 ];
 
 /* ─── Loja ─── */

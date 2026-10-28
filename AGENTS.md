@@ -21,3 +21,4 @@
 - Recorrência automática só em planos 2027 (cron `planos-recorrencia-diario`); legado nunca, e `cobrar-recorrencias-diario` fica active=false sem enxergar vendas 2027. Por quê: regra permanente do dono.
 - Encargos por atraso: cálculo só em `src/lib/encargosAtraso.ts` (exibição, centavos) e IPCA só do cache `ipca_indices`, gravado pela função `ipca-atualizar` sob demanda; por quê: nenhuma cobrança nasce deste cálculo até o dono liberar as ações.
 - Desconto em vendas 2027 pela equipe: aplicado em `fn_venda_2027_criar` após `fn_venda_2027_gravar` (que fica intocado e serve o site); Start repete o desconto nas renovações só via `planos.desconto_recorrente`. Por quê: o site nunca recebe desconto e o legado não muda.
+- Disparo de Mensagens (/comercial/disparos) is admin-only and uses its own msg_* tables; it must never modify whatsapp_disparos_config/log or the existing WhatsApp/Notificar senders. Why: isolate marketing sends from live internal notices.

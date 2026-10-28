@@ -5737,6 +5737,60 @@ export type Database = {
         }
         Relationships: []
       }
+      msg_modelos: {
+        Row: {
+          assunto: string | null
+          ativo: boolean
+          canal: string
+          categoria: string | null
+          corpo_html: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          idioma: string
+          meta_nome: string | null
+          nome: string
+          status: string
+          texto: string | null
+          updated_at: string
+          variaveis: Json
+        }
+        Insert: {
+          assunto?: string | null
+          ativo?: boolean
+          canal: string
+          categoria?: string | null
+          corpo_html?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          idioma?: string
+          meta_nome?: string | null
+          nome: string
+          status?: string
+          texto?: string | null
+          updated_at?: string
+          variaveis?: Json
+        }
+        Update: {
+          assunto?: string | null
+          ativo?: boolean
+          canal?: string
+          categoria?: string | null
+          corpo_html?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          idioma?: string
+          meta_nome?: string | null
+          nome?: string
+          status?: string
+          texto?: string | null
+          updated_at?: string
+          variaveis?: Json
+        }
+        Relationships: []
+      }
       notificacao_categorias_custom: {
         Row: {
           ativo: boolean
