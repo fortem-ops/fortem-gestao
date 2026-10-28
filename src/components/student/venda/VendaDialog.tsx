@@ -1,3 +1,4 @@
+import { planoBaseAtivoDe, sugerirVarianteCorrida } from "@/lib/corridaPlanoBase";
 import { useState, useEffect, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,8 +51,6 @@ const FREQ_OPTIONS: { value: Frequencia; label: string; desc: string }[] = [
   { value: "livre", label: "Livre", desc: "Acesso ilimitado no período" },
 ];
 
-/** Prioridade para sugerir a variante de Corrida a partir do plano base ativo. */
-const PRIORIDADE_PLANO_BASE = ["max", "pro", "power", "start_plus", "start"] as const;
 
 const LABEL_PLANO_BASE: Record<string, string> = {
   start: "Start", start_plus: "Start+", power: "Power", pro: "Pro", max: "Max",
