@@ -82,4 +82,4 @@ Ações: `teste` (envia 1 e-mail e/ou 1 WhatsApp para contato digitado, não gra
 Trava `real_liberado` liberada pela migração 0209 (rollback: scripts/msg-liberar-envio.rollback.sql). Coluna `reservado_em` e recuperação de presos (>10 min em enviando → falhou, nunca pendente) na 0208. O envio depende só do clique do dono; cada clique envia no máximo 50 (lote_limite), ordem alfabética.
 
 ## Cliente desde (out/2026)
-Coluna manual `alunos.aluno_desde` (0210, vazia). Data efetiva = menor início de plano, senão a manual. Filtro de intervalo na lista exclui quem não tem data. Carga da planilha será feita depois, separadamente.
+Coluna manual `alunos.aluno_desde` (0210, vazia). Data efetiva = a MAIS ANTIGA entre o menor início de plano e a manual (se só existir uma, usa ela; nenhuma, null). Filtro de intervalo na lista exclui quem não tem data. Carga da planilha será feita depois, separadamente.

@@ -321,38 +321,20 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [editingTraj, setEditingTraj] = useState<string | null>(null);
 
   async function saveAlunoDesde(date: Date) {
-    if (!primeiroPlano?.id) {
-      // Sem plano: grava a data manual em alunos.aluno_desde
-      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const { error } = await supabase.from("alunos").update({ aluno_desde: iso } as any).eq("id", student.id);
-      if (error) {
-        toast.error("Erro ao atualizar Aluno desde");
-      } else {
-        toast.success("Aluno desde atualizado");
-        setAlunoDesdeManual(iso);
-        queryClient.invalidateQueries({ queryKey: ["trajetoria_aluno", student.id] });
-        queryClient.invalidateQueries({ queryKey: ["alunos_with_plans"] });
-      }
-      setEditingAlunoDesde(false);
-      return;
-    }
-    // Proteção: nunca alterar o início de um plano em vigor (mudaria a vigência e o status do aluno).
-    if ((primeiroPlano as any).ativo) {
-      toast.error("O plano mais antigo ainda está em vigor — altere a data de início pela aba Plano.");
-      return;
-    }
-    const dataInicio = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const { error } = await supabase.from("planos").update({ data_inicio: dataInicio } as any).eq("id", primeiroPlano.id);
+    // A data manual sempre é gravada em alunos.aluno_desde; a data efetiva é a mais antiga entre ela e o plano.
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const { error } = await supabase.from("alunos").update({ aluno_desde: iso } as any).eq("id", student.id);
     if (error) {
       toast.error("Erro ao atualizar Aluno desde");
     } else {
-      toast.success("Data de início atualizada");
-      queryClient.invalidateQueries({ queryKey: ["primeiro_plano_data", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["plano_resumo", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      toast.success("Aluno desde atualizado");
+      setAlunoDesdeManual(iso);
+      queryClient.invalidateQueries({ queryKey: ["trajetoria_aluno", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["alunos_with_plans"] });
     }
     setEditingAlunoDesde(false);
   }
+
 
   async function saveTrajDate(
     item: { key: string; stageId: string | null; movementId: string | null; sourceRef?: { table: string; id: string; field: string } | null },
@@ -744,7 +726,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
                       type="text"
                       inputMode="numeric"
                       placeholder="dd/mm/aaaa"
-                      defaultValue={alunoDesdeDat ? new Date(alunoDesdeDat + "T00:00:00").toLocaleDateString("pt-BR") : ""}
+                      defaultValue={alunoDesdeManual ? new Date(alunoDesdeManual + "T00:00:00").toLocaleDateString("pt-BR") : ""}
                       className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
                       onChange={(e) => {
                         let v = e.target.value.replace(/\D/g, "").slice(0, 8);
@@ -763,10 +745,15 @@ export function StudentSummary({ student }: { student: Aluno }) {
                         await saveAlunoDesde(d);
                       }}
                     />
+                    {primeiroPlano && (
+                      <p className="text-xs text-muted-foreground leading-snug max-w-[240px]">
+                        Vale a data mais antiga entre esta e o início do plano mais antigo.
+                      </p>
+                    )}
                     <CalendarComponent
                       mode="single"
-                      selected={alunoDesdeDat ? new Date(alunoDesdeDat + "T00:00:00") : undefined}
-                      defaultMonth={alunoDesdeDat ? new Date(alunoDesdeDat + "T00:00:00") : undefined}
+                      selected={alunoDesdeManual ? new Date(alunoDesdeManual + "T00:00:00") : undefined}
+                      defaultMonth={alunoDesdeManual ? new Date(alunoDesdeManual + "T00:00:00") : undefined}
                       onSelect={async (date) => { if (date) await saveAlunoDesde(date); }}
                       className={cn("p-0 pointer-events-auto")}
                     />

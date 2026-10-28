@@ -141,6 +141,6 @@
 
 ## Cliente desde (alunos.aluno_desde)
 - [x] Coluna nullable (migração 0210), rollback `scripts/alunos-aluno-desde.rollback.sql`
-- [x] Resumo do aluno + Trajetória com fallback; lápis edita aluno_desde quando não há plano
+- [x] Resumo do aluno + Trajetória com fallback; lápis edita `aluno_desde` sempre (com ou sem plano); data efetiva = a mais antiga entre plano e manual
 - [x] Filtro "Cliente desde (de/até)" na lista de alunos
 - [ ] Carga dos valores da planilha (aguardando dono; fora desta tarefa)
