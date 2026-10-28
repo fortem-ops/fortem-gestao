@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CHIPS, confirmacaoValida, STATUS_CAMPANHA_LABEL, type SituacaoChip } from "@/lib/disparos";
+import { CHIPS, confirmacaoValida, STATUS_CAMPANHA_LABEL, AVISO_LOTE, type SituacaoChip } from "@/lib/disparos";
 import { DestinatariosTabela, useContagem } from "./DisparosHistorico";
 
 type Props = { campanhaId: string; chips: SituacaoChip[]; selecionados: number; onVoltar: () => void };
