@@ -144,3 +144,14 @@ export const STATUS_CAMPANHA_LABEL: Record<string, string> = {
 export const STATUS_DEST_LABEL: Record<string, string> = {
   pendente: "Pendente", enviando: "Enviando", enviado: "Enviado", falhou: "Falhou", ignorado: "Ignorado",
 };
+
+// Etapa 5: cada clique envia no máximo LOTE_LIMITE; presos em 'enviando' viram 'falhou' (nunca 'pendente').
+export const LOTE_LIMITE = 50;
+export const PRESO_MINUTOS = 10;
+export const ERRO_PRESO = "Envio interrompido; confira no WhatsApp antes de reenviar";
+export const AVISO_LOTE = "Cada clique envia no máximo 50. Confira o Histórico antes de enviar o próximo lote.";
+export function destinatarioPreso(d: { status: string; enviado_em: string | null; reservado_em: string | null }, agora = Date.now()): boolean {
+  if (d.status !== "enviando" || d.enviado_em) return false;
+  if (!d.reservado_em) return true;
+  return agora - new Date(d.reservado_em).getTime() > PRESO_MINUTOS * 60_000;
+}

@@ -157,6 +157,7 @@ export default function DisparosRevisao({ campanhaId, chips, selecionados, onVol
               {(k?.enviado ?? 0) + (k?.falhou ?? 0) + (k?.ignorado ?? 0) > 0 ? "Enviar próximo lote" : `Enviar primeiro lote de ${lote}`}
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">{AVISO_LOTE}</p>
           {preparado && k && <p className="text-muted-foreground">Enviadas {k.enviado} · Falhas {k.falhou} · Ignoradas {k.ignorado} · Pendentes {k.pendente}</p>}
         </CardContent>
       </Card>
