@@ -33,7 +33,7 @@ export function useWhatsAppUnread(enabled: boolean = true) {
     fetchTotal();
 
     const channel = supabase
-      .channel("whatsapp-unread-badge")
+      .channel(`whatsapp-unread-badge-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "whatsapp_conversas" },

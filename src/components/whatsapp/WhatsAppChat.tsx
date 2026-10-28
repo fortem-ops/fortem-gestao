@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, Search } from "lucide-react";
+import { Loader2, Send, Search, Bell, BellOff } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { setConversaAberta, somLigado, setSomLigado, tocarBeep } from "@/lib/whatsappEstado";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -53,7 +55,14 @@ function formatTime(iso: string | null) {
 
 export default function WhatsAppChat() {
   const qc = useQueryClient();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(params.get("c"));
+  const [som, setSom] = useState(somLigado());
+  useEffect(() => {
+    const c = params.get("c");
+    if (c) { setSelectedId(c); params.delete("c"); setParams(params, { replace: true }); }
+  }, [params, setParams]);
+  useEffect(() => { setConversaAberta(selectedId); return () => setConversaAberta(null); }, [selectedId]);
   const [search, setSearch] = useState("");
   const [soNaoLidas, setSoNaoLidas] = useState(false);
   const [naoLidasAoAbrir, setNaoLidasAoAbrir] = useState<{ id: string; n: number } | null>(null);
@@ -262,6 +271,10 @@ export default function WhatsAppChat() {
             />
           </div>
           <div className="flex gap-1 mt-2">
+            <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto order-last gap-1" title="Som de nova mensagem"
+              onClick={() => { const v = !som; setSom(v); setSomLigado(v); if (v) tocarBeep(); }}>
+              {som ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}{som ? "Som ligado" : "Som desligado"}
+            </Button>
             <Button size="sm" variant={soNaoLidas ? "outline" : "secondary"} className="h-7 text-xs" onClick={() => setSoNaoLidas(false)}>Todas</Button>
             <Button size="sm" variant={soNaoLidas ? "secondary" : "outline"} className="h-7 text-xs" onClick={() => setSoNaoLidas(true)}>
               Não lidas{totalNaoLidas > 0 ? ` (${totalNaoLidas})` : ""}
