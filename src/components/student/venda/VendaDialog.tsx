@@ -233,14 +233,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   });
 
   // Plano base mais relevante entre os contratos ativos (ignora Corrida)
-  const planoBaseAtivo: string | null = (() => {
-    const tipos = new Set(
-      (contratosAtivos as any[])
-        .map((c) => c.plano_tipo)
-        .filter((t: string) => t && t !== "corrida"),
-    );
-    return PRIORIDADE_PLANO_BASE.find((t) => tipos.has(t)) ?? null;
-  })();
+  const planoBaseAtivo: string | null = planoBaseAtivoDe(
+    (contratosAtivos as any[]).map((c) => c.plano_tipo),
+  );
 
   // Calcula término do vigente (data_fim ou início + duração)
   const fimVigente = (() => {
@@ -297,14 +292,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   // Pré-seleciona a variante de Corrida correspondente ao plano base ativo
   useEffect(() => {
     if (!modoCorrida || planoId || planosFiltrados.length === 0) return;
-    const compat = planosFiltrados.filter(
-      (p: any) => (p.plano_base_requerido ?? null) === planoBaseAtivo,
-    );
-    const lista = compat.length > 0 ? compat : planosFiltrados;
-    const ordenada = [...lista].sort(
-      (a: any, b: any) => (a.periodo_meses || 0) - (b.periodo_meses || 0),
-    );
-    setPlanoId(ordenada[0].id);
+    const sug = sugerirVarianteCorrida<any>(planosFiltrados, planoBaseAtivo);
+    if (sug) setPlanoId(sug.id);
   }, [modoCorrida, planoId, planosFiltrados.length, planoBaseAtivo]);
 
   // Modo do contrato: Corrida é sempre adicional; demais mantêm o comportamento atual
