@@ -75,5 +75,5 @@ Ações: `teste` (envia 1 e-mail e/ou 1 WhatsApp para contato digitado, não gra
 
 ## Situação (28/10/2026)
 - Etapa 3 concluída: migração 0206 (botão fixo em msg_modelos; msg_campanhas, msg_campanha_destinatarios, msg_testes, só admin), passo Mensagem só WhatsApp (decisão do dono), envio de teste para telefone digitado via `disparo-campanha` (ação `teste`, 20/h por usuário). E-mail fora do fluxo avulso por ora.
-- Etapa 4: Revisar e enviar + ação `preparar` (snapshot, dedupe por telefone) + confirmação do total + link de descadastro + Histórico; envio real continua travado por flag.
-- Etapa 5: liberar a flag e enviar o primeiro lote de 50.
+- Etapa 4 (CONCLUÍDA): Revisar e enviar + `preparar` (snapshot, dedupe por telefone) + confirmação do total + Histórico; sem link de descadastro (e-mail fora do fluxo); envio real travado por msg_config.real_liberado=false.
+- Etapa 5: liberar real_liberado por migração separada, com aprovação do dono, e enviar o primeiro lote de 50.
