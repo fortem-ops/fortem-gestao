@@ -52,13 +52,10 @@ function Publico() {
     else { const s = new Set(ids); s.has(id) ? s.delete(id) : s.add(id); setIds(s); }
   };
   const paginaToda = elegiveisPagina.length > 0 && elegiveisPagina.every((r) => marcado(r.id));
-  const alternarPagina = () => elegiveisPagina.forEach((r) => { if (marcado(r.id) === paginaToda) alternar(r.id); });
-  // alternar acima usa estado antigo; refazer em lote:
   const alternarPaginaLote = () => {
     if (todos) { const s = new Set(removidos); elegiveisPagina.forEach((r) => (paginaToda ? s.add(r.id) : s.delete(r.id))); setRemovidos(s); }
     else { const s = new Set(ids); elegiveisPagina.forEach((r) => (paginaToda ? s.delete(r.id) : s.add(r.id))); setIds(s); }
   };
-  void alternarPagina;
   const selecionados = todos ? Math.max(0, (data?.elegiveis ?? 0) - removidos.size) : ids.size;
   const totalPaginas = Math.max(1, Math.ceil((data?.total ?? 0) / POR_PAGINA));
 
