@@ -469,7 +469,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     });
     console.log("[StudentList] Filtrado:", result.length, "Motivos de descarte:", droppedReasons);
     return result;
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.ultimaAvaliacaoFuncional, filters.servicoPlanoDisponivel, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos, lastFuncionalMap]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.ultimaAvaliacaoFuncional, filters.servicoPlanoDisponivel, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.clienteDesdeDe, filters.clienteDesdeAte, filters.dadosCadastrais, isInativos, lastFuncionalMap]);
 
 
   const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);
