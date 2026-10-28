@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
       if (v) await sup.from("festa_vouchers").update({ usos: v.usos + 1 }).eq("id", v.id);
 
       let atual = c;
-      if (!v) {
+      if (deveGerarPix(c.status, c.total_centavos)) {
         const r = await criarPixFesta(sup, c);
         if (r.ok) atual = { ...c, pix_copia_e_cola: r.copia_e_cola, pix_expira_em: r.expira_em };
       }
