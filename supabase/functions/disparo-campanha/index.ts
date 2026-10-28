@@ -1,8 +1,8 @@
 // Disparo de Mensagens — ações: teste, preparar, enviar, cancelar.
 // Reutiliza send-whatsapp (modo template).
-// ATENÇÃO (etapa 4): a ação `enviar` está implementada, mas TRAVADA por msg_config.real_liberado = false.
-// Enquanto essa linha não for liberada por migração aprovada pelo dono (etapa 5), `enviar` responde 423
-// sem tocar em nada. Ninguém liga a trava pela interface.
+// Etapa 5: msg_config.real_liberado liberado por migração (rollback em scripts/msg-liberar-envio.rollback.sql).
+// Sem a trava, `enviar` responde 423 sem tocar em nada. Ninguém liga a trava pela interface.
+// Cada clique envia no máximo lote_limite (50).
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { normalizarTelefone, sanitizeTextParam } from '../_shared/whatsapp.ts';
@@ -120,7 +120,15 @@ async function enviar(admin: any, body: any, uid: string) {
     confirmado_total: body.confirmacao_total, confirmado_por: uid, confirmado_em: new Date().toISOString(), status: 'enviando',
   }).eq('id', id);
 
-  // Reserva atômica (FOR UPDATE SKIP LOCKED): cada destinatário só sai uma vez. Máx. lote_limite por chamada, sem auto-reinvocação.
+  // Recupera presos: 'enviando' há mais de 10 min sem enviado_em → 'falhou' (NUNCA 'pendente': a mensagem pode ter saído).
+  const limitePreso = new Date(Date.now() - PRESO_MIN * 60_000).toISOString();
+  await admin.from('msg_campanha_destinatarios')
+    .update({ status: 'falhou', erro: ERRO_PRESO })
+    .eq('campanha_id', id).eq('status', 'enviando').is('enviado_em', null)
+    .or(`reservado_em.is.null,reservado_em.lt.${limitePreso}`);
+
+  // Reserva atômica (FOR UPDATE SKIP LOCKED): cada destinatário só sai uma vez, ordem nome, id.
+  // Cada clique envia no máximo lote_limite (= 50; o primeiro lote é exatamente 50), sem auto-reinvocação.
   const { data: lote, error: le } = await admin.rpc('fn_msg_reservar_lote', { p_campanha: id, p_limite: c.lote_limite ?? 50 });
   if (le) return json({ error: 'Falha ao reservar lote' }, 500);
   let enviados = 0, falhas = 0, ignorados = 0, seguidas = 0, pausou = false;
