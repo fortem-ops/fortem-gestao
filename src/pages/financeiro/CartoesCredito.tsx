@@ -1,3 +1,4 @@
+import { motivoRede } from "@/lib/redeRetornos";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Lock, Search, Star, StarOff, Smartphone, Link2, Building2 } from "lucide-react";
@@ -386,8 +387,7 @@ export default function CartoesCredito() {
                     <TableCell>{t.installments ?? 1}x</TableCell>
                     <TableCell><StatusBadge status={t.status} /></TableCell>
                     <TableCell className="text-xs">
-                      <span className="font-mono">{t.return_code}</span>
-                      <div className="text-muted-foreground">{t.return_message}</div>
+                      <div className="text-muted-foreground">{motivoRede(t.return_code, t.return_message)}</div>
                     </TableCell>
                     <TableCell className="text-xs">{t.vendas?.alunos?.nome ?? "—"}</TableCell>
                   </TableRow>

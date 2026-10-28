@@ -1,3 +1,4 @@
+import { motivoRede } from "@/lib/redeRetornos";
 import { useState, Fragment } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,7 +130,7 @@ function TentativasPagamento({ pedidoId }: { pedidoId: string }) {
                 </Badge>
                 <span>{formatBRL(Number(t.amount ?? 0) / 100)}{t.installments > 1 ? ` em ${t.installments}x` : ""}</span>
                 <span className="text-muted-foreground">
-                  {t.return_code ? `cód. ${t.return_code}` : ""} {t.return_message ?? ""}
+                  {motivoRede(t.return_code, t.return_message)}
                 </span>
               </li>
             ))}

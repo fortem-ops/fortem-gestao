@@ -1,3 +1,4 @@
+import { motivoRede } from "@/lib/redeRetornos";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -203,7 +204,7 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
       } else {
         setResultado({
           status: "erro",
-          msg: `${data?.return_message ?? "Negado"} (cód ${data?.return_code ?? "?"})`,
+          msg: motivoRede(data?.return_code, data?.return_message ?? data?.error),
         });
       }
     } catch (e: any) {
