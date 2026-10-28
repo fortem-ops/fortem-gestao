@@ -108,3 +108,39 @@ export function dedupePorTelefone<T extends { telefone: string | null }>(lista: 
     return true;
   });
 }
+
+// ---- Etapa 4: revisão, envio e histórico ----
+export type StatusDestinatario = "pendente" | "enviando" | "enviado" | "falhou" | "ignorado";
+
+/** O envio só libera se o total digitado for exatamente o total preparado (> 0). */
+export function confirmacaoValida(digitado: string, totalPreparado: number | null | undefined): boolean {
+  if (!totalPreparado || totalPreparado < 1) return false;
+  const t = digitado.trim();
+  return /^\d+$/.test(t) && Number(t) === totalPreparado;
+}
+
+/** 5551999998888 → +55 (51) 9****-8888 */
+export function mascararTelefone(tel: string | null | undefined): string {
+  const d = (tel ?? "").replace(/\D/g, "");
+  if (d.length < 12) return d ? "****" + d.slice(-2) : "—";
+  const ddd = d.slice(2, 4), resto = d.slice(4);
+  return `+${d.slice(0, 2)} (${ddd}) ${resto[0]}****-${resto.slice(-4)}`;
+}
+
+export function resumoStatus(linhas: { status: string }[]) {
+  const r = { enviado: 0, falhou: 0, ignorado: 0, pendente: 0, total: linhas.length };
+  for (const l of linhas) {
+    if (l.status === "enviado") r.enviado++;
+    else if (l.status === "falhou") r.falhou++;
+    else if (l.status === "ignorado") r.ignorado++;
+    else r.pendente++; // pendente + enviando
+  }
+  return r;
+}
+
+export const STATUS_CAMPANHA_LABEL: Record<string, string> = {
+  rascunho: "Rascunho", pronta: "Pronta", enviando: "Enviando", pausada: "Pausada", concluida: "Concluída", cancelada: "Cancelada",
+};
+export const STATUS_DEST_LABEL: Record<string, string> = {
+  pendente: "Pendente", enviando: "Enviando", enviado: "Enviado", falhou: "Falhou", ignorado: "Ignorado",
+};
