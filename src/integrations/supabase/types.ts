@@ -5747,6 +5747,7 @@ export type Database = {
           erro: string | null
           id: string
           nome: string | null
+          reservado_em: string | null
           status: string
           telefone_norm: string | null
           wa_message_id: string | null
@@ -5760,6 +5761,7 @@ export type Database = {
           erro?: string | null
           id?: string
           nome?: string | null
+          reservado_em?: string | null
           status?: string
           telefone_norm?: string | null
           wa_message_id?: string | null
@@ -5773,6 +5775,7 @@ export type Database = {
           erro?: string | null
           id?: string
           nome?: string | null
+          reservado_em?: string | null
           status?: string
           telefone_norm?: string | null
           wa_message_id?: string | null
@@ -12975,6 +12978,7 @@ export type Database = {
           erro: string | null
           id: string
           nome: string | null
+          reservado_em: string | null
           status: string
           telefone_norm: string | null
           wa_message_id: string | null
