@@ -452,6 +452,7 @@ export type Database = {
       alunos: {
         Row: {
           aluno_2025: boolean
+          aluno_desde: string | null
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -484,6 +485,7 @@ export type Database = {
         }
         Insert: {
           aluno_2025?: boolean
+          aluno_desde?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -516,6 +518,7 @@ export type Database = {
         }
         Update: {
           aluno_2025?: boolean
+          aluno_desde?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
