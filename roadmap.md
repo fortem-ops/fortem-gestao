@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Disparo de Mensagens — etapa 1: menu, rota, abas, modelos.
+- [ ] Disparo de Mensagens — etapas 2 a 5 (aguardam aprovação do dono).
+
 - [x] Facial no balcão: termos completos compartilhados do app/responsável, equipe preservada; 12 testes locais passaram, diálogos adulto/menor simulados em computador/celular conferidos sem salvar; contagens 227/1/1 e modo log preservados.
 
 - [x] /10anos: preço único, servidor/migration 0187, telas e 23 testes; inserções simuladas revertidas; formulário e inclusão manual conferidos; zero pendentes, quatro registros preservados e PIX teste R$70 intacto; site não publicado.

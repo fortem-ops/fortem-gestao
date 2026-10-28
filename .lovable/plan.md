@@ -5,7 +5,7 @@ Escopo: modelos, disparos avulsos por E-mail e WhatsApp, histórico. Fora: push,
 ## O que já foi conferido no banco/código
 - `alunos.status` tem hoje: ativo 248 (6 da equipe), inativo 686, lead 903, prospect 12, avulso 7, **cancelado 2** (não citado no pedido — ver pergunta 1).
 - `alunos` tem `email` e `telefone` (não há coluna `whatsapp`); "tem WhatsApp" = telefone que passa em `normalizarTelefone`.
-- `festa_confirmacoes` **não tem `aluno_id`**: guarda `nome`, `email`, `whatsapp`. O cruzamento "já confirmou" precisa ser por e-mail (minúsculo) ou telefone normalizado.
+- `festa_confirmacoes` **não tem `aluno_id`**: guarda `nome`, `email`, `whatsapp`. Decidido: o cruzamento "já confirmou" será feito SOMENTE por telefone/WhatsApp normalizado.
 - `send-whatsapp` já aceita modo template (`template_name`, language, components) e valida o usuário logado; `_shared/whatsapp.ts` tem `normalizarTelefone` e `callSendWhatsApp`; `_shared/resend.ts` tem `enviarResend(to, assunto, html, texto)`.
 - Menu: grupo Comercial em `AppSidebar.tsx` já tem lista `comercialAdminItems` exibida só com `isAdmin`.
 
@@ -55,9 +55,17 @@ Ações: `teste` (envia 1 e-mail e/ou 1 WhatsApp para contato digitado, não gra
 2. M2 + aba Público (filtros, busca, seleção, lote, exclusões, resumo) + cadastro manual de opt-out. Só leitura.
 3. M3 + passo Mensagem (modelos, variáveis, prévias) + função com ação `teste` apenas. Envio só para o e-mail/telefone digitado.
 4. Revisar e enviar + `preparar` + confirmação com total; envio real ainda travado pela flag. Aba Histórico.
-5. Liberação da flag após sua aprovação; primeira leva do convite da festa (inativos, sem confirmados), começando pequena.
+5. Liberação da flag após sua aprovação; primeira leva do convite da festa (inativos, sem confirmados), primeira leva de 50 destinatários.
 
-## Perguntas
+## Respostas do dono
+1. Inativos/ex-alunos = inativo + cancelado.
+2. Cruzamento com a festa só por telefone normalizado.
+3. %LINK_FESTA% = https://soufortem.com.br/10anos.
+4. Link de descadastro no e-mail entra na etapa 4.
+5. Primeira leva real: 50 destinatários, depois o restante.
+6. Teste só para contatos digitados.
+
+## Perguntas (respondidas acima)
 1. Status `cancelado` (2 cadastros) entra no chip "Inativos/ex-alunos" ou fica de fora?
 2. O cruzamento com a festa por e-mail OU telefone está ok?
 3. Variáveis extras sugeridas (`%LINK_FESTA%`, `%PRAZO_CONFIRMACAO%`) — o link da festa é `https://soufortem.com.br/10anos`?
