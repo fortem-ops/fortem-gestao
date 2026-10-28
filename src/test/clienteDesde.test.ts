@@ -2,14 +2,23 @@ import { describe, it, expect } from "vitest";
 import { dataClienteDesde, menorInicioPorAluno, matchClienteDesde } from "@/lib/clienteDesde";
 
 describe("dataClienteDesde", () => {
-  it("menor plano prevalece sobre aluno_desde", () => {
-    expect(dataClienteDesde("2019-03-01", "2016-01-10")).toBe("2019-03-01");
+  it("aluno_desde mais antiga que o plano usa aluno_desde", () => {
+    expect(dataClienteDesde("2019-03-01", "2016-01-10")).toBe("2016-01-10");
   });
-  it("sem plano usa aluno_desde", () => {
+  it("plano mais antigo que aluno_desde usa o plano", () => {
+    expect(dataClienteDesde("2016-01-10", "2019-03-01")).toBe("2016-01-10");
+  });
+  it("só plano usa o plano", () => {
+    expect(dataClienteDesde("2019-03-01", null)).toBe("2019-03-01");
+  });
+  it("só aluno_desde usa aluno_desde", () => {
     expect(dataClienteDesde(null, "2016-01-10")).toBe("2016-01-10");
   });
   it("sem nada retorna null", () => {
     expect(dataClienteDesde(null, null)).toBeNull();
+  });
+  it("ignora a hora e compara só os primeiros 10 caracteres", () => {
+    expect(dataClienteDesde("2019-03-01T10:00:00", "2016-01-10T23:59:59")).toBe("2016-01-10");
   });
 });
 
