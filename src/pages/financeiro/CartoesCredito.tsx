@@ -386,8 +386,7 @@ export default function CartoesCredito() {
                     <TableCell>{t.installments ?? 1}x</TableCell>
                     <TableCell><StatusBadge status={t.status} /></TableCell>
                     <TableCell className="text-xs">
-                      <span className="font-mono">{t.return_code}</span>
-                      <div className="text-muted-foreground">{t.return_message}</div>
+                      <div className="text-muted-foreground">{motivoRede(t.return_code, t.return_message)}</div>
                     </TableCell>
                     <TableCell className="text-xs">{t.vendas?.alunos?.nome ?? "—"}</TableCell>
                   </TableRow>

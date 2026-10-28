@@ -203,7 +203,7 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
       } else {
         setResultado({
           status: "erro",
-          msg: `${data?.return_message ?? "Negado"} (cód ${data?.return_code ?? "?"})`,
+          msg: motivoRede(data?.return_code, data?.return_message ?? data?.error),
         });
       }
     } catch (e: any) {
