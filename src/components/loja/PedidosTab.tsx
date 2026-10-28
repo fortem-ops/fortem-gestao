@@ -1,3 +1,4 @@
+import { motivoRede } from "@/lib/redeRetornos";
 import { useState, Fragment } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

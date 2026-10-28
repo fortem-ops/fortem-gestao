@@ -1,3 +1,4 @@
+import { motivoRede } from "@/lib/redeRetornos";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Lock, Search, Star, StarOff, Smartphone, Link2, Building2 } from "lucide-react";
