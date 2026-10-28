@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { selecaoVazia, aoMudarBusca, aoMudarRecorte, marcarIds, limparIds, buscaParaSalvar, type Selecao } from "@/lib/disparosSelecao";
+import { selecaoVazia, aoMudarBusca, aoMudarRecorte, marcarIds, limparIds, filtroParaSalvar, type Selecao } from "@/lib/disparosSelecao";
 import { X, CalendarIcon } from "lucide-react";
 
 type Row = { id: string; nome: string; status: string; tem_email: boolean; tem_whats: boolean; motivo: MotivoExclusao | null; cliente_desde: string | null };
@@ -105,7 +105,7 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
   const selecionados = todos ? Math.max(0, (data?.elegiveis ?? 0) - removidos.size) : ids.size;
   useEffect(() => {
     onEstado({
-      filtro: { chips, busca: buscaParaSalvar(todos, buscaD), exclConfirmados: exclConf, exclSemContato: exclSem, clienteDesdeDe: desdeDe, clienteDesdeAte: desdeAte },
+      filtro: filtroParaSalvar(todos, { chips, busca: buscaD, exclConfirmados: exclConf, exclSemContato: exclSem, clienteDesdeDe: desdeDe, clienteDesdeAte: desdeAte }, CHIPS.map((c) => c.v)),
       selecao: todos ? { modo: "todos", removidos: [...removidos] } : { modo: "ids", ids: [...ids] },
       selecionados,
     });
@@ -131,7 +131,7 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
         <Input placeholder="Buscar por nome, e-mail ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} />
         {!todos && ids.size > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground">{ids.size} selecionados:</span>
+            <span className="text-muted-foreground">{ids.size} selecionados manualmente, independentes do filtro:</span>
             {chipsSel.map((id) => (
               <Badge key={id} variant="secondary" className="gap-1 pr-1">
                 {nomes.get(id) || "—"}
@@ -211,6 +211,7 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
             ["Aptos", data?.elegiveis],
           ].map(([l, v]) => <div key={l as string} className="flex justify-between"><span className="text-muted-foreground">{l}</span><span>{v ?? "—"}</span></div>)}
           <div className="flex justify-between border-t pt-2 mt-2 font-medium"><span>Selecionados</span><span>{selecionados}</span></div>
+          {!todos && ids.size > 0 && <p className="text-xs text-muted-foreground">{ids.size} selecionados manualmente, independentes do filtro.</p>}
         </CardContent>
       </Card>
     </div>
@@ -261,7 +262,7 @@ export default function DisparosAvulsos() {
             </div>
             <div className={passo === 0 ? "" : "hidden"}><Publico onEstado={setEstado} /></div>
             {passo === 1 && campanhaId && <DisparosMensagem campanhaId={campanhaId} />}
-            {passo === 2 && campanhaId && <DisparosRevisao campanhaId={campanhaId} chips={estado?.filtro.chips ?? []} clienteDesdeDe={estado?.filtro.clienteDesdeDe ?? null} clienteDesdeAte={estado?.filtro.clienteDesdeAte ?? null} selecionados={estado?.selecionados ?? 0} onVoltar={() => setPasso(1)} />}
+            {passo === 2 && campanhaId && <DisparosRevisao campanhaId={campanhaId} modoIds={estado?.selecao.modo === "ids"} chips={estado?.filtro.chips ?? []} clienteDesdeDe={estado?.filtro.clienteDesdeDe ?? null} clienteDesdeAte={estado?.filtro.clienteDesdeAte ?? null} selecionados={estado?.selecionados ?? 0} onVoltar={() => setPasso(1)} />}
             <Label className="sr-only">Assistente</Label>
           </CardContent>
         </Card>

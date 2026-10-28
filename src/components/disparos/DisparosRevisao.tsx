@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { CHIPS, confirmacaoValida, STATUS_CAMPANHA_LABEL, AVISO_LOTE, resumoClienteDesde, type SituacaoChip } from "@/lib/disparos";
 import { DestinatariosTabela, useContagem } from "./DisparosHistorico";
 
-type Props = { campanhaId: string; chips: SituacaoChip[]; clienteDesdeDe?: string | null; clienteDesdeAte?: string | null; selecionados: number; onVoltar: () => void };
+type Props = { campanhaId: string; modoIds?: boolean; chips: SituacaoChip[]; clienteDesdeDe?: string | null; clienteDesdeAte?: string | null; selecionados: number; onVoltar: () => void };
 type Camp = {
   nome: string; status: string; modelo_id: string | null; total_preparado: number | null; deduplicados: number | null;
   preparado_em: string | null; lote_limite: number;
@@ -18,7 +18,7 @@ type Camp = {
 };
 type Erro = { error?: string };
 
-export default function DisparosRevisao({ campanhaId, chips, clienteDesdeDe, clienteDesdeAte, selecionados, onVoltar }: Props) {
+export default function DisparosRevisao({ campanhaId, modoIds, chips, clienteDesdeDe, clienteDesdeAte, selecionados, onVoltar }: Props) {
   const qc = useQueryClient();
   const [preparando, setPreparando] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -97,8 +97,8 @@ export default function DisparosRevisao({ campanhaId, chips, clienteDesdeDe, cli
           <CardHeader className="pb-2"><CardTitle className="text-base">Resumo</CardTitle></CardHeader>
           <CardContent className="space-y-1 text-sm">
             <p><span className="text-muted-foreground">Nome:</span> {c.nome}</p>
-            <p><span className="text-muted-foreground">Público:</span> {CHIPS.filter((x) => chips.includes(x.v)).map((x) => x.l).join(", ") || "—"}</p>
-            {resumoClienteDesde(clienteDesdeDe, clienteDesdeAte) && <p><span className="text-muted-foreground">Cliente desde:</span> {resumoClienteDesde(clienteDesdeDe, clienteDesdeAte)}</p>}
+            <p><span className="text-muted-foreground">Público:</span> {modoIds ? `Seleção manual de ${selecionados} nomes` : (CHIPS.filter((x) => chips.includes(x.v)).map((x) => x.l).join(", ") || "—")}</p>
+            {!modoIds && resumoClienteDesde(clienteDesdeDe, clienteDesdeAte) && <p><span className="text-muted-foreground">Cliente desde:</span> {resumoClienteDesde(clienteDesdeDe, clienteDesdeAte)}</p>}
             <p><span className="text-muted-foreground">Modelo:</span> {c.modelo?.nome ?? "—"} {c.modelo?.meta_nome && <span className="text-muted-foreground">({c.modelo.meta_nome})</span>}</p>
             <p><span className="text-muted-foreground">Canal:</span> WhatsApp</p>
             <p><span className="text-muted-foreground">Selecionados no Público:</span> {selecionados}</p>

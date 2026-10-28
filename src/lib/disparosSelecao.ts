@@ -1,14 +1,14 @@
 // Seleção do passo "Público" (Disparos avulsos). Funções puras.
-// Regras: a busca NÃO zera a seleção manual por ids; mudar o recorte (chips,
-// exclusões, datas) zera tudo; modo "todos" depende da busca, então mudar a
-// busca com "todos" ligado desliga "todos" e zera removidos, mantendo ids.
+// Regras: nomes marcados manualmente (ids) NUNCA são zerados por mudança de
+// filtro (chips, exclusões, datas, busca); só "Limpar seleção" e o × removem.
+// Modo "todos" depende do filtro: qualquer mudança desliga "todos" e zera removidos.
 
 export type Selecao = { todos: boolean; ids: Set<string>; removidos: Set<string>; nomes: Map<string, string> };
 
 export const selecaoVazia = (): Selecao => ({ todos: false, ids: new Set(), removidos: new Set(), nomes: new Map() });
 
-export function aoMudarRecorte(_s: Selecao): Selecao {
-  return selecaoVazia();
+export function aoMudarRecorte(s: Selecao): Selecao {
+  return aoMudarBusca(s);
 }
 
 export function aoMudarBusca(s: Selecao): Selecao {
@@ -33,4 +33,13 @@ export function limparIds(s: Selecao): Selecao {
 /** Busca salva no filtro: no modo ids a lista de ids é a fonte da verdade, então a busca vai vazia. */
 export function buscaParaSalvar(todos: boolean, busca: string): string {
   return todos ? busca : "";
+}
+
+export type FiltroSalvo<C extends string = string> = { chips: C[]; busca: string; exclConfirmados: boolean; exclSemContato: boolean; clienteDesdeDe: string | null; clienteDesdeAte: string | null };
+
+/** Filtro salvo na campanha. No modo ids os ids vêm de recortes diferentes: o servidor
+ * recebe todos os chips, busca vazia e datas nulas, mantendo só as exclusões das caixas. */
+export function filtroParaSalvar<C extends string>(modoTodos: boolean, f: FiltroSalvo<C>, todosOsChips: C[]): FiltroSalvo<C> {
+  if (modoTodos) return { ...f };
+  return { chips: [...todosOsChips], busca: "", exclConfirmados: f.exclConfirmados, exclSemContato: f.exclSemContato, clienteDesdeDe: null, clienteDesdeAte: null };
 }
