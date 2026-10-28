@@ -1,0 +1,2 @@
+-- Etapa 5: libera o envio real, autorizado pelo dono. Primeiro lote = exatamente lote_limite (50); cada clique envia no máximo 50. Rollback: scripts/msg-liberar-envio.rollback.sql
+UPDATE public.msg_config SET valor = 'true'::jsonb, atualizado_em = now() WHERE chave = 'real_liberado';
