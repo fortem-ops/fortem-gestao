@@ -3,7 +3,8 @@ import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriang
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { dataClienteDesde } from "@/lib/clienteDesde";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -236,7 +237,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   ] as const;
 
   const { data: trajetoria } = useQuery({
-    queryKey: ["trajetoria_aluno", student.id],
+    queryKey: ["trajetoria_aluno", student.id, alunoDesdeManual],
     queryFn: async () => {
       const names = TRAJ_STAGES.map((t) => t.stageName);
       const [stagesRes, agendaRes, planoRes] = await Promise.all([
@@ -295,9 +296,9 @@ export function StudentSummary({ student }: { student: Aluno }) {
           sourceDate = primeiroPlano.data_inicio as string;
           sourceLabel = "plano";
           sourceRef = { table: "planos", id: primeiroPlano.id, field: "data_inicio" };
-        } else if (t.key === "aluno" && !primeiroPlano && (student as any).aluno_desde) {
+        } else if (t.key === "aluno" && !primeiroPlano && alunoDesdeManual) {
           // Sem plano: mesma regra do cartão "Aluno desde" (data manual do cadastro)
-          sourceDate = (student as any).aluno_desde as string;
+          sourceDate = alunoDesdeManual;
           sourceLabel = "cadastro manual";
         }
 
