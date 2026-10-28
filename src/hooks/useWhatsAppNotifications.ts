@@ -1,84 +1,88 @@
-import { useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { createElement, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { chaveTelefone, iniciais, rotuloPrevia, textoAgrupado } from "@/lib/whatsappChat";
+import { getConversaAberta, somLigado, tocarBeep } from "@/lib/whatsappEstado";
+import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
+
+const DURACAO = 8000;
 
 export function useWhatsAppNotifications(enabled: boolean = true) {
   const navigate = useNavigate();
-  const lastMessageId = useRef<string | null>(null);
-  const location = useLocation();
-  const locationRef = useRef(location.pathname);
+  const navRef = useRef(navigate);
+  navRef.current = navigate;
+  const vistos = useRef(new Set<string>());
+  const grupos = useRef(new Map<string, { qtd: number; at: number }>());
+  const alunos = useRef<Record<string, { nome: string; foto: string | null }> | null>(null);
+  const naoLidas = useWhatsAppUnread(enabled);
 
+  // Título da aba
   useEffect(() => {
-    locationRef.current = location.pathname;
-  }, [location.pathname]);
-
-  useEffect(() => {
-    console.log("[WhatsApp Notification] hook iniciado, enabled:", enabled);
-
     if (!enabled) return;
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      console.log("[WhatsApp Notification] Notification API indisponível neste ambiente");
-      return;
-    }
+    const base = document.title.replace(/^\(\d+\)\s*/, "");
+    document.title = naoLidas > 0 ? `(${naoLidas}) ${base}` : base;
+  }, [naoLidas, enabled]);
 
-    console.log("[WhatsApp Notification] permissão:", Notification.permission);
+  useEffect(() => {
+    if (!enabled) return;
+    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
 
-    if (Notification.permission === "default") {
-      Notification.requestPermission().then(p => {
-        console.log("[WhatsApp Notification] permissão concedida:", p);
-      });
-    }
+    const carregarAlunos = async () => {
+      if (alunos.current) return alunos.current;
+      const { data } = await supabase.from("alunos").select("nome, telefone, foto_url").not("telefone", "is", null).limit(5000);
+      const map: Record<string, { nome: string; foto: string | null }> = {};
+      (data ?? []).forEach((a: any) => { const k = chaveTelefone(a.telefone); if (k && !map[k]) map[k] = { nome: a.nome, foto: a.foto_url ?? null }; });
+      alunos.current = map;
+      return map;
+    };
 
     const channel = supabase
-      .channel("whatsapp-notifications-v3")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "whatsapp_mensagens",
-        },
-        async (payload) => {
-          console.log("[WhatsApp Notification] evento recebido:", payload.new);
-          const msg = payload.new as any;
+      .channel("whatsapp-notifications-v4")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "whatsapp_mensagens" }, async (payload) => {
+        const msg = payload.new as any;
+        if (msg.direcao !== "recebida" || vistos.current.has(msg.id)) return;
+        vistos.current.add(msg.id);
+        const aberta = getConversaAberta() === msg.conversa_id && location.pathname.startsWith("/whatsapp");
+        if (aberta && !document.hidden) return;
 
-          if (msg.direcao !== "recebida") return;
-          if (msg.id === lastMessageId.current) return;
-          lastMessageId.current = msg.id;
-          if (locationRef.current.startsWith("/whatsapp")) return;
-          if (Notification.permission !== "granted") return;
+        const { data: conversa } = await supabase.from("whatsapp_conversas" as never)
+          .select("nome_contato, telefone").eq("id", msg.conversa_id).maybeSingle();
+        const c = conversa as any;
+        const mapa = await carregarAlunos();
+        const a = mapa[chaveTelefone(c?.telefone) ?? ""];
+        const nome = a?.nome ?? c?.nome_contato ?? c?.telefone ?? "WhatsApp";
+        const rotulo = rotuloPrevia(msg.tipo, msg.conteudo);
 
-          const { data: conversa } = await supabase
-            .from("whatsapp_conversas" as never)
-            .select("nome_contato, telefone")
-            .eq("id", msg.conversa_id)
-            .maybeSingle();
+        const g = grupos.current.get(msg.conversa_id);
+        const qtd = g && Date.now() - g.at < DURACAO ? g.qtd + 1 : 1;
+        grupos.current.set(msg.conversa_id, { qtd, at: Date.now() });
+        const texto = textoAgrupado(qtd, rotulo);
+        const abrir = () => navRef.current(`/whatsapp?c=${msg.conversa_id}`);
 
-          const contato = (conversa as any)?.nome_contato || (conversa as any)?.telefone || "WhatsApp Fortem";
-          const texto = msg.conteudo || "Nova mensagem";
-          const body = texto.length > 100 ? texto.substring(0, 100) + "…" : texto;
+        if (somLigado()) tocarBeep();
 
-          console.log("[WhatsApp Notification] disparando notificação para:", contato);
-
+        if (document.hidden && "Notification" in window && Notification.permission === "granted") {
           try {
-            const notification = new Notification(`💬 ${contato}`, { body });
-            notification.onclick = () => {
-              window.focus();
-              navigate("/whatsapp");
-              notification.close();
-            };
-            setTimeout(() => notification.close(), 6000);
-          } catch (e) {
-            console.error("[WhatsApp Notification] erro ao criar notificação:", e);
-          }
+            const n = new Notification(`💬 ${nome}`, { body: texto, tag: msg.conversa_id });
+            n.onclick = () => { window.focus(); abrir(); n.close(); };
+            setTimeout(() => n.close(), DURACAO);
+          } catch { /* ignora */ }
         }
-      )
-      .subscribe((status) => {
-        console.log("[WhatsApp Notification] channel status:", status);
-      });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [enabled, navigate]);
+        const avatar = a?.foto
+          ? createElement("img", { src: a.foto, alt: "", className: "w-9 h-9 rounded-full object-cover" })
+          : createElement("div", { className: "w-9 h-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold" }, iniciais(nome));
+        toast(nome, {
+          id: `wa-${msg.conversa_id}`,
+          description: texto,
+          icon: avatar,
+          duration: DURACAO,
+          action: { label: "Abrir", onClick: abrir },
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [enabled]);
 }
