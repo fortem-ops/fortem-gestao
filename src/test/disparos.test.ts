@@ -58,3 +58,23 @@ describe("etapa 3", () => {
     expect(r.map((x) => x.id)).toEqual([1]);
   });
 });
+
+import { confirmacaoValida, mascararTelefone, resumoStatus } from "@/lib/disparos";
+describe("etapa 4", () => {
+  it("confirmação exige o total exato", () => {
+    expect(confirmacaoValida("673", 673)).toBe(true);
+    expect(confirmacaoValida(" 673 ", 673)).toBe(true);
+    expect(confirmacaoValida("676", 673)).toBe(false);
+    expect(confirmacaoValida("673.0", 673)).toBe(false);
+    expect(confirmacaoValida("0", 0)).toBe(false);
+    expect(confirmacaoValida("", null)).toBe(false);
+  });
+  it("mascara telefone", () => {
+    expect(mascararTelefone("5551999998888")).toBe("+55 (51) 9****-8888");
+    expect(mascararTelefone(null)).toBe("—");
+  });
+  it("resume status", () => {
+    expect(resumoStatus([{ status: "enviado" }, { status: "falhou" }, { status: "ignorado" }, { status: "pendente" }, { status: "enviando" }]))
+      .toEqual({ enviado: 1, falhou: 1, ignorado: 1, pendente: 2, total: 5 });
+  });
+});

@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import DisparosModelos from "@/components/disparos/DisparosModelos";
 import DisparosAvulsos from "@/components/disparos/DisparosAvulsos";
+import DisparosHistorico from "@/components/disparos/DisparosHistorico";
 
 function EmBreve({ texto }: { texto: string }) {
   return (
@@ -48,7 +49,7 @@ export default function Disparos() {
         <TabsContent value="avulsos"><DisparosAvulsos /></TabsContent>
         <TabsContent value="automaticos"><EmBreve texto="Automações por gatilho chegam em uma fase futura." /></TabsContent>
         <TabsContent value="modelos"><DisparosModelos /></TabsContent>
-        <TabsContent value="historico"><EmBreve texto="O histórico por destinatário aparece quando os envios forem liberados." /></TabsContent>
+        <TabsContent value="historico"><DisparosHistorico /></TabsContent>
       </Tabs>
     </div>
   );

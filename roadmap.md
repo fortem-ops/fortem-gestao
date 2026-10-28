@@ -3,6 +3,8 @@
 - [x] Disparo de Mensagens — etapa 1: menu, rota, abas, modelos.
 - [x] Disparo de Mensagens — etapa 2: público + opt-out.
 - [x] Disparo de Mensagens — etapa 3: tabelas de campanha (0206), passo Mensagem (só WhatsApp), envio de TESTE para telefone digitado.
+- [x] Disparo de Mensagens — etapa 4: revisão e envio (preparar, dedupe por telefone, confirmação do total), histórico, envio real TRAVADO (msg_config.real_liberado=false, 0207).
+- [ ] Disparo de Mensagens — etapa 5: liberar real_liberado por migração e enviar o 1º lote de 50 — aguarda aprovação do dono.
 - [ ] Etapa 4: Revisar e enviar, preparar destinatários (dedupe por telefone), confirmação do total, link de descadastro, Histórico — envio real travado por flag (aguarda aprovação).
 - [ ] Etapa 5: liberar a flag e enviar o primeiro lote de 50 (aguarda aprovação).
 

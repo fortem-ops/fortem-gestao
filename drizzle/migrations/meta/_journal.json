@@ -1450,6 +1450,13 @@
       "when": 1793185829951,
       "tag": "0206_msg_campanhas",
       "breakpoints": true
+    },
+    {
+      "idx": 207,
+      "version": "7",
+      "when": 1793186715559,
+      "tag": "0207_msg_etapa4",
+      "breakpoints": true
     }
   ]
 }
