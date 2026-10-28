@@ -155,3 +155,26 @@ export function destinatarioPreso(d: { status: string; enviado_em: string | null
   if (!d.reservado_em) return true;
   return agora - new Date(d.reservado_em).getTime() > PRESO_MINUTOS * 60_000;
 }
+
+// ---- Filtro "Cliente desde" do Público (texto aaaa-mm-dd, datas locais) ----
+/** Date local -> "aaaa-mm-dd" sem toISOString (evita troca de dia por fuso). */
+export function dataParaIso(d: Date | null | undefined): string | null {
+  if (!d) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+/** "aaaa-mm-dd" -> Date local (meia-noite). */
+export function isoParaData(s: string | null | undefined): Date | undefined {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s ?? "");
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : undefined;
+}
+/** "aaaa-mm-dd" -> "dd/mm/aaaa" ou "—". */
+export function formatarDataBr(s: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s ?? "");
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "—";
+}
+/** Texto do intervalo para o resumo; null quando nenhum limite foi escolhido. */
+export function resumoClienteDesde(de: string | null | undefined, ate: string | null | undefined): string | null {
+  if (!de && !ate) return null;
+  if (de && ate) return `de ${formatarDataBr(de)} até ${formatarDataBr(ate)}`;
+  return de ? `a partir de ${formatarDataBr(de)}` : `até ${formatarDataBr(ate)}`;
+}
