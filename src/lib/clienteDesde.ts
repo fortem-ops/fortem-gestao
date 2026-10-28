@@ -1,8 +1,9 @@
-// "Cliente desde": o menor planos.data_inicio prevalece; sem plano, usa alunos.aluno_desde (data manual).
+// "Cliente desde": vale a data MAIS ANTIGA entre o menor planos.data_inicio e alunos.aluno_desde (data manual).
 export function dataClienteDesde(menorInicioPlano: string | null | undefined, alunoDesde: string | null | undefined): string | null {
   const p = menorInicioPlano ? menorInicioPlano.slice(0, 10) : null;
-  if (p) return p;
-  return alunoDesde ? alunoDesde.slice(0, 10) : null;
+  const a = alunoDesde ? alunoDesde.slice(0, 10) : null;
+  if (p && a) return a < p ? a : p;
+  return p ?? a;
 }
 
 /** Menor data_inicio por aluno (datas ISO "aaaa-mm-dd" comparam como texto). */
