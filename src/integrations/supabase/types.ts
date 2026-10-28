@@ -5792,40 +5792,61 @@ export type Database = {
           agendado_para: string | null
           atualizado_em: string
           canal: string
+          confirmado_em: string | null
+          confirmado_por: string | null
+          confirmado_total: number | null
           criado_em: string
           criado_por: string | null
+          deduplicados: number | null
           filtro: Json
           id: string
+          lote_limite: number
           modelo_id: string | null
           nome: string
+          preparado_em: string | null
           selecao: Json
           status: string
+          total_preparado: number | null
         }
         Insert: {
           agendado_para?: string | null
           atualizado_em?: string
           canal?: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          confirmado_total?: number | null
           criado_em?: string
           criado_por?: string | null
+          deduplicados?: number | null
           filtro?: Json
           id?: string
+          lote_limite?: number
           modelo_id?: string | null
           nome: string
+          preparado_em?: string | null
           selecao?: Json
           status?: string
+          total_preparado?: number | null
         }
         Update: {
           agendado_para?: string | null
           atualizado_em?: string
           canal?: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          confirmado_total?: number | null
           criado_em?: string
           criado_por?: string | null
+          deduplicados?: number | null
           filtro?: Json
           id?: string
+          lote_limite?: number
           modelo_id?: string | null
           nome?: string
+          preparado_em?: string | null
           selecao?: Json
           status?: string
+          total_preparado?: number | null
         }
         Relationships: [
           {
@@ -5836,6 +5857,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      msg_config: {
+        Row: {
+          atualizado_em: string
+          chave: string
+          valor: Json
+        }
+        Insert: {
+          atualizado_em?: string
+          chave: string
+          valor: Json
+        }
+        Update: {
+          atualizado_em?: string
+          chave?: string
+          valor?: Json
+        }
+        Relationships: []
       }
       msg_modelos: {
         Row: {
@@ -12902,6 +12941,16 @@ export type Database = {
         }
         Returns: number
       }
+      fn_msg_destinatarios: {
+        Args: { p_filtro: Json; p_selecao: Json }
+        Returns: {
+          aluno_id: string
+          duplicado: boolean
+          nome: string
+          status: string
+          telefone_norm: string
+        }[]
+      }
       fn_msg_norm_tel: { Args: { p: string }; Returns: string }
       fn_msg_publico: {
         Args: {
@@ -12914,6 +12963,32 @@ export type Database = {
           p_status: string[]
         }
         Returns: Json
+      }
+      fn_msg_reservar_lote: {
+        Args: { p_campanha: string; p_limite: number }
+        Returns: {
+          aluno_id: string
+          campanha_id: string
+          canal: string
+          criado_em: string
+          enviado_em: string | null
+          erro: string | null
+          id: string
+          nome: string | null
+          status: string
+          telefone_norm: string | null
+          wa_message_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "msg_campanha_destinatarios"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      fn_msg_revalidar: {
+        Args: { p_aluno: string; p_tel: string }
+        Returns: string
       }
       fn_notificar_criar_notificacao: {
         Args: {
