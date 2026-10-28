@@ -4,6 +4,7 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import DisparosModelos from "@/components/disparos/DisparosModelos";
+import DisparosAvulsos from "@/components/disparos/DisparosAvulsos";
 
 function EmBreve({ texto }: { texto: string }) {
   return (
@@ -44,7 +45,7 @@ export default function Disparos() {
           <TabsTrigger value="modelos">Modelos</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
-        <TabsContent value="avulsos"><EmBreve texto="Disparos avulsos para públicos selecionados chegam na próxima etapa." /></TabsContent>
+        <TabsContent value="avulsos"><DisparosAvulsos /></TabsContent>
         <TabsContent value="automaticos"><EmBreve texto="Automações por gatilho chegam em uma fase futura." /></TabsContent>
         <TabsContent value="modelos"><DisparosModelos /></TabsContent>
         <TabsContent value="historico"><EmBreve texto="O histórico por destinatário aparece quando os envios forem liberados." /></TabsContent>
