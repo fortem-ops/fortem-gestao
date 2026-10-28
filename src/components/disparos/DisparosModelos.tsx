@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PreviaWhatsapp } from "./DisparosMensagem";
+import { montarParametros } from "@/lib/disparos";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +25,7 @@ type Modelo = {
   id: string; nome: string; canal: Canal; meta_nome: string | null; idioma: string;
   categoria: string | null; texto: string | null; variaveis: Variavel[]; assunto: string | null;
   corpo_html: string | null; status: Status;
+  botao_tipo: "nenhum" | "url_fixa"; botao_texto: string | null; botao_url: string | null;
 };
 
 const STATUS_LABEL: Record<Status, string> = { rascunho: "Rascunho", a_cadastrar: "A cadastrar na Meta", aprovado: "Aprovado" };
@@ -39,6 +42,7 @@ export const VARIAVEIS_EMAIL = ["%NOME_ALUNO%", "%PRIMEIRO_NOME%", "%EMAIL%", "%
 const vazio = (): Omit<Modelo, "id"> => ({
   nome: "", canal: "whatsapp", meta_nome: "", idioma: "pt_BR", categoria: "MARKETING",
   texto: "", variaveis: [], assunto: "", corpo_html: "", status: "rascunho",
+  botao_tipo: "nenhum", botao_texto: "", botao_url: "",
 });
 
 function contarVariaveis(texto: string): number {
@@ -79,6 +83,8 @@ export default function DisparosModelos() {
         ? {
             ...base, meta_nome: form.meta_nome?.trim() || null, idioma: form.idioma || "pt_BR",
             categoria: form.categoria, texto: form.texto, variaveis: variaveis, assunto: null, corpo_html: null,
+            botao_tipo: form.botao_tipo, botao_texto: form.botao_tipo === "url_fixa" ? form.botao_texto?.trim() || null : null,
+            botao_url: form.botao_tipo === "url_fixa" ? form.botao_url?.trim() || null : null,
           }
         : {
             ...base, meta_nome: null, categoria: null, texto: null, variaveis: [],
@@ -114,7 +120,7 @@ export default function DisparosModelos() {
   const novo = () => { setEditId(null); setForm(vazio()); setAberto(true); };
   const editar = (m: Modelo) => {
     setEditId(m.id);
-    setForm({ ...m, meta_nome: m.meta_nome ?? "", texto: m.texto ?? "", assunto: m.assunto ?? "", corpo_html: m.corpo_html ?? "", variaveis: m.variaveis ?? [] });
+    setForm({ ...m, meta_nome: m.meta_nome ?? "", texto: m.texto ?? "", assunto: m.assunto ?? "", corpo_html: m.corpo_html ?? "", botao_texto: m.botao_texto ?? "", botao_url: m.botao_url ?? "", variaveis: m.variaveis ?? [] });
     setAberto(true);
   };
 
@@ -241,6 +247,27 @@ export default function DisparosModelos() {
                     ))}
                   </div>
                 )}
+                <div className="space-y-2">
+                  <Label>Botão (definido na Meta; aqui só registro)</Label>
+                  <div className="grid grid-cols-[140px_1fr_1fr] gap-2">
+                    <Select value={form.botao_tipo} onValueChange={(v) => setForm({ ...form, botao_tipo: v as Modelo["botao_tipo"] })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
+                        <SelectItem value="url_fixa">Link fixo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.botao_tipo === "url_fixa" && <>
+                      <Input value={form.botao_texto ?? ""} placeholder="Texto do botão" onChange={(e) => setForm({ ...form, botao_texto: e.target.value })} />
+                      <Input value={form.botao_url ?? ""} placeholder="https://..." onChange={(e) => setForm({ ...form, botao_url: e.target.value })} />
+                    </>}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Prévia (exemplo: Maria)</Label>
+                  <PreviaWhatsapp texto={form.texto ?? ""} params={montarParametros(variaveis, { nome: "Maria" })}
+                    botaoTexto={form.botao_tipo === "url_fixa" ? form.botao_texto : null} />
+                </div>
               </>
             ) : (
               <>
