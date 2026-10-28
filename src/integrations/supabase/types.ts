@@ -5791,6 +5791,42 @@ export type Database = {
         }
         Relationships: []
       }
+      msg_optout: {
+        Row: {
+          aluno_id: string | null
+          canal: string
+          criado_em: string
+          criado_por: string | null
+          email_norm: string | null
+          id: string
+          motivo: string | null
+          origem: string
+          telefone_norm: string | null
+        }
+        Insert: {
+          aluno_id?: string | null
+          canal: string
+          criado_em?: string
+          criado_por?: string | null
+          email_norm?: string | null
+          id?: string
+          motivo?: string | null
+          origem?: string
+          telefone_norm?: string | null
+        }
+        Update: {
+          aluno_id?: string | null
+          canal?: string
+          criado_em?: string
+          criado_por?: string | null
+          email_norm?: string | null
+          id?: string
+          motivo?: string | null
+          origem?: string
+          telefone_norm?: string | null
+        }
+        Relationships: []
+      }
       notificacao_categorias_custom: {
         Row: {
           ativo: boolean
@@ -12712,6 +12748,19 @@ export type Database = {
           p_sub: string
         }
         Returns: number
+      }
+      fn_msg_norm_tel: { Args: { p: string }; Returns: string }
+      fn_msg_publico: {
+        Args: {
+          p_busca: string
+          p_canal: string
+          p_excl_confirmados: boolean
+          p_excl_sem_contato: boolean
+          p_limit?: number
+          p_offset?: number
+          p_status: string[]
+        }
+        Returns: Json
       }
       fn_notificar_criar_notificacao: {
         Args: {

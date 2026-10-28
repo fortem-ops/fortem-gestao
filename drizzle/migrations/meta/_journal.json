@@ -1436,6 +1436,13 @@
       "when": 1793183055491,
       "tag": "0204_msg_modelos",
       "breakpoints": true
+    },
+    {
+      "idx": 205,
+      "version": "7",
+      "when": 1793184702808,
+      "tag": "0205_msg_optout_publico",
+      "breakpoints": true
     }
   ]
 }
