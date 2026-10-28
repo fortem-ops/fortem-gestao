@@ -11,16 +11,20 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { CHIPS, MOTIVO_LABEL, statusDosChips, type CanalDisparo, type MotivoExclusao, type SituacaoChip } from "@/lib/disparos";
+import { CHIPS, MOTIVO_LABEL, statusDosChips, dataParaIso, isoParaData, formatarDataBr, type CanalDisparo, type MotivoExclusao, type SituacaoChip } from "@/lib/disparos";
 import DisparosOptout from "./DisparosOptout";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
-type Row = { id: string; nome: string; status: string; tem_email: boolean; tem_whats: boolean; motivo: MotivoExclusao | null };
+type Row = { id: string; nome: string; status: string; tem_email: boolean; tem_whats: boolean; motivo: MotivoExclusao | null; cliente_desde: string | null };
 type Resp = { total: number; com_email: number; com_whats: number; elegiveis: number; excl_equipe: number; excl_optout: number; excl_confirmou: number; excl_sem_contato: number; rows: Row[] };
 const POR_PAGINA = 50;
 const PASSOS = ["Público", "Mensagem", "Revisão e envio"];
 
 export type EstadoPublico = {
-  filtro: { chips: SituacaoChip[]; busca: string; exclConfirmados: boolean; exclSemContato: boolean };
+  filtro: { chips: SituacaoChip[]; busca: string; exclConfirmados: boolean; exclSemContato: boolean; clienteDesdeDe: string | null; clienteDesdeAte: string | null };
   selecao: { modo: "todos"; removidos: string[] } | { modo: "ids"; ids: string[] };
   selecionados: number;
 };
@@ -32,21 +36,24 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
   const [buscaD, setBuscaD] = useState("");
   const [exclConf, setExclConf] = useState(true);
   const [exclSem, setExclSem] = useState(true);
+  const [desdeDe, setDesdeDe] = useState<string | null>(null);
+  const [desdeAte, setDesdeAte] = useState<string | null>(null);
   const [pagina, setPagina] = useState(0);
   const [todos, setTodos] = useState(false);
   const [ids, setIds] = useState<Set<string>>(new Set());
   const [removidos, setRemovidos] = useState<Set<string>>(new Set());
 
   useEffect(() => { const t = setTimeout(() => setBuscaD(busca), 300); return () => clearTimeout(t); }, [busca]);
-  useEffect(() => { setPagina(0); setTodos(false); setIds(new Set()); setRemovidos(new Set()); }, [canal, chips, buscaD, exclConf, exclSem]);
+  useEffect(() => { setPagina(0); setTodos(false); setIds(new Set()); setRemovidos(new Set()); }, [canal, chips, buscaD, exclConf, exclSem, desdeDe, desdeAte]);
 
   const { data, isLoading, isFetching, error } = useQuery({
-    queryKey: ["msg_publico", canal, chips, buscaD, exclConf, exclSem, pagina],
+    queryKey: ["msg_publico", canal, chips, buscaD, exclConf, exclSem, desdeDe, desdeAte, pagina],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_msg_publico" as never, {
         p_status: statusDosChips(chips), p_busca: buscaD, p_canal: canal,
         p_excl_confirmados: exclConf, p_excl_sem_contato: exclSem, p_limit: POR_PAGINA, p_offset: pagina * POR_PAGINA,
+        p_desde_de: desdeDe, p_desde_ate: desdeAte,
       } as never);
       if (error) throw error;
       return data as unknown as Resp;
@@ -68,11 +75,11 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
   const selecionados = todos ? Math.max(0, (data?.elegiveis ?? 0) - removidos.size) : ids.size;
   useEffect(() => {
     onEstado({
-      filtro: { chips, busca: buscaD, exclConfirmados: exclConf, exclSemContato: exclSem },
+      filtro: { chips, busca: buscaD, exclConfirmados: exclConf, exclSemContato: exclSem, clienteDesdeDe: desdeDe, clienteDesdeAte: desdeAte },
       selecao: todos ? { modo: "todos", removidos: [...removidos] } : { modo: "ids", ids: [...ids] },
       selecionados,
     });
-  }, [chips, buscaD, exclConf, exclSem, todos, removidos, ids, selecionados]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chips, buscaD, exclConf, exclSem, desdeDe, desdeAte, todos, removidos, ids, selecionados]); // eslint-disable-line react-hooks/exhaustive-deps
   const totalPaginas = Math.max(1, Math.ceil((data?.total ?? 0) / POR_PAGINA));
 
   return (
@@ -91,6 +98,26 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
           })}
         </div>
         <Input placeholder="Buscar por nome, e-mail ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <div className="flex flex-wrap items-end gap-3">
+          {([["Cliente desde (de)", desdeDe, setDesdeDe], ["Cliente desde (até)", desdeAte, setDesdeAte]] as const).map(([rotulo, val, set]) => (
+            <div key={rotulo} className="space-y-1">
+              <label className="text-xs text-muted-foreground">{rotulo}</label>
+              <div className="flex items-center gap-1">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-40 h-9 justify-start text-left font-normal text-sm", !val && "text-muted-foreground")}>
+                      {val ? formatarDataBr(val) : "Selecionar..."}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={isoParaData(val)} onSelect={(d) => set(dataParaIso(d))} locale={ptBR} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                {val && <Button size="sm" variant="ghost" onClick={() => set(null)}>limpar</Button>}
+              </div>
+            </div>
+          ))}
+        </div>
         <div className="flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2"><Checkbox checked={exclConf} onCheckedChange={(v) => setExclConf(!!v)} />Excluir quem já confirmou presença na festa</label>
           <label className="flex items-center gap-2"><Checkbox checked={exclSem} onCheckedChange={(v) => setExclSem(!!v)} />Excluir quem está sem contato para o canal</label>
@@ -108,19 +135,20 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
               <thead className="border-b bg-muted/40 text-left">
                 <tr>
                   <th className="p-2 w-8"><Checkbox checked={paginaToda} onCheckedChange={alternarPaginaLote} aria-label="Selecionar página" /></th>
-                  <th className="p-2">Nome</th><th className="p-2">Situação</th>
+                  <th className="p-2">Nome</th><th className="p-2">Situação</th><th className="p-2">Cliente desde</th>
                   <th className="p-2 text-center">E-mail</th><th className="p-2 text-center">WhatsApp</th><th className="p-2">Exclusão</th>
                 </tr>
               </thead>
               <tbody>
-                {isLoading ? <tr><td colSpan={6} className="p-6 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></td></tr>
-                  : error ? <tr><td colSpan={6} className="p-6 text-center text-destructive">Erro ao carregar o público.</td></tr>
-                  : rows.length === 0 ? <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhum cadastro no filtro.</td></tr>
+                {isLoading ? <tr><td colSpan={7} className="p-6 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></td></tr>
+                  : error ? <tr><td colSpan={7} className="p-6 text-center text-destructive">Erro ao carregar o público.</td></tr>
+                  : rows.length === 0 ? <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum cadastro no filtro.</td></tr>
                   : rows.map((r) => (
                     <tr key={r.id} className={`border-b ${r.motivo ? "text-muted-foreground" : ""}`}>
                       <td className="p-2"><Checkbox disabled={!!r.motivo} checked={!r.motivo && marcado(r.id)} onCheckedChange={() => alternar(r.id)} /></td>
                       <td className="p-2">{r.nome}</td>
                       <td className="p-2 capitalize">{r.status}</td>
+                      <td className="p-2">{formatarDataBr(r.cliente_desde)}</td>
                       <td className="p-2 text-center">{r.tem_email ? <Check className="h-4 w-4 inline text-primary" /> : <Minus className="h-4 w-4 inline" />}</td>
                       <td className="p-2 text-center">{r.tem_whats ? <Check className="h-4 w-4 inline text-primary" /> : <Minus className="h-4 w-4 inline" />}</td>
                       <td className="p-2">{r.motivo && <Badge variant="outline">{MOTIVO_LABEL[r.motivo]}</Badge>}</td>
@@ -198,7 +226,7 @@ export default function DisparosAvulsos() {
             </div>
             <div className={passo === 0 ? "" : "hidden"}><Publico onEstado={setEstado} /></div>
             {passo === 1 && campanhaId && <DisparosMensagem campanhaId={campanhaId} />}
-            {passo === 2 && campanhaId && <DisparosRevisao campanhaId={campanhaId} chips={estado?.filtro.chips ?? []} selecionados={estado?.selecionados ?? 0} onVoltar={() => setPasso(1)} />}
+            {passo === 2 && campanhaId && <DisparosRevisao campanhaId={campanhaId} chips={estado?.filtro.chips ?? []} clienteDesdeDe={estado?.filtro.clienteDesdeDe ?? null} clienteDesdeAte={estado?.filtro.clienteDesdeAte ?? null} selecionados={estado?.selecionados ?? 0} onVoltar={() => setPasso(1)} />}
             <Label className="sr-only">Assistente</Label>
           </CardContent>
         </Card>

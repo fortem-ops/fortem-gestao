@@ -94,3 +94,26 @@ describe("etapa 5 — lote e presos", () => {
     expect(destinatarioPreso({ status: "pendente", enviado_em: null, reservado_em: null }, agora)).toBe(false);
   });
 });
+
+import { dataParaIso, isoParaData, formatarDataBr, resumoClienteDesde } from "@/lib/disparos";
+describe("filtro Cliente desde", () => {
+  it("converte Date local para aaaa-mm-dd sem trocar o dia", () => {
+    expect(dataParaIso(new Date(2020, 0, 1, 23, 59))).toBe("2020-01-01");
+    expect(dataParaIso(new Date(2026, 11, 31, 0, 0))).toBe("2026-12-31");
+    expect(dataParaIso(null)).toBeNull();
+  });
+  it("ida e volta mantém a data", () => {
+    expect(dataParaIso(isoParaData("2019-03-05"))).toBe("2019-03-05");
+    expect(isoParaData(null)).toBeUndefined();
+  });
+  it("formata dd/mm/aaaa ou traço", () => {
+    expect(formatarDataBr("2016-07-23")).toBe("23/07/2016");
+    expect(formatarDataBr(null)).toBe("—");
+  });
+  it("resumo do intervalo", () => {
+    expect(resumoClienteDesde(null, null)).toBeNull();
+    expect(resumoClienteDesde("2020-01-01", "2020-12-31")).toBe("de 01/01/2020 até 31/12/2020");
+    expect(resumoClienteDesde("2020-01-01", null)).toBe("a partir de 01/01/2020");
+    expect(resumoClienteDesde(null, "2020-12-31")).toBe("até 31/12/2020");
+  });
+});
