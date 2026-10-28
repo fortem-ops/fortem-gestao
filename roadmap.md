@@ -1,7 +1,10 @@
 # Roadmap
 
 - [x] Disparo de Mensagens — etapa 1: menu, rota, abas, modelos.
-- [ ] Disparo de Mensagens — etapas 2 a 5 (aguardam aprovação do dono).
+- [x] Disparo de Mensagens — etapa 2: público + opt-out.
+- [x] Disparo de Mensagens — etapa 3: tabelas de campanha (0206), passo Mensagem (só WhatsApp), envio de TESTE para telefone digitado.
+- [ ] Etapa 4: Revisar e enviar, preparar destinatários (dedupe por telefone), confirmação do total, link de descadastro, Histórico — envio real travado por flag (aguarda aprovação).
+- [ ] Etapa 5: liberar a flag e enviar o primeiro lote de 50 (aguarda aprovação).
 
 - [x] Facial no balcão: termos completos compartilhados do app/responsável, equipe preservada; 12 testes locais passaram, diálogos adulto/menor simulados em computador/celular conferidos sem salvar; contagens 227/1/1 e modo log preservados.
 
