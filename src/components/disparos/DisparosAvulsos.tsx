@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Plus, Ban, Loader2, MessageCircle, Check, Minus } from "lucide-react";
 import { toast } from "sonner";
 import DisparosMensagem from "./DisparosMensagem";
+import DisparosRevisao from "./DisparosRevisao";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -197,7 +198,7 @@ export default function DisparosAvulsos() {
             </div>
             <div className={passo === 0 ? "" : "hidden"}><Publico onEstado={setEstado} /></div>
             {passo === 1 && campanhaId && <DisparosMensagem campanhaId={campanhaId} />}
-            {passo === 2 && <p className="py-12 text-center text-sm text-muted-foreground">Em breve.</p>}
+            {passo === 2 && campanhaId && <DisparosRevisao campanhaId={campanhaId} chips={estado?.filtro.chips ?? []} selecionados={estado?.selecionados ?? 0} onVoltar={() => setPasso(1)} />}
             <Label className="sr-only">Assistente</Label>
           </CardContent>
         </Card>
