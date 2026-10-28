@@ -45,3 +45,16 @@ describe("público", () => {
     expect(r).toMatchObject({ total: 4, com_email: 2, com_whats: 3, elegiveis: 1, equipe: 1, confirmou: 1, sem_contato: 1, optout: 0 });
   });
 });
+
+import { primeiroNome, montarParametros, dedupePorTelefone, telefoneValidoWhatsapp as telOk } from "@/lib/disparos";
+describe("etapa 3", () => {
+  it("primeiro nome", () => { expect(primeiroNome("  Maria  Clara Souza")).toBe("Maria"); expect(primeiroNome(null)).toBe(""); });
+  it("monta {{1}} = primeiro nome e fixos em ordem", () => {
+    expect(montarParametros([{ pos: 2, fonte: "fixo", valor: "X" }, { pos: 1, fonte: "campo", valor: "primeiro_nome" }], { nome: "João Pedro" })).toEqual(["João", "X"]);
+  });
+  it("telefone de teste", () => { expect(telOk("51 99999-0000")).toBe(true); expect(telOk("9999")).toBe(false); });
+  it("dedupe por telefone", () => {
+    const r = dedupePorTelefone([{ id: 1, telefone: "(51) 99999-0000" }, { id: 2, telefone: "5551999990000" }, { id: 3, telefone: "123" }]);
+    expect(r.map((x) => x.id)).toEqual([1]);
+  });
+});

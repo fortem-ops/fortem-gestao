@@ -72,3 +72,8 @@ Ações: `teste` (envia 1 e-mail e/ou 1 WhatsApp para contato digitado, não gra
 4. Link de descadastro no e-mail: incluir já na Fase 1 (etapa 4)?
 5. Tamanho da primeira leva real e ritmo aceitável (ex.: 50 e depois o restante)?
 6. Envio de teste: deixar só para os contatos digitados, ou também salvar uma lista fixa de "contatos de teste"?
+
+## Situação (28/10/2026)
+- Etapa 3 concluída: migração 0206 (botão fixo em msg_modelos; msg_campanhas, msg_campanha_destinatarios, msg_testes, só admin), passo Mensagem só WhatsApp (decisão do dono), envio de teste para telefone digitado via `disparo-campanha` (ação `teste`, 20/h por usuário). E-mail fora do fluxo avulso por ora.
+- Etapa 4: Revisar e enviar + ação `preparar` (snapshot, dedupe por telefone) + confirmação do total + link de descadastro + Histórico; envio real continua travado por flag.
+- Etapa 5: liberar a flag e enviar o primeiro lote de 50.

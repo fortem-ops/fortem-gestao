@@ -74,3 +74,37 @@ export function resumoPublico(
   }
   return r;
 }
+
+// ---- Etapa 3: variáveis do modelo e envio de teste ----
+export type VariavelModelo = { pos: number; fonte: "campo" | "fixo"; valor: string };
+
+export function primeiroNome(nome: string | null | undefined): string {
+  return (nome ?? "").trim().split(/\s+/)[0] ?? "";
+}
+
+/** Valores posicionais ({{1}}, {{2}}…) de um modelo para um destinatário. Espelhado em supabase/functions/disparo-campanha. */
+export function montarParametros(variaveis: VariavelModelo[], dados: { nome?: string | null; email?: string | null; telefone?: string | null }): string[] {
+  const campo = (c: string): string => {
+    switch (c) {
+      case "primeiro_nome": return primeiroNome(dados.nome);
+      case "nome_aluno": return (dados.nome ?? "").trim();
+      case "email": return dados.email ?? "";
+      case "telefone": return dados.telefone ?? "";
+      case "link_festa": return "https://soufortem.com.br/10anos";
+      default: return "";
+    }
+  };
+  return [...variaveis].sort((a, b) => a.pos - b.pos)
+    .map((v) => (v.fonte === "fixo" ? v.valor : campo(v.valor)).replace(/[\r\n\t]+/g, " ").replace(/ {2,}/g, " ").trim());
+}
+
+/** Um envio por telefone: mantém o primeiro cadastro de cada telefone normalizado válido. */
+export function dedupePorTelefone<T extends { telefone: string | null }>(lista: T[]): T[] {
+  const vistos = new Set<string>();
+  return lista.filter((x) => {
+    const t = normalizarTelefone(x.telefone);
+    if (!t || t.length < 12 || vistos.has(t)) return false;
+    vistos.add(t);
+    return true;
+  });
+}
