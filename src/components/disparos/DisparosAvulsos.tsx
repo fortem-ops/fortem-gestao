@@ -39,12 +39,14 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
   const [desdeDe, setDesdeDe] = useState<string | null>(null);
   const [desdeAte, setDesdeAte] = useState<string | null>(null);
   const [pagina, setPagina] = useState(0);
-  const [todos, setTodos] = useState(false);
-  const [ids, setIds] = useState<Set<string>>(new Set());
-  const [removidos, setRemovidos] = useState<Set<string>>(new Set());
+  const [sel, setSel] = useState<Selecao>(selecaoVazia);
+  const { todos, ids, removidos, nomes } = sel;
 
   useEffect(() => { const t = setTimeout(() => setBuscaD(busca), 300); return () => clearTimeout(t); }, [busca]);
-  useEffect(() => { setPagina(0); setTodos(false); setIds(new Set()); setRemovidos(new Set()); }, [canal, chips, buscaD, exclConf, exclSem, desdeDe, desdeAte]);
+  // Recorte mudou: ids marcados valiam para o recorte anterior → zera tudo.
+  useEffect(() => { setPagina(0); setSel(aoMudarRecorte); }, [canal, chips, exclConf, exclSem, desdeDe, desdeAte]);
+  // Busca mudou: só volta à 1ª página e desliga "todos"; seleção manual é mantida.
+  useEffect(() => { setPagina(0); setSel(aoMudarBusca); }, [buscaD]);
 
   const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ["msg_publico", canal, chips, buscaD, exclConf, exclSem, desdeDe, desdeAte, pagina],
@@ -64,22 +66,23 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
   const elegiveisPagina = rows.filter((r) => !r.motivo);
   const marcado = (id: string) => (todos ? !removidos.has(id) : ids.has(id));
   const alternar = (id: string) => {
-    if (todos) { const s = new Set(removidos); s.has(id) ? s.delete(id) : s.add(id); setRemovidos(s); }
-    else { const s = new Set(ids); s.has(id) ? s.delete(id) : s.add(id); setIds(s); }
+    if (todos) { const s = new Set(removidos); s.has(id) ? s.delete(id) : s.add(id); setSel({ ...sel, removidos: s }); }
+    else { const r = rows.find((x) => x.id === id); setSel(marcarIds(sel, [{ id, nome: r?.nome ?? nomes.get(id) ?? "" }], !ids.has(id))); }
   };
   const paginaToda = elegiveisPagina.length > 0 && elegiveisPagina.every((r) => marcado(r.id));
   const alternarPaginaLote = () => {
-    if (todos) { const s = new Set(removidos); elegiveisPagina.forEach((r) => (paginaToda ? s.add(r.id) : s.delete(r.id))); setRemovidos(s); }
-    else { const s = new Set(ids); elegiveisPagina.forEach((r) => (paginaToda ? s.delete(r.id) : s.add(r.id))); setIds(s); }
+    if (todos) { const s = new Set(removidos); elegiveisPagina.forEach((r) => (paginaToda ? s.add(r.id) : s.delete(r.id))); setSel({ ...sel, removidos: s }); }
+    else setSel(marcarIds(sel, elegiveisPagina, !paginaToda));
   };
   const selecionados = todos ? Math.max(0, (data?.elegiveis ?? 0) - removidos.size) : ids.size;
   useEffect(() => {
     onEstado({
-      filtro: { chips, busca: buscaD, exclConfirmados: exclConf, exclSemContato: exclSem, clienteDesdeDe: desdeDe, clienteDesdeAte: desdeAte },
+      filtro: { chips, busca: buscaParaSalvar(todos, buscaD), exclConfirmados: exclConf, exclSemContato: exclSem, clienteDesdeDe: desdeDe, clienteDesdeAte: desdeAte },
       selecao: todos ? { modo: "todos", removidos: [...removidos] } : { modo: "ids", ids: [...ids] },
       selecionados,
     });
   }, [chips, buscaD, exclConf, exclSem, desdeDe, desdeAte, todos, removidos, ids, selecionados]); // eslint-disable-line react-hooks/exhaustive-deps
+  const chipsSel = [...ids].slice(0, 10);
   const totalPaginas = Math.max(1, Math.ceil((data?.total ?? 0) / POR_PAGINA));
 
   return (
