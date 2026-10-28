@@ -178,3 +178,21 @@ export function resumoClienteDesde(de: string | null | undefined, ate: string | 
   if (de && ate) return `de ${formatarDataBr(de)} até ${formatarDataBr(ate)}`;
   return de ? `a partir de ${formatarDataBr(de)}` : `até ${formatarDataBr(ate)}`;
 }
+
+/** Máscara dd/mm/aaaa enquanto digita (só dígitos, barras automáticas). */
+export function mascararDataBr(t: string): string {
+  const d = t.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+}
+
+/** "dd/mm/aaaa" válida → "aaaa-mm-dd"; incompleta ou inexistente → null. */
+export function brParaIso(t: string): string | null {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t.trim());
+  if (!m) return null;
+  const [dia, mes, ano] = [+m[1], +m[2], +m[3]];
+  if (ano < 1900 || mes < 1 || mes > 12 || dia < 1) return null;
+  if (dia > new Date(Date.UTC(ano, mes, 0)).getUTCDate()) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}

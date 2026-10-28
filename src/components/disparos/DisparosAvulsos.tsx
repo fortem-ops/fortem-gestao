@@ -11,14 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { CHIPS, MOTIVO_LABEL, statusDosChips, dataParaIso, isoParaData, formatarDataBr, type CanalDisparo, type MotivoExclusao, type SituacaoChip } from "@/lib/disparos";
+import { CHIPS, MOTIVO_LABEL, statusDosChips, dataParaIso, isoParaData, formatarDataBr, brParaIso, mascararDataBr, type CanalDisparo, type MotivoExclusao, type SituacaoChip } from "@/lib/disparos";
 import DisparosOptout from "./DisparosOptout";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { selecaoVazia, aoMudarBusca, aoMudarRecorte, marcarIds, limparIds, buscaParaSalvar, type Selecao } from "@/lib/disparosSelecao";
-import { X } from "lucide-react";
+import { X, CalendarIcon } from "lucide-react";
 
 type Row = { id: string; nome: string; status: string; tem_email: boolean; tem_whats: boolean; motivo: MotivoExclusao | null; cliente_desde: string | null };
 type Resp = { total: number; com_email: number; com_whats: number; elegiveis: number; excl_equipe: number; excl_optout: number; excl_confirmou: number; excl_sem_contato: number; rows: Row[] };
@@ -30,6 +30,32 @@ export type EstadoPublico = {
   selecao: { modo: "todos"; removidos: string[] } | { modo: "ids"; ids: string[] };
   selecionados: number;
 };
+
+function CampoDataBr({ valor, onChange }: { valor: string | null; onChange: (v: string | null) => void }) {
+  const [texto, setTexto] = useState(valor ? formatarDataBr(valor) : "");
+  useEffect(() => { setTexto(valor ? formatarDataBr(valor) : ""); }, [valor]);
+  const invalido = texto.length > 0 && !brParaIso(texto);
+  return (
+    <div className="flex items-center gap-1">
+      <Input inputMode="numeric" placeholder="dd/mm/aaaa" value={texto} aria-invalid={invalido}
+        className={cn("w-32 h-9 text-sm", invalido && "border-destructive focus-visible:ring-destructive")}
+        onChange={(e) => {
+          const t = mascararDataBr(e.target.value);
+          setTexto(t);
+          if (t === "") onChange(null);
+          else { const iso = brParaIso(t); if (iso && iso !== valor) onChange(iso); }
+        }} />
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Abrir calendário"><CalendarIcon className="h-4 w-4" /></Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="single" selected={isoParaData(valor)} defaultMonth={isoParaData(valor)} onSelect={(d) => onChange(dataParaIso(d))} locale={ptBR} className="p-3 pointer-events-auto" />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
   const canal: CanalDisparo = "whatsapp"; // dono: só WhatsApp no fluxo avulso por enquanto
@@ -121,16 +147,7 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
             <div key={rotulo} className="space-y-1">
               <label className="text-xs text-muted-foreground">{rotulo}</label>
               <div className="flex items-center gap-1">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-40 h-9 justify-start text-left font-normal text-sm", !val && "text-muted-foreground")}>
-                      {val ? formatarDataBr(val) : "Selecionar..."}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={isoParaData(val)} onSelect={(d) => set(dataParaIso(d))} locale={ptBR} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
+                <CampoDataBr valor={val} onChange={set} />
                 {val && <Button size="sm" variant="ghost" onClick={() => set(null)}>limpar</Button>}
               </div>
             </div>
