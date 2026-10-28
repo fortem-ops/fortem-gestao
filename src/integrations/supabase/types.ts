@@ -5737,10 +5737,113 @@ export type Database = {
         }
         Relationships: []
       }
+      msg_campanha_destinatarios: {
+        Row: {
+          aluno_id: string
+          campanha_id: string
+          canal: string
+          criado_em: string
+          enviado_em: string | null
+          erro: string | null
+          id: string
+          nome: string | null
+          status: string
+          telefone_norm: string | null
+          wa_message_id: string | null
+        }
+        Insert: {
+          aluno_id: string
+          campanha_id: string
+          canal: string
+          criado_em?: string
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          nome?: string | null
+          status?: string
+          telefone_norm?: string | null
+          wa_message_id?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          campanha_id?: string
+          canal?: string
+          criado_em?: string
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          nome?: string | null
+          status?: string
+          telefone_norm?: string | null
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_campanha_destinatarios_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "msg_campanhas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_campanhas: {
+        Row: {
+          agendado_para: string | null
+          atualizado_em: string
+          canal: string
+          criado_em: string
+          criado_por: string | null
+          filtro: Json
+          id: string
+          modelo_id: string | null
+          nome: string
+          selecao: Json
+          status: string
+        }
+        Insert: {
+          agendado_para?: string | null
+          atualizado_em?: string
+          canal?: string
+          criado_em?: string
+          criado_por?: string | null
+          filtro?: Json
+          id?: string
+          modelo_id?: string | null
+          nome: string
+          selecao?: Json
+          status?: string
+        }
+        Update: {
+          agendado_para?: string | null
+          atualizado_em?: string
+          canal?: string
+          criado_em?: string
+          criado_por?: string | null
+          filtro?: Json
+          id?: string
+          modelo_id?: string | null
+          nome?: string
+          selecao?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_campanhas_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "msg_modelos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       msg_modelos: {
         Row: {
           assunto: string | null
           ativo: boolean
+          botao_texto: string | null
+          botao_tipo: string
+          botao_url: string | null
           canal: string
           categoria: string | null
           corpo_html: string | null
@@ -5758,6 +5861,9 @@ export type Database = {
         Insert: {
           assunto?: string | null
           ativo?: boolean
+          botao_texto?: string | null
+          botao_tipo?: string
+          botao_url?: string | null
           canal: string
           categoria?: string | null
           corpo_html?: string | null
@@ -5775,6 +5881,9 @@ export type Database = {
         Update: {
           assunto?: string | null
           ativo?: boolean
+          botao_texto?: string | null
+          botao_tipo?: string
+          botao_url?: string | null
           canal?: string
           categoria?: string | null
           corpo_html?: string | null
@@ -5826,6 +5935,50 @@ export type Database = {
           telefone_norm?: string | null
         }
         Relationships: []
+      }
+      msg_testes: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          erro: string | null
+          id: string
+          modelo_id: string | null
+          nome_teste: string | null
+          status: string
+          telefone_norm: string | null
+          wa_message_id: string | null
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          modelo_id?: string | null
+          nome_teste?: string | null
+          status: string
+          telefone_norm?: string | null
+          wa_message_id?: string | null
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          modelo_id?: string | null
+          nome_teste?: string | null
+          status?: string
+          telefone_norm?: string | null
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_testes_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "msg_modelos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notificacao_categorias_custom: {
         Row: {

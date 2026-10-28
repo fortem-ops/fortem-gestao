@@ -1443,6 +1443,13 @@
       "when": 1793184702808,
       "tag": "0205_msg_optout_publico",
       "breakpoints": true
+    },
+    {
+      "idx": 206,
+      "version": "7",
+      "when": 1793185829951,
+      "tag": "0206_msg_campanhas",
+      "breakpoints": true
     }
   ]
 }
