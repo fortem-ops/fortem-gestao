@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { interpretarMensagem, previaConversa, baixarMidia } from '../_shared/whatsapp-entrada.ts';
 
 const VERIFY_TOKEN = 'fortem_webhook_2024';
 
@@ -19,16 +20,10 @@ async function handleIncomingMessages(value: any) {
     const telefone = String(msg.from ?? '').replace(/\D/g, '');
     if (!telefone) continue;
 
-    const tipo = msg.type ?? 'text';
-    let conteudo = '';
-    if (tipo === 'text') conteudo = msg.text?.body ?? '';
-    else if (tipo === 'button') conteudo = msg.button?.text ?? '';
-    else if (tipo === 'interactive') {
-      conteudo =
-        msg.interactive?.button_reply?.title ??
-        msg.interactive?.list_reply?.title ??
-        '[interativo]';
-    } else conteudo = `[${tipo}]`;
+    const parsed = interpretarMensagem(msg);
+    const tipo = parsed.tipo;
+    const conteudo = previaConversa(parsed);
+    const somaNaoLida = tipo === 'reaction' ? 0 : 1;
 
     const nowIso = new Date(Number(msg.timestamp) * 1000 || Date.now()).toISOString();
 
@@ -47,7 +42,7 @@ async function handleIncomingMessages(value: any) {
         .update({
           ultima_mensagem: conteudo,
           ultima_mensagem_at: nowIso,
-          nao_lidas: (existing.nao_lidas ?? 0) + 1,
+          nao_lidas: (existing.nao_lidas ?? 0) + somaNaoLida,
           nome_contato: existing.nome_contato ?? contactName,
         })
         .eq('id', conversaId);
@@ -59,7 +54,7 @@ async function handleIncomingMessages(value: any) {
           nome_contato: contactName,
           ultima_mensagem: conteudo,
           ultima_mensagem_at: nowIso,
-          nao_lidas: 1,
+          nao_lidas: somaNaoLida,
         })
         .select('id')
         .single();
@@ -70,13 +65,19 @@ async function handleIncomingMessages(value: any) {
       conversaId = created.id;
     }
 
+    const media_path = parsed.media_id ? await baixarMidia(supabaseAdmin, parsed.media_id, parsed.media_mime) : null;
+
     const { error: mErr } = await supabaseAdmin.from('whatsapp_mensagens').insert({
       conversa_id: conversaId,
       wamid: msg.id ?? null,
       direcao: 'recebida',
       tipo,
-      conteudo,
+      conteudo: parsed.conteudo,
       status: 'received',
+      reacao_a_wamid: parsed.reacao_a_wamid,
+      media_id: parsed.media_id,
+      media_mime: parsed.media_mime,
+      media_path,
     });
     if (mErr) console.error('[whatsapp-webhook] insert mensagem error', mErr);
   }
