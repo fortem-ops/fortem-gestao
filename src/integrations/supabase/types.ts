@@ -12335,6 +12335,7 @@ export type Database = {
         Args: { p_proposta_id: string }
         Returns: boolean
       }
+      fn_cliente_desde: { Args: { p_aluno: string }; Returns: string }
       fn_clube_adicionar_pontos: {
         Args: {
           p_acao: string
@@ -12962,6 +12963,8 @@ export type Database = {
         Args: {
           p_busca: string
           p_canal: string
+          p_desde_ate?: string
+          p_desde_de?: string
           p_excl_confirmados: boolean
           p_excl_sem_contato: boolean
           p_limit?: number
