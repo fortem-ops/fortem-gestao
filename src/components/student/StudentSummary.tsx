@@ -745,6 +745,11 @@ export function StudentSummary({ student }: { student: Aluno }) {
                         await saveAlunoDesde(d);
                       }}
                     />
+                    {primeiroPlano && (
+                      <p className="text-xs text-muted-foreground leading-snug max-w-[240px]">
+                        Vale a data mais antiga entre esta e o início do plano mais antigo.
+                      </p>
+                    )}
                     <CalendarComponent
                       mode="single"
                       selected={alunoDesdeManual ? new Date(alunoDesdeManual + "T00:00:00") : undefined}
