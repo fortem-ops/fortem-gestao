@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { FESTA_PRAZO_FIM, criarPixFesta, conferirPixFesta, cancelarPixFesta } from "../_shared/festa-pix.ts";
+import { FESTA_PRAZO_FIM, criarPixFesta, conferirPixFesta, cancelarPixFesta, deveGerarPix } from "../_shared/festa-pix.ts";
 import { totalFesta } from "../_shared/festa-valor.ts";
 const LIMITE_ACOMP = 3;
 
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
       if (v) await sup.from("festa_vouchers").update({ usos: v.usos + 1 }).eq("id", v.id);
 
       let atual = c;
-      if (!v) {
+      if (deveGerarPix(c.status, c.total_centavos)) {
         const r = await criarPixFesta(sup, c);
         if (r.ok) atual = { ...c, pix_copia_e_cola: r.copia_e_cola, pix_expira_em: r.expira_em };
       }

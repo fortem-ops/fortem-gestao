@@ -16,6 +16,15 @@ function txidFesta() {
   return FESTA_TXID_PREFIXO + Array.from(b, (x) => abc[x % abc.length]).join("");
 }
 
+/**
+ * Regra única: quem ficou devendo recebe um código PIX.
+ * Vale para cadastro sem voucher e para voucher de desconto parcial (total > 0).
+ * Não confunde com "isento" (total 0), que não gera cobrança.
+ */
+export function deveGerarPix(status: string | null | undefined, totalCentavos: number | null | undefined) {
+  return status === "aguardando_pagamento" && Number(totalCentavos) > 0;
+}
+
 /** Cria cobrança imediata válida até o fim do prazo (mínimo 1 h). */
 export async function criarPixFesta(sup: any, conf: { id: string; nome: string; total_centavos: number }) {
   const chave = Deno.env.get("INTER_PIX_CHAVE") ?? "";
