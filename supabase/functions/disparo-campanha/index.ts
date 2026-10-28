@@ -39,6 +39,8 @@ function erroLegivel(details: any, fallback: string): string {
 type Modelo = { id: string; canal: string; status: string; ativo: boolean; meta_nome: string | null; idioma: string | null; variaveis: unknown };
 const UUID = /^[0-9a-f-]{36}$/i;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const PRESO_MIN = 10;
+const ERRO_PRESO = 'Envio interrompido; confira no WhatsApp antes de reenviar';
 
 async function enviarWhats(m: Modelo, tel: string, nome: string): Promise<{ ok: boolean; wamid: string | null; erro: string | null }> {
   const params = montarParametros((m.variaveis ?? []) as Variavel[], nome);
