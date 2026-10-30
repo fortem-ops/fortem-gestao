@@ -10,7 +10,7 @@ export const SERVICOS_HOME = [
 
 export const FOTOS_ESTRUTURA = ["área principal de treino", "equipamentos de força", "sala de reabilitação", "consultório de nutrição", "vestiários", "equipe em atendimento"];
 /** Deixe vazio para ocultar o link do vídeo. */
-export const VIDEO_ESTRUTURA_URL = "";
+export const VIDEO_ESTRUTURA_URL = "https://youtu.be/-qUUvtacXAs";
 export const NUMEROS_ESTRUTURA = [
   { valor: "220 m²", texto: "de espaço no total" },
   { valor: "150 m²", texto: "de área de treinamento" },
@@ -22,12 +22,12 @@ export const EQUIPE: { nome: string; funcao: string; formacao: string; registro:
   { nome: "Nicolas Janovik", funcao: "Fundador", formacao: EF, registro: "CREF 020625-G/RS" },
   { nome: "Jonas Hubner", funcao: "Coordenador técnico e instrutor", formacao: EF, registro: "CREF 023941-G/RS" },
   { nome: "Gustavo Dubois", funcao: "Coordenador técnico e instrutor", formacao: EF, registro: "CREF 017313-G/RS" },
-  { nome: "Thaís dos Santos", funcao: "Instrutora", formacao: EF, registro: "" },
+  { nome: "Thaís dos Santos", funcao: "Instrutora", formacao: EF, registro: "CREF 037342-G/RS" },
   { nome: "Cristiano Ransolin", funcao: "Instrutor", formacao: EF, registro: "CREF 028513-G/RS" },
   { nome: "Vanessa Coutinho", funcao: "Instrutora", formacao: EF, registro: "CREF 024151-G/RS" },
   { nome: "Yasmim Avila", funcao: "Instrutora", formacao: "Bacharelanda em Educação Física", registro: "" },
   { nome: "Jéssica Elkfury", funcao: "Nutricionista", formacao: "Doutora em Ciências Médicas", registro: "CRN2 13041" },
-  { nome: "Júlia Assis Brasil", funcao: "Fisioterapeuta", formacao: "Bacharel em Fisioterapia e Osteopatia", registro: "" },
+  { nome: "Júlia Assis Brasil", funcao: "Fisioterapeuta", formacao: "Bacharel em Fisioterapia e Osteopatia", registro: "CREFITO 298489F" },
   { nome: "Bruno Funari", funcao: "Gerente administrativo", formacao: "Bacharel em Administração", registro: "" },
 ];
 
