@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Site público — Etapa 7b: integrar as 15 fotos reais, preservar cantos e conferir 390px/computador; não publicar.
+
 - [x] Disparo de Mensagens — etapa 1: menu, rota, abas, modelos.
 - [x] Disparo de Mensagens — etapa 2: público + opt-out.
 - [x] Disparo de Mensagens — etapa 3: tabelas de campanha (0206), passo Mensagem (só WhatsApp), envio de TESTE para telefone digitado.
