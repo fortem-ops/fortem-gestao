@@ -59,7 +59,7 @@ export default function Login() {
           window.location.replace(safeNext);
           return;
         }
-        navigate(isStaff ? "/" : "/portal", { replace: true });
+        navigate(isStaff ? "/equipe" : "/portal", { replace: true });
       })
       .catch(() => {
         if (cancelled) return;

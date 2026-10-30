@@ -12,12 +12,12 @@ export const REDES = [
   { nome: "Facebook", rotulo: "Facebook", url: "" },
   { nome: "YouTube", rotulo: "YouTube", url: "https://www.youtube.com/@sou.fortem" },
 ].filter((r) => r.url);
-/** Trocar para "/equipe" na troca da raiz (Etapa 5). */
-export const PORTAL_EQUIPE_PATH = "/login";
+/** Painel da equipe (protegido por login). */
+export const PORTAL_EQUIPE_PATH = "/equipe";
 
-/** Prefixo das rotas do site enquanto está em construção. Vira "" na troca da raiz. */
-export const SITE_BASE = "/site";
-export const sitePath = (p = "") => `${SITE_BASE}${p}` || "/";
+/** Prefixo das rotas do site ("" = raiz). Âncoras viram "/#id" para funcionar de qualquer página. */
+export const SITE_BASE = "";
+export const sitePath = (p = "") => `${SITE_BASE}${p.startsWith("#") ? `/${p}` : p}` || "/";
 
 export type OrigemWhatsApp =
   | "home" | "treinamento" | "nutricao" | "reabilitacao" | "avaliacao" | "experimental" | "geral"

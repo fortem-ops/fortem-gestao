@@ -58,7 +58,7 @@ export default function PartnerScannerPage() {
             <span className="text-sm font-semibold">Painel do Parceiro</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/")}>Sistema</Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/equipe")}>Sistema</Button>
             <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="w-4 h-4" /></Button>
           </div>
         </div>

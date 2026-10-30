@@ -130,7 +130,7 @@ export default function PagamentosPix() {
   });
 
   if (carregandoRoles) return null;
-  if (!roles?.isAdmin) return <Navigate to="/" replace />;
+  if (!roles?.isAdmin) return <Navigate to="/equipe" replace />;
 
   const toggle = (id: string, v: boolean) => setSel((s) => { const n = new Set(s); if (v) n.add(id); else n.delete(id); return n; });
   const toggleMes = (linhas: Linha[], v: boolean) => setSel((s) => { const n = new Set(s); linhas.forEach((l) => (v ? n.add(l.id) : n.delete(l.id))); return n; });

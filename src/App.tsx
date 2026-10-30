@@ -305,7 +305,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/" element={<Suspense fallback={<RouteFallback />}><Dashboard /></Suspense>} />
+              <Route path="/equipe" element={<Suspense fallback={<RouteFallback />}><Dashboard /></Suspense>} />
               <Route
                 path="/alunos"
                 element={

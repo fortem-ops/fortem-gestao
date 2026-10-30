@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 
 /* ─── Principal ─── */
 const principalItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/equipe", icon: LayoutDashboard },
   { title: "Notificar", url: "/notificar", icon: Bell, badge: "unread" as const },
   { title: "Comissionamentos", url: "/comissionamentos", icon: DollarSign },
 ];
@@ -143,7 +143,7 @@ function SidebarItem({ item, isActive }: { item: { title: string; url: string; i
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive(item.url)}>
-        <NavLink to={item.url} end={item.url === "/"} activeClassName="bg-sidebar-accent text-sidebar-primary">
+        <NavLink to={item.url} end={item.url === "/equipe"} activeClassName="bg-sidebar-accent text-sidebar-primary">
           <item.icon className="mr-2 h-4 w-4" />
           {!collapsed && <span className="flex-1">{item.title}</span>}
           {showBadge && (
