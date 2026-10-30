@@ -163,10 +163,12 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, children }
         </div>
       </footer>
 
-      <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
-        className="sp-flutuante sp-btn sp-btn-acao h-14 w-14 !p-0 md:hidden">
-        <MessageCircle className="h-6 w-6" aria-hidden />
-      </a>
+      <div className="sp-flutuante md:hidden">
+        <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
+          className="sp-btn sp-btn-acao h-14 w-14 !p-0">
+          <MessageCircle className="h-6 w-6" aria-hidden />
+        </a>
+      </div>
     </div>
   );
 }
