@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { ThemeProvider } from "next-themes";
 import { lazyWithReload } from "@/lib/lazyWithReload";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RastreamentoPublico } from "./site/RastreamentoPublico";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -177,6 +178,7 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <BrowserRouter>
+        <RastreamentoPublico />
         <AuthProvider>
           <CartProvider>
           <Routes>

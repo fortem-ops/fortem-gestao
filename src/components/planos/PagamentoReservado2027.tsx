@@ -47,7 +47,7 @@ function PagamentoAtivo({ sessao, pix, onAprovado }: { sessao: SessaoCheckout; p
     finally { setOcupado(false); }
   }
   useEffect(() => { checkout<RespostaPagamento>("status_pagamento", sessao).then(aplicar).catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-  useEffect(() => { if (t?.status === "aprovado") onAprovado(t.simulado); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [t?.status]);
+  useEffect(() => { if (t?.status === "aprovado") { if (!t.simulado && t.valor_centavos === t.total_proposta_centavos) rastrearCompraPlano(t.id, t.valor_centavos); onAprovado(t.simulado); } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [t?.status]);
   const pendentePix = pix && t?.tipo === "pix" && t.status === "pendente";
   useEffect(() => {
     if (!pendentePix) return;
