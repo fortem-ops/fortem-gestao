@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { SiteLayout, BotaoWhats } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
+import { CardEquipe } from "../components/CardEquipe";
 import { EMAIL_CONTATO, ENDERECO_COMPLETO, MAPA_URL, PORTAL_EQUIPE_PATH, WHATSAPP_EXIBICAO, sitePath } from "../config";
 import {
   DEPOIMENTOS, EQUIPE, ETAPAS, FOTOS_ESTRUTURA, HORARIOS, NOTA_GOOGLE, NUMEROS_ESTRUTURA, PLANOS_HOME, SERVICOS_HOME, VIDEO_ESTRUTURA_URL,
@@ -92,11 +93,7 @@ export function SiteHome() {
           <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-5">
             {EQUIPE.map((p) => (
               <li key={p.nome}>
-                <PlaceholderFoto descricao={p.nome} src={p.foto} className="aspect-[3/4]" />
-                <p className="mt-3 font-bold">{p.nome}</p>
-                <p className="sp-rotulo mt-1 !text-[11px] text-[hsl(var(--sp-vermelho))]">{p.funcao}</p>
-                <p className="mt-2 text-xs text-[hsl(var(--sp-cinza))]">{p.formacao}</p>
-                {p.registro && <p className="mt-1 text-xs text-[hsl(var(--sp-cinza))]">{p.registro}</p>}
+                <CardEquipe pessoa={p} />
               </li>
             ))}
           </ul>

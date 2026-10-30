@@ -32,13 +32,7 @@ export const EXPERIMENTAL = {
   espaco: { titulo: "Conheça o espaço", fotos: ["área de treino", "equipamentos", "reabilitação"] },
   profissionais: {
     titulo: "Profissionais que acompanham você",
-    itens: [
-      { nome: "Nicolas Janovik", funcao: "Fundador", formacao: "Educação Física · Especialização em Treinamento Funcional", registro: "CREF 020625-G/RS" },
-      { nome: "Gustavo Dubois", funcao: "Coordenador técnico e instrutor", formacao: "Educação Física · Especialização em Treinamento Funcional", registro: "CREF 017313-G/RS" },
-      { nome: "Jéssica Elkfury", funcao: "Nutricionista", formacao: "Doutora em Ciências Médicas", registro: "CRN2 13041" },
-      { nome: "Júlia Assis Brasil", funcao: "Fisioterapeuta", formacao: "Fisioterapia e Osteopatia", registro: "CREFITO 298489F" },
-    ],
-    frase: "E mais quatro profissionais de educação física na equipe de treinamento.",
+    // A lista vem de EQUIPE em src/site/conteudo.ts (a mesma da home).
   },
   horarios: {
     titulo: "Horários de atendimento",
