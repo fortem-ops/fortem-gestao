@@ -160,9 +160,9 @@ export function SiteServicoPagina({ slug }: { slug: keyof typeof PAGINAS_SERVICO
     <SiteLayout titulo={p.meta.titulo} descricao={p.meta.descricao} path={sitePath(`/${slug}`)} origem={p.origem}>
       <section className="sp-fundo-preto">
         <div className="sp-container grid items-center gap-10 py-12 md:grid-cols-2 md:py-20">
-          <div>
+          <div className="min-w-0">
             <p className="sp-rotulo text-[hsl(var(--sp-vermelho))]">{p.hero.rotulo}</p>
-            <h1 className="mt-4 text-4xl leading-[1.05] md:text-5xl">{p.hero.titulo}</h1>
+            <h1 className="mt-4 break-words text-[2rem] leading-[1.05] sm:text-4xl md:text-5xl">{p.hero.titulo}</h1>
             <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">{p.hero.texto}</p>
             <Botoes botoes={p.hero.botoes} origem={p.origem} escuro />
           </div>
