@@ -71,3 +71,13 @@ html.sp-comercio-portal body > [role="dialog"] h2 { font-weight: 700; }
   /* Barras fixas de finalizar compra: o botão flutuante sobe acima delas. */
   .site-publico:has(.sp-comercio .fixed.inset-x-0.bottom-0) .sp-flutuante { bottom: calc(96px + var(--sp-banner-altura, 0px)); }
 }
+
+/* /planos: mantém o tema claro próprio da página, com vermelho de ação nos botões. */
+.site-publico .sp-comercio [data-planos2027="true"],
+html.sp-comercio-portal [data-planos2027="true"] { --primary: 359 67% 47%; --ring: 359 78% 57%; }
+.site-publico .sp-comercio [data-planos2027="true"] { min-height: 0; }
+.site-publico .sp-comercio [data-planos2027="true"] aside.sticky { top: 88px; }
+@media (max-width: 1023px) {
+  /* Barra fixa de "Continuar" do /planos (aparece até 1023px). */
+  .site-publico:has(.sp-comercio [data-planos2027] .fixed.inset-x-0.bottom-0) .sp-flutuante { bottom: calc(150px + var(--sp-banner-altura, 0px)); }
+}

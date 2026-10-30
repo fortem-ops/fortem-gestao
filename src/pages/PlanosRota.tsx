@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { TEXTOS_CHECKOUT } from "@/config/planosPublicoTextos";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Seo } from "@/components/Seo";
+import { ComercioPublico } from "@/site/ComercioPublico";
 import { WHATSAPP_FORTEM, type CatalogoPublico } from "@/lib/planosPublico2027";
 
 const PlanosPublico2027 = lazy(() => import("./PlanosPublico2027"));
@@ -12,7 +12,19 @@ const PlanosPublico2027 = lazy(() => import("./PlanosPublico2027"));
  * /planos: sempre a página 2027. Sem itens vendáveis (antes do go-live), o público vê "em breve";
  * a prévia de admin (?previa=1) mostra os itens ainda desligados.
  */
+const TITULO = "Planos FORTEM · Treino funcional em Porto Alegre";
+const DESCRICAO = "Monte seu plano FORTEM em Porto Alegre: escolha a frequência de treinos, as vantagens e o grupo de corrida, veja o resumo e contrate pelo site.";
+
+/** Casca do site público (cabeçalho, rodapé, WhatsApp). Só layout. */
 export default function PlanosRota() {
+  return (
+    <ComercioPublico titulo={TITULO} descricao={DESCRICAO} path="/planos" origem="planos">
+      <PlanosConteudo />
+    </ComercioPublico>
+  );
+}
+
+function PlanosConteudo() {
   const [params] = useSearchParams();
   const previa = params.get("previa") === "1";
   // Na prévia do editor a sessão chega com atraso: espera a sessão antes de pedir o catálogo,
@@ -52,12 +64,6 @@ function PlanosEmBreve() {
   const link = `https://wa.me/${WHATSAPP_FORTEM}?text=${encodeURIComponent("Olá, quero saber mais sobre os planos FORTEM.")}`;
   return (
     <div data-planos2027="true" className="min-h-screen bg-background text-foreground">
-      <Seo path="/planos" title="Planos FORTEM 2027" description="Os novos planos FORTEM chegam em breve. Fale com a equipe pelo WhatsApp." />
-      <header className="border-b border-border">
-        <div className="mx-auto max-w-5xl px-4 py-5">
-          <span className="font-display text-xl font-black tracking-tight">FORTEM</span>
-        </div>
-      </header>
       <main className="mx-auto max-w-2xl px-4 py-20">
         <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">Novos planos</p>
         <h1 className="mt-2 font-display text-3xl sm:text-4xl font-extrabold uppercase leading-tight">Planos 2027 em breve</h1>
@@ -76,8 +82,6 @@ function PreviaSemLogin() {
   const T = TEXTOS_CHECKOUT.previaLogin;
   return (
     <div data-planos2027="true" className="min-h-screen bg-background text-foreground">
-      <Seo path="/planos" title="Planos FORTEM 2027" description="Prévia de admin dos planos FORTEM." />
-      <header className="border-b border-border"><div className="mx-auto max-w-5xl px-4 py-5"><span className="font-display text-xl font-black tracking-tight">FORTEM</span></div></header>
       <main className="mx-auto max-w-2xl px-4 py-20">
         <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">{T.titulo}</p>
         <h1 role="alert" className="mt-2 font-display text-2xl sm:text-3xl font-extrabold uppercase leading-tight">{T.texto}</h1>
