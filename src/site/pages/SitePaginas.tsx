@@ -2,6 +2,7 @@ import { SiteLayout } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
 import { ChamadaAcao } from "../components/Blocos";
 export { SiteHome } from "./SiteHome";
+import { SiteServicoPagina } from "./SiteServicoPagina";
 import { linkWhatsApp, sitePath, type OrigemWhatsApp } from "../config";
 
 function Hero({ rotulo, titulo, texto, origem, foto }: { rotulo: string; titulo: string; texto: string; origem: OrigemWhatsApp; foto: string }) {
@@ -20,23 +21,6 @@ function Hero({ rotulo, titulo, texto, origem, foto }: { rotulo: string; titulo:
   );
 }
 
-const SERVICOS: Record<string, { titulo: string; descricao: string; origem: OrigemWhatsApp }> = {
-  treinamento: { titulo: "Treinamento", descricao: "Treinamento funcional com acompanhamento na FORTEM, em Porto Alegre.", origem: "treinamento" },
-  nutricao: { titulo: "Nutrição", descricao: "Acompanhamento nutricional integrado ao seu treino na FORTEM, em Porto Alegre.", origem: "nutricao" },
-  reabilitacao: { titulo: "Reabilitação", descricao: "Reabilitação e fisioterapia para você voltar a treinar com segurança na FORTEM.", origem: "reabilitacao" },
-  avaliacao: { titulo: "Avaliação", descricao: "Avaliação física completa para começar seu treino na FORTEM, em Porto Alegre.", origem: "avaliacao" },
-};
-
-export function SiteServico({ slug }: { slug: keyof typeof SERVICOS }) {
-  const s = SERVICOS[slug];
-  return (
-    <SiteLayout titulo={`${s.titulo} · FORTEM Porto Alegre`} descricao={s.descricao} path={sitePath(`/${slug}`)} origem={s.origem}>
-      <Hero rotulo="Serviços" titulo={s.titulo} texto={`${s.descricao} Conteúdo completo na Etapa 3.`} origem={s.origem} foto={s.titulo.toLowerCase()} />
-      <ChamadaAcao origem={s.origem} />
-    </SiteLayout>
-  );
-}
-
 export function SiteExperimental() {
   return (
     <SiteLayout minimo titulo="Aula experimental · FORTEM Porto Alegre" descricao="Agende sua aula experimental na FORTEM pelo WhatsApp." path={sitePath("/experimental")} origem="experimental">
@@ -46,7 +30,7 @@ export function SiteExperimental() {
   );
 }
 
-export const SiteTreinamento = () => <SiteServico slug="treinamento" />;
-export const SiteNutricao = () => <SiteServico slug="nutricao" />;
-export const SiteReabilitacao = () => <SiteServico slug="reabilitacao" />;
-export const SiteAvaliacao = () => <SiteServico slug="avaliacao" />;
+export const SiteTreinamento = () => <SiteServicoPagina slug="treinamento" />;
+export const SiteNutricao = () => <SiteServicoPagina slug="nutricao" />;
+export const SiteReabilitacao = () => <SiteServicoPagina slug="reabilitacao" />;
+export const SiteAvaliacao = () => <SiteServicoPagina slug="avaliacao" />;

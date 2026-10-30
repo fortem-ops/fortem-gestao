@@ -58,3 +58,6 @@
 
 .site-publico .sp-flutuante { position: fixed; right: 16px; bottom: 16px; z-index: 50; }
 .site-publico a:focus-visible, .site-publico button:focus-visible { outline: 2px solid hsl(var(--sp-vermelho)); outline-offset: 2px; }
+
+/* Âncoras param abaixo do cabeçalho fixo (h-16 = 64px). */
+.site-publico [id] { scroll-margin-top: 64px; }
