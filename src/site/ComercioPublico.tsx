@@ -39,7 +39,7 @@ export function LojaPublica({ children }: { children: ReactNode }) {
   return (
     <ComercioPublico
       titulo={carrinho ? "Carrinho · Loja FORTEM" : "Loja FORTEM · Produtos e brindes"}
-      descricao="Loja online da FORTEM em Porto Alegre: camisetas, acessórios e produtos da marca, com compra pelo site."
+      descricao="Loja online da FORTEM em Porto Alegre: camisetas, manga longa e regatas da marca, com compra pelo site."
       path={carrinho ? "/store/carrinho" : pathname}
       origem="loja"
     >
