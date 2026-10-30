@@ -7,7 +7,6 @@ import { checkout, ErroCheckout, iniciarCheckoutPublico, limparSessao, restaurar
 import { limparConfirmacao } from "@/lib/checkoutReservado2027";
 import { Check, ArrowLeft, CircleHelp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -157,9 +156,8 @@ export default function PlanosPublico2027({ catalogo }: { catalogo: CatalogoPubl
   </div>;
 
   return <div data-planos2027="true" className="min-h-screen bg-background text-foreground">
-    <Seo path="/planos" title="Planos FORTEM — monte seu plano" description="Escolha frequência, vantagens e consultas e monte seu plano FORTEM." />
     {catalogo.previa && <div className="bg-primary text-primary-foreground text-center text-xs font-semibold py-2 px-4">Prévia — itens ainda não estão à venda</div>}
-    <header className="border-b border-border"><div className="mx-auto max-w-6xl px-4 sm:px-8 py-5 flex items-center justify-between"><span className="font-display text-xl font-black">FORTEM</span><span className="text-xs uppercase">Monte seu plano</span></div></header>
+    <header className="border-b border-border"><div className="mx-auto max-w-6xl px-4 sm:px-8 py-5 flex items-center justify-between"><span className="sp-rotulo">Monte seu plano</span></div></header>
     <main className="mx-auto max-w-6xl px-4 sm:px-8 pt-6 pb-48 lg:pb-12">
       {sessao && !alterando ? <CheckoutSite2027 key={`${sessao.proposta_id}-${etapaSessao}`} sessao={sessao} etapaInicial={etapaSessao} contratante={contratante} previa={catalogo.previa}
         nome={contato.nome || "Do seu cadastro"} email={contato.email || "Do seu cadastro"}
