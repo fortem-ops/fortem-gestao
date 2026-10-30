@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { SiteLayout } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
+import { CardEquipe } from "../components/CardEquipe";
 import { ChamadaAcao } from "../components/Blocos";
 import { linkWhatsApp, sitePath } from "../config";
+import { EQUIPE } from "../conteudo";
 import { EXPERIMENTAL as E } from "../conteudoExperimental";
 import { NotaGoogle } from "./SiteHome";
 
@@ -70,18 +72,13 @@ export function SiteExperimental() {
       <section className="py-14 md:py-20">
         <div className="sp-container">
           <h2 className={h2}>{E.profissionais.titulo}</h2>
-          <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {E.profissionais.itens.map((p) => (
-              <div key={p.nome}>
-                <PlaceholderFoto descricao={p.nome} className="aspect-[3/4]" />
-                <p className="mt-3 font-bold">{p.nome}</p>
-                <p className="sp-rotulo sp-texto-acao mt-1 !text-[11px]">{p.funcao}</p>
-                <p className="mt-1 text-sm sp-texto2">{p.formacao}</p>
-                {p.registro && <p className="mt-1 text-sm sp-texto2">{p.registro}</p>}
-              </div>
+          <ul className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            {EQUIPE.map((p) => (
+              <li key={p.nome}>
+                <CardEquipe pessoa={p} compacto />
+              </li>
             ))}
-          </div>
-          <p className="mt-8 sp-texto2">{E.profissionais.frase}</p>
+          </ul>
         </div>
       </section>
 
