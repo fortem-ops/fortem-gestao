@@ -4,65 +4,66 @@
 
 | Rota | Hoje | Situação |
 |---|---|---|
-| `/` | Painel interno da equipe (Dashboard), só para equipe logada | **Conflito principal** |
+| `/` | Painel interno da equipe (Dashboard), só para equipe logada | Vai para `/equipe` na etapa 5 |
 | `/login` | Login da equipe | Reaproveitar sem mudar |
-| `/planos` | Página pública 2027 com visual claro (Archivo, #E73C3E) | Reaproveitar, só ligar no cabeçalho/rodapé novos |
+| `/planos` | Página pública 2027 com visual claro (Archivo, #E73C3E) | Reaproveitar, só ligar cabeçalho/rodapé |
 | `/store` (+ carrinho, produto) | Loja pública | Reaproveitar |
-| `/corrida` | Inscrição pública da corrida, já envia conversão Google Ads | Reaproveitar |
-| `/10anos` | Página da festa | **Existe, mantém** |
-| `/portal` | Leva para `/portal/home` (app do aluno, com login próprio) | Reaproveitar sem mudar |
-| `/privacidade` | Política de privacidade | Reaproveitar e completar (rastreamento) |
-| `/experimental`, `/treinamento`, `/nutricao`, `/reabilitacao`, `/avaliacao`, `/equipe` | Não existem | Criar |
-| `/assinar-experimental` | Fluxo interno protegido | Não confundir com `/experimental` |
+| `/corrida` | Inscrição pública, já envia conversão Google Ads | Reaproveitar |
+| `/10anos` | Página da festa | Existe, mantém |
+| `/portal` | App do aluno, login próprio | Sem mudança |
+| `/privacidade` | Política de privacidade | Completar na etapa 7 |
+| `/experimental`, `/treinamento`, `/nutricao`, `/reabilitacao`, `/avaliacao` | Não existem | Criar |
+| `/assinar-experimental` | Fluxo interno | Não alterar |
 
-Rastreamento já instalado em **todas** as páginas (inclusive no sistema interno): Google Ads `AW-797888979` e Meta Pixel `1920832044845271`, carregando **sem consentimento**. Também há `sitemap.xml`, `robots.txt` e um service worker (`sw.js`).
+Rastreamento já instalado em todas as páginas (inclusive sistema interno e portal do aluno), sem consentimento: Google Ads `AW-797888979` e Meta Pixel `1920832044845271` — são os da campanha e serão reaproveitados, sem duplicar. Há também `sitemap.xml`, `robots.txt` e service worker (`sw.js`).
 
-## Decisão-chave: o que fazer com o painel em `/`
+## Decisões aprovadas
 
-Recomendo: `/` vira a home pública; o painel da equipe muda para `/app` (ou `/painel`). `/equipe` mostra só a tela de acesso e, se a pessoa já estiver logada, leva ao painel. Todos os pontos que hoje mandam para `/` depois do login (cerca de 7 no código) passam a apontar para o painel.
-- Risco: favoritos antigos e atalhos do celular da equipe abrem a home pública. Mitigação: equipe logada que abre `/` vê um botão "Ir para o painel" no cabeçalho (sem redirecionar automaticamente, para não atrapalhar o anúncio).
-- Isso mexe em rotas internas, mas **só no endereço**: login, permissões e telas continuam iguais. Preciso da sua aprovação explícita para essa exceção à regra.
+- **Raiz**: `/` = home pública. Painel da equipe passa para `/equipe`, protegido por login; login, permissões e telas iguais, só muda o endereço. Os ~7 pontos que levam a `/` após login passam a levar a `/equipe`. Link "Portal da equipe" do site → `/equipe`. Exceção autorizada só para o endereço, com teste de login da equipe e do aluno. Service worker tratado na mesma etapa.
+- **/experimental**: somente WhatsApp (wa.me/555135199451, mensagem pré-preenchida por origem/botão). Sem formulário, nada gravado no banco.
+- **Conteúdo**: textos do mock-up aprovado; o que faltar vem de fortem.com.vc. Sem foto: bloco placeholder escuro com cantos vermelhos, trocado quando você enviar.
+- **Banner LGPD**: para todos os visitantes do site público.
+- **Ordem**: etapas 1–4 em `/site/...`, conferência com você, depois a troca da raiz. Uma etapa por aprovação.
 
 ## Isolamento do tema
 
-- Layout público próprio (`PublicLayout`) com tudo dentro de um contêiner com classe `.site-publico`; cores e fonte Archivo definidas só dentro dessa classe, nunca no `:root`.
-- Páginas públicas carregadas sob demanda: quem usa o sistema não baixa nada do site, e vice-versa.
-- Fonte Archivo carregada só pelo layout público.
-- Componentes novos ficam em pasta própria; nada de alterar os componentes compartilhados do sistema (botões, cards) — usamos variações locais.
+- Layout público próprio com contêiner `.site-publico`; cores e Archivo só dentro dele, nunca no tema global.
+- Páginas públicas carregadas sob demanda; o sistema não baixa nada do site.
+- Componentes do site em pasta própria; componentes compartilhados do sistema não são alterados.
 
-## Componentes reaproveitáveis (novos, usados em todas as páginas públicas)
+## Etapas
 
-Cabeçalho, rodapé (endereço, mapa, redes), botão flutuante de WhatsApp (555135199451), bloco de depoimentos, bloco de horários, bloco de chamada para ação. `/planos`, `/store` e `/corrida` recebem só o cabeçalho/rodapé, sem mexer no fluxo de compra.
-
-## Etapas (aprovar uma por vez)
-
-| # | Etapa | Créditos estimados |
+| # | Etapa | Créditos |
 |---|---|---|
-| 1 | Base: layout público isolado, cabeçalho, rodapé, WhatsApp, fontes; páginas vazias de `/treinamento` etc. em endereço provisório (`/site/...`) para conferir sem afetar nada | 8–12 |
-| 2 | Home completa (seções, depoimentos, horários, fotos leves) ainda em `/site` | 10–15 |
-| 3 | Páginas de serviço: treinamento, nutrição, reabilitação, avaliação | 10–15 |
-| 4 | `/experimental` (campanha: texto direto, formulário/WhatsApp, sem menu que distraia) | 6–10 |
-| 5 | Troca de endereço: home em `/`, painel em `/app`, `/equipe`, ajustes de pós-login; testar login da equipe e do aluno | 8–12 |
-| 6 | Encaixar `/planos`, `/store`, `/corrida` no cabeçalho/rodapé novos | 4–6 |
-| 7 | Rastreamento + banner LGPD (Consent Mode v2): tirar tags do `index.html`, carregar só nas páginas públicas após a regra de consentimento, capturar gclid/UTMs, eventos de clique no WhatsApp e compra de plano; atualizar política de privacidade. Você passa os IDs/rótulos aqui | 10–15 |
-| 8 | SEO e desempenho: título/descrição por página, JSON-LD LocalBusiness, sitemap/robots, imagens lazy, teste no celular | 6–10 |
-| 9 | Redirecionamentos de fortem.com.vc (feitos no Wix/registro do domínio enquanto ativo) | 1–3 |
+| 1 | Base do site em `/site` | 8–12 |
+| 2 | Home completa em `/site` | 10–15 |
+| 3 | `/site/treinamento`, `/nutricao`, `/reabilitacao`, `/avaliacao` | 10–15 |
+| 4 | `/site/experimental` (só WhatsApp, sem menu que distraia) | 6–10 |
+| — | Conferência com você | — |
+| 5 | Troca: site em `/`, painel em `/equipe`, pós-login, service worker, testes de login equipe e aluno | 8–12 |
+| 6 | Cabeçalho/rodapé novos em `/planos`, `/store`, `/corrida` sem mexer na compra | 4–6 |
+| 7 | Banner LGPD + Consent Mode v2, tags só no site público, gclid/UTMs, eventos WhatsApp e compra de plano, política de privacidade | 10–15 |
+| 8 | SEO (títulos, JSON-LD LocalBusiness, sitemap/robots) e desempenho no celular | 6–10 |
+| 9 | Redirecionamentos de fortem.com.vc (no Wix/registro) | 1–3 |
 
-Total aproximado: 63–98 créditos. Estimativas, podem variar com revisões.
+### Etapa 1 exata (a executar após aprovação)
+
+- Layout público isolado (`.site-publico`, fonte Archivo carregada só nele, cores preto/vermelho/cinza do manual).
+- Cabeçalho (logo, menu: Treinamento, Nutrição, Reabilitação, Avaliação, Planos, Store, Corrida, Portal do aluno, Portal da equipe → `/equipe`; menu móvel).
+- Rodapé (Av. Independência, 358, Porto Alegre/RS, WhatsApp, redes, privacidade).
+- Botão flutuante de WhatsApp com mensagem por página.
+- Componentes vazios prontos: placeholder de foto, depoimentos, horários, chamada para ação.
+- Rotas provisórias `/site`, `/site/treinamento`, `/site/nutricao`, `/site/reabilitacao`, `/site/avaliacao`, `/site/experimental` com páginas esqueleto.
+- Nada no `/`, login, portal, banco, tags ou service worker. Verificação: compilação e capturas de tela em celular e desktop, conferindo que o painel e o portal continuam com o tema escuro.
 
 ## Riscos
 
-- **Painel em `/`** (acima) — maior risco; isolado na etapa 5, com teste de login.
-- **Service worker** pode servir versão antiga após a troca; verificar na etapa 5.
-- **Tags atuais sem consentimento** rodam também no sistema interno e no portal do aluno (dados de alunos). Na etapa 7 elas ficam restritas às páginas públicas; a conversão da corrida precisa continuar funcionando (testar).
-- Duplicidade: não instalar uma segunda tag Google; reusar `AW-797888979` se for a mesma conta.
-- SEO: o site é carregado no navegador; Google indexa, mas mais devagar que um site estático. Aceitável; os títulos por página ajudam.
-- `/planos` tem regras próprias (catálogo 2027, prévia admin) — etapa 6 só troca moldura.
+- Troca do painel para `/equipe`: favoritos/atalhos da equipe abrirão o site; mitigação com botão "Ir para o painel" quando logado.
+- Service worker servindo versão antiga após a troca.
+- Tags atuais rodam no sistema interno e no portal do aluno; na etapa 7 ficam só no site, mantendo a conversão da corrida (testar).
+- `/planos` tem regras próprias; etapa 6 só troca a moldura.
+- Site carregado no navegador: o Google indexa, mas mais devagar; títulos por página ajudam.
 
-## Dúvidas
+## Pendência
 
-1. Aceita o painel da equipe mudar para `/app` (ou prefere outro nome)?
-2. Os textos/fotos do site antigo: copio de fortem.com.vc ou você manda novos?
-3. `/experimental`: o aluno marca a aula por WhatsApp, por formulário que vira Lead no sistema, ou ambos? (formulário criaria dados no banco — exigiria sua aprovação)
-4. A conta Google Ads `AW-797888979` e o Meta Pixel continuam sendo os da campanha?
-5. Banner só para visitantes de regiões que exigem consentimento, ou para todos (o Brasil/LGPD recomenda mostrar a todos)?
+- Mock-up aprovado: preciso que você o envie (imagem ou textos) antes da etapa 2.
