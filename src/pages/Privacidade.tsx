@@ -201,6 +201,31 @@ const Privacidade = () => {
             </p>
           </section>
 
+          <section>
+            <h2 className="text-xl font-semibold mb-2">9. Cookies e rastreamento no site</h2>
+            <p>
+              No site público da Fortem (páginas como a inicial, serviços, planos, loja, corrida e 10 anos) usamos
+              duas ferramentas de medição de anúncios:
+            </p>
+            <ul className="list-disc pl-6 mt-2 space-y-1">
+              <li><strong>Google tag / Google Ads (Google):</strong> mede visitas, cliques no WhatsApp e compras feitas pelo site, para saber quais anúncios funcionam.</li>
+              <li><strong>Meta Pixel (Meta, Facebook e Instagram):</strong> mede as mesmas ações para os anúncios no Facebook e no Instagram.</li>
+            </ul>
+            <p className="mt-2">
+              Essas ferramentas só gravam cookies e só enviam dados para identificar você depois que você clica em
+              <strong> Aceitar</strong> no aviso de cookies. Antes disso, ou se você clicar em <strong>Recusar</strong>,
+              o Meta Pixel não é carregado e a Google tag funciona no modo de consentimento negado, sem cookies de
+              publicidade, enviando apenas sinais básicos sem identificação. Também guardamos no seu navegador a sua
+              escolha (por 12 meses) e, quando você chega por um anúncio, o código da campanha (por 90 dias), apenas
+              para saber de qual anúncio veio o contato. Nada disso é usado no painel da equipe nem no portal do aluno.
+            </p>
+            <p className="mt-2">
+              Você pode mudar a sua escolha a qualquer momento pelo link <strong>Preferências de cookies</strong>, no
+              rodapé do site, ou apagando os dados do site no seu navegador. Dúvidas:{" "}
+              <a href="mailto:contatofortem@gmail.com" className="text-primary underline underline-offset-4">contatofortem@gmail.com</a>.
+            </p>
+          </section>
+
           <section className="pt-6 border-t border-border">
             <p className="text-sm text-muted-foreground">
               Última atualização: <strong>30/07/2026</strong>. Esta política pode ser

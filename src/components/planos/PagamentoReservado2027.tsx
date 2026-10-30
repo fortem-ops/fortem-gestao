@@ -4,6 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
 import { CartaoPagamento2027 } from "./CartaoPagamento2027";
+import { rastrearCompraPlano } from "@/site/rastreamento";
 import { checkout, dividirCentavos, lerCodigo, type SessaoCheckout } from "@/lib/checkoutSite2027";
 import { modoPagamentoTela } from "@/lib/planosPagamentoTela";
 
