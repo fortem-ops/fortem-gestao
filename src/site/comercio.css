@@ -1,0 +1,73 @@
+/* /corrida e /store dentro do site público. Tudo escopado em .site-publico .sp-comercio
+   (e, para janelas abertas fora da árvore, html.sp-comercio-portal enquanto a página estiver montada). */
+.site-publico .sp-comercio, .site-publico .sp-comercio .corrida-landing,
+html.sp-comercio-portal body > [role="dialog"],
+html.sp-comercio-portal [data-radix-popper-content-wrapper],
+html.sp-comercio-portal [data-sonner-toaster] {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --primary: 359 67% 47%;            /* #C8282A ação */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 95%;             /* #F3F3F3 */
+  --secondary-foreground: 0 0% 0%;
+  --muted: 0 0% 95%;
+  --muted-foreground: 180 1% 36%;    /* #5C5E5E */
+  --accent: 0 0% 0%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 359 67% 47%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 180 1% 29% / 0.35;
+  --input: 180 1% 29% / 0.5;         /* #4A4B4B */
+  --ring: 359 78% 57%;
+  --radius: 0px;
+  font-family: "Archivo", system-ui, sans-serif;
+}
+html.sp-comercio-portal body > [role="dialog"] *,
+html.sp-comercio-portal [data-radix-popper-content-wrapper] *,
+html.sp-comercio-portal [data-sonner-toaster] * { border-radius: 0 !important; box-shadow: none !important; font-family: "Archivo", system-ui, sans-serif; }
+html.sp-comercio-portal body > [role="dialog"] { border-radius: 0 !important; box-shadow: none !important; background: hsl(0 0% 100%); color: hsl(0 0% 0%); border: 1px solid hsl(180 1% 29%); }
+html.sp-comercio-portal body > [role="dialog"] h2 { font-weight: 700; }
+
+.site-publico .sp-comercio { background: hsl(var(--sp-branco)); color: hsl(var(--sp-preto)); }
+.site-publico .sp-comercio .font-display,
+.site-publico .sp-comercio h1, .site-publico .sp-comercio h2, .site-publico .sp-comercio h3, .site-publico .sp-comercio h4 { font-family: "Archivo", system-ui, sans-serif !important; letter-spacing: normal; }
+.site-publico .sp-comercio .font-black { font-weight: 700; }
+
+/* Sem gradientes/brilhos: vermelho sólido. */
+.site-publico .sp-comercio .text-gradient { background: none !important; color: hsl(var(--sp-vermelho)) !important; -webkit-text-fill-color: currentColor; }
+.site-publico .sp-comercio .bg-hero { background: hsl(var(--sp-preto)) !important; }
+.site-publico .sp-comercio [class*="bg-gradient-"] { background-image: none !important; }
+.site-publico .sp-comercio .backdrop-blur { backdrop-filter: none; }
+
+/* Botões shadcn: retos, rótulo em maiúsculas. */
+.site-publico .sp-comercio button.inline-flex,
+.site-publico .sp-comercio a.inline-flex[class*="bg-primary"] {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.site-publico .sp-comercio .bg-primary:hover, .site-publico .sp-comercio .hover\:bg-primary\/90:hover { background: hsl(var(--sp-vermelho)); }
+.site-publico .sp-comercio .text-primary { color: hsl(var(--sp-acao)); }
+
+/* Superfícies, linhas e mensagens. */
+.site-publico .sp-comercio .bg-neutral-100, .site-publico .sp-comercio .bg-muted, .site-publico .sp-comercio .bg-secondary { background-color: hsl(var(--sp-superficie)); }
+.site-publico .sp-comercio .text-neutral-500, .site-publico .sp-comercio .text-muted-foreground { color: hsl(var(--sp-texto2)); }
+.site-publico .sp-comercio .border-neutral-200 { border-color: hsl(var(--sp-linha) / 0.35); }
+.site-publico .sp-comercio [role="alert"], .site-publico .sp-comercio .text-destructive { color: hsl(var(--sp-acao)); }
+.site-publico .sp-comercio label { font-weight: 700; }
+.site-publico .sp-comercio [role="tablist"] { background: hsl(var(--sp-superficie)); }
+.site-publico .sp-comercio [role="tab"][data-state="active"] { background: hsl(var(--sp-preto)); color: hsl(var(--sp-branco)); }
+
+/* Loja: barra própria abaixo do cabeçalho do site; tema fixo claro (sem alternância). */
+.site-publico .sp-comercio header.sticky { top: 64px; z-index: 30; background: hsl(var(--sp-branco)); }
+.site-publico .sp-comercio button[aria-label^="Usar tema"] { display: none; }
+.site-publico .sp-comercio .bg-white { background-color: hsl(var(--sp-branco)); }
+
+/* Espaço para o botão flutuante do WhatsApp no celular. */
+@media (max-width: 767px) {
+  .site-publico .sp-comercio { padding-bottom: 96px; }
+  /* Barras fixas de finalizar compra: o botão flutuante sobe acima delas. */
+  .site-publico:has(.sp-comercio .fixed.inset-x-0.bottom-0) .sp-flutuante { bottom: calc(96px + var(--sp-banner-altura, 0px)); }
+}

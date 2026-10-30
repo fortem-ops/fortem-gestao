@@ -9,15 +9,14 @@ import VideoTestimonialsSection from "@/components/corrida/VideoTestimonialsSect
 
 import CorridaFaqSection from "@/components/corrida/CorridaFaqSection";
 import FinalCtaSection from "@/components/corrida/FinalCtaSection";
-import WhatsAppButton from "@/components/corrida/WhatsAppButton";
-import { Seo } from "@/components/Seo";
+import { ComercioPublico } from "@/site/ComercioPublico";
 
 const corridaJsonLd = {
   "@context": "https://schema.org",
   "@type": "SportsActivityLocation",
   name: "Fortem — Grupo de Corrida",
-  url: "https://soufortem.com.br/corrida",
-  image: "https://soufortem.com.br/icon-192.png",
+  url: "https://www.soufortem.com.br/corrida",
+  image: "https://www.soufortem.com.br/og-fortem.png",
   address: {
     "@type": "PostalAddress",
     streetAddress: "Av. Independência, 358",
@@ -46,26 +45,25 @@ const Corrida = () => {
     document.getElementById("configurador")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
-    <div className="corrida-landing min-h-screen font-display">
-      <Seo
-        title="Grupo de Corrida — Fortem - Treinamento"
-        description="Treine corrida em grupo com a Fortem em Porto Alegre: assessoria técnica, treinos na orla e na pista, recovery e comunidade. Inscreva-se online."
-        path="/corrida"
-        jsonLd={corridaJsonLd}
-      />
-      <NbCortesiaBanner logoTopOffset={24} />
-      <CorridaConfigurator />
-      <WhyFortemSection />
-      <TrainingLocationsSection />
-      <DifferentialsSection />
-      <MipoaSection />
-      <VideoTestimonialsSection />
-      
-      <CorridaFaqSection />
-      <FinalCtaSection onCtaClick={scrollToConfigurator} />
-
-      <WhatsAppButton />
-    </div>
+    <ComercioPublico
+      titulo="Corrida FORTEM · Treino de corrida em Porto Alegre"
+      descricao="Treine corrida em grupo com a FORTEM em Porto Alegre: assessoria técnica, treinos na orla e na pista, recovery e comunidade. Inscreva-se online."
+      path="/corrida"
+      origem="corrida"
+      jsonLd={[corridaJsonLd]}
+    >
+      <div className="corrida-landing">
+        <NbCortesiaBanner />
+        <CorridaConfigurator />
+        <WhyFortemSection />
+        <TrainingLocationsSection />
+        <DifferentialsSection />
+        <MipoaSection />
+        <VideoTestimonialsSection />
+        <CorridaFaqSection />
+        <FinalCtaSection onCtaClick={scrollToConfigurator} />
+      </div>
+    </ComercioPublico>
   );
 };
 

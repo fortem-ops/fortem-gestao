@@ -81,6 +81,11 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, j
   const [aberto, setAberto] = useState(false);
   const [servicos, setServicos] = useState(false);
   const { pathname, hash } = useLocation();
+  /** Item do menu ativo: rota exata ou subpáginas (ex.: /store/carrinho). Âncoras nunca ficam ativas. */
+  const ativo = (to: string, base = "") => {
+    const on = !to.includes("#") && to !== "/" && (pathname === to || pathname.startsWith(`${to}/`));
+    return { className: `${base} ${on ? "sp-ativo" : ""}`.trim() || undefined, "aria-current": on ? ("page" as const) : undefined };
+  };
   useEffect(() => {
     if (!hash) { window.scrollTo(0, 0); return; }
     const t = window.setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -148,7 +153,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, j
                     </div>
                   )}
                 </div>
-                {MENU.map((m) => <Link key={m.label} to={m.to}>{m.label}</Link>)}
+                {MENU.map((m) => <Link key={m.label} to={m.to} {...ativo(m.to)}>{m.label}</Link>)}
               </nav>
               <div className="hidden lg:block"><BotaoWhats origem={origem} /></div>
               <button type="button" className="lg:hidden p-2" aria-label={aberto ? "Fechar menu" : "Abrir menu"} aria-expanded={aberto}
@@ -162,7 +167,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, j
           <nav className="sp-mobile-menu sp-rotulo lg:hidden" aria-label="Menu">
             <div className="sp-container flex flex-col">
               {[...SERVICOS, ...MENU].map((m) => (
-                <Link key={m.label} to={m.to} className="py-4" onClick={() => setAberto(false)}>{m.label}</Link>
+                <Link key={m.label} to={m.to} {...ativo(m.to, "py-4")} onClick={() => setAberto(false)}>{m.label}</Link>
               ))}
               <div className="py-4"><BotaoWhats origem={origem} className="w-full" /></div>
             </div>

@@ -21,7 +21,7 @@ export const sitePath = (p = "") => `${SITE_BASE}${p.startsWith("#") ? `/${p}` :
 
 export type OrigemWhatsApp =
   | "home" | "treinamento" | "nutricao" | "reabilitacao" | "avaliacao" | "experimental" | "geral"
-  | "experimental-hero" | "experimental-cta-final" | "experimental-topo";
+  | "experimental-hero" | "experimental-cta-final" | "experimental-topo" | "corrida" | "loja";
 
 export const MENSAGENS_WHATSAPP: Record<OrigemWhatsApp, string> = {
   geral: "Olá! Vim pelo site e quero saber mais sobre a FORTEM.",
@@ -34,6 +34,8 @@ export const MENSAGENS_WHATSAPP: Record<OrigemWhatsApp, string> = {
   "experimental-hero": "Olá! Vim pelo site e quero agendar uma aula experimental na FORTEM.",
   "experimental-cta-final": "Olá! Vim pelo site e quero agendar uma aula experimental na FORTEM.",
   "experimental-topo": "Olá! Vim pelo site e quero agendar uma aula experimental na FORTEM.",
+  corrida: "Olá! Vim pelo site e quero saber mais sobre a corrida da FORTEM.",
+  loja: "Olá! Vim pelo site e tenho uma dúvida sobre a loja da FORTEM.",
 };
 
 export function linkWhatsApp(origem: OrigemWhatsApp = "geral"): string {

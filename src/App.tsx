@@ -95,9 +95,7 @@ const PlanosRota = lazyWithReload(() => import("./pages/PlanosRota"));
 const Privacidade = lazyWithReload(() => import("./pages/Privacidade"));
 const TermoAptidaoUsoImagem = lazyWithReload(() => import("./pages/TermoAptidaoUsoImagem"));
 const OAuthConsent = lazyWithReload(() => import("./pages/OAuthConsent"));
-const StoreIndex = lazyWithReload(() => import("./pages/store/StoreIndex"));
-const StoreProductDetail = lazyWithReload(() => import("./pages/store/StoreProductDetail"));
-const StoreCart = lazyWithReload(() => import("./pages/store/StoreCart"));
+const LojaRota = lazyWithReload(() => import("./site/pages/LojaRota"));
 const Festa10Anos = lazyWithReload(() => import("./pages/Festa10Anos"));
 const SiteHome = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteHome })));
 const SiteTreinamento = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteTreinamento })));
@@ -195,9 +193,9 @@ const App = () => (
             <Route path="/planos" element={<Suspense fallback={<RouteFallback />}><PlanosRota /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
             <Route path="/termos/aptidao-fisica-uso-imagem" element={<Suspense fallback={<RouteFallback />}><TermoAptidaoUsoImagem /></Suspense>} />
-            <Route path="/store" element={<Suspense fallback={<RouteFallback />}><StoreIndex /></Suspense>} />
-            <Route path="/store/carrinho" element={<Suspense fallback={<RouteFallback />}><StoreCart /></Suspense>} />
-            <Route path="/store/:produtoId" element={<Suspense fallback={<RouteFallback />}><StoreProductDetail /></Suspense>} />
+            <Route path="/store" element={<Suspense fallback={<RouteFallback />}><LojaRota pagina="index" /></Suspense>} />
+            <Route path="/store/carrinho" element={<Suspense fallback={<RouteFallback />}><LojaRota pagina="carrinho" /></Suspense>} />
+            <Route path="/store/:produtoId" element={<Suspense fallback={<RouteFallback />}><LojaRota pagina="produto" /></Suspense>} />
              <Route path="/10anos" element={<Suspense fallback={<RouteFallback />}><Festa10Anos /></Suspense>} />
             <Route path="/" element={<Suspense fallback={null}><SiteHome /></Suspense>} />
             <Route path="/treinamento" element={<Suspense fallback={null}><SiteTreinamento /></Suspense>} />
