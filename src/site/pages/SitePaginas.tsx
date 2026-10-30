@@ -21,14 +21,7 @@ function Hero({ rotulo, titulo, texto, origem, foto }: { rotulo: string; titulo:
   );
 }
 
-export function SiteExperimental() {
-  return (
-    <SiteLayout minimo titulo="Aula experimental · FORTEM Porto Alegre" descricao="Agende sua aula experimental na FORTEM pelo WhatsApp." path={sitePath("/experimental")} origem="experimental">
-      <Hero rotulo="Aula experimental" titulo="Venha conhecer a FORTEM" texto="Conteúdo da campanha entra na Etapa 4." origem="experimental" foto="aula experimental" />
-      <ChamadaAcao titulo="Agende sua aula experimental" origem="experimental" />
-    </SiteLayout>
-  );
-}
+export { SiteExperimental } from "./SiteExperimental";
 
 export const SiteTreinamento = () => <SiteServicoPagina slug="treinamento" />;
 export const SiteNutricao = () => <SiteServicoPagina slug="nutricao" />;

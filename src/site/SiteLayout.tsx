@@ -133,6 +133,15 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, children }
 
       <main className="flex-1">{children}</main>
 
+      {minimo ? (
+        <footer className="sp-footer">
+          <div className="sp-container flex flex-col gap-2 py-6 text-xs md:flex-row md:flex-wrap md:gap-x-4">
+            <p>© 2026 FORTEM · Av. Independência, 358, Porto Alegre, RS</p>
+            <Link to="/privacidade">Política de privacidade</Link>
+            <Link to={sitePath()}>Site completo</Link>
+          </div>
+        </footer>
+      ) : (
       <footer className="sp-footer">
         <div className="sp-container grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
@@ -162,6 +171,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, children }
           </div>
         </div>
       </footer>
+      )}
 
       <div className="sp-flutuante md:hidden">
         <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
