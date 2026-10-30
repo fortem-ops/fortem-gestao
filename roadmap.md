@@ -144,3 +144,6 @@
 - [x] Resumo do aluno + Trajetória com fallback; lápis edita `aluno_desde` sempre (com ou sem plano); data efetiva = a mais antiga entre plano e manual
 - [x] Filtro "Cliente desde (de/até)" na lista de alunos
 - [ ] Carga dos valores da planilha (aguardando dono; fora desta tarefa)
+
+- [x] Site público — Etapa 1: base em /site (layout isolado, cabeçalho, rodapé, WhatsApp, páginas esqueleto).
+- [ ] Site público — Etapas 2–9 (home, serviços, experimental, troca da raiz com painel em /equipe, moldura planos/store/corrida, rastreamento+LGPD, SEO, redirecionamentos) — cada uma aguarda aprovação.
