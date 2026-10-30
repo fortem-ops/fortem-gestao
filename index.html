@@ -5,14 +5,8 @@
       window.fortemFacialResponsavel = location.pathname.startsWith('/facial/responsavel/');
       if (window.fortemFacialResponsavel) {
         document.write('<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex, nofollow">');
-      } else {
-        window.dataLayer = window.dataLayer || [];
-        window.gtag = function(){ dataLayer.push(arguments); };
-        gtag('js', new Date()); gtag('config', 'AW-797888979');
-        var tag=document.createElement('script'); tag.async=true; tag.src='https://www.googletagmanager.com/gtag/js?id=AW-797888979'; document.head.appendChild(tag);
-        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init','1920832044845271'); fbq('track','PageView');
       }
+      /* Google tag e Meta Pixel: carregados só nas rotas públicas, com consentimento (src/site/RastreamentoPublico.tsx). */
     </script>
 
     <meta charset="UTF-8" />

@@ -3,6 +3,7 @@ import { AlertCircle, Loader2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TEXTOS_CHECKOUT as C } from "@/config/planosPublicoTextos";
+import { rastrearCompraPlano } from "@/site/rastreamento";
 import { checkout, type SessaoCheckout } from "@/lib/checkoutSite2027";
 import {
   INTERVALO_CARTAO_MS, faseCartao, faseTravada, mascararNumeroCartao, mascararValidade, validarCartao,
@@ -38,7 +39,7 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscol
 
   useEffect(() => { chamar<Resposta>("status_cartao", sessao).then(aplicar).catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { onTravado(travado); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [travado]);
-  useEffect(() => { if (fase === "aprovado" && t) onAprovado(t.simulado); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [fase]);
+  useEffect(() => { if (fase === "aprovado" && t) { if (!t.simulado && t.valor_centavos === t.total_proposta_centavos) rastrearCompraPlano(t.id, t.valor_centavos); onAprovado(t.simulado); } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [fase]);
   useEffect(() => { if (fase !== "formulario") aviso.current?.focus(); }, [fase]);
   useEffect(() => {
     if (!travado) return;

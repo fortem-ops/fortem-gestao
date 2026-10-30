@@ -56,7 +56,7 @@
 .site-publico .sp-footer a:hover { color: hsl(var(--sp-branco)); }
 .site-publico .sp-footer h3 { color: hsl(var(--sp-branco)); }
 
-.site-publico .sp-flutuante { position: fixed; right: 16px; bottom: 16px; z-index: 50; }
+.site-publico .sp-flutuante { position: fixed; right: 16px; bottom: calc(16px + var(--sp-banner-altura, 0px)); z-index: 50; }
 .site-publico a:focus-visible, .site-publico button:focus-visible { outline: 2px solid hsl(var(--sp-vermelho)); outline-offset: 2px; }
 
 /* Âncoras param abaixo do cabeçalho fixo (h-16 = 64px). */

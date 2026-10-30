@@ -1,3 +1,4 @@
+import { abrirPreferenciasCookies } from "./RastreamentoPublico";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -158,6 +159,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, c
           <div className="sp-container flex flex-col gap-2 py-6 text-xs md:flex-row md:flex-wrap md:gap-x-4">
             <p>© 2026 FORTEM · Av. Independência, 358, Porto Alegre, RS</p>
             <Link to="/privacidade">Política de privacidade</Link>
+            <button type="button" className="text-left hover:text-[hsl(var(--sp-branco))]" onClick={abrirPreferenciasCookies}>Preferências de cookies</button>
             <Link to={sitePath()}>Site completo</Link>
           </div>
         </footer>
@@ -188,6 +190,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, c
           <div className="sp-container flex flex-col gap-2 py-4 text-xs md:flex-row md:justify-between">
             <p>© 2026 FORTEM. Todos os direitos reservados. · {RAZAO_SOCIAL}</p>
             <Link to="/privacidade">Política de privacidade</Link>
+            <button type="button" className="text-left hover:text-[hsl(var(--sp-branco))]" onClick={abrirPreferenciasCookies}>Preferências de cookies</button>
           </div>
         </div>
       </footer>
