@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  EVENTO_ABRIR_PREFERENCIAS, aplicarConsentimento, capturarCampanha, ehLinkWhatsApp, ehRotaPublica, iniciarGtag,
+  EVENTO_ABRIR_PREFERENCIAS, capturarCampanha, ehLinkWhatsApp, ehRotaPublica, iniciarGtag,
   iniciarPixel, lerCampanha, lerConsentimento, linkComSufixo, rastrearWhatsApp, registrarPagina, salvarConsentimento, sufixoCampanha,
 } from "./rastreamento";
+import "./cookies.css";
 
 /** Descobre de onde veio o clique (topo, hero, cta-final, flutuante, rodapé...). */
 function origemDoClique(a: HTMLAnchorElement, pathname: string): string {
@@ -84,9 +85,6 @@ function BannerCookies() {
 
   if (!aberto) return null;
   const escolher = (e: "aceito" | "recusado") => { salvarConsentimento(e); setAberto(false); };
-  // garante que uma escolha antiga já está aplicada quando o banner é reaberto
-  const atual = lerConsentimento();
-  if (atual) aplicarConsentimento(atual);
 
   return (
     <div ref={ref} className="sp-cookies" role="dialog" aria-live="polite" aria-label="Preferências de cookies">

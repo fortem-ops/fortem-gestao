@@ -1,0 +1,27 @@
+/* Banner LGPD do site público — classes próprias, sem tocar no tema do sistema. */
+.sp-cookies {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+  background: #000; color: #fff; border-top: 4px solid #E73C3E;
+  font-family: "Archivo", system-ui, sans-serif; font-size: 14px; line-height: 1.5;
+}
+.sp-cookies * { border-radius: 0 !important; box-shadow: none !important; }
+.sp-cookies-conteudo {
+  max-width: 1200px; margin: 0 auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.sp-cookies a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.sp-cookies a:hover { color: #E73C3E; }
+.sp-cookies-botoes { display: flex; gap: 8px; }
+.sp-cookies-btn {
+  min-height: 44px; padding: 0 20px; flex: 1;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.sp-cookies-aceitar { background: #C8282A; color: #fff; border: 1px solid #C8282A; }
+.sp-cookies-aceitar:hover { background: #E73C3E; border-color: #E73C3E; }
+.sp-cookies-recusar { background: transparent; color: #fff; border: 1px solid #fff; }
+.sp-cookies-recusar:hover { color: #E73C3E; border-color: #E73C3E; }
+.sp-cookies button:focus-visible, .sp-cookies a:focus-visible { outline: 2px solid #E73C3E; outline-offset: 2px; }
+@media (min-width: 768px) {
+  .sp-cookies-conteudo { flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; }
+  .sp-cookies-btn { flex: none; }
+}
