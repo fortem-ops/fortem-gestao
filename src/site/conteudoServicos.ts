@@ -52,6 +52,9 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
         { nome: "Nicolas Janovik", funcao: "Fundador", registro: "CREF 020625-G/RS" },
         { nome: "Jonas Hubner", funcao: "Coordenador técnico e instrutor", registro: "CREF 023941-G/RS" },
         { nome: "Gustavo Dubois", funcao: "Coordenador técnico e instrutor", registro: "CREF 017313-G/RS" },
+        { nome: "Thaís dos Santos", funcao: "Instrutora", registro: "CREF 037342-G/RS" },
+        { nome: "Cristiano Ransolin", funcao: "Instrutor", registro: "CREF 028513-G/RS" },
+        { nome: "Vanessa Coutinho", funcao: "Instrutora", registro: "CREF 024151-G/RS" },
       ], nota: "Todos com bacharelado em Educação Física e especialização em Treinamento Funcional." },
       { tipo: "faq", itens: [
         { pergunta: "Quantos alunos treinam juntos?", resposta: "Até 4 alunos por professor. A sala comporta no máximo 12 alunos, com 3 professores." },
