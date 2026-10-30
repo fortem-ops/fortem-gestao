@@ -1,3 +1,4 @@
+import { jsonLdFaq } from "../seo";
 import { Link } from "react-router-dom";
 import { SiteLayout } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
@@ -12,7 +13,7 @@ const h2 = "text-3xl leading-tight md:text-4xl";
 
 export function SiteExperimental() {
   return (
-    <SiteLayout minimo titulo={E.meta.titulo} descricao={E.meta.descricao} path={sitePath("/experimental")} origem="experimental-topo" noIndex>
+    <SiteLayout minimo titulo={E.meta.titulo} descricao={E.meta.descricao} path={sitePath("/experimental")} origem="experimental-topo" noIndex jsonLd={[jsonLdFaq(E.faq)]}>
       <section className="sp-fundo-preto">
         <div className="sp-container grid items-center gap-8 py-10 md:grid-cols-2 md:gap-10 md:py-20">
           <div className="min-w-0">
@@ -20,13 +21,13 @@ export function SiteExperimental() {
             <h1 className="mt-4 break-words text-[2rem] uppercase leading-[1.05] sm:text-4xl md:text-5xl">{E.hero.titulo}</h1>
             <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">{E.hero.texto}</p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <a href={linkWhatsApp("experimental-hero")} target="_blank" rel="noopener noreferrer" className="sp-btn sp-btn-acao">{E.hero.botao}</a>
+              <a href={linkWhatsApp("experimental-hero")} target="_blank" rel="noopener noreferrer" aria-label={`${E.hero.botao} (abre em nova aba)`} className="sp-btn sp-btn-acao">{E.hero.botao}</a>
               <Link to="/planos" className="sp-btn sp-btn-contorno">Ver planos</Link>
             </div>
             <div className="mt-6"><NotaGoogle claro /></div>
             <p className="mt-2 text-sm text-[hsl(var(--sp-cinza))]">{E.hero.endereco}</p>
           </div>
-          <PlaceholderFoto descricao={E.hero.foto} className="aspect-[4/3]" />
+          <PlaceholderFoto descricao={E.hero.foto} prioridade className="aspect-[4/3]" />
         </div>
       </section>
 

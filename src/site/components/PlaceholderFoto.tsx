@@ -1,20 +1,31 @@
 interface Props {
   descricao: string;
-  /** Quando houver foto real, passe src e ela substitui o placeholder. */
+  /** Quando houver foto real, passe src (e opcionalmente srcSet/sizes) e ela substitui o placeholder. */
   src?: string;
+  srcSet?: string;
+  sizes?: string;
+  /** Dimensões intrínsecas da imagem (evitam salto de layout). */
+  width?: number;
+  height?: number;
+  /** Use true só na foto principal acima da dobra. */
+  prioridade?: boolean;
   className?: string;
 }
 
 /** Bloco de foto provisório (fundo escuro + colchetes vermelhos). */
-export function PlaceholderFoto({ descricao, src, className = "aspect-[4/3]" }: Props) {
+export function PlaceholderFoto({ descricao, src, srcSet, sizes, width = 1200, height = 900, prioridade, className = "aspect-[4/3]" }: Props) {
   if (src) {
-    return <img src={src} alt={descricao} loading="lazy" decoding="async" className={`w-full object-cover ${className}`} />;
+    return (
+      <img src={src} srcSet={srcSet} sizes={sizes} alt={descricao} width={width} height={height}
+        loading={prioridade ? "eager" : "lazy"} decoding="async" fetchPriority={prioridade ? "high" : undefined}
+        className={`h-auto w-full object-cover ${className}`} />
+    );
   }
   return (
-    <div className={`sp-foto w-full ${className}`} role="img" aria-label={`Foto: ${descricao}`}>
-      <span className="sp-canto tl" /><span className="sp-canto tr" />
-      <span className="sp-canto bl" /><span className="sp-canto br" />
-      <span className="sp-rotulo px-6 text-center">FOTO · {descricao}</span>
+    <div className={`sp-foto w-full ${className}`} role="img" aria-label={descricao}>
+      <span className="sp-canto tl" aria-hidden /><span className="sp-canto tr" aria-hidden />
+      <span className="sp-canto bl" aria-hidden /><span className="sp-canto br" aria-hidden />
+      <span className="sp-rotulo px-6 text-center" aria-hidden>FOTO · {descricao}</span>
     </div>
   );
 }

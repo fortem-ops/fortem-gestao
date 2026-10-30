@@ -1,3 +1,4 @@
+import { jsonLdFaq, jsonLdServico } from "../seo";
 import { Link } from "react-router-dom";
 import { SiteLayout } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
@@ -9,7 +10,7 @@ function Botoes({ botoes, origem, escuro }: { botoes: Botao[]; origem: OrigemWha
   return (
     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
       {botoes.map((b) => b.tipo === "whats"
-        ? <a key={b.texto} href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" className="sp-btn sp-btn-acao">{b.texto}</a>
+        ? <a key={b.texto} href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label={`${b.texto} (abre em nova aba)`} className="sp-btn sp-btn-acao">{b.texto}</a>
         : <Link key={b.texto} to={b.href} className={`sp-btn ${escuro ? "sp-btn-contorno" : "sp-borda"}`}>{b.texto}</Link>)}
     </div>
   );
@@ -156,8 +157,11 @@ function BlocoView({ b, origem, fundo }: { b: Bloco; origem: OrigemWhatsApp; fun
 
 export function SiteServicoPagina({ slug }: { slug: keyof typeof PAGINAS_SERVICO }) {
   const p = PAGINAS_SERVICO[slug];
+  const path = sitePath(`/${slug}`);
+  const faq = p.blocos.flatMap((b) => (b.tipo === "faq" ? b.itens : []));
+  const jsonLd = [jsonLdServico(p.servico, p.meta.descricao, path), ...(faq.length ? [jsonLdFaq(faq)] : [])];
   return (
-    <SiteLayout titulo={p.meta.titulo} descricao={p.meta.descricao} path={sitePath(`/${slug}`)} origem={p.origem}>
+    <SiteLayout titulo={p.meta.titulo} descricao={p.meta.descricao} path={path} origem={p.origem} jsonLd={jsonLd}>
       <section className="sp-fundo-preto">
         <div className="sp-container grid items-center gap-10 py-12 md:grid-cols-2 md:py-20">
           <div className="min-w-0">
@@ -166,7 +170,7 @@ export function SiteServicoPagina({ slug }: { slug: keyof typeof PAGINAS_SERVICO
             <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">{p.hero.texto}</p>
             <Botoes botoes={p.hero.botoes} origem={p.origem} escuro />
           </div>
-          <PlaceholderFoto descricao={p.hero.foto} className="aspect-[4/5] md:aspect-[4/3]" />
+          <PlaceholderFoto descricao={p.hero.foto} prioridade className="aspect-[4/5] md:aspect-[4/3]" />
         </div>
       </section>
       {p.blocos.map((b, i) => {

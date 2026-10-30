@@ -24,7 +24,7 @@ describe("permissões de propostas de contratos", () => {
     state.roles = { isAdmin: false, isCoordAdmin: false };
     render(<MemoryRouter initialEntries={["/financeiro/propostas-contratos"]}><Routes>
       <Route path="/financeiro/propostas-contratos" element={<PropostasContratos />} />
-      <Route path="/" element={<div data-testid="home" />} />
+      <Route path="/equipe" element={<div data-testid="home" />} />
     </Routes></MemoryRouter>);
     expect(screen.getByTestId("home")).toBeInTheDocument();
     expect(screen.queryByTestId("proposal-list")).not.toBeInTheDocument();

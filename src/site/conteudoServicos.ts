@@ -13,6 +13,8 @@ export type Bloco =
 export interface PaginaServico {
   origem: OrigemWhatsApp;
   meta: { titulo: string; descricao: string };
+  /** Nome do serviço nos dados estruturados. */
+  servico: string;
   hero: { rotulo: string; titulo: string; texto: string; foto: string; botoes: Botao[] };
   blocos: Bloco[];
   cta: string;
@@ -24,7 +26,8 @@ const PLANOS: Botao = { tipo: "link", texto: "Ver planos", href: "/planos" };
 export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao" | "avaliacao", PaginaServico> = {
   treinamento: {
     origem: "treinamento",
-    meta: { titulo: "Treino funcional em Porto Alegre · FORTEM", descricao: "Treino funcional com acompanhamento de perto, até 4 alunos por professor. Desde 2017 na Avenida Independência, em Porto Alegre." },
+    meta: { titulo: "Treinamento funcional personalizado em Porto Alegre · FORTEM", descricao: "Treino funcional com acompanhamento de perto, até 4 alunos por professor. Desde 2017 na Avenida Independência, em Porto Alegre." },
+    servico: "Treinamento funcional",
     hero: {
       rotulo: "Treinamento", titulo: "TREINO FUNCIONAL COM ACOMPANHAMENTO DE PERTO.",
       texto: "Uma metodologia que respeita seus limites e faz você evoluir, com progressão lógica de movimento e de força e atendimento personalizado.",
@@ -68,7 +71,8 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
   },
   nutricao: {
     origem: "nutricao",
-    meta: { titulo: "Nutricionista em Porto Alegre · FORTEM", descricao: "Acompanhamento nutricional com a nutricionista Jéssica Elkfury, integrado ao seu treino na FORTEM, na Av. Independência, Porto Alegre." },
+    servico: "Acompanhamento nutricional",
+    meta: { titulo: "Nutricionista em Porto Alegre · Consulta e acompanhamento · FORTEM", descricao: "Acompanhamento nutricional com a nutricionista Jéssica Elkfury, integrado ao seu treino na FORTEM, na Av. Independência, Porto Alegre." },
     hero: {
       rotulo: "Nutrição", titulo: "ALIMENTAÇÃO QUE CABE NA SUA ROTINA.",
       texto: "Acompanhamento nutricional com a nutricionista Jéssica Elkfury, integrado ao seu treino na FORTEM. Plano prático, acessível e coerente com o seu estilo de vida.",
@@ -104,6 +108,7 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
   },
   reabilitacao: {
     origem: "reabilitacao",
+    servico: "Fisioterapia e reabilitação",
     meta: { titulo: "Fisioterapia e reabilitação em Porto Alegre · FORTEM", descricao: "Sessões individuais de fisioterapia e osteopatia, com foco em mobilidade e força, na FORTEM, Av. Independência, Porto Alegre." },
     hero: {
       rotulo: "Reabilitação", titulo: "SESSÕES INDIVIDUAIS PARA MOVER-SE MELHOR.",
@@ -143,7 +148,8 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
   },
   avaliacao: {
     origem: "avaliacao",
-    meta: { titulo: "Avaliação funcional e de força em Porto Alegre · FORTEM", descricao: "Avaliação quantitativa de mobilidade articular, flexibilidade muscular e força com dinamômetro, na FORTEM, em Porto Alegre." },
+    servico: "Avaliação funcional e de força",
+    meta: { titulo: "Avaliação funcional e de força com dinamômetro · FORTEM", descricao: "Avaliação quantitativa de mobilidade articular, flexibilidade muscular e força com dinamômetro, na FORTEM, em Porto Alegre." },
     hero: {
       rotulo: "Avaliação funcional e de força", titulo: "MEÇA O QUE HOJE VOCÊ SÓ SENTE.",
       texto: "Avaliação quantitativa da mobilidade articular, da flexibilidade muscular e dos níveis de força com dinamômetro, para orientar o seu treino com dados.",

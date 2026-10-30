@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ChevronDown, Menu, MessageCircle, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { Seo } from "@/components/Seo";
+import { OG_IMAGEM, SITE_NOME, urlCanonica } from "./seo";
 import { useAuth } from "@/contexts/AuthContext";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import {
@@ -37,6 +37,8 @@ interface Props {
   minimo?: boolean;
   /** Página fora do Google (ex.: campanha /experimental). */
   noIndex?: boolean;
+  /** Dados estruturados da página. */
+  jsonLd?: Record<string, unknown>[];
   children: ReactNode;
 }
 
@@ -55,7 +57,7 @@ function Logo() {
 
 export function BotaoWhats({ origem, className = "" }: { origem: OrigemWhatsApp; className?: string }) {
   return (
-    <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" className={`sp-btn sp-btn-acao ${className}`}>
+    <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp com a FORTEM (abre em nova aba)" className={`sp-btn sp-btn-acao ${className}`}>
       Falar no WhatsApp
     </a>
   );
@@ -74,7 +76,7 @@ function useSessaoEquipe() {
   return !!user && data === true;
 }
 
-export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, children }: Props) {
+export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, jsonLd, children }: Props) {
   const equipe = useSessaoEquipe();
   const [aberto, setAberto] = useState(false);
   const [servicos, setServicos] = useState(false);
@@ -87,8 +89,24 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, c
 
   return (
     <div className="site-publico">
-      <Seo title={titulo} description={descricao} path={path} noIndex={noIndex} />
       <Helmet>
+        <html lang="pt-BR" />
+        <title>{titulo}</title>
+        <meta name="description" content={descricao} />
+        <link rel="canonical" href={urlCanonica(path)} />
+        <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow"} />
+        <meta property="og:title" content={titulo} />
+        <meta property="og:description" content={descricao} />
+        <meta property="og:url" content={urlCanonica(path)} />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="pt_BR" />
+        <meta property="og:site_name" content={SITE_NOME} />
+        <meta property="og:image" content={OG_IMAGEM} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={titulo} />
+        <meta name="twitter:description" content={descricao} />
+        <meta name="twitter:image" content={OG_IMAGEM} />
+        {jsonLd?.map((j, i) => <script key={i} type="application/ld+json">{JSON.stringify(j)}</script>)}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&display=swap" />
@@ -180,7 +198,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, c
           <div>
             <h3 className="sp-rotulo">Contato</h3>
             <ul className="mt-4 space-y-2 text-sm">
-              <li><a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer">{WHATSAPP_EXIBICAO}</a></li>
+              <li><a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${WHATSAPP_EXIBICAO} (abre em nova aba)`}>{WHATSAPP_EXIBICAO}</a></li>
               <li><a href={`mailto:${EMAIL_CONTATO}`}>{EMAIL_CONTATO}</a></li>
               {REDES.map((r) => <li key={r.nome}><a href={r.url} target="_blank" rel="noopener noreferrer">{r.rotulo}</a></li>)}
             </ul>
@@ -197,7 +215,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, c
       )}
 
       <div className="sp-flutuante md:hidden">
-        <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
+        <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp com a FORTEM (abre em nova aba)"
           className="sp-btn sp-btn-acao h-14 w-14 !p-0">
           <MessageCircle className="h-6 w-6" aria-hidden />
         </a>

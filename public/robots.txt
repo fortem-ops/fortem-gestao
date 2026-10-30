@@ -56,4 +56,4 @@ Disallow: /financeiro
 Disallow: /relatorios
 Disallow: /.lovable
 
-Sitemap: https://soufortem.com.br/sitemap.xml
+Sitemap: https://www.soufortem.com.br/sitemap.xml

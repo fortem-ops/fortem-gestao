@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { jsonLdNegocio } from "../seo";
 import { Star } from "lucide-react";
 import { SiteLayout, BotaoWhats } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
@@ -29,13 +31,34 @@ function Cabecalho({ rotulo, titulo, texto, claro }: { rotulo: string; titulo: s
   );
 }
 
+/** Mapa do Google: só carrega quando chega perto da tela; espaço reservado evita salto de layout. */
+function MapaLazy() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [ver, setVer] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setVer(true); return; }
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) { setVer(true); io.disconnect(); } }, { rootMargin: "300px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="sp-foto mt-4 aspect-[4/3] w-full">
+      {ver && (
+        <iframe title="Mapa da FORTEM na Av. Independência, 358, Porto Alegre" src="https://www.google.com/maps?q=Av.+Independ%C3%AAncia,+358,+Porto+Alegre,+RS&output=embed"
+          loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="h-full w-full border-0" />
+      )}
+    </div>
+  );
+}
+
 const linkSeta = "sp-rotulo sp-texto-acao inline-block mt-4 hover:underline";
 
 export function SiteHome() {
   const destaque = DEPOIMENTOS.find((d) => d.destaque);
   const curtos = DEPOIMENTOS.filter((d) => !d.destaque);
   return (
-    <SiteLayout titulo="FORTEM · Treino, nutrição e reabilitação em Porto Alegre" descricao="Treinamento funcional em Porto Alegre, com nutrição e reabilitação no mesmo lugar. Desde 2017 na Avenida Independência." path={sitePath()} origem="home">
+    <SiteLayout titulo="FORTEM · Treinamento funcional, nutrição e reabilitação em Porto Alegre" descricao="Treinamento funcional em Porto Alegre, com nutrição e reabilitação no mesmo lugar. Desde 2017 na Avenida Independência." path={sitePath()} origem="home" jsonLd={[jsonLdNegocio()]}>
       {/* 1 Hero */}
       <section className="sp-fundo-preto">
         <div className="sp-container grid items-center gap-10 py-12 md:grid-cols-2 md:py-20">
@@ -49,7 +72,7 @@ export function SiteHome() {
             </div>
             <div className="mt-6"><NotaGoogle claro /></div>
           </div>
-          <PlaceholderFoto descricao="treino em grupo no estúdio, preto e branco" className="aspect-[4/5] md:aspect-[4/3]" />
+          <PlaceholderFoto descricao="treino em grupo no estúdio, preto e branco" prioridade className="aspect-[4/5] md:aspect-[4/3]" />
         </div>
       </section>
 
@@ -198,8 +221,7 @@ export function SiteHome() {
           </div>
           <div>
             <p className="sp-rotulo sp-texto-acao">Onde estamos</p>
-            <iframe title="Mapa da FORTEM" src="https://www.google.com/maps?q=Av.+Independ%C3%AAncia,+358,+Porto+Alegre,+RS&output=embed"
-              loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="mt-4 aspect-[4/3] w-full border-0" />
+            <MapaLazy />
             <a href={MAPA_URL} target="_blank" rel="noopener noreferrer" className="mt-4 block hover:underline">{ENDERECO_COMPLETO}</a>
             <p className="mt-2 sp-texto2">{WHATSAPP_EXIBICAO} · <a href={`mailto:${EMAIL_CONTATO}`} className="hover:underline">{EMAIL_CONTATO}</a></p>
             <BotaoWhats origem="home" className="mt-6" />

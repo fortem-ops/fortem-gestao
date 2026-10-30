@@ -1,7 +1,7 @@
 /** Conteúdo editável da página de campanha /experimental. */
 export const EXPERIMENTAL = {
   meta: {
-    titulo: "Treino experimental · FORTEM Porto Alegre",
+    titulo: "Treino experimental · FORTEM",
     descricao: "Conheça a FORTEM com um treino experimental. Treinamento funcional em Porto Alegre, na Av. Independência, 358. Combine pelo WhatsApp.",
   },
   hero: {

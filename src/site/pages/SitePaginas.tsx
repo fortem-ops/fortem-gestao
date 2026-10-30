@@ -13,7 +13,7 @@ function Hero({ rotulo, titulo, texto, origem, foto }: { rotulo: string; titulo:
           <p className="sp-rotulo sp-texto-acao !text-[hsl(var(--sp-vermelho))]">{rotulo}</p>
           <h1 className="mt-3 text-4xl leading-tight md:text-5xl">{titulo}</h1>
           <p className="mt-4 max-w-lg text-[hsl(var(--sp-cinza))]">{texto}</p>
-          <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" className="sp-btn sp-btn-acao mt-8">Falar no WhatsApp</a>
+          <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp com a FORTEM (abre em nova aba)" className="sp-btn sp-btn-acao mt-8">Falar no WhatsApp</a>
         </div>
         <PlaceholderFoto descricao={foto} />
       </div>
