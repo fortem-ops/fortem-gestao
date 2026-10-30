@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, Copy, CreditCard, Loader2, QrCode, ShieldCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { lerConsentimento } from "@/site/rastreamento";
 
 declare global {
   interface Window {
@@ -388,16 +389,19 @@ const PagamentoStep = ({
         setFase("sucesso");
         try {
           if (!generica && typeof window.gtag === "function") {
-            const emailNormalizado = dados.email.trim().toLowerCase();
-            const telefoneDigits = dados.telefone.replace(/\D/g, "");
-            const telefoneE164 = telefoneDigits.startsWith("55")
-              ? `+${telefoneDigits}`
-              : `+55${telefoneDigits}`;
+            // Dados do usuário (conversão avançada) só com consentimento de ad_user_data.
+            if (lerConsentimento() === "aceito") {
+              const emailNormalizado = dados.email.trim().toLowerCase();
+              const telefoneDigits = dados.telefone.replace(/\D/g, "");
+              const telefoneE164 = telefoneDigits.startsWith("55")
+                ? `+${telefoneDigits}`
+                : `+55${telefoneDigits}`;
 
-            window.gtag("set", "user_data", {
-              email: emailNormalizado,
-              phone_number: telefoneE164,
-            });
+              window.gtag("set", "user_data", {
+                email: emailNormalizado,
+                phone_number: telefoneE164,
+              });
+            }
 
             window.gtag("event", "conversion", {
               send_to: "AW-797888979/zBA8COv0m6kaENOju_wC",
