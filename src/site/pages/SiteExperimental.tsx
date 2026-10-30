@@ -26,7 +26,7 @@ export function SiteExperimental() {
             <div className="mt-6"><NotaGoogle claro /></div>
             <p className="mt-2 text-sm text-[hsl(var(--sp-cinza))]">{E.hero.endereco}</p>
           </div>
-          <PlaceholderFoto descricao={E.hero.foto} className="aspect-[4/3]" />
+          <PlaceholderFoto descricao={E.hero.foto} prioridade className="aspect-[4/3]" />
         </div>
       </section>
 

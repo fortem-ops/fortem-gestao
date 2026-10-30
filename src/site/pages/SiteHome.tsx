@@ -72,7 +72,7 @@ export function SiteHome() {
             </div>
             <div className="mt-6"><NotaGoogle claro /></div>
           </div>
-          <PlaceholderFoto descricao="treino em grupo no estúdio, preto e branco" className="aspect-[4/5] md:aspect-[4/3]" />
+          <PlaceholderFoto descricao="treino em grupo no estúdio, preto e branco" prioridade className="aspect-[4/5] md:aspect-[4/3]" />
         </div>
       </section>
 

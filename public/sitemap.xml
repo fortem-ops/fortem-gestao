@@ -1,42 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://soufortem.com.br/</loc>
+    <loc>https://www.soufortem.com.br/</loc>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://soufortem.com.br/treinamento</loc>
+    <loc>https://www.soufortem.com.br/treinamento</loc>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://soufortem.com.br/nutricao</loc>
+    <loc>https://www.soufortem.com.br/nutricao</loc>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://soufortem.com.br/reabilitacao</loc>
+    <loc>https://www.soufortem.com.br/reabilitacao</loc>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://soufortem.com.br/avaliacao</loc>
+    <loc>https://www.soufortem.com.br/avaliacao</loc>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://soufortem.com.br/planos</loc>
+    <loc>https://www.soufortem.com.br/planos</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://soufortem.com.br/store</loc>
+    <loc>https://www.soufortem.com.br/store</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://soufortem.com.br/corrida</loc>
+    <loc>https://www.soufortem.com.br/corrida</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
