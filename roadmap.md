@@ -146,4 +146,5 @@
 - [ ] Carga dos valores da planilha (aguardando dono; fora desta tarefa)
 
 - [x] Site público — Etapa 1: base em /site (layout isolado, cabeçalho, rodapé, WhatsApp, páginas esqueleto).
-- [ ] Site público — Etapas 2–9 (home, serviços, experimental, troca da raiz com painel em /equipe, moldura planos/store/corrida, rastreamento+LGPD, SEO, redirecionamentos) — cada uma aguarda aprovação.
+- [x] Site público — Etapa 2: home completa em /site.
+- [ ] Site público — Etapas 3–9 (serviços, experimental, troca da raiz com painel em /equipe, moldura planos/store/corrida, rastreamento+LGPD, SEO, redirecionamentos) — cada uma aguarda aprovação.

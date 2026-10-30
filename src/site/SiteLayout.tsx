@@ -1,10 +1,10 @@
-import { useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ChevronDown, Menu, MessageCircle, X } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import {
-  ENDERECO_COMPLETO, ENDERECO_CURTO, RAZAO_SOCIAL, REDES, WHATSAPP_EXIBICAO, WHATSAPP_NUMERO,
+  EMAIL_CONTATO, ENDERECO_CURTO, PORTAL_EQUIPE_PATH, RAZAO_SOCIAL, REDES, WHATSAPP_EXIBICAO, WHATSAPP_NUMERO,
   linkWhatsApp, sitePath, type OrigemWhatsApp,
 } from "./config";
 import "./site.css";
@@ -34,11 +34,20 @@ interface Props {
   children: ReactNode;
 }
 
+function ColunaRodape({ titulo, itens }: { titulo: string; itens: { label: string; to: string }[] }) {
+  return (
+    <div>
+      <h3 className="sp-rotulo">{titulo}</h3>
+      <ul className="mt-4 space-y-2 text-sm">{itens.map((m) => <li key={m.label}><Link to={m.to}>{m.label}</Link></li>)}</ul>
+    </div>
+  );
+}
+
 function Logo() {
   return <img src="/fortem-logo.png" alt="FORTEM" width={160} height={30} className="h-6 w-auto md:h-7" />;
 }
 
-function BotaoWhats({ origem, className = "" }: { origem: OrigemWhatsApp; className?: string }) {
+export function BotaoWhats({ origem, className = "" }: { origem: OrigemWhatsApp; className?: string }) {
   return (
     <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" className={`sp-btn sp-btn-acao ${className}`}>
       Falar no WhatsApp
@@ -49,6 +58,12 @@ function BotaoWhats({ origem, className = "" }: { origem: OrigemWhatsApp; classN
 export function SiteLayout({ titulo, descricao, path, origem, minimo, children }: Props) {
   const [aberto, setAberto] = useState(false);
   const [servicos, setServicos] = useState(false);
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (!hash) { window.scrollTo(0, 0); return; }
+    const t = window.setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" }), 50);
+    return () => window.clearTimeout(t);
+  }, [pathname, hash]);
 
   return (
     <div className="site-publico">
@@ -65,7 +80,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, children }
             <span className="truncate">{ENDERECO_CURTO}</span>
             <nav className="sp-rotulo flex shrink-0 gap-4 !text-[11px]" aria-label="Acesso">
               <Link to="/portal">Portal do aluno</Link>
-              <Link to="/equipe">Portal da equipe</Link>
+              <Link to={PORTAL_EQUIPE_PATH}>Portal da equipe</Link>
             </nav>
           </div>
         </div>
@@ -119,37 +134,41 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, children }
       <main className="flex-1">{children}</main>
 
       <footer className="sp-footer">
-        <div className="sp-container grid gap-8 py-12 md:grid-cols-3">
-          <div>
+        <div className="sp-container grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="lg:col-span-1">
             <Logo />
-            <p className="mt-4 text-sm">{ENDERECO_COMPLETO}</p>
-            <p className="mt-2 text-sm">WhatsApp <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer">{WHATSAPP_EXIBICAO}</a></p>
+            <p className="mt-4 text-sm">Centro de treinamento, nutrição e reabilitação. Porto Alegre, desde 2017.</p>
           </div>
           {!minimo && (
-            <div>
-              <h3 className="sp-rotulo">Links</h3>
-              <ul className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                {[...SERVICOS, ...MENU].map((m) => <li key={m.label}><Link to={m.to}>{m.label}</Link></li>)}
-              </ul>
-            </div>
+            <>
+              <ColunaRodape titulo="Serviços" itens={SERVICOS} />
+              <ColunaRodape titulo="FORTEM" itens={MENU.filter((m) => ["Planos", "Corrida", "Loja", "Horários e local"].includes(m.label))} />
+              <ColunaRodape titulo="Acesso" itens={[{ label: "Portal do aluno", to: "/portal" }, { label: "Portal da equipe", to: PORTAL_EQUIPE_PATH }]} />
+            </>
           )}
           <div>
-            <h3 className="sp-rotulo">Redes</h3>
+            <h3 className="sp-rotulo">Contato</h3>
             <ul className="mt-4 space-y-2 text-sm">
-              {REDES.map((r) => <li key={r.nome}><a href={r.url} target="_blank" rel="noopener noreferrer">{r.nome}</a></li>)}
-              <li><Link to="/privacidade">Política de privacidade</Link></li>
+              <li><a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer">{WHATSAPP_EXIBICAO}</a></li>
+              <li><a href={`mailto:${EMAIL_CONTATO}`}>{EMAIL_CONTATO}</a></li>
+              {REDES.map((r) => <li key={r.nome}><a href={r.url} target="_blank" rel="noopener noreferrer">{r.rotulo}</a></li>)}
             </ul>
           </div>
         </div>
         <div className="border-t border-[hsl(var(--sp-linha))]">
-          <p className="sp-container py-4 text-xs">{RAZAO_SOCIAL}</p>
+          <div className="sp-container flex flex-col gap-2 py-4 text-xs md:flex-row md:justify-between">
+            <p>© 2026 FORTEM. Todos os direitos reservados. · {RAZAO_SOCIAL}</p>
+            <Link to="/privacidade">Política de privacidade</Link>
+          </div>
         </div>
       </footer>
 
-      <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
-        className="sp-flutuante sp-btn sp-btn-acao h-14 w-14 !p-0 md:hidden">
-        <MessageCircle className="h-6 w-6" aria-hidden />
-      </a>
+      <div className="sp-flutuante md:hidden">
+        <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
+          className="sp-btn sp-btn-acao h-14 w-14 !p-0">
+          <MessageCircle className="h-6 w-6" aria-hidden />
+        </a>
+      </div>
     </div>
   );
 }
