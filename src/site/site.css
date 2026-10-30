@@ -20,7 +20,7 @@
 .site-publico h1, .site-publico h2, .site-publico h3 { font-family: "Archivo", system-ui, sans-serif; font-weight: 700; }
 
 .site-publico .sp-rotulo { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.site-publico .sp-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+.site-publico .sp-container { width: 100%; max-width: 1200px; margin-left: auto; margin-right: auto; padding-left: 20px; padding-right: 20px; }
 
 .site-publico .sp-topbar { background: hsl(var(--sp-preto)); color: hsl(var(--sp-cinza)); border-bottom: 1px solid hsl(var(--sp-linha)); font-size: 12px; }
 .site-publico .sp-topbar a:hover { color: hsl(var(--sp-branco)); }
