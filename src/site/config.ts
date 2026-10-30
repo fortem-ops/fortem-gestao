@@ -8,9 +8,9 @@ export const RAZAO_SOCIAL = "Fortem Treinamento Físico Ltda · CNPJ 26.502.263/
 export const MAPA_URL = "https://maps.app.goo.gl/VNhfn5tBSs1CYxgA7";
 /** Redes com url vazia ficam ocultas. */
 export const REDES = [
-  { nome: "Instagram", rotulo: "Instagram @soufortem", url: "https://www.instagram.com/soufortem" },
+  { nome: "Instagram", rotulo: "Instagram @sou.fortem", url: "https://www.instagram.com/sou.fortem" },
   { nome: "Facebook", rotulo: "Facebook", url: "" },
-  { nome: "YouTube", rotulo: "YouTube", url: "" },
+  { nome: "YouTube", rotulo: "YouTube", url: "https://www.youtube.com/@sou.fortem" },
 ].filter((r) => r.url);
 /** Trocar para "/equipe" na troca da raiz (Etapa 5). */
 export const PORTAL_EQUIPE_PATH = "/login";
