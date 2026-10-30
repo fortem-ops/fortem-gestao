@@ -5,6 +5,7 @@ import { PlaceholderFoto } from "../components/PlaceholderFoto";
 import { ChamadaAcao } from "../components/Blocos";
 import { linkWhatsApp, sitePath, type OrigemWhatsApp } from "../config";
 import { PAGINAS_SERVICO, type Bloco, type Botao } from "../conteudoServicos";
+import { FOTOS_SITE } from "../fotos";
 
 function Botoes({ botoes, origem, escuro }: { botoes: Botao[]; origem: OrigemWhatsApp; escuro?: boolean }) {
   return (
@@ -157,6 +158,12 @@ function BlocoView({ b, origem, fundo }: { b: Bloco; origem: OrigemWhatsApp; fun
 
 export function SiteServicoPagina({ slug }: { slug: keyof typeof PAGINAS_SERVICO }) {
   const p = PAGINAS_SERVICO[slug];
+  const foto = {
+    treinamento: FOTOS_SITE["treinamento-orientacao"],
+    avaliacao: FOTOS_SITE["avaliacao-dinamometro"],
+    nutricao: FOTOS_SITE["estrutura-nutricao"],
+    reabilitacao: FOTOS_SITE["estrutura-reabilitacao"],
+  }[slug];
   const path = sitePath(`/${slug}`);
   const faq = p.blocos.flatMap((b) => (b.tipo === "faq" ? b.itens : []));
   const jsonLd = [jsonLdServico(p.servico, p.meta.descricao, path), ...(faq.length ? [jsonLdFaq(faq)] : [])];
@@ -170,7 +177,7 @@ export function SiteServicoPagina({ slug }: { slug: keyof typeof PAGINAS_SERVICO
             <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">{p.hero.texto}</p>
             <Botoes botoes={p.hero.botoes} origem={p.origem} escuro />
           </div>
-          <PlaceholderFoto descricao={p.hero.foto} prioridade className="aspect-[4/5] md:aspect-[4/3]" />
+          <PlaceholderFoto {...foto} prioridade />
         </div>
       </section>
       {p.blocos.map((b, i) => {

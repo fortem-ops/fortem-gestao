@@ -8,6 +8,7 @@ import { linkWhatsApp, sitePath } from "../config";
 import { EQUIPE } from "../conteudo";
 import { EXPERIMENTAL as E } from "../conteudoExperimental";
 import { NotaGoogle } from "./SiteHome";
+import { FOTOS_SITE, FOTOS_ESTRUTURA_SITE } from "../fotos";
 
 const h2 = "text-3xl leading-tight md:text-4xl";
 
@@ -27,7 +28,7 @@ export function SiteExperimental() {
             <div className="mt-6"><NotaGoogle claro /></div>
             <p className="mt-2 text-sm text-[hsl(var(--sp-cinza))]">{E.hero.endereco}</p>
           </div>
-          <PlaceholderFoto descricao={E.hero.foto} prioridade className="aspect-[4/3]" />
+          <PlaceholderFoto {...FOTOS_SITE["experimental-hero"]} prioridade />
         </div>
       </section>
 
@@ -64,7 +65,7 @@ export function SiteExperimental() {
         <div className="sp-container">
           <h2 className={h2}>{E.espaco.titulo}</h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {E.espaco.fotos.map((f) => <PlaceholderFoto key={f} descricao={f} />)}
+            {E.espaco.fotos.map((f, i) => <PlaceholderFoto key={f} {...FOTOS_ESTRUTURA_SITE[i]} />)}
           </div>
         </div>
       </section>

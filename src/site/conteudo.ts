@@ -8,7 +8,7 @@ export const SERVICOS_HOME = [
   { rotulo: "Avaliação", titulo: "Avaliação funcional e de força", texto: "Análise quantitativa de mobilidade articular, flexibilidade e saúde muscular.", path: "/avaliacao" },
 ];
 
-export const FOTOS_ESTRUTURA = ["área principal de treino", "equipamentos de força", "sala de reabilitação", "consultório de nutrição", "vestiários", "equipe em atendimento"];
+export const FOTOS_ESTRUTURA = ["área principal de treino", "equipamentos de força", "sala de reabilitação", "consultório de nutrição", "vestiários", "Recepção"];
 /** Deixe vazio para ocultar o link do vídeo. */
 export const VIDEO_ESTRUTURA_URL = "https://youtu.be/-qUUvtacXAs";
 export const NUMEROS_ESTRUTURA = [

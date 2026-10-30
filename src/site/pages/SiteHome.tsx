@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import { SiteLayout, BotaoWhats } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
 import { CardEquipe } from "../components/CardEquipe";
+import { FOTOS_SITE, FOTOS_ESTRUTURA_SITE } from "../fotos";
 import { EMAIL_CONTATO, ENDERECO_COMPLETO, MAPA_URL, PORTAL_EQUIPE_PATH, WHATSAPP_EXIBICAO, sitePath } from "../config";
 import {
   DEPOIMENTOS, EQUIPE, ETAPAS, FOTOS_ESTRUTURA, HORARIOS, NOTA_GOOGLE, NUMEROS_ESTRUTURA, PLANOS_HOME, SERVICOS_HOME, VIDEO_ESTRUTURA_URL,
@@ -60,9 +61,10 @@ export function SiteHome() {
   return (
     <SiteLayout titulo="FORTEM · Treinamento funcional, nutrição e reabilitação em Porto Alegre" descricao="Treinamento funcional em Porto Alegre, com nutrição e reabilitação no mesmo lugar. Desde 2017 na Avenida Independência." path={sitePath()} origem="home" jsonLd={[jsonLdNegocio()]}>
       {/* 1 Hero */}
-      <section className="sp-fundo-preto">
-        <div className="sp-container grid items-center gap-10 py-12 md:grid-cols-2 md:py-20">
-          <div>
+      <section className="sp-fundo-preto sp-home-hero">
+        <PlaceholderFoto {...FOTOS_SITE["home-hero"]} prioridade className="sp-home-foto" />
+        <div className="sp-container relative z-10 grid items-center gap-10 py-12 md:grid-cols-2 md:py-20">
+          <div className="sp-home-texto">
             <p className="sp-rotulo text-[hsl(var(--sp-vermelho))]">Centro de treinamento, nutrição e reabilitação</p>
             <h1 className="mt-4 text-4xl uppercase leading-[1.05] md:text-6xl">Treino, nutrição e reabilitação no mesmo lugar.</h1>
             <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">Treinamento funcional em Porto Alegre, com metodologia que respeita seus limites e faz você evoluir. Desde 2017 na Avenida Independência.</p>
@@ -72,7 +74,6 @@ export function SiteHome() {
             </div>
             <div className="mt-6"><NotaGoogle claro /></div>
           </div>
-          <PlaceholderFoto descricao="treino em grupo no estúdio, preto e branco" prioridade className="aspect-[4/5] md:aspect-[4/3]" />
         </div>
       </section>
 
@@ -99,7 +100,10 @@ export function SiteHome() {
           <Cabecalho rotulo="Estrutura" titulo="Um espaço pensado para treinar com segurança." texto="No coração da Avenida Independência desde 2017, com a estrutura de treinamento mais completa da região central de Porto Alegre." />
           {VIDEO_ESTRUTURA_URL && <a href={VIDEO_ESTRUTURA_URL} target="_blank" rel="noopener noreferrer" className={linkSeta}>Ver o vídeo da estrutura →</a>}
           <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3">
-            {FOTOS_ESTRUTURA.map((f) => <PlaceholderFoto key={f} descricao={f} />)}
+            {FOTOS_ESTRUTURA.map((f, i) => <figure key={f}>
+              <PlaceholderFoto {...FOTOS_ESTRUTURA_SITE[i]} />
+              <figcaption className="sp-rotulo mt-3">{f}</figcaption>
+            </figure>)}
           </div>
           <dl className="mt-10 grid gap-6 border-t border-[hsl(var(--sp-cinza))] pt-8 sm:grid-cols-3">
             {NUMEROS_ESTRUTURA.map((n) => (

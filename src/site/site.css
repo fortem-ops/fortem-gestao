@@ -9,6 +9,7 @@
   --sp-cinza: 180 1% 70%;          /* #B1B3B3 */
   --sp-linha: 180 1% 29%;          /* #4A4B4B */
   --sp-branco: 0 0% 100%;
+  --sp-hero-escurecimento: linear-gradient(90deg, hsl(var(--sp-preto) / .78) 0%, hsl(var(--sp-preto) / .58) 38%, hsl(var(--sp-preto) / .12) 65%, transparent 100%);
   font-family: "Archivo", system-ui, sans-serif;
   background: hsl(var(--sp-branco));
   color: hsl(var(--sp-preto));
@@ -51,6 +52,10 @@
 .site-publico .sp-canto.tr { top: 10px; right: 10px; border-top-width: 2px; border-right-width: 2px; }
 .site-publico .sp-canto.bl { bottom: 10px; left: 10px; border-bottom-width: 2px; border-left-width: 2px; }
 .site-publico .sp-canto.br { bottom: 10px; right: 10px; border-bottom-width: 2px; border-right-width: 2px; }
+.site-publico .sp-home-hero { position: relative; isolation: isolate; }
+.site-publico .sp-home-hero .sp-home-foto { position: absolute; inset: 0; }
+.site-publico .sp-home-hero::after { content: ""; position: absolute; inset: 0; background: var(--sp-hero-escurecimento); pointer-events: none; }
+.site-publico .sp-home-texto > p:not(.sp-rotulo), .site-publico .sp-home-texto .text-sm { color: hsl(var(--sp-branco)); }
 
 .site-publico .sp-footer { background: hsl(var(--sp-preto)); color: hsl(var(--sp-cinza)); border-top: 4px solid hsl(var(--sp-vermelho)); }
 .site-publico .sp-footer a:hover { color: hsl(var(--sp-branco)); }
