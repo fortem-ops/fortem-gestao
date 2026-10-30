@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Site público — Etapa 7b: 15 fotos reais integradas via CDN, cantos preservados e seis páginas conferidas em 390px/1280px; 11 testes passaram, sem erros de execução; não publicado. Prévia local conferida com os arquivos do armazenamento hospedado (localhost não serve o CDN diretamente).
+
 - [x] Disparo de Mensagens — etapa 1: menu, rota, abas, modelos.
 - [x] Disparo de Mensagens — etapa 2: público + opt-out.
 - [x] Disparo de Mensagens — etapa 3: tabelas de campanha (0206), passo Mensagem (só WhatsApp), envio de TESTE para telefone digitado.

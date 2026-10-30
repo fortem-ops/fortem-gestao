@@ -1,4 +1,5 @@
 import { PlaceholderFoto } from "./PlaceholderFoto";
+import { FOTOS_EQUIPE } from "../fotos";
 
 export interface PessoaEquipe {
   nome: string;
@@ -16,9 +17,11 @@ interface Props {
 
 /** Card de profissional da equipe (foto, nome, função, formação e registro). */
 export function CardEquipe({ pessoa, compacto = false }: Props) {
+  const foto = FOTOS_EQUIPE[pessoa.nome as keyof typeof FOTOS_EQUIPE];
   return (
     <>
-      <PlaceholderFoto descricao={pessoa.nome} src={pessoa.foto} className="aspect-[3/4]" />
+      <PlaceholderFoto descricao={foto?.descricao ?? pessoa.nome} src={foto?.src ?? pessoa.foto}
+        width={foto?.width} height={foto?.height} className="aspect-[3/4]" />
       <p className={`font-bold ${compacto ? "mt-2 text-sm md:mt-3 md:text-base" : "mt-3"}`}>{pessoa.nome}</p>
       <p className={`sp-rotulo mt-1 text-[hsl(var(--sp-vermelho))] ${compacto ? "!text-[10px] md:!text-[11px]" : "!text-[11px]"}`}>
         {pessoa.funcao}
