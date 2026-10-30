@@ -47,7 +47,7 @@
 .site-publico .sp-borda-escura { border-color: hsl(var(--sp-linha)); }
 
 .site-publico .sp-foto { position: relative; background: hsl(var(--sp-foto)); color: hsl(var(--sp-cinza)); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.site-publico .sp-canto { position: absolute; width: 18px; height: 18px; border-color: hsl(var(--sp-vermelho)); border-style: solid; border-width: 0; }
+.site-publico .sp-canto { position: absolute; z-index: 2; width: 18px; height: 18px; border-color: hsl(var(--sp-vermelho)); border-style: solid; border-width: 0; pointer-events: none; }
 .site-publico .sp-canto.tl { top: 10px; left: 10px; border-top-width: 2px; border-left-width: 2px; }
 .site-publico .sp-canto.tr { top: 10px; right: 10px; border-top-width: 2px; border-right-width: 2px; }
 .site-publico .sp-canto.bl { bottom: 10px; left: 10px; border-bottom-width: 2px; border-left-width: 2px; }
