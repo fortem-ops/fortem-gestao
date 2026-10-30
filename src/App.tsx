@@ -98,6 +98,12 @@ const StoreIndex = lazyWithReload(() => import("./pages/store/StoreIndex"));
 const StoreProductDetail = lazyWithReload(() => import("./pages/store/StoreProductDetail"));
 const StoreCart = lazyWithReload(() => import("./pages/store/StoreCart"));
 const Festa10Anos = lazyWithReload(() => import("./pages/Festa10Anos"));
+const SiteHome = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteHome })));
+const SiteTreinamento = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteTreinamento })));
+const SiteNutricao = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteNutricao })));
+const SiteReabilitacao = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteReabilitacao })));
+const SiteAvaliacao = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteAvaliacao })));
+const SiteExperimental = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteExperimental })));
 const FestaConfirmacoes = lazyWithReload(() => import("./pages/FestaConfirmacoes"));
 
 // Portal do Aluno
@@ -184,6 +190,12 @@ const App = () => (
             <Route path="/store/carrinho" element={<Suspense fallback={<RouteFallback />}><StoreCart /></Suspense>} />
             <Route path="/store/:produtoId" element={<Suspense fallback={<RouteFallback />}><StoreProductDetail /></Suspense>} />
              <Route path="/10anos" element={<Suspense fallback={<RouteFallback />}><Festa10Anos /></Suspense>} />
+            <Route path="/site" element={<Suspense fallback={null}><SiteHome /></Suspense>} />
+            <Route path="/site/treinamento" element={<Suspense fallback={null}><SiteTreinamento /></Suspense>} />
+            <Route path="/site/nutricao" element={<Suspense fallback={null}><SiteNutricao /></Suspense>} />
+            <Route path="/site/reabilitacao" element={<Suspense fallback={null}><SiteReabilitacao /></Suspense>} />
+            <Route path="/site/avaliacao" element={<Suspense fallback={null}><SiteAvaliacao /></Suspense>} />
+            <Route path="/site/experimental" element={<Suspense fallback={null}><SiteExperimental /></Suspense>} />
 
             <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<RouteFallback />}><OAuthConsent /></Suspense>} />
 

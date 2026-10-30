@@ -1,0 +1,155 @@
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { ChevronDown, Menu, MessageCircle, X } from "lucide-react";
+import { Seo } from "@/components/Seo";
+import {
+  ENDERECO_COMPLETO, ENDERECO_CURTO, RAZAO_SOCIAL, REDES, WHATSAPP_EXIBICAO, WHATSAPP_NUMERO,
+  linkWhatsApp, sitePath, type OrigemWhatsApp,
+} from "./config";
+import "./site.css";
+
+const SERVICOS = [
+  { label: "Treinamento", to: sitePath("/treinamento") },
+  { label: "Nutrição", to: sitePath("/nutricao") },
+  { label: "Reabilitação", to: sitePath("/reabilitacao") },
+  { label: "Avaliação", to: sitePath("/avaliacao") },
+];
+const MENU = [
+  { label: "Estrutura", to: sitePath("#estrutura") },
+  { label: "Equipe", to: sitePath("#equipe") },
+  { label: "Planos", to: "/planos" },
+  { label: "Corrida", to: "/corrida" },
+  { label: "Loja", to: "/store" },
+  { label: "Horários e local", to: sitePath("#horarios") },
+];
+
+interface Props {
+  titulo: string;
+  descricao: string;
+  path: string;
+  origem: OrigemWhatsApp;
+  /** Cabeçalho mínimo (campanhas): logo, telefone e WhatsApp. */
+  minimo?: boolean;
+  children: ReactNode;
+}
+
+function Logo() {
+  return <img src="/fortem-logo.png" alt="FORTEM" width={160} height={30} className="h-6 w-auto md:h-7" />;
+}
+
+function BotaoWhats({ origem, className = "" }: { origem: OrigemWhatsApp; className?: string }) {
+  return (
+    <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" className={`sp-btn sp-btn-acao ${className}`}>
+      Falar no WhatsApp
+    </a>
+  );
+}
+
+export function SiteLayout({ titulo, descricao, path, origem, minimo, children }: Props) {
+  const [aberto, setAberto] = useState(false);
+  const [servicos, setServicos] = useState(false);
+
+  return (
+    <div className="site-publico">
+      <Seo title={titulo} description={descricao} path={path} noIndex />
+      <Helmet>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&display=swap" />
+      </Helmet>
+
+      {!minimo && (
+        <div className="sp-topbar">
+          <div className="sp-container flex h-9 items-center justify-between gap-4">
+            <span className="truncate">{ENDERECO_CURTO}</span>
+            <nav className="sp-rotulo flex shrink-0 gap-4 !text-[11px]" aria-label="Acesso">
+              <Link to="/portal">Portal do aluno</Link>
+              <Link to="/equipe">Portal da equipe</Link>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      <header className="sp-header">
+        <div className="sp-container flex h-16 items-center justify-between gap-4">
+          <Link to={sitePath()} aria-label="FORTEM — início"><Logo /></Link>
+
+          {minimo ? (
+            <div className="flex items-center gap-4">
+              <a href={`tel:+${WHATSAPP_NUMERO}`} className="hidden text-sm sm:inline">{WHATSAPP_EXIBICAO}</a>
+              <BotaoWhats origem={origem} />
+            </div>
+          ) : (
+            <>
+              <nav className="sp-nav sp-rotulo hidden items-center gap-5 lg:flex" aria-label="Principal">
+                <div className="relative" onMouseLeave={() => setServicos(false)}>
+                  <button type="button" className="flex items-center gap-1 sp-rotulo" aria-expanded={servicos} aria-haspopup="true"
+                    onClick={() => setServicos((v) => !v)} onMouseEnter={() => setServicos(true)}>
+                    Serviços <ChevronDown className="h-3 w-3" aria-hidden />
+                  </button>
+                  {servicos && (
+                    <div className="sp-submenu absolute left-0 top-full flex min-w-48 flex-col py-2">
+                      {SERVICOS.map((s) => <Link key={s.to} to={s.to} className="px-4 py-2">{s.label}</Link>)}
+                    </div>
+                  )}
+                </div>
+                {MENU.map((m) => <Link key={m.label} to={m.to}>{m.label}</Link>)}
+              </nav>
+              <div className="hidden lg:block"><BotaoWhats origem={origem} /></div>
+              <button type="button" className="lg:hidden p-2" aria-label={aberto ? "Fechar menu" : "Abrir menu"} aria-expanded={aberto}
+                onClick={() => setAberto((v) => !v)}>
+                {aberto ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </>
+          )}
+        </div>
+        {!minimo && aberto && (
+          <nav className="sp-mobile-menu sp-rotulo lg:hidden" aria-label="Menu">
+            <div className="sp-container flex flex-col">
+              {[...SERVICOS, ...MENU].map((m) => (
+                <Link key={m.label} to={m.to} className="py-4" onClick={() => setAberto(false)}>{m.label}</Link>
+              ))}
+              <div className="py-4"><BotaoWhats origem={origem} className="w-full" /></div>
+            </div>
+          </nav>
+        )}
+      </header>
+
+      <main className="flex-1">{children}</main>
+
+      <footer className="sp-footer">
+        <div className="sp-container grid gap-8 py-12 md:grid-cols-3">
+          <div>
+            <Logo />
+            <p className="mt-4 text-sm">{ENDERECO_COMPLETO}</p>
+            <p className="mt-2 text-sm">WhatsApp <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer">{WHATSAPP_EXIBICAO}</a></p>
+          </div>
+          {!minimo && (
+            <div>
+              <h3 className="sp-rotulo">Links</h3>
+              <ul className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                {[...SERVICOS, ...MENU].map((m) => <li key={m.label}><Link to={m.to}>{m.label}</Link></li>)}
+              </ul>
+            </div>
+          )}
+          <div>
+            <h3 className="sp-rotulo">Redes</h3>
+            <ul className="mt-4 space-y-2 text-sm">
+              {REDES.map((r) => <li key={r.nome}><a href={r.url} target="_blank" rel="noopener noreferrer">{r.nome}</a></li>)}
+              <li><Link to="/privacidade">Política de privacidade</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-[hsl(var(--sp-linha))]">
+          <p className="sp-container py-4 text-xs">{RAZAO_SOCIAL}</p>
+        </div>
+      </footer>
+
+      <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
+        className="sp-flutuante sp-btn sp-btn-acao h-14 w-14 !p-0 md:hidden">
+        <MessageCircle className="h-6 w-6" aria-hidden />
+      </a>
+    </div>
+  );
+}
