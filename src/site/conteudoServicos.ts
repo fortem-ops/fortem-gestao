@@ -61,7 +61,7 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
         { pergunta: "Nunca treinei. Posso começar?", resposta: "Sim. O treino experimental mostra seu condicionamento atual, e a metodologia respeita os seus limites." },
         { pergunta: "Tenho uma lesão ou restrição. Posso treinar?", resposta: "A avaliação funcional e de força identifica suas limitações, e o plano é montado a partir delas, com apoio da reabilitação." },
         { pergunta: "Quanto custa?", resposta: "Os valores dependem da frequência semanal e do plano. Monte o seu em poucos passos na página de planos.", link: { texto: "Ir para a página de planos →", href: "/planos" } },
-        { pergunta: "O treino experimental tem custo?", resposta: "Sim, R$ 70. É um treinamento personalizado, em atendimento 1 para 1: o professor avalia seus padrões de movimento, possíveis limitações de movimento e seu nível de condicionamento físico." },
+        { pergunta: "O treino experimental tem custo?", resposta: "Os detalhes do treino experimental, como valor e melhor horário, a gente combina com você no WhatsApp." },
       ] },
     ],
     cta: "Vamos combinar o seu primeiro treino?",
