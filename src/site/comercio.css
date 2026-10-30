@@ -1,6 +1,6 @@
 /* /corrida e /store dentro do site público. Tudo escopado em .site-publico .sp-comercio
    (e, para janelas abertas fora da árvore, html.sp-comercio-portal enquanto a página estiver montada). */
-.site-publico .sp-comercio,
+.site-publico .sp-comercio, .site-publico .sp-comercio .corrida-landing,
 html.sp-comercio-portal body > [role="dialog"],
 html.sp-comercio-portal [data-radix-popper-content-wrapper],
 html.sp-comercio-portal [data-sonner-toaster] {
