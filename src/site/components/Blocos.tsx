@@ -45,7 +45,7 @@ export function ChamadaAcao({ titulo = "Comece pela sua avaliação", texto, ori
           <h2 className="text-3xl">{titulo}</h2>
           {texto && <p className="mt-2 max-w-xl">{texto}</p>}
         </div>
-        <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" className="sp-btn sp-btn-branco">Falar no WhatsApp</a>
+        <a href={linkWhatsApp(origem)} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp com a FORTEM (abre em nova aba)" className="sp-btn sp-btn-branco">Falar no WhatsApp</a>
       </div>
     </section>
   );
