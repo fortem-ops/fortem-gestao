@@ -132,7 +132,7 @@ export default function WhatsAppChat() {
   };
 
   const profilesQuery = useQuery({
-    queryKey: ["profiles-map"],
+    queryKey: ["profiles-map-whatsapp"],
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles" as never)
