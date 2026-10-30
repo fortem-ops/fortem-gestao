@@ -20,7 +20,7 @@ export function SiteExperimental() {
             <h1 className="mt-4 break-words text-[2rem] uppercase leading-[1.05] sm:text-4xl md:text-5xl">{E.hero.titulo}</h1>
             <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">{E.hero.texto}</p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <a href={linkWhatsApp("experimental-hero")} target="_blank" rel="noopener noreferrer" className="sp-btn sp-btn-acao">{E.hero.botao}</a>
+              <a href={linkWhatsApp("experimental-hero")} target="_blank" rel="noopener noreferrer" aria-label={`${E.hero.botao} (abre em nova aba)`} className="sp-btn sp-btn-acao">{E.hero.botao}</a>
               <Link to="/planos" className="sp-btn sp-btn-contorno">Ver planos</Link>
             </div>
             <div className="mt-6"><NotaGoogle claro /></div>
