@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { ThemeProvider } from "next-themes";
 import { lazyWithReload } from "@/lib/lazyWithReload";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -157,6 +157,13 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Endereços antigos /site e /site/* (fase de construção) → raiz. */
+const SiteRedirect = () => {
+  const { pathname, search, hash } = useLocation();
+  const destino = pathname.replace(/^\/site\/?/, "/") || "/";
+  return <Navigate to={`${destino}${search}${hash}`} replace />;
+};
+
 const RouteFallback = () => (
   <div className="space-y-4 p-2">
     <Skeleton className="h-8 w-48" />
@@ -190,12 +197,13 @@ const App = () => (
             <Route path="/store/carrinho" element={<Suspense fallback={<RouteFallback />}><StoreCart /></Suspense>} />
             <Route path="/store/:produtoId" element={<Suspense fallback={<RouteFallback />}><StoreProductDetail /></Suspense>} />
              <Route path="/10anos" element={<Suspense fallback={<RouteFallback />}><Festa10Anos /></Suspense>} />
-            <Route path="/site" element={<Suspense fallback={null}><SiteHome /></Suspense>} />
-            <Route path="/site/treinamento" element={<Suspense fallback={null}><SiteTreinamento /></Suspense>} />
-            <Route path="/site/nutricao" element={<Suspense fallback={null}><SiteNutricao /></Suspense>} />
-            <Route path="/site/reabilitacao" element={<Suspense fallback={null}><SiteReabilitacao /></Suspense>} />
-            <Route path="/site/avaliacao" element={<Suspense fallback={null}><SiteAvaliacao /></Suspense>} />
-            <Route path="/site/experimental" element={<Suspense fallback={null}><SiteExperimental /></Suspense>} />
+            <Route path="/" element={<Suspense fallback={null}><SiteHome /></Suspense>} />
+            <Route path="/treinamento" element={<Suspense fallback={null}><SiteTreinamento /></Suspense>} />
+            <Route path="/nutricao" element={<Suspense fallback={null}><SiteNutricao /></Suspense>} />
+            <Route path="/reabilitacao" element={<Suspense fallback={null}><SiteReabilitacao /></Suspense>} />
+            <Route path="/avaliacao" element={<Suspense fallback={null}><SiteAvaliacao /></Suspense>} />
+            <Route path="/experimental" element={<Suspense fallback={null}><SiteExperimental /></Suspense>} />
+            <Route path="/site/*" element={<SiteRedirect />} />
 
             <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<RouteFallback />}><OAuthConsent /></Suspense>} />
 
@@ -305,7 +313,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/" element={<Suspense fallback={<RouteFallback />}><Dashboard /></Suspense>} />
+              <Route path="/equipe" element={<Suspense fallback={<RouteFallback />}><Dashboard /></Suspense>} />
               <Route
                 path="/alunos"
                 element={

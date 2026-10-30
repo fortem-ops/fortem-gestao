@@ -7,7 +7,7 @@ export default function PropostasContratos() {
   const { data: roles, isLoading, isError } = useUserRoles();
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (isError) return <p className="text-sm text-destructive">Não foi possível verificar seu acesso.</p>;
-  if (!propostasAccess(roles).canView) return <Navigate to="/" replace />;
+  if (!propostasAccess(roles).canView) return <Navigate to="/equipe" replace />;
 
   return (
     <div className="space-y-6 animate-fade-in">

@@ -15,7 +15,7 @@ export default function Loja() {
   }
 
   if (!roles?.isCoordAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/equipe" replace />;
   }
 
   return (

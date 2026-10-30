@@ -1,3 +1,4 @@
+// FORTEM SW v2 (troca da raiz, out/2026): apenas Web Push. Sem fetch/cache: nunca serve páginas antigas.
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   let data;

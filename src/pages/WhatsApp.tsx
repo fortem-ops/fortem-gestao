@@ -16,7 +16,7 @@ export default function WhatsApp() {
       </div>
     );
   }
-  if (!roles?.isCoordAdmin) return <Navigate to="/" replace />;
+  if (!roles?.isCoordAdmin) return <Navigate to="/equipe" replace />;
 
   return (
     <div className="space-y-6 animate-fade-in">

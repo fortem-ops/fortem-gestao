@@ -28,7 +28,7 @@ export default function Disparos() {
       </div>
     );
   }
-  if (!roles?.isAdmin) return <Navigate to="/" replace />;
+  if (!roles?.isAdmin) return <Navigate to="/equipe" replace />;
 
   return (
     <div className="space-y-6">

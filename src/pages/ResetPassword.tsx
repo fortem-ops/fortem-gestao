@@ -42,7 +42,7 @@ export default function ResetPassword() {
       return;
     }
     toast("Senha atualizada!");
-    navigate("/");
+    navigate("/equipe");
   }
 
   return (

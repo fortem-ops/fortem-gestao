@@ -47,7 +47,7 @@ export default function PortalLogin() {
   useEffect(() => {
     if (!user) return;
     userHasStaffAccess(user.id).then((isStaff) => {
-      navigate(isStaff ? "/" : "/portal", { replace: true });
+      navigate(isStaff ? "/equipe" : "/portal", { replace: true });
     });
   }, [navigate, user]);
 
