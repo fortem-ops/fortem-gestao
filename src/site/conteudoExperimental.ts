@@ -11,7 +11,6 @@ export const EXPERIMENTAL = {
     botao: "Combinar meu treino no WhatsApp",
     endereco: "Av. Independência, 358 · Porto Alegre, RS",
     foto: "aluno em treino com profissional",
-    preco: "Treino experimental: R$ 70",
   },
   porque: {
     titulo: "Por que treinar na FORTEM.",
@@ -60,7 +59,7 @@ export const EXPERIMENTAL = {
     { pergunta: "Nunca treinei. Posso começar?", resposta: "Sim. O treino experimental serve para conhecermos seu condicionamento atual, e a metodologia respeita os seus limites." },
     { pergunta: "Tenho uma lesão ou restrição. Posso treinar?", resposta: "A avaliação funcional e de força identifica suas limitações, e o plano é montado a partir delas, com apoio da equipe de reabilitação." },
     { pergunta: "Onde fica a FORTEM?", resposta: "Na Av. Independência, 358, em Porto Alegre." },
-    { pergunta: "O treino experimental tem custo?", resposta: "Sim, o valor é R$ 70. É um treinamento personalizado, em atendimento 1 para 1: o professor avalia seus padrões de movimento, possíveis limitações de movimento e seu nível de condicionamento físico." },
+    { pergunta: "O treino experimental tem custo?", resposta: "Os detalhes do treino experimental, como valor e melhor horário, a gente combina com você no WhatsApp." },
   ],
   cta: "Vamos combinar o seu primeiro treino?",
 };
