@@ -2,7 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ChevronDown, Menu, MessageCircle, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Seo } from "@/components/Seo";
+import { useAuth } from "@/contexts/AuthContext";
+import { userHasStaffAccess } from "@/lib/authAccess";
 import {
   EMAIL_CONTATO, ENDERECO_CURTO, PORTAL_EQUIPE_PATH, RAZAO_SOCIAL, REDES, WHATSAPP_EXIBICAO, WHATSAPP_NUMERO,
   linkWhatsApp, sitePath, type OrigemWhatsApp,
@@ -31,6 +34,8 @@ interface Props {
   origem: OrigemWhatsApp;
   /** Cabeçalho mínimo (campanhas): logo, telefone e WhatsApp. */
   minimo?: boolean;
+  /** Página fora do Google (ex.: campanha /experimental). */
+  noIndex?: boolean;
   children: ReactNode;
 }
 
@@ -55,7 +60,21 @@ export function BotaoWhats({ origem, className = "" }: { origem: OrigemWhatsApp;
   );
 }
 
-export function SiteLayout({ titulo, descricao, path, origem, minimo, children }: Props) {
+/** Equipe logada: atalho discreto para o painel, sem redirecionar. Mesma consulta/cache do ProtectedRoute. */
+function useSessaoEquipe() {
+  const { user, isReady } = useAuth();
+  const { data } = useQuery({
+    queryKey: ["staff-access", user?.id],
+    queryFn: () => (user ? userHasStaffAccess(user.id) : Promise.resolve(false)),
+    enabled: isReady && !!user,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  return !!user && data === true;
+}
+
+export function SiteLayout({ titulo, descricao, path, origem, minimo, noIndex, children }: Props) {
+  const equipe = useSessaoEquipe();
   const [aberto, setAberto] = useState(false);
   const [servicos, setServicos] = useState(false);
   const { pathname, hash } = useLocation();
@@ -67,7 +86,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, children }
 
   return (
     <div className="site-publico">
-      <Seo title={titulo} description={descricao} path={path} noIndex />
+      <Seo title={titulo} description={descricao} path={path} noIndex={noIndex} />
       <Helmet>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -81,6 +100,7 @@ export function SiteLayout({ titulo, descricao, path, origem, minimo, children }
             <nav className="sp-rotulo flex shrink-0 gap-4 !text-[11px]" aria-label="Acesso">
               <Link to="/portal">Portal do aluno</Link>
               <Link to={PORTAL_EQUIPE_PATH}>Portal da equipe</Link>
+              {equipe && <Link to={PORTAL_EQUIPE_PATH} className="sp-borda px-2">Ir para o painel</Link>}
             </nav>
           </div>
         </div>
