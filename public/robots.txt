@@ -55,6 +55,5 @@ Disallow: /comissionamentos
 Disallow: /financeiro
 Disallow: /relatorios
 Disallow: /.lovable
-Disallow: /experimental
 
 Sitemap: https://www.soufortem.com.br/sitemap.xml
