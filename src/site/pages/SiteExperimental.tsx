@@ -1,3 +1,4 @@
+import { jsonLdFaq } from "../seo";
 import { Link } from "react-router-dom";
 import { SiteLayout } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
@@ -12,7 +13,7 @@ const h2 = "text-3xl leading-tight md:text-4xl";
 
 export function SiteExperimental() {
   return (
-    <SiteLayout minimo titulo={E.meta.titulo} descricao={E.meta.descricao} path={sitePath("/experimental")} origem="experimental-topo" noIndex>
+    <SiteLayout minimo titulo={E.meta.titulo} descricao={E.meta.descricao} path={sitePath("/experimental")} origem="experimental-topo" noIndex jsonLd={[jsonLdFaq(E.faq)]}>
       <section className="sp-fundo-preto">
         <div className="sp-container grid items-center gap-8 py-10 md:grid-cols-2 md:gap-10 md:py-20">
           <div className="min-w-0">
