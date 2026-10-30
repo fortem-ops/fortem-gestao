@@ -2,10 +2,18 @@
 export const WHATSAPP_NUMERO = "555135199451";
 export const WHATSAPP_EXIBICAO = "(51) 3519-9451";
 export const ENDERECO_CURTO = "Av. Independência, 358, Porto Alegre";
-export const ENDERECO_COMPLETO = "Av. Independência, 358 · Independência · Porto Alegre/RS";
+export const ENDERECO_COMPLETO = "Av. Independência, 358 · Porto Alegre, RS · 90035-070";
+export const EMAIL_CONTATO = "contatofortem@gmail.com";
 export const RAZAO_SOCIAL = "Fortem Treinamento Físico Ltda · CNPJ 26.502.263/0001-92";
-// Provisório: confirmar endereços oficiais das redes com o dono.
-export const REDES = [{ nome: "Instagram", url: "https://www.instagram.com/soufortem" }];
+export const MAPA_URL = "https://maps.app.goo.gl/VNhfn5tBSs1CYxgA7";
+/** Redes com url vazia ficam ocultas. */
+export const REDES = [
+  { nome: "Instagram", rotulo: "Instagram @soufortem", url: "https://www.instagram.com/soufortem" },
+  { nome: "Facebook", rotulo: "Facebook", url: "" },
+  { nome: "YouTube", rotulo: "YouTube", url: "" },
+].filter((r) => r.url);
+/** Trocar para "/equipe" na troca da raiz (Etapa 5). */
+export const PORTAL_EQUIPE_PATH = "/login";
 
 /** Prefixo das rotas do site enquanto está em construção. Vira "" na troca da raiz. */
 export const SITE_BASE = "/site";
