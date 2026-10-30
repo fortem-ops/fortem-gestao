@@ -1,0 +1,60 @@
+/* Tokens e estilos do site público — sempre escopados em .site-publico. */
+.site-publico {
+  --sp-vermelho: 359 78% 57%;      /* #E73C3E */
+  --sp-acao: 359 67% 47%;          /* #C8282A */
+  --sp-preto: 0 0% 0%;
+  --sp-foto: 0 0% 10%;             /* #1A1A1A */
+  --sp-superficie: 0 0% 95%;       /* #F3F3F3 */
+  --sp-texto2: 180 1% 36%;         /* #5C5E5E */
+  --sp-cinza: 180 1% 70%;          /* #B1B3B3 */
+  --sp-linha: 180 1% 29%;          /* #4A4B4B */
+  --sp-branco: 0 0% 100%;
+  font-family: "Archivo", system-ui, sans-serif;
+  background: hsl(var(--sp-branco));
+  color: hsl(var(--sp-preto));
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.site-publico *, .site-publico *::before, .site-publico *::after { border-radius: 0 !important; box-shadow: none !important; }
+.site-publico h1, .site-publico h2, .site-publico h3 { font-family: "Archivo", system-ui, sans-serif; font-weight: 700; }
+
+.site-publico .sp-rotulo { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.site-publico .sp-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+.site-publico .sp-topbar { background: hsl(var(--sp-preto)); color: hsl(var(--sp-cinza)); border-bottom: 1px solid hsl(var(--sp-linha)); font-size: 12px; }
+.site-publico .sp-topbar a:hover { color: hsl(var(--sp-branco)); }
+.site-publico .sp-header { background: hsl(var(--sp-preto)); color: hsl(var(--sp-branco)); position: sticky; top: 0; z-index: 40; }
+.site-publico .sp-nav a, .site-publico .sp-nav button { color: hsl(var(--sp-branco)); }
+.site-publico .sp-nav a:hover, .site-publico .sp-nav button:hover { color: hsl(var(--sp-vermelho)); }
+.site-publico .sp-submenu { background: hsl(var(--sp-preto)); border: 1px solid hsl(var(--sp-linha)); }
+.site-publico .sp-mobile-menu { background: hsl(var(--sp-preto)); border-top: 1px solid hsl(var(--sp-linha)); }
+.site-publico .sp-mobile-menu a { border-bottom: 1px solid hsl(var(--sp-linha)); color: hsl(var(--sp-branco)); }
+
+.site-publico .sp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; transition: background-color .15s; }
+.site-publico .sp-btn-acao { background: hsl(var(--sp-acao)); color: hsl(var(--sp-branco)); }
+.site-publico .sp-btn-acao:hover { background: hsl(var(--sp-vermelho)); }
+.site-publico .sp-btn-branco { background: hsl(var(--sp-branco)); color: hsl(var(--sp-preto)); }
+.site-publico .sp-btn-contorno { border: 1px solid hsl(var(--sp-branco)); color: hsl(var(--sp-branco)); }
+
+.site-publico .sp-texto-acao { color: hsl(var(--sp-acao)); }
+.site-publico .sp-texto2 { color: hsl(var(--sp-texto2)); }
+.site-publico .sp-fundo-preto { background: hsl(var(--sp-preto)); color: hsl(var(--sp-branco)); }
+.site-publico .sp-fundo-superficie { background: hsl(var(--sp-superficie)); }
+.site-publico .sp-fundo-vermelho { background: hsl(var(--sp-vermelho)); color: hsl(var(--sp-branco)); }
+.site-publico .sp-borda { border: 1px solid hsl(var(--sp-cinza)); }
+.site-publico .sp-borda-escura { border-color: hsl(var(--sp-linha)); }
+
+.site-publico .sp-foto { position: relative; background: hsl(var(--sp-foto)); color: hsl(var(--sp-cinza)); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.site-publico .sp-canto { position: absolute; width: 18px; height: 18px; border-color: hsl(var(--sp-vermelho)); border-style: solid; border-width: 0; }
+.site-publico .sp-canto.tl { top: 10px; left: 10px; border-top-width: 2px; border-left-width: 2px; }
+.site-publico .sp-canto.tr { top: 10px; right: 10px; border-top-width: 2px; border-right-width: 2px; }
+.site-publico .sp-canto.bl { bottom: 10px; left: 10px; border-bottom-width: 2px; border-left-width: 2px; }
+.site-publico .sp-canto.br { bottom: 10px; right: 10px; border-bottom-width: 2px; border-right-width: 2px; }
+
+.site-publico .sp-footer { background: hsl(var(--sp-preto)); color: hsl(var(--sp-cinza)); border-top: 4px solid hsl(var(--sp-vermelho)); }
+.site-publico .sp-footer a:hover { color: hsl(var(--sp-branco)); }
+.site-publico .sp-footer h3 { color: hsl(var(--sp-branco)); }
+
+.site-publico .sp-flutuante { position: fixed; right: 16px; bottom: 16px; z-index: 50; }
+.site-publico a:focus-visible, .site-publico button:focus-visible { outline: 2px solid hsl(var(--sp-vermelho)); outline-offset: 2px; }
