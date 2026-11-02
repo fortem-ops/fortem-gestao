@@ -13,11 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Check, X, Plus, Pencil, Users, Ban, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { MODALIDADES, mensagemErroComunidade } from "@/lib/comunidade";
+import { MODALIDADES, mensagemErroComunidade, DESCRICAO_MAX, CAPA_TIPOS, ORIENTACAO_CAPA, enviarCapa, useCapasClubes, validarArquivoCapa } from "@/lib/comunidade";
 
 type Clube = {
   id: string; nome: string; descricao: string | null; tipo: string; modalidade: string; status: string;
-  motivo_recusa: string | null; created_at: string; criador: { nome: string } | null;
+  motivo_recusa: string | null; capa_url: string | null; created_at: string; criador: { nome: string } | null;
 };
 
 export function useComunidadePendentes() {
@@ -49,6 +49,18 @@ export function AdminComunidadeClubes() {
     },
   });
 
+  const { data: capas } = useCapasClubes([...(clubes ?? []).map((c) => c.capa_url), editando?.capa_url]);
+  const [novaCapa, setNovaCapa] = useState<File | null>(null);
+  const [previaCapa, setPreviaCapa] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const abrirEdicao = (c: Partial<Clube> | null) => { setEditando(c); setNovaCapa(null); setPreviaCapa(null); };
+  const escolherCapa = (f?: File) => {
+    if (!f) return;
+    const erro = validarArquivoCapa({ type: f.type, size: 0 });
+    if (erro) return toast.error(erro);
+    setNovaCapa(f); setPreviaCapa(URL.createObjectURL(f));
+  };
+
   const recarregar = () => {
     qc.invalidateQueries({ queryKey: ["admin-comunidade-clubes"] });
     qc.invalidateQueries({ queryKey: ["admin-comunidade-pendentes"] });
@@ -65,17 +77,25 @@ export function AdminComunidadeClubes() {
 
   const salvar = async () => {
     if (!editando?.nome?.trim()) return toast.error("Informe o nome.");
+    if ((editando.descricao?.trim().length ?? 0) > DESCRICAO_MAX) return toast.error("A descrição deve ter no máximo 120 caracteres.");
+    setSalvando(true);
+    let capa_url = editando.capa_url ?? null;
+    if (novaCapa) {
+      try { capa_url = await enviarCapa(novaCapa, "equipe"); }
+      catch (e: any) { setSalvando(false); return toast.error(e?.message || "Não foi possível enviar a imagem."); }
+    }
     const payload = {
       nome: editando.nome.trim(), descricao: editando.descricao?.trim() || null,
-      modalidade: editando.modalidade ?? "todas",
+      modalidade: editando.modalidade ?? "todas", capa_url,
     };
     const q = editando.id
       ? supabase.from("comunidade_clubes" as any).update(payload).eq("id", editando.id)
       : supabase.from("comunidade_clubes" as any).insert({ ...payload, tipo: "oficial", status: "ativo", aprovado_em: new Date().toISOString() });
     const { error } = await q;
+    setSalvando(false);
     if (error) return toast.error(mensagemErroComunidade(error));
     toast.success("Clube salvo.");
-    setEditando(null);
+    abrirEdicao(null);
     recarregar();
   };
 
@@ -89,7 +109,7 @@ export function AdminComunidadeClubes() {
           <h2 className="text-base font-bold">Clubes da Comunidade</h2>
           <p className="text-sm text-muted-foreground">Ranking por dias de treino no mês. Independente dos pontos do Clube.</p>
         </div>
-        <Button onClick={() => setEditando({ modalidade: "todas" })}><Plus className="w-4 h-4 mr-1" /> Clube oficial</Button>
+        <Button onClick={() => abrirEdicao({ modalidade: "todas" })}><Plus className="w-4 h-4 mr-1" /> Clube oficial</Button>
       </div>
 
       <section className="space-y-2">
@@ -98,6 +118,11 @@ export function AdminComunidadeClubes() {
           <p className="text-sm text-muted-foreground">Nenhum clube aguardando análise.</p>
         ) : pendentes.map((c) => (
           <Card key={c.id}><CardContent className="p-4 flex flex-wrap items-center gap-3">
+            {c.capa_url && capas?.[c.capa_url] && (
+              <a href={capas[c.capa_url]} target="_blank" rel="noreferrer" title="Ver capa em tamanho real">
+                <img src={capas[c.capa_url]} alt={`Capa de ${c.nome}`} className="h-20 w-32 object-cover rounded-none border" />
+              </a>
+            )}
             <div className="flex-1 min-w-[200px]">
               <p className="font-semibold">{c.nome} <span className="text-xs text-muted-foreground">· {c.modalidade}</span></p>
               {c.descricao && <p className="text-sm text-muted-foreground">{c.descricao}</p>}
@@ -105,6 +130,7 @@ export function AdminComunidadeClubes() {
             </div>
             <Button size="sm" onClick={() => moderar(c, "aprovar")}><Check className="w-4 h-4 mr-1" /> Aprovar</Button>
             <Button size="sm" variant="outline" onClick={() => { setRecusando(c); setMotivo(""); }}><X className="w-4 h-4 mr-1" /> Recusar</Button>
+            <Button size="sm" variant="outline" title="Trocar ou remover capa" onClick={() => abrirEdicao(c)}><Pencil className="w-4 h-4" /></Button>
           </CardContent></Card>
         ))}
       </section>
@@ -113,6 +139,7 @@ export function AdminComunidadeClubes() {
         <h3 className="text-sm font-semibold">Clubes</h3>
         {demais.map((c) => (
           <Card key={c.id}><CardContent className="p-4 flex flex-wrap items-center gap-3">
+            {c.capa_url && capas?.[c.capa_url] && <img src={capas[c.capa_url]} alt="" className="h-12 w-20 object-cover rounded-none border" />}
             <div className="flex-1 min-w-[200px]">
               <p className="font-semibold flex items-center gap-2">
                 {c.nome}
@@ -125,7 +152,7 @@ export function AdminComunidadeClubes() {
               </p>
             </div>
             <Button size="sm" variant="outline" onClick={() => setMembrosDe(c)}><Users className="w-4 h-4 mr-1" /> Membros</Button>
-            <Button size="sm" variant="outline" onClick={() => setEditando(c)}><Pencil className="w-4 h-4" /></Button>
+            <Button size="sm" variant="outline" onClick={() => abrirEdicao(c)}><Pencil className="w-4 h-4" /></Button>
             {c.status === "ativo" && (
               <Button size="sm" variant="outline" onClick={() => { if (confirm(`Encerrar o clube ${c.nome}?`)) moderar(c, "encerrar"); }}>
                 <Ban className="w-4 h-4 mr-1" /> Encerrar
@@ -135,12 +162,29 @@ export function AdminComunidadeClubes() {
         ))}
       </section>
 
-      <Dialog open={!!editando} onOpenChange={(o) => !o && setEditando(null)}>
+      <Dialog open={!!editando} onOpenChange={(o) => !o && abrirEdicao(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editando?.id ? "Editar clube" : "Novo clube oficial"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Nome</Label><Input maxLength={40} value={editando?.nome ?? ""} onChange={(e) => setEditando({ ...editando, nome: e.target.value })} /></div>
-            <div><Label>Descrição</Label><Textarea maxLength={200} value={editando?.descricao ?? ""} onChange={(e) => setEditando({ ...editando, descricao: e.target.value })} /></div>
+            <div><Label>Descrição</Label><Textarea maxLength={DESCRICAO_MAX} value={editando?.descricao ?? ""} onChange={(e) => setEditando({ ...editando, descricao: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Imagem de capa</Label>
+              {(previaCapa || (editando?.capa_url && capas?.[editando.capa_url])) ? (
+                <img src={previaCapa ?? capas![editando!.capa_url!]} alt="Capa" className="h-32 w-full object-cover rounded-none border" />
+              ) : <p className="text-xs text-muted-foreground">Sem capa.</p>}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <label className="cursor-pointer">
+                    {previaCapa || editando?.capa_url ? "Trocar" : "Enviar"}
+                    <input type="file" accept={CAPA_TIPOS.join(",")} className="sr-only" onChange={(e) => { escolherCapa(e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                </Button>
+                {(previaCapa || editando?.capa_url) && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => { setNovaCapa(null); setPreviaCapa(null); setEditando({ ...editando, capa_url: null }); }}>Remover</Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{ORIENTACAO_CAPA} JPG, PNG ou WebP, até 2 MB.</p>
+            </div>
             <div><Label>Modalidade</Label>
               <Select value={editando?.modalidade ?? "todas"} onValueChange={(v) => setEditando({ ...editando, modalidade: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -148,7 +192,7 @@ export function AdminComunidadeClubes() {
               </Select>
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setEditando(null)}>Cancelar</Button><Button onClick={salvar}>Salvar</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => abrirEdicao(null)}>Cancelar</Button><Button onClick={salvar} disabled={salvando}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
