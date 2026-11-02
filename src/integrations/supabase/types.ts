@@ -2804,6 +2804,7 @@ export type Database = {
         Row: {
           aprovado_em: string | null
           aprovado_por: string | null
+          capa_url: string | null
           created_at: string
           criador_aluno_id: string | null
           descricao: string | null
@@ -2817,6 +2818,7 @@ export type Database = {
         Insert: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          capa_url?: string | null
           created_at?: string
           criador_aluno_id?: string | null
           descricao?: string | null
@@ -2830,6 +2832,7 @@ export type Database = {
         Update: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          capa_url?: string | null
           created_at?: string
           criador_aluno_id?: string | null
           descricao?: string | null
@@ -12508,10 +12511,20 @@ export type Database = {
         Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
         Returns: number
       }
-      fn_comunidade_criar_clube: {
-        Args: { p_descricao: string; p_modalidade: string; p_nome: string }
-        Returns: Json
-      }
+      fn_comunidade_criar_clube:
+        | {
+            Args: { p_descricao: string; p_modalidade: string; p_nome: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_capa_url: string
+              p_descricao: string
+              p_modalidade: string
+              p_nome: string
+            }
+            Returns: Json
+          }
       fn_comunidade_entrar: { Args: { p_clube_id: string }; Returns: Json }
       fn_comunidade_meu_aluno: { Args: never; Returns: string }
       fn_comunidade_meus_clubes: { Args: never; Returns: Json }
