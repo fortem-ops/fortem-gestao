@@ -14,7 +14,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import {
   Shield, Lock, TrendingUp, ArrowUpCircle, AlertTriangle, CheckCircle2,
-  ChevronRight, X, Loader2, CalendarOff, Zap, Star, Crown
+  ChevronRight, X, Loader2, CalendarOff, Zap, Star
 } from "lucide-react";
 
 const PLANO_BENEFITS: Record<string, { icon: any; label: string }[]> = {
