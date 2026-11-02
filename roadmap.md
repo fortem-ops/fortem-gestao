@@ -155,3 +155,9 @@
 - [x] Site público — Etapa 1: base em /site (layout isolado, cabeçalho, rodapé, WhatsApp, páginas esqueleto).
 - [x] Site público — Etapa 2: home completa em /site.
 - [ ] Site público — Etapas 3–9 (serviços, experimental, troca da raiz com painel em /equipe, moldura planos/store/corrida, rastreamento+LGPD, SEO, redirecionamentos) — cada uma aguarda aprovação.
+
+## Lote 4 — Comunidade (clubes de alunos)
+- [x] Tabelas `comunidade_clubes`/`comunidade_clube_membros` (0217), RLS, limites (1 pendente, 2 ativos, nomes Fortem/Oficial só equipe), ranking por dias de treino no mês, entrar/sair/criar/moderar.
+- [x] 3 clubes oficiais: Ratinhas da Fortem, Frangos da Fortem (funcional), Corredores Fortem (corrida).
+- [x] Portal `/portal/comunidade` (no lugar de Benefícios na barra inferior), aba Clubes no Progresso, aba Clubes no gestor com aviso push ao aluno.
+- [ ] Feed e Ranking da Comunidade (próximo lote).
