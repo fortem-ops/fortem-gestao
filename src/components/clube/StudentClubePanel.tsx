@@ -48,7 +48,6 @@ export function StudentClubePanel({ student }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground flex-wrap">
         <Badge variant="outline">{membro.fortem_id}</Badge>
-        <Badge variant="outline">{NIVEL_LABEL[membro.nivel_membro]}</Badge>
         <Badge variant={membro.status_membro === "ativo" ? "default" : "secondary"}>
           {STATUS_LABEL[membro.status_membro]}
         </Badge>
@@ -61,11 +60,9 @@ export function StudentClubePanel({ student }: Props) {
         contato={student.telefone}
       />
 
-      {membro.nivel_membro === "bronze" && (
-        <Card className="p-4 text-xs text-center text-muted-foreground border-dashed">
-          Alunos com plano <strong>Gympass/Wellhub</strong> ou <strong>Total Pass</strong> são membros <strong>Bronze</strong> (agregador) e recebem benefícios reduzidos do Clube FORTEM.
-        </Card>
-      )}
+      <Card className="p-4 text-xs text-center text-muted-foreground border-dashed">
+        Alunos com plano <strong>Gympass/Wellhub</strong> ou <strong>Total Pass</strong> pontuam 50% e pagam 30% a mais nos resgates.
+      </Card>
 
       <div>
         <h4 className="font-semibold mb-3 mt-8">Histórico de uso</h4>

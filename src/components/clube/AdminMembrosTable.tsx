@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { NIVEL_LABEL, STATUS_LABEL, type NivelMembro, type StatusMembro } from "@/lib/clube";
+import { STATUS_LABEL, type StatusMembro } from "@/lib/clube";
 import type { Database } from "@/integrations/supabase/types";
 import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
 
 const STATUS_OPTS: StatusMembro[] = ["ativo", "bloqueado", "inadimplente", "cancelado"];
-const NIVEL_OPTS: NivelMembro[] = ["bronze", "prata", "ouro", "diamante", "platina"];
 
 type Row = Database["public"]["Tables"]["clube_fortem_membros"]["Row"] & { aluno_nome?: string };
 
@@ -49,7 +48,6 @@ export function AdminMembrosTable() {
         <TableRow>
           <TableHead>FORTEM ID</TableHead>
           <TableHead>Aluno</TableHead>
-          <TableHead>Nível</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Desde</TableHead>
         </TableRow>
@@ -59,18 +57,6 @@ export function AdminMembrosTable() {
           <TableRow key={m.id}>
             <TableCell className="font-mono text-xs">{m.fortem_id}</TableCell>
             <TableCell>{m.aluno_nome || "—"}</TableCell>
-            <TableCell>
-              <Select value={m.nivel_membro} onValueChange={(v) => updateMembro(m.id, { nivel_membro: v as NivelMembro })}>
-                <SelectTrigger className="w-32 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {NIVEL_OPTS.map((n) => (
-                    <SelectItem key={n} value={n}>{NIVEL_LABEL[n]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </TableCell>
             <TableCell>
               <Select value={m.status_membro} onValueChange={(v) => updateMembro(m.id, { status_membro: v as StatusMembro })}>
                 <SelectTrigger className="w-36 h-8">
