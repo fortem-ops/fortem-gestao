@@ -8,20 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Heart, MapPin, Search, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Database } from "@/integrations/supabase/types";
-import { NIVEL_LABEL, distanceKm, type NivelMembro } from "@/lib/clube";
-
-const TODOS_NIVEIS = 6;
+import { distanceKm } from "@/lib/clube";
 
 type Parceiro = Database["public"]["Tables"]["parceiros"]["Row"];
 type Beneficio = Database["public"]["Tables"]["beneficios"]["Row"];
 
+// Clube sem níveis: todos os membros veem todos os benefícios ativos.
 interface PartnersListProps {
-  nivelAluno?: NivelMembro;
+  nivelAluno?: string;
 }
 
 const FAV_KEY = "clube-fortem:favorite-partners";
 
-export function PartnersList({ nivelAluno }: PartnersListProps) {
+export function PartnersList(_props: PartnersListProps) {
   const [search, setSearch] = useState("");
   const [categoria, setCategoria] = useState<string>("todas");
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -72,9 +71,7 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
       .filter((p) => (term ? p.nome.toLowerCase().includes(term) : true))
       .map((p) => {
         const benefs = data.beneficios.filter((b) => b.parceiro_id === p.id);
-        const elegiveis = nivelAluno
-          ? benefs.filter((b) => (b.niveis_permitidos || []).includes(nivelAluno))
-          : benefs;
+        const elegiveis = benefs;
         const distance =
           coords && p.latitude && p.longitude
             ? distanceKm(coords, { latitude: Number(p.latitude), longitude: Number(p.longitude) })
@@ -88,7 +85,7 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
         if (a.distance != null && b.distance != null) return a.distance - b.distance;
         return a.nome.localeCompare(b.nome);
       });
-  }, [data, search, categoria, favorites, coords, nivelAluno]);
+  }, [data, search, categoria, favorites, coords]);
 
   function toggleFav(id: string) {
     setFavorites((prev) => {
@@ -171,21 +168,9 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
                   <p className="text-xs italic text-muted-foreground">Sem benefícios disponíveis para seu nível.</p>
                 ) : (
                   p.beneficios.slice(0, 3).map((b) => {
-                    const niveis = b.niveis_permitidos || [];
-                    const todos = niveis.length === TODOS_NIVEIS;
                     return (
                       <div key={b.id} className="flex items-start justify-between gap-2 text-xs">
                         <span className="font-medium leading-tight">{b.titulo}</span>
-                        {!todos && niveis.length > 0 && (
-                          <div className="flex flex-wrap gap-0.5 shrink-0 justify-end max-w-[55%]">
-                            {niveis.slice(0, 2).map((n) => (
-                              <Badge key={n} variant="outline" className="text-[9px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
-                            ))}
-                            {niveis.length > 2 && (
-                              <Badge variant="outline" className="text-[9px]">+{niveis.length - 2}</Badge>
-                            )}
-                          </div>
-                        )}
                       </div>
                     );
                   })

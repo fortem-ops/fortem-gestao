@@ -1,3 +1,4 @@
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +71,8 @@ export default function Clube() {
         .select("nome, email, telefone")
         .eq("id", alunoId)
         .single();
-      return { membro, aluno };
+      const { data: plano } = await queryPlanoPrincipalAtivo(alunoId, "tipo");
+      return { membro, aluno, plano: (plano as any)?.tipo ?? null };
     },
     enabled: !!alunoId,
   });
@@ -125,12 +127,12 @@ export default function Clube() {
               alunoNome={ctx.aluno?.nome || "—"}
               alunoEmail={ctx.aluno?.email}
               contato={ctx.aluno?.telefone}
-              categoria={ctx.membro.nivel_membro.toUpperCase()}
+              plano={ctx.plano}
             />
           </TabsContent>
 
           <TabsContent value="parceiros" className="pt-6">
-            <PartnersList nivelAluno={ctx.membro.nivel_membro} />
+            <PartnersList />
           </TabsContent>
 
           <TabsContent value="historico" className="pt-6">
