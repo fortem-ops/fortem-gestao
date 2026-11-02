@@ -12,6 +12,8 @@ import { SeloPlano } from "@/components/portal/SeloPlano";
 import { useMeuPlanoClube, ultimasSemanas, EXPLICACAO_BADGE } from "@/lib/clubePlano";
 import { dataClienteDesde } from "@/lib/clienteDesde";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import { useMeusClubes } from "@/lib/comunidade";
 
 const ROTULO = "text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]";
 const DIAS_SEMANA = ["S", "T", "Q", "Q", "S", "S", "D"];
@@ -31,7 +33,8 @@ type Treino = { data: string; modalidade: string | null };
 export default function PortalPerfilProgresso() {
   const { student } = useStudentPortal();
   const [params, setParams] = useSearchParams();
-  const aba = params.get("aba") === "conquistas" ? "conquistas" : "progresso";
+  const abaParam = params.get("aba");
+  const aba = abaParam === "conquistas" || abaParam === "clubes" ? abaParam : "progresso";
   const hoje = hojeSP();
   const [mes, setMes] = useState(() => hoje.slice(0, 7)); // aaaa-mm
   const [badgeAberto, setBadgeAberto] = useState<any>(null);
@@ -112,9 +115,9 @@ export default function PortalPerfilProgresso() {
   };
   const podeAvancar = mes < mesAtual;
 
-  const trocarAba = (v: "progresso" | "conquistas") => {
+  const trocarAba = (v: "progresso" | "conquistas" | "clubes") => {
     const p = new URLSearchParams(params);
-    if (v === "conquistas") p.set("aba", "conquistas"); else p.delete("aba");
+    if (v !== "progresso") p.set("aba", v); else p.delete("aba");
     setParams(p, { replace: true });
   };
 
@@ -150,8 +153,8 @@ export default function PortalPerfilProgresso() {
       </section>
 
       {/* Abas */}
-      <div role="tablist" className="grid grid-cols-2 border-b border-[#4A4B4B]">
-        {(["progresso", "conquistas"] as const).map((v) => (
+      <div role="tablist" className="grid grid-cols-3 border-b border-[#4A4B4B]">
+        {(["progresso", "conquistas", "clubes"] as const).map((v) => (
           <button
             key={v}
             role="tab"
@@ -162,12 +165,12 @@ export default function PortalPerfilProgresso() {
               aba === v ? "border-[#c8282a] text-foreground" : "border-transparent text-[#B1B3B3]",
             )}
           >
-            {v === "progresso" ? "Progresso" : "Conquistas"}
+            {v === "progresso" ? "Progresso" : v === "conquistas" ? "Conquistas" : "Clubes"}
           </button>
         ))}
       </div>
 
-      {aba === "progresso" ? (
+      {aba === "clubes" ? <ClubesDoAluno /> : aba === "progresso" ? (
         <div className="space-y-6">
           <section className="space-y-3">
             <div className="flex items-center justify-between">
@@ -266,5 +269,34 @@ export default function PortalPerfilProgresso() {
         </div>
       )}
     </div>
+  );
+}
+
+function ClubesDoAluno() {
+  const { data, isLoading } = useMeusClubes();
+  const meus = (data ?? []).filter((c) => c.sou_membro && c.status === "ativo");
+  if (isLoading) return <Skeleton className="h-24" />;
+  if (!meus.length)
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-[#B1B3B3]">Você ainda não participa de nenhum clube.</p>
+        <Link to="/portal/comunidade" className="flex min-h-[44px] items-center justify-center bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white">Ver clubes</Link>
+      </div>
+    );
+  return (
+    <ul className="divide-y divide-[#4A4B4B] border border-[#4A4B4B]">
+      {meus.map((c) => (
+        <li key={c.id}>
+          <Link to={`/portal/comunidade?clube=${c.id}`} className="flex min-h-[56px] items-center gap-3 px-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#2C2C2C] text-sm font-black text-[#B1B3B3]">{c.nome[0]?.toUpperCase()}</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-foreground">{c.nome}</p>
+              <p className="text-xs text-[#B1B3B3]">{c.meus_dias ?? 0} dias no mês</p>
+            </div>
+            <span className="text-lg font-black text-foreground">{c.minha_posicao ?? "—"}º</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
