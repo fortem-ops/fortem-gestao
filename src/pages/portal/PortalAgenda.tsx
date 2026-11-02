@@ -80,6 +80,7 @@ export default function PortalAgenda() {
   const [abaAgenda, setAbaAgenda] = useState<"treinos" | "servicos">("treinos");
   const [modalidadeTreino, setModalidadeTreino] = useState<"funcional" | "corrida">("funcional");
   const [historicoAberto, setHistoricoAberto] = useState(false);
+  const [meusAgendamentosAberto, setMeusAgendamentosAberto] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
   const [diaServico, setDiaServico] = useState<Date | null>(null);
   const [showHistoricoTreinos, setShowHistoricoTreinos] = useState(false);
@@ -714,69 +715,32 @@ export default function PortalAgenda() {
 
       {abaAgenda === "treinos" && (
         <div className="space-y-6">
-          <section className="space-y-3">
-            <SectionLabel>Meus agendamentos</SectionLabel>
-            {meusAgendamentos.length === 0 ? (
-              <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
-                <p className="text-sm text-muted-foreground text-center">Nenhum treino agendado.</p>
-                <button
-                  onClick={() => setModalidadeTreino("funcional")}
-                  className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
-                >
-                  Agendar treino →
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {meusAgendamentos.map((ag: any) => {
-                  const deadline = new Date(`${ag.data}T${ag.horario_inicio}`);
-                  deadline.setHours(deadline.getHours() - 1);
-                  const dentroDoPrazo = new Date() < deadline;
-                  return (
-                    <div key={ag.id} className="bg-card border border-border rounded-xl p-4">
-                      <div className="flex items-center gap-4">
-                        <div className="text-center min-w-[44px] shrink-0">
-                          <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                            {format(parseISO(ag.data + "T12:00:00"), "EEE", { locale: ptBR })}
-                          </p>
-                          <p className="text-2xl font-black text-foreground" style={{ fontFamily: 'Archivo,sans-serif' }}>
-                            {format(parseISO(ag.data + "T12:00:00"), "d")}
-                          </p>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-bold text-sm text-foreground">
-                              {ag.horario_inicio?.slice(0, 5)} → {ag.horario_fim?.slice(0, 5)}
-                            </p>
-                            {ag.treino_slots?.modalidade === "corrida" && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                Corrida
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {format(parseISO(ag.data + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setCancelando(ag.id)}
-                          className="min-h-[44px] px-4 border border-[#4A4B4B] text-xs font-bold uppercase tracking-[0.08em] text-foreground"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                      {!dentroDoPrazo && (
-                        <div className="mt-2 flex items-center gap-1.5">
-                          <AlertCircle className="w-3 h-3 text-warning shrink-0" />
-                          <p className="text-[10px] text-warning">Cancelamento fora do prazo não estorna crédito</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+          <button
+            type="button"
+            onClick={() => setMeusAgendamentosAberto(true)}
+            className="w-full min-h-[64px] flex items-center gap-3 border border-[#4A4B4B] bg-[#1A1A1A] px-4 text-left"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+          >
+            <CalendarDays className="w-5 h-5 shrink-0 text-[#B1B3B3]" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Meus agendamentos</p>
+              <p className="text-xs text-[#B1B3B3] truncate">
+                {(() => {
+                  const prox = meusAgendamentos[0];
+                  if (!prox) return "Nenhum treino agendado.";
+                  const d = parseISO(prox.data + "T12:00:00");
+                  const hojeSP = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(agoraVisual);
+                  const amanhaSP = format(addDays(parseISO(hojeSP + "T12:00:00"), 1), "yyyy-MM-dd");
+                  const dia = prox.data === hojeSP ? "hoje" : prox.data === amanhaSP ? "amanhã" : format(d, "EEE, dd/MM", { locale: ptBR });
+                  return `Próximo: ${dia}, ${prox.horario_inicio?.slice(0, 5)}`;
+                })()}
+              </p>
+            </div>
+            <span className="min-w-[28px] h-7 px-2 flex items-center justify-center border border-[#4A4B4B] text-xs font-bold text-foreground">
+              {meusAgendamentos.length}
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
           {/* ── SEÇÃO HORÁRIO FIXO ── */}
           {(() => {
             const planoTipo = planoPortal?.tipo ?? "";
@@ -961,119 +925,107 @@ export default function PortalAgenda() {
         </section>
       )}
 
-      {/* Slots do dia */}
-      <section className="space-y-3">
+      {/* Slots do dia — grade por período */}
+      <section className="space-y-4" style={{ fontFamily: "Archivo, sans-serif" }}>
         <SectionLabel>{format(diaSelecionado, "EEEE, dd 'de' MMMM", { locale: ptBR })}</SectionLabel>
         {lista.length === 0 ? (
-          <div className="bg-card border border-border rounded-2xl p-8 text-center">
+          <div className="bg-card border border-border p-8 text-center">
             <CalendarDays className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">{new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(agoraVisual) === dataStr ? "Não há mais horários hoje" : "Sem horários disponíveis neste dia."}</p>
           </div>
         ) : (
-          lista.map((slot) => {
-            const ocupadas = agendamentosDia.filter((a) => a.slot_id === slot.id).length;
-            const meuAgendamentoNesteSlot = agendamentosDia.find(
-              (a) => a.slot_id === slot.id && a.aluno_id === student?.id
-            );
-            const jaTemNoDia = meusAgendamentos.some(
-              (a) => a.data === dataStr && (((a as any).treino_slots?.modalidade === "corrida") === isCorrida)
-            );
-            const lotado = ocupadas >= slot.capacidade_maxima;
-            const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
-            const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
-            const semCreditos = !isCorrida && saldo <= 0;
-
-
+          PERIODOS.map((p) => {
+            const doPeriodo = lista.filter((s) => {
+              const m = minutosDe(s.horario_inicio);
+              return m >= p.de && m <= p.ate;
+            });
+            if (doPeriodo.length === 0) return null;
             return (
-              <div key={slot.id} className="bg-card border border-border rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-lg font-black text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
-                      {slot.horario_inicio.slice(0, 5)} → {slot.horario_fim.slice(0, 5)}
-                    </div>
-                    {instrutorNome && (
-                      <div className="text-xs text-muted-foreground mt-0.5">Instrutor: {instrutorNome}</div>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-foreground flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" /> {ocupadas} / {slot.capacidade_maxima}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">vagas</div>
-                  </div>
+              <div key={p.key} className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">{p.label}</p>
+                  <span aria-hidden className="h-px flex-1 bg-[#4A4B4B]" />
                 </div>
-
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn("h-full rounded-full transition-all", lotado ? "bg-red-500" : "bg-primary")}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-
-                {meuAgendamentoNesteSlot ? (() => {
-                  const status = meuAgendamentoNesteSlot.status;
-                  if (status === "realizado") {
-                    return (
-                      <div className="flex items-center gap-2 text-emerald-400">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Realizado</span>
-                      </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {doPeriodo.map((slot) => {
+                    const ocupadas = agendamentosDia.filter((a) => a.slot_id === slot.id).length;
+                    const vagas = Math.max(0, slot.capacidade_maxima - ocupadas);
+                    const meu = agendamentosDia.find((a) => a.slot_id === slot.id && a.aluno_id === student?.id);
+                    const jaTemNoDia = meusAgendamentos.some(
+                      (a) => a.data === dataStr && (((a as any).treino_slots?.modalidade === "corrida") === isCorrida)
                     );
-                  }
-                  if (status === "faltou") {
-                    return (
-                      <div className="flex items-center gap-2 text-destructive">
-                        <AlertCircle className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Falta registrada</span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-emerald-400">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span className="text-sm font-semibold">Agendado</span>
-                      </div>
-                      <button
-                        onClick={() => setCancelando(meuAgendamentoNesteSlot.id)}
-                        className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  );
-                })() : bloqueadoCorrida ? (
-                  <Button className="w-full" disabled>
-                    Exclusivo plano de Corrida
-                  </Button>
-                ) : lotado ? (
-                  <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
-                ) : jaTemNoDia ? (
-                  <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
-                    Você já tem um treino agendado neste dia
-                  </div>
-                ) : semCreditos ? (
-                  <Button className="w-full" disabled>
-                    Sem créditos
-                  </Button>
-                ) : (
-                  <Button
-                    className="w-full"
-                    onClick={() =>
-                      setConfirmando({
-                        slot,
-                        data: dataStr,
-                        instrutor: instrutorNome ?? undefined,
-                      })
+                    const lotado = ocupadas >= slot.capacidade_maxima;
+                    const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
+                    const semCreditos = !isCorrida && saldo <= 0;
+                    const ini = slot.horario_inicio.slice(0, 5);
+
+                    if (meu) {
+                      const rotulo = meu.status === "realizado" ? "REALIZADO" : meu.status === "faltou" ? "FALTA" : "AGENDADO";
+                      const cancelavel = meu.status === "agendado" || meu.status === "confirmado";
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={() => cancelavel && setCancelando(meu.id)}
+                          aria-label={`${ini}, ${rotulo.toLowerCase()}`}
+                          className="h-14 border-2 border-[#4CC38A] bg-[#1A1A1A] flex flex-col items-center justify-center leading-none"
+                        >
+                          <span className="text-[18px] font-bold text-foreground">{ini}</span>
+                          <span className="mt-1 text-[12px] font-bold text-[#4CC38A]">✓ {rotulo}</span>
+                        </button>
+                      );
                     }
-                  >
-                    Agendar →
-                  </Button>
-                )}
+                    if (lotado) {
+                      return (
+                        <div
+                          key={slot.id}
+                          aria-label={`${ini}, lotado`}
+                          className="h-14 border border-dashed border-[#4A4B4B] flex flex-col items-center justify-center leading-none text-[#B1B3B3]"
+                        >
+                          <span className="text-[18px] font-bold">{ini}</span>
+                          <span className="mt-1 text-[12px] font-bold">LOTADO</span>
+                        </div>
+                      );
+                    }
+                    const quase = vagas <= 2;
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        aria-label={`${ini}, ${vagas} ${vagas === 1 ? "vaga" : "vagas"}`}
+                        onClick={() => {
+                          if (bloqueadoCorrida) {
+                            toast.error("Este horário é exclusivo para alunos com plano de Corrida ativo. Fale com a equipe para contratar.");
+                            return;
+                          }
+                          if (jaTemNoDia) {
+                            toast.error("Você já tem um treino agendado neste dia.");
+                            return;
+                          }
+                          if (semCreditos) {
+                            toast.error("Você não tem créditos disponíveis.");
+                            return;
+                          }
+                          setConfirmando({ slot, data: dataStr, instrutor: instrutorNome ?? undefined });
+                        }}
+                        className={cn(
+                          "h-14 border border-[#4A4B4B] bg-[#1A1A1A] flex flex-col items-center justify-center leading-none",
+                          (bloqueadoCorrida || jaTemNoDia || semCreditos) && "opacity-60"
+                        )}
+                      >
+                        <span className="text-[18px] font-bold text-foreground">{ini}</span>
+                        <span className={cn("mt-1 text-[12px]", quase ? "text-[#E3B341]" : "text-[#B1B3B3]")}>
+                          {vagas} {vagas === 1 ? "vaga" : "vagas"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             );
           })
         )}
+        <p className="text-xs text-[#B1B3B3]">Cancelando com menos de 1 hora de antecedência, o crédito não é devolvido.</p>
       </section>
       </>);
       })()}
