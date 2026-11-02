@@ -29,7 +29,7 @@ const GRUPOS = [
     titulo: "Fortem",
     itens: [
       { to: "/portal/carteirinha", titulo: "Carteirinha", descricao: "QR code para check-in", icone: QrCode },
-      { to: "/portal/clube", titulo: "Clube Fortem", descricao: "Pontos, níveis e parceiros", icone: Sparkles },
+      { to: "/portal/clube", titulo: "Benefícios", descricao: "Pontos, recompensas e parceiros", icone: Sparkles },
       { to: "/portal/loja", titulo: "Loja", descricao: "Suplementos e produtos", icone: ShoppingBag },
       { to: "/portal/assistente", titulo: "Assistente Fortem", descricao: "Dúvidas sobre treino e plano", icone: Bot },
     ],
