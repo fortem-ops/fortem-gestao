@@ -25,12 +25,29 @@ function Quadrado({ texto, grande }: { texto: string; grande?: boolean }) {
   );
 }
 
-/** Imagem de capa ao fundo com degradê escuro para manter o texto legível. */
-function FundoCapa({ url, children, className }: { url: string; children: React.ReactNode; className?: string }) {
+/** Sombra leve para o texto continuar legível sobre a capa. */
+const SOMBRA: React.CSSProperties = { textShadow: "0 1px 2px rgba(0,0,0,.6)" };
+
+/** Imagem de capa cobrindo o card inteiro, com degradê escuro para manter o texto legível. */
+function FundoCapa({ url, children, className, posicao }: { url: string; children: React.ReactNode; className?: string; posicao?: string }) {
+  // Imagem em pé (ilustração com personagem) é recortada um pouco abaixo do topo:
+  // no centro ela vira uma faixa escura, e no topo sobra só o fundo vazio.
+  const [auto, setAuto] = useState("center");
   return (
-    <div className={cn("relative overflow-hidden bg-[#0e0e0e]", className)}>
-      <img src={url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0e0e0e]/60 to-[#0e0e0e]" />
+    <div className={cn("relative min-h-[140px] overflow-hidden bg-[#0e0e0e]", className)}>
+      <img
+        src={url}
+        alt=""
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ objectPosition: posicao ?? auto }}
+        onLoad={(e) => {
+          const i = e.currentTarget;
+          if (i.naturalHeight > 0 && i.naturalWidth < i.naturalHeight) setAuto("center 25%");
+        }}
+      />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,14,14,0.92) 0%, rgba(14,14,14,0.62) 45%, rgba(14,14,14,0.35) 100%)" }} />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(14,14,14,0.75) 0%, rgba(14,14,14,0) 70%)" }} />
       <div className="relative">{children}</div>
     </div>
   );
@@ -126,10 +143,10 @@ export default function PortalComunidade() {
                   <button
                     disabled={!clicavel}
                     onClick={() => abrir(c.id)}
-                    className={cn("flex w-full items-center gap-3 p-3 text-left", capa ? "min-h-[120px] items-end" : "min-h-[64px]")}
+                    className={cn("flex w-full items-center gap-3 p-3 text-left", capa ? "min-h-[140px] items-end" : "min-h-[64px]")}
                   >
                     {!capa && <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />}
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1" style={capa ? SOMBRA : undefined}>
                       <p className="truncate font-bold text-foreground">{c.nome}{c.tipo === "oficial" && capa && <SeloOficial />}</p>
                       {capa && c.descricao && <p className="line-clamp-2 text-xs text-foreground/90">{c.descricao}</p>}
                       {capa && <p className="text-xs text-[#B1B3B3]">{c.membros} {c.membros === 1 ? "membro" : "membros"}</p>}
@@ -160,9 +177,9 @@ export default function PortalComunidade() {
             {explorar.map((c) => {
               const capa = c.capa_url ? capas?.[c.capa_url] : undefined;
               const linha = (
-              <div className={cn("flex items-center gap-3 p-3", capa && "min-h-[120px] items-end")}>
+              <div className={cn("flex items-center gap-3 p-3", capa && "min-h-[140px] items-end")}>
                 {!capa && <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />}
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1" style={capa ? SOMBRA : undefined}>
                   <p className="truncate font-bold text-foreground">{c.nome}{capa && c.tipo === "oficial" && <SeloOficial />}</p>
                   {capa && c.descricao && <p className="line-clamp-2 text-xs text-foreground/90">{c.descricao}</p>}
                   <p className="text-xs text-[#B1B3B3]">
@@ -307,7 +324,7 @@ function DetalheClube({ clube, capa, voltar, aoSair }: { clube: ComunidadeClube;
 
       {capa ? (
         <FundoCapa url={capa} className="-mx-4">
-          <header className="flex min-h-[180px] flex-col justify-end gap-1 p-4">
+          <header className="flex min-h-[180px] flex-col justify-end gap-1 p-4" style={SOMBRA}>
             <h1 className="text-xl font-black uppercase leading-tight text-foreground">{clube.nome}</h1>
             {clube.descricao && <p className="line-clamp-2 text-sm text-foreground/90">{clube.descricao}</p>}
             <p className="text-xs text-[#B1B3B3]">
