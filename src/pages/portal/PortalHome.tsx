@@ -501,7 +501,7 @@ export default function PortalHome() {
         <section className={`space-y-3 p-4 ${cartao}`}>
           <p className="text-sm font-bold text-foreground">Turbine seu plano</p>
           <p className="text-xs text-[#B1B3B3]">
-            No Power, Pro ou Max você já sai com Avaliação Funcional, Nutrição e Reabilitação incluídas no plano, sem precisar contratar à parte.
+            No Power ou Pro você já sai com Avaliação Funcional, Nutrição e Reabilitação incluídas no plano, sem precisar contratar à parte.
           </p>
           <button
             onClick={() =>

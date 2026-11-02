@@ -3,6 +3,7 @@
 - Facial: checked RPCs, service-only queue/import, 120s photos, portal flag. Guardian links: staff-issued, hash-only, atomic service consumption, no public tracking. Desk shares app/guardian terms; team keeps its own. Why: protect minors and consistent consent.
 
 - Portal payments reuse contract callbacks; Home/Clube challenges share their cache. Why: preserve data flow.
+- Clube has no levels: plan label, point multiplier and weekly goal come only from `fn_clube_plano_info` (multipliers in `clube_config` mult_*); the portal reads it via `fn_clube_meu_plano`, and `src/lib/clubePlano.ts` holds reward-milestone/week helpers. Why: one source for plan rules, no hardcoded values.
 - Manual first-cycle card payments share service-only reservation/atomic settlement RPCs; reconcile approvals without capture or recreating contracts/credits. Why: link payment, charge, sale and cycle; exclude public checkout/crons.
 
 - A conclusão do lembrete de Avaliação Funcional deve ser inferida pelo conteúdo de `avaliacoes.dados` em registros `funcional_v2`, mantendo suporte aos tipos legados; o tipo sozinho não representa as partes preenchidas.

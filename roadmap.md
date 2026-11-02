@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Lote 3 portal: Clube sem níveis (migrações 0214/0215), multiplicador por plano em clube_config, custo de resgate único (+30% agregador), conquista 8 Semanas Seguidas (fn_clube_semanas_seguidas), menu lateral, "Benefícios", SeloPlano, Perfil com progresso (/portal/meu-perfil). Ensaio revertido: Start 10, Power 13, Pro 15, agregador 5, Pro+clima 23. Telas não vistas com aluno logado.
+- [ ] Colunas sem uso desde o lote 3 (apagar só depois, com aprovação): planos_catalogo.nivel_clube, clube_fortem_membros.nivel_membro, clube_pontos.nivel; beneficios.niveis_permitidos e clube_recompensas.custo_power/custo_pro/custo_max/custo_start_plus também ficam sem uso. Enum clube_nivel_membro mantido.
+
 - [x] Site público — Etapa 7b: 15 fotos reais integradas via CDN, cantos preservados e seis páginas conferidas em 390px/1280px; 11 testes passaram, sem erros de execução; não publicado. Prévia local conferida com os arquivos do armazenamento hospedado (localhost não serve o CDN diretamente).
 
 - [x] Disparo de Mensagens — etapa 1: menu, rota, abas, modelos.

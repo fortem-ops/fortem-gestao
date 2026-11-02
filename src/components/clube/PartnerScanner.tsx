@@ -17,7 +17,7 @@ interface ValidationResult {
   ok: boolean;
   status: string;
   motivo?: string;
-  aluno?: { id: string; nome: string; fortem_id: string; nivel: string };
+  aluno?: { id: string; nome: string; fortem_id: string; plano?: string | null };
   beneficio?: { titulo: string; descricao: string };
 }
 
@@ -166,7 +166,7 @@ export function PartnerScanner({ parceiroId }: PartnerScannerProps) {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Nível</span>
-                <Badge variant="outline">{result.aluno.nivel.toUpperCase()}</Badge>
+                <Badge variant="outline">{(result.aluno.plano ?? "—").toUpperCase()}</Badge>
               </div>
               {result.beneficio && (
                 <div className="flex justify-between">

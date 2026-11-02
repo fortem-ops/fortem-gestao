@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, Award } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -15,7 +16,7 @@ const navItems = [
   { to: "/portal/home", label: "Início", icon: House },
   { to: "/portal/treinos", label: "Treinos", icon: Dumbbell },
   { to: "/portal/agenda", label: "Agenda", icon: CalendarDays },
-  { to: "/portal/clube", label: "Clube", icon: Sparkles },
+  { to: "/portal/clube", label: "Benefícios", icon: Sparkles },
   { to: "/portal/avaliacoes", label: "Evolução", icon: ClipboardCheck },
 ];
 
@@ -25,6 +26,7 @@ export function PortalLayout() {
   const { student, loading, unlinked, somenteOnline } = useStudentPortal();
   const itensNav = filtrarNavPortal(navItems, somenteOnline);
   const navigate = useNavigate();
+  const [menuAberto, setMenuAberto] = useState(false);
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe } = usePushNotifications();
 
   // Diálogos, sheets e toasts montam em document.body (fora do wrapper):
@@ -72,6 +74,14 @@ export function PortalLayout() {
       <header data-portal="true" className="sticky top-0 z-30 border-b border-border bg-background">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMenuAberto(true)}
+              className="-ml-2 w-11 h-11 flex items-center justify-center text-foreground"
+              aria-label="Abrir menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             <img src={fortemIcon} alt="Fortem" className="w-7 h-7" />
             <img src={fortemWordmark} alt="Fortem" className="h-4 invert hidden sm:block" />
           </div>
@@ -104,6 +114,45 @@ export function PortalLayout() {
           </div>
         </div>
       </header>
+
+      <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
+        <SheetContent
+          side="left"
+          data-portal="true"
+          className="w-[82vw] max-w-[320px] rounded-none border-r border-[#4A4B4B] bg-background p-0"
+          style={{ fontFamily: "Archivo, sans-serif" }}
+        >
+          <SheetHeader className="border-b border-[#4A4B4B] px-5 py-4 text-left">
+            <SheetTitle className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Menu</SheetTitle>
+            <p className="text-base font-black uppercase text-foreground truncate">{student?.nome}</p>
+          </SheetHeader>
+          <nav className="flex flex-col py-2">
+            {[
+              { to: "/portal/meu-perfil", label: "Perfil", icon: UserRound },
+              { to: "/portal/clube", label: "Benefícios", icon: Sparkles },
+              { to: "/portal/meu-perfil?aba=conquistas", label: "Conquistas", icon: Award },
+            ].map((item) => (
+              <button
+                key={item.to}
+                type="button"
+                onClick={() => { setMenuAberto(false); navigate(item.to); }}
+                className="flex min-h-[52px] items-center gap-3 px-5 text-left text-[13px] font-bold uppercase tracking-[0.08em] text-foreground hover:bg-[#1a1a1a]"
+              >
+                <item.icon className="h-5 w-5 text-[#B1B3B3]" />
+                {item.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => { setMenuAberto(false); signOut().then(() => navigate("/portal/login")); }}
+              className="mt-2 flex min-h-[52px] items-center gap-3 border-t border-[#4A4B4B] px-5 text-left text-[13px] font-bold uppercase tracking-[0.08em] text-[#e73c3e] hover:bg-[#1a1a1a]"
+            >
+              <LogOut className="h-5 w-5" />
+              Sair
+            </button>
+          </nav>
+        </SheetContent>
+      </Sheet>
 
       {/* Banner de ativação de notificações */}
       {isSupported && !isSubscribed && permission !== "denied" && (

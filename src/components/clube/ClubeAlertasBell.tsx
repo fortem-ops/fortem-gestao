@@ -128,8 +128,8 @@ export function ClubeAlertasBell() {
                         <p className="text-sm font-medium leading-snug">{a.mensagem}</p>
                         {a.tipo === "divergencia_nivel" && a.payload && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Atual: <strong>{a.payload.nivel_atual}</strong> · Esperado:{" "}
-                            <strong>{a.payload.nivel_esperado}</strong>
+                            Plano: <strong>{a.payload.plano ?? "—"}</strong> · Status atual:{" "}
+                            <strong>{a.payload.status_atual ?? "—"}</strong>
                           </p>
                         )}
                         {a.tipo === "cron_falha" && a.payload?.erro && (

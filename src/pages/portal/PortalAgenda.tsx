@@ -780,7 +780,7 @@ export default function PortalAgenda() {
                       {!elegivel ? (
                         <div className="pt-3 space-y-3">
                           <div className="flex items-center gap-2">
-                                                        <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
+                                                        <p className="text-sm font-bold text-foreground">Exclusivo Power e Pro</p>
                           </div>
                           <p className="text-xs text-muted-foreground">
                             Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.

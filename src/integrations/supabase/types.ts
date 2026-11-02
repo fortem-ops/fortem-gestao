@@ -12372,10 +12372,16 @@ export type Database = {
         Args: { _alerta_id: string }
         Returns: undefined
       }
+      fn_clube_meu_plano: { Args: never; Returns: Json }
       fn_clube_nivel_por_plano: { Args: { _aluno_id: string }; Returns: Json }
+      fn_clube_plano_info: { Args: { p_aluno_id: string }; Returns: Json }
       fn_clube_resgatar: { Args: { p_recompensa_id: string }; Returns: Json }
       fn_clube_resync_todos: { Args: never; Returns: Json }
       fn_clube_resync_todos_safe: { Args: never; Returns: Json }
+      fn_clube_semanas_seguidas: {
+        Args: { p_aluno_id: string }
+        Returns: number
+      }
       fn_clube_sync_membro: { Args: { _aluno_id: string }; Returns: undefined }
       fn_clube_validar_token: {
         Args: { _beneficio_id: string; _token: string }

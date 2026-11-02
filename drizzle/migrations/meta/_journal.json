@@ -1499,6 +1499,20 @@
       "when": 1793632840402,
       "tag": "0213_recovery_nome_credito",
       "breakpoints": true
+    },
+    {
+      "idx": 214,
+      "version": "7",
+      "when": 1793634251369,
+      "tag": "0214_clube_sem_niveis_mult_plano",
+      "breakpoints": true
+    },
+    {
+      "idx": 215,
+      "version": "7",
+      "when": 1793634380932,
+      "tag": "0215_clube_meu_plano_multiplicadores",
+      "breakpoints": true
     }
   ]
 }

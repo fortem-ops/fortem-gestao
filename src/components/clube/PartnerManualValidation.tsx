@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { hashCpfClient, formatCpfMask, isValidCpf, NIVEL_LABEL, STATUS_LABEL } from "@/lib/clube";
+import { hashCpfClient, formatCpfMask, isValidCpf, STATUS_LABEL } from "@/lib/clube";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Loader2, Search } from "lucide-react";
 
@@ -17,7 +17,6 @@ interface PartnerManualValidationProps {
 interface MembroInfo {
   aluno_id: string;
   fortem_id: string;
-  nivel_membro: string;
   status_membro: string;
   nome: string;
 }
@@ -54,7 +53,7 @@ export function PartnerManualValidation({ parceiroId }: PartnerManualValidationP
       const hash = await hashCpfClient(cpf);
       const { data: m, error } = await supabase
         .from("clube_fortem_membros")
-        .select("aluno_id, fortem_id, nivel_membro, status_membro")
+        .select("aluno_id, fortem_id, status_membro")
         .eq("cpf_hash", hash)
         .maybeSingle();
       if (error) throw error;
@@ -123,9 +122,6 @@ export function PartnerManualValidation({ parceiroId }: PartnerManualValidationP
             <Badge variant={membro.status_membro === "ativo" ? "default" : "destructive"}>
               {STATUS_LABEL[membro.status_membro as keyof typeof STATUS_LABEL]}
             </Badge>
-          </div>
-          <div className="text-sm">
-            Nível: <Badge variant="outline">{NIVEL_LABEL[membro.nivel_membro as keyof typeof NIVEL_LABEL]}</Badge>
           </div>
           <Select value={beneficioId} onValueChange={setBeneficioId}>
             <SelectTrigger>
