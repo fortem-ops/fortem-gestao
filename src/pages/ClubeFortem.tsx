@@ -353,13 +353,10 @@ function RecompensasTab() {
       const payload = {
         nome: r.nome, descricao: r.descricao, custo_pontos: r.custo_pontos,
         tipo: r.tipo, icone: r.icone, ativo: r.ativo,
-        custo_start: r.custo_start ?? null,
-        custo_start_plus: r.custo_start_plus ?? null,
-        custo_power: r.custo_power ?? null,
-        custo_pro: r.custo_pro ?? null,
-        custo_max: r.custo_max ?? null,
+        // Custo único para Start, Power e Pro (fn_clube_resgatar usa custo_start).
+        custo_start: r.custo_pontos,
         custo_agregador: r.custo_agregador ?? null,
-        planos_elegiveis: r.planos_elegiveis ?? ['start','start_plus','power','pro','max'],
+        planos_elegiveis: r.planos_elegiveis ?? ['start','start_plus','power','pro'],
       };
       if (r.id) {
         const { error } = await supabase.from("clube_recompensas").update(payload).eq("id", r.id);
@@ -403,11 +400,6 @@ function RecompensasTab() {
                 <div className="flex gap-1 flex-wrap mt-1">
                   {[
                     { label: 'AG', val: r.custo_agregador },
-                    { label: 'S', val: r.custo_start },
-                    { label: 'S+', val: r.custo_start_plus },
-                    { label: 'PW', val: r.custo_power },
-                    { label: 'PR', val: r.custo_pro },
-                    { label: 'MX', val: r.custo_max },
                   ].filter((x) => x.val != null).map((x) => (
                     <span key={x.label} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${x.label === 'AG' ? 'bg-amber-500/20 text-amber-700' : 'bg-muted'}`}>
                       {x.label}: {x.val}
@@ -444,33 +436,11 @@ function RecompensasTab() {
                 </div>
               </div>
 
-              {/* Custo por plano */}
+              {/* Custo igual para todos os planos; agregador paga 30% a mais */}
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-muted-foreground">
-                  Custo por plano (vazio = usa custo padrão)
+                  O custo vale para Start, Power e Pro
                 </Label>
-                <div className="grid grid-cols-5 gap-2">
-                  {[
-                    { key: 'custo_start', label: 'Start' },
-                    { key: 'custo_start_plus', label: 'Start+' },
-                    { key: 'custo_power', label: 'Power' },
-                    { key: 'custo_pro', label: 'Pro' },
-                    { key: 'custo_max', label: 'Max' },
-                  ].map(({ key, label }) => (
-                    <div key={key}>
-                      <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
-                      <Input
-                        type="number"
-                        placeholder="—"
-                        value={editing[key] ?? ""}
-                        onChange={(e) => setEditing({
-                          ...editing,
-                          [key]: e.target.value === "" ? null : parseInt(e.target.value) || 0,
-                        })}
-                      />
-                    </div>
-                  ))}
-                </div>
                 <div>
                   <p className="text-[10px] text-amber-600 mb-1 font-semibold">Agregador (Wellhub/TotalPass) — 30% mais caro</p>
                   <Input
@@ -489,8 +459,8 @@ function RecompensasTab() {
                   Planos elegíveis
                 </Label>
                 <div className="flex gap-3 flex-wrap">
-                  {['start', 'start_plus', 'power', 'pro', 'max'].map((plano) => {
-                    const elegiveis: string[] = editing.planos_elegiveis || ['start','start_plus','power','pro','max'];
+                  {['start', 'start_plus', 'power', 'pro'].map((plano) => {
+                    const elegiveis: string[] = editing.planos_elegiveis || ['start','start_plus','power','pro'];
                     const checked = elegiveis.includes(plano);
                     return (
                       <label key={plano} className="flex items-center gap-1.5 text-sm cursor-pointer">
