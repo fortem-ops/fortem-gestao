@@ -121,6 +121,7 @@ const PortalHome = lazyWithReload(() => import("./pages/portal/PortalHome"));
 const PortalWorkouts = lazyWithReload(() => import("./pages/portal/PortalWorkouts"));
 const PortalAssessments = lazyWithReload(() => import("./pages/portal/PortalAssessments"));
 const PortalClube = lazyWithReload(() => import("./pages/portal/PortalClube"));
+const PortalPerfilProgresso = lazyWithReload(() => import("./pages/portal/PortalPerfilProgresso"));
 const PortalAgenda = lazyWithReload(() => import("./pages/portal/PortalAgenda"));
 const PortalPlano = lazyWithReload(() => import("./pages/portal/PortalPlano"));
 const PortalNotificacoes = lazyWithReload(() => import("./pages/portal/PortalNotificacoes"));
@@ -231,6 +232,7 @@ const App = () => (
               <Route path="/portal/treinos" element={<Suspense fallback={<RouteFallback />}><PortalWorkouts /></Suspense>} />
               <Route path="/portal/avaliacoes" element={<Suspense fallback={<RouteFallback />}><PortalAssessments /></Suspense>} />
               <Route path="/portal/clube" element={<Suspense fallback={<RouteFallback />}><PortalClube /></Suspense>} />
+              <Route path="/portal/meu-perfil" element={<Suspense fallback={<RouteFallback />}><PortalPerfilProgresso /></Suspense>} />
               <Route path="/portal/agenda" element={<Suspense fallback={<RouteFallback />}><AgendaGuard><PortalAgenda /></AgendaGuard></Suspense>} />
               <Route path="/portal/plano" element={<Suspense fallback={<RouteFallback />}><PortalPlano /></Suspense>} />
               <Route path="/portal/notificacoes" element={<Suspense fallback={<RouteFallback />}><PortalNotificacoes /></Suspense>} />
