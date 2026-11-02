@@ -356,7 +356,6 @@ function RecompensasTab() {
         // Custo único para Start, Power e Pro (fn_clube_resgatar usa custo_start).
         custo_start: r.custo_pontos,
         custo_agregador: r.custo_agregador ?? null,
-        planos_elegiveis: r.planos_elegiveis ?? ['start','start_plus','power','pro'],
       };
       if (r.id) {
         const { error } = await supabase.from("clube_recompensas").update(payload).eq("id", r.id);
@@ -453,33 +452,6 @@ function RecompensasTab() {
                 </div>
               </div>
 
-              {/* Planos elegíveis */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-muted-foreground">
-                  Planos elegíveis
-                </Label>
-                <div className="flex gap-3 flex-wrap">
-                  {['start', 'start_plus', 'power', 'pro'].map((plano) => {
-                    const elegiveis: string[] = editing.planos_elegiveis || ['start','start_plus','power','pro'];
-                    const checked = elegiveis.includes(plano);
-                    return (
-                      <label key={plano} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => {
-                            const next = checked
-                              ? elegiveis.filter((p) => p !== plano)
-                              : [...elegiveis, plano];
-                            setEditing({ ...editing, planos_elegiveis: next });
-                          }}
-                        />
-                        {plano.replace('_plus', '+').replace(/^\w/, (c) => c.toUpperCase())}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
 
               <div className="flex items-center gap-2">
                 <Switch checked={editing.ativo} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
