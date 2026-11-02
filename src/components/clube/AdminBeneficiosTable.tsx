@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
-import { NIVEL_LABEL, type NivelMembro } from "@/lib/clube";
+import type { NivelMembro } from "@/lib/clube";
 
 type Beneficio = Database["public"]["Tables"]["beneficios"]["Row"];
 type Tipo = Database["public"]["Enums"]["beneficio_tipo"];
@@ -36,6 +36,7 @@ const PERIODO_LABEL: Record<Periodicidade, string> = {
   livre: "Livre",
 };
 
+// Coluna niveis_permitidos sem uso (Clube sem níveis); grava todos os valores do enum.
 const NIVEIS: NivelMembro[] = ["bronze", "prata", "ouro", "diamante", "platina"];
 
 const VALIDADE_PRESETS = [7, 15, 30, 60, 90, 180, 365];
@@ -142,10 +143,6 @@ export function AdminBeneficiosTable() {
       toast.error("Parceiro e título são obrigatórios.");
       return;
     }
-    if (!form.niveis_permitidos.length) {
-      toast.error("Selecione pelo menos um nível com acesso.");
-      return;
-    }
 
     // Resolve data_fim a partir da periodicidade (validade)
     let dias: number | null = null;
@@ -174,7 +171,8 @@ export function AdminBeneficiosTable() {
         regra_uso: form.regra_uso || null,
         limite_por_periodo: form.limite_por_periodo ? Number(form.limite_por_periodo) : null,
         periodicidade: form.periodicidade,
-        niveis_permitidos: form.niveis_permitidos,
+        // Clube sem níveis: benefício vale para todos os membros.
+        niveis_permitidos: NIVEIS,
         ativo: form.ativo,
         data_fim,
       };
@@ -267,30 +265,6 @@ export function AdminBeneficiosTable() {
                 </p>
               </div>
               <div>
-                <Label>Níveis com acesso *</Label>
-                <div className="grid grid-cols-2 gap-2 mt-1.5 p-3 rounded-md border">
-                  {NIVEIS.map((n) => {
-                    const checked = form.niveis_permitidos.includes(n);
-                    return (
-                      <label key={n} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(v) => {
-                            setForm((f) => ({
-                              ...f,
-                              niveis_permitidos: v
-                                ? [...f.niveis_permitidos, n]
-                                : f.niveis_permitidos.filter((x) => x !== n),
-                            }));
-                          }}
-                        />
-                        {NIVEL_LABEL[n]}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-              <div>
                 <Label>Regra de uso</Label>
                 <Input
                   value={form.regra_uso}
@@ -332,7 +306,6 @@ export function AdminBeneficiosTable() {
               <TableHead>Título</TableHead>
               <TableHead>Parceiro</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Níveis</TableHead>
               <TableHead>Limite</TableHead>
               <TableHead>Validade</TableHead>
               <TableHead>Ativo</TableHead>
@@ -352,17 +325,6 @@ export function AdminBeneficiosTable() {
                   <TableCell className="font-medium">{b.titulo}</TableCell>
                   <TableCell>{b.parceiro_nome}</TableCell>
                   <TableCell className="text-xs">{TIPO_LABEL[b.tipo]}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {b.niveis_permitidos?.length === NIVEIS.length ? (
-                        <Badge variant="outline">Todos</Badge>
-                      ) : (
-                        (b.niveis_permitidos || []).map((n) => (
-                          <Badge key={n} variant="outline" className="text-[10px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
-                        ))
-                      )}
-                    </div>
-                  </TableCell>
                   <TableCell className="text-xs">
                     {b.limite_por_periodo ? `${b.limite_por_periodo} usos` : "Livre"}
                   </TableCell>
