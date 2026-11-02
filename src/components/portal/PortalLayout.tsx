@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award, UsersRound } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -16,7 +16,7 @@ const navItems = [
   { to: "/portal/home", label: "Início", icon: House },
   { to: "/portal/treinos", label: "Treinos", icon: Dumbbell },
   { to: "/portal/agenda", label: "Agenda", icon: CalendarDays },
-  { to: "/portal/clube", label: "Benefícios", icon: Sparkles },
+  { to: "/portal/comunidade", label: "Comunidade", icon: UsersRound },
   { to: "/portal/avaliacoes", label: "Evolução", icon: ClipboardCheck },
 ];
 
