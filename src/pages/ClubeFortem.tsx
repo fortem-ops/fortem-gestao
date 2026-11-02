@@ -15,15 +15,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AdminClubeDashboard } from "@/components/clube/AdminClubeDashboard";
 import { AdminParceirosTable } from "@/components/clube/AdminParceirosTable";
 import { AdminComunidadeClubes, useComunidadePendentes } from "@/components/clube/AdminComunidadeClubes";
+import { AdminComunidadeFeed, useFeedPendencias } from "@/components/clube/AdminComunidadeFeed";
 import { Star, CloudRain, Users, Gift, Trophy, Sparkles, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "parceiros" | "desafios" | "ranking" | "clubes";
+type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "parceiros" | "desafios" | "ranking" | "clubes" | "feed";
 
 export default function ClubeFortem() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: pendentesClubes = 0 } = useComunidadePendentes();
+  const { data: pendentesFeed = 0 } = useFeedPendencias();
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -46,6 +48,7 @@ export default function ClubeFortem() {
           <TabsTrigger value="desafios">Desafios</TabsTrigger>
           <TabsTrigger value="ranking">Ranking</TabsTrigger>
           <TabsTrigger value="clubes" className="gap-1.5">Clubes{pendentesClubes > 0 && <span className="rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">{pendentesClubes}</span>}</TabsTrigger>
+          <TabsTrigger value="feed" className="gap-1.5">Feed{pendentesFeed > 0 && <span className="rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">{pendentesFeed}</span>}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="pt-6">
@@ -67,6 +70,7 @@ export default function ClubeFortem() {
         <TabsContent value="parceiros" className="pt-6"><AdminParceirosTable /></TabsContent>
         <TabsContent value="desafios" className="pt-6"><DesafiosTab /></TabsContent>
         <TabsContent value="clubes" className="pt-6"><AdminComunidadeClubes /></TabsContent>
+        <TabsContent value="feed" className="pt-6"><AdminComunidadeFeed /></TabsContent>
 
         <TabsContent value="ranking" className="pt-6"><RankingTab /></TabsContent>
       </Tabs>
