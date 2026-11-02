@@ -341,7 +341,7 @@ function DetalheClube({ clube, capa, voltar, aoSair }: { clube: ComunidadeClube;
   };
 
   return (
-    <div className="space-y-6 pb-8" style={{ fontFamily: "Archivo, sans-serif" }}>
+    <div className="space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))]" style={{ fontFamily: "Archivo, sans-serif" }}>
       <button onClick={voltar} className="flex min-h-[44px] items-center gap-1 text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">
         <ChevronLeft className="h-4 w-4" /> Clubes
       </button>
