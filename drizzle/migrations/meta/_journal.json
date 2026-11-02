@@ -1513,6 +1513,13 @@
       "when": 1793634380932,
       "tag": "0215_clube_meu_plano_multiplicadores",
       "breakpoints": true
+    },
+    {
+      "idx": 216,
+      "version": "7",
+      "when": 1793637431607,
+      "tag": "0216_clube_resgatar_sem_elegibilidade",
+      "breakpoints": true
     }
   ]
 }
