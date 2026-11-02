@@ -87,3 +87,6 @@ verify_jwt = false
 
 [functions.facial-agente-importar]
 verify_jwt = false
+
+[functions.comunidade-feed-limpeza]
+verify_jwt = false
