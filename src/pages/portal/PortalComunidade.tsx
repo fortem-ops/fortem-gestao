@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SeloPlano } from "@/components/portal/SeloPlano";
 import {
-  AVISO_VISIBILIDADE, MODALIDADES, iniciaisAbrev, mensagemErroComunidade, useMeusClubes, useRankingClube,
+  AVISO_VISIBILIDADE, MODALIDADES, DESCRICAO_MAX, ORIENTACAO_CAPA, CAPA_TIPOS, enviarCapa, useCapasClubes, validarArquivoCapa, iniciaisAbrev, mensagemErroComunidade, useMeusClubes, useRankingClube,
   type ComunidadeClube,
 } from "@/lib/comunidade";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,21 @@ function Quadrado({ texto, grande }: { texto: string; grande?: boolean }) {
       {texto}
     </div>
   );
+}
+
+/** Imagem de capa ao fundo com degradê escuro para manter o texto legível. */
+function FundoCapa({ url, children, className }: { url: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("relative overflow-hidden bg-[#0e0e0e]", className)}>
+      <img src={url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0e0e0e]/60 to-[#0e0e0e]" />
+      <div className="relative">{children}</div>
+    </div>
+  );
+}
+
+function SeloOficial() {
+  return <span className="ml-2 border border-[#C8282A] bg-[#0e0e0e]/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-foreground">Oficial</span>;
 }
 
 function Folha({ titulo, onClose, children }: { titulo: string; onClose: () => void; children: React.ReactNode }) {
@@ -47,9 +62,14 @@ export default function PortalComunidade() {
   const [params, setParams] = useSearchParams();
   const clubeId = params.get("clube");
   const { data: clubes, isLoading } = useMeusClubes();
+  const { data: capas } = useCapasClubes((clubes ?? []).map((c) => c.capa_url));
   const [entrando, setEntrando] = useState<ComunidadeClube | null>(null);
   const [criando, setCriando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [alunoId, setAlunoId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.rpc("fn_comunidade_meu_aluno" as any).then(({ data }) => setAlunoId((data as string) ?? null));
+  }, []);
 
   const atualizar = () => {
     qc.invalidateQueries({ queryKey: ["comunidade-clubes"] });
@@ -74,7 +94,7 @@ export default function PortalComunidade() {
   };
 
   const clube = clubeId ? clubes?.find((c) => c.id === clubeId) : null;
-  if (clubeId && clube) return <DetalheClube clube={clube} voltar={() => abrir(null)} aoSair={atualizar} />;
+  if (clubeId && clube) return <DetalheClube clube={clube} capa={clube.capa_url ? capas?.[clube.capa_url] : undefined} voltar={() => abrir(null)} aoSair={atualizar} />;
 
   const meus = (clubes ?? []).filter((c) => c.sou_membro || (c.sou_criador && c.status !== "ativo"));
   const explorar = (clubes ?? []).filter((c) => c.status === "ativo" && !c.sou_membro);
@@ -101,16 +121,18 @@ export default function PortalComunidade() {
               const analise = c.status === "pendente";
               const recusado = c.status === "recusado";
               const clicavel = c.status === "ativo" && c.sou_membro;
-              return (
-                <li key={c.id}>
+              const capa = c.capa_url ? capas?.[c.capa_url] : undefined;
+              const conteudo = (
                   <button
                     disabled={!clicavel}
                     onClick={() => abrir(c.id)}
-                    className="flex min-h-[64px] w-full items-center gap-3 p-3 text-left"
+                    className={cn("flex w-full items-center gap-3 p-3 text-left", capa ? "min-h-[120px] items-end" : "min-h-[64px]")}
                   >
-                    <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />
+                    {!capa && <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold text-foreground">{c.nome}</p>
+                      <p className="truncate font-bold text-foreground">{c.nome}{c.tipo === "oficial" && capa && <SeloOficial />}</p>
+                      {capa && c.descricao && <p className="line-clamp-2 text-xs text-foreground/90">{c.descricao}</p>}
+                      {capa && <p className="text-xs text-[#B1B3B3]">{c.membros} {c.membros === 1 ? "membro" : "membros"}</p>}
                       {analise && <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#E3B341]">Em análise</p>}
                       {recusado && <p className="text-xs text-[#B1B3B3]">Não aprovado. Motivo: {c.motivo_recusa}</p>}
                       {clicavel && <p className="text-xs text-[#B1B3B3]">{c.meus_dias ?? 0} dias no mês</p>}
@@ -122,8 +144,8 @@ export default function PortalComunidade() {
                       </div>
                     )}
                   </button>
-                </li>
               );
+              return <li key={c.id}>{capa ? <FundoCapa url={capa}>{conteudo}</FundoCapa> : conteudo}</li>;
             })}
           </ul>
         )}
@@ -135,18 +157,23 @@ export default function PortalComunidade() {
           <p className="text-sm text-[#B1B3B3]">Nenhum outro clube disponível no momento.</p>
         ) : (
           <ul className="divide-y divide-[#4A4B4B] border border-[#4A4B4B]">
-            {explorar.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 p-3">
-                <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />
+            {explorar.map((c) => {
+              const capa = c.capa_url ? capas?.[c.capa_url] : undefined;
+              const linha = (
+              <div className={cn("flex items-center gap-3 p-3", capa && "min-h-[120px] items-end")}>
+                {!capa && <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold text-foreground">{c.nome}</p>
+                  <p className="truncate font-bold text-foreground">{c.nome}{capa && c.tipo === "oficial" && <SeloOficial />}</p>
+                  {capa && c.descricao && <p className="line-clamp-2 text-xs text-foreground/90">{c.descricao}</p>}
                   <p className="text-xs text-[#B1B3B3]">
-                    {c.membros} {c.membros === 1 ? "membro" : "membros"}{c.tipo === "oficial" ? " · Oficial" : ""}
+                    {c.membros} {c.membros === 1 ? "membro" : "membros"}{!capa && c.tipo === "oficial" ? " · Oficial" : ""}
                   </p>
                 </div>
                 <button onClick={() => setEntrando(c)} className={BOTAO_VERMELHO}>Entrar</button>
-              </li>
-            ))}
+              </div>
+              );
+              return <li key={c.id}>{capa ? <FundoCapa url={capa}>{linha}</FundoCapa> : linha}</li>;
+            })}
           </ul>
         )}
       </section>
@@ -162,12 +189,22 @@ export default function PortalComunidade() {
         </Folha>
       )}
 
-      {criando && <CriarClube fechar={() => setCriando(false)} aoCriar={atualizar} />}
+      {criando && <CriarClube alunoId={alunoId} fechar={() => setCriando(false)} aoCriar={atualizar} />}
     </div>
   );
 }
 
-function CriarClube({ fechar, aoCriar }: { fechar: () => void; aoCriar: () => void }) {
+function CriarClube({ alunoId, fechar, aoCriar }: { alunoId: string | null; fechar: () => void; aoCriar: () => void }) {
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<string | null>(null);
+  useEffect(() => () => { if (previa) URL.revokeObjectURL(previa); }, [previa]);
+  const escolher = (f: File | undefined) => {
+    if (!f) return;
+    const erro = validarArquivoCapa({ type: f.type, size: 0 });
+    if (erro) return toast.error(erro);
+    setArquivo(f);
+    setPrevia(URL.createObjectURL(f));
+  };
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [modalidade, setModalidade] = useState<ComunidadeClube["modalidade"]>("todas");
@@ -176,8 +213,14 @@ function CriarClube({ fechar, aoCriar }: { fechar: () => void; aoCriar: () => vo
 
   const enviar = async () => {
     setOcupado(true);
+    let capa: string | null = null;
+    if (arquivo) {
+      if (!alunoId) { setOcupado(false); return toast.error("Não foi possível enviar a imagem."); }
+      try { capa = await enviarCapa(arquivo, alunoId); }
+      catch (e: any) { setOcupado(false); return toast.error(e?.message?.startsWith("A imagem") || e?.message?.startsWith("Use") ? e.message : "Não foi possível enviar a imagem."); }
+    }
     const { error } = await supabase.rpc("fn_comunidade_criar_clube" as any, {
-      p_nome: nome.trim(), p_descricao: descricao.trim(), p_modalidade: modalidade,
+      p_nome: nome.trim(), p_descricao: descricao.trim(), p_modalidade: modalidade, p_capa_url: capa,
     });
     setOcupado(false);
     if (error) return toast.error(mensagemErroComunidade(error));
@@ -195,8 +238,26 @@ function CriarClube({ fechar, aoCriar }: { fechar: () => void; aoCriar: () => vo
       </label>
       <label className="block space-y-1">
         <span className={ROTULO}>Descrição curta</span>
-        <textarea value={descricao} maxLength={200} rows={3} onChange={(e) => setDescricao(e.target.value)} className={cn(campo, "py-2")} />
+        <textarea value={descricao} maxLength={DESCRICAO_MAX} rows={3} onChange={(e) => setDescricao(e.target.value)} className={cn(campo, "py-2")} />
       </label>
+      <div className="space-y-2">
+        <span className={ROTULO}>Imagem de capa (opcional)</span>
+        {previa ? (
+          <div className="relative">
+            <img src={previa} alt="Pré-visualização da capa" className="h-32 w-full object-cover" />
+            <button type="button" aria-label="Remover imagem" onClick={() => { setArquivo(null); setPrevia(null); }}
+              className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center bg-[#0e0e0e]/80 text-foreground">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        ) : (
+          <label className={cn(BOTAO_CONTORNO, "flex cursor-pointer items-center justify-center")}>
+            Selecionar imagem
+            <input type="file" accept={CAPA_TIPOS.join(",")} className="sr-only" onChange={(e) => { escolher(e.target.files?.[0]); e.target.value = ""; }} />
+          </label>
+        )}
+        <p className="text-xs text-[#B1B3B3]">{ORIENTACAO_CAPA}</p>
+      </div>
       <div className="space-y-1">
         <span className={ROTULO}>Modalidade</span>
         <div className="grid grid-cols-3 gap-2">
@@ -222,7 +283,7 @@ function CriarClube({ fechar, aoCriar }: { fechar: () => void; aoCriar: () => vo
   );
 }
 
-function DetalheClube({ clube, voltar, aoSair }: { clube: ComunidadeClube; voltar: () => void; aoSair: () => void }) {
+function DetalheClube({ clube, capa, voltar, aoSair }: { clube: ComunidadeClube; capa?: string; voltar: () => void; aoSair: () => void }) {
   const { data: ranking, isLoading } = useRankingClube(clube.id);
   const [confirmarSaida, setConfirmarSaida] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -244,6 +305,18 @@ function DetalheClube({ clube, voltar, aoSair }: { clube: ComunidadeClube; volta
         <ChevronLeft className="h-4 w-4" /> Clubes
       </button>
 
+      {capa ? (
+        <FundoCapa url={capa} className="-mx-4">
+          <header className="flex min-h-[180px] flex-col justify-end gap-1 p-4">
+            <h1 className="text-xl font-black uppercase leading-tight text-foreground">{clube.nome}</h1>
+            {clube.descricao && <p className="line-clamp-2 text-sm text-foreground/90">{clube.descricao}</p>}
+            <p className="text-xs text-[#B1B3B3]">
+              {clube.membros} {clube.membros === 1 ? "membro" : "membros"}
+              {clube.tipo === "oficial" && <SeloOficial />}
+            </p>
+          </header>
+        </FundoCapa>
+      ) : (<>
       <header className="flex items-center gap-4">
         <Quadrado texto={clube.nome[0]?.toUpperCase() ?? ""} grande />
         <div className="min-w-0">
@@ -255,6 +328,7 @@ function DetalheClube({ clube, voltar, aoSair }: { clube: ComunidadeClube; volta
         </div>
       </header>
       {clube.descricao && <p className="text-sm text-[#B1B3B3]">{clube.descricao}</p>}
+      </>)}
 
       {isLoading ? <Skeleton className="h-40" /> : (
         <>
