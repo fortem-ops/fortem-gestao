@@ -280,7 +280,7 @@ function ClubesDoAluno() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-[#B1B3B3]">Você ainda não participa de nenhum clube.</p>
-        <Link to="/portal/comunidade" className="flex min-h-[44px] items-center justify-center bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white">Ver clubes</Link>
+        <Link to="/portal/comunidade?aba=clubes" className="flex min-h-[44px] items-center justify-center bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white">Ver clubes</Link>
       </div>
     );
   return (
