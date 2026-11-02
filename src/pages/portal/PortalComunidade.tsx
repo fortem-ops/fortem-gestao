@@ -186,7 +186,7 @@ export default function PortalComunidade() {
                     )}
                   </button>
               );
-              return <li key={c.id}>{capa ? <FundoCapa url={capa}>{conteudo}</FundoCapa> : conteudo}</li>;
+              return <li key={c.id}>{capa ? <FundoCapa url={capa} posicao="center top">{conteudo}</FundoCapa> : conteudo}</li>;
             })}
           </ul>
         )}
@@ -213,7 +213,7 @@ export default function PortalComunidade() {
                 <button onClick={() => setEntrando(c)} className={BOTAO_VERMELHO}>Entrar</button>
               </div>
               );
-              return <li key={c.id}>{capa ? <FundoCapa url={capa}>{linha}</FundoCapa> : linha}</li>;
+              return <li key={c.id}>{capa ? <FundoCapa url={capa} posicao="center top">{linha}</FundoCapa> : linha}</li>;
             })}
           </ul>
         )}
