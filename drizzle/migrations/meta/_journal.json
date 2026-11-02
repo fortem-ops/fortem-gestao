@@ -1541,6 +1541,13 @@
       "when": 1793651001026,
       "tag": "0219_comunidade_feed",
       "breakpoints": true
+    },
+    {
+      "idx": 220,
+      "version": "7",
+      "when": 1793655945762,
+      "tag": "0220_comunidade_feed_foto_sem_aprovacao",
+      "breakpoints": true
     }
   ]
 }

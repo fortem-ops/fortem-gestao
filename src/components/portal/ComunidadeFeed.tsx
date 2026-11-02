@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { MoreVertical, Zap } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +35,12 @@ function Folha({ titulo, onClose, children }: { titulo: string; onClose: () => v
 type Evento = { tipo: "treino" | "conquista" | "sequencia"; id: string; titulo: string };
 const CHAVE_DISPENSADOS = "comunidade-feed-dispensados";
 const lerDispensados = (): string[] => { try { return JSON.parse(localStorage.getItem(CHAVE_DISPENSADOS) ?? "[]"); } catch { return []; } };
+/** Lembra no aparelho que o aluno não quer compartilhar este evento (mesma lista do cartão do topo do feed). */
+export function dispensarEventoFeed(id: string) {
+  const novo = [...lerDispensados().filter((x) => x !== id), id].slice(-50);
+  localStorage.setItem(CHAVE_DISPENSADOS, JSON.stringify(novo));
+}
+export const eventoFeedDispensado = (id: string) => lerDispensados().includes(id);
 
 export function ComunidadeFeed({ alunoId }: { alunoId: string | null }) {
   const qc = useQueryClient();
@@ -49,6 +55,18 @@ export function ComunidadeFeed({ alunoId }: { alunoId: string | null }) {
   const [saindo, setSaindo] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [menu, setMenu] = useState<FeedPost | null>(null);
+  const [params, setParams] = useSearchParams();
+  const treinoPedido = params.get("compartilhar_treino");
+
+  // Vindo de "Concluir treino" (SIM): abre a tela de compartilhar daquele treino assim que o aluno participa.
+  useEffect(() => {
+    if (!treinoPedido || !participa || status?.suspenso || compartilhando) return;
+    const t = comp?.treino;
+    if (comp === undefined) return;
+    const p = new URLSearchParams(params); p.delete("compartilhar_treino"); setParams(p, { replace: true });
+    if (t && t.id === treinoPedido) setCompartilhando({ tipo: "treino", id: t.id, titulo: `${t.modalidade} · ${t.horario}` });
+    else toast.error("Este treino não está disponível para compartilhar.");
+  }, [treinoPedido, participa, status?.suspenso, comp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const atualizar = () => {
     qc.invalidateQueries({ queryKey: ["comunidade-feed"] });
@@ -246,7 +264,7 @@ function FolhaCompartilhar({ evento, alunoId, onClose, onFeito }: { evento: Even
         p_tipo: evento.tipo, p_referencia_id: evento.id, p_audiencia: audiencia, p_foto_path: caminho,
       });
       if (error) throw error;
-      toast.success(caminho ? "Enviado. A foto aparece depois da análise da equipe." : "Compartilhado.");
+      toast.success("Compartilhado.");
       onFeito();
     } catch (e: any) {
       if (caminho) await apagarFotosFeed([caminho]);

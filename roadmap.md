@@ -1,6 +1,7 @@
 # Roadmap
 
 - [x] Lote 5 — Feed da Comunidade (0219): consentimento, publicação só por fn_comunidade_compartilhar (treino, conquista, sequência), limite 3/dia, foto pendente de análise, reação "Força", apagar/denunciar, sair do feed, aba Feed no gestor (fotos, denúncias, remover, suspender). Bucket privado comunidade-feed (3 MB). Limpeza diária 06:30 UTC (função comunidade-feed-limpeza). Ensaio revertido aprovado. Telas não vistas com aluno logado.
+- [x] Ajustes Comunidade (0220): foto entra publicada na hora (foto_pendente sem uso, mantido no CHECK), moderação posterior; gestor com "Fotos recentes" (30 dias) e contador só de denúncias; pergunta "Compartilhar treino?" ao concluir o treino (só quando o agendamento já está realizado); capas dos cards alinhadas ao topo; espaço no rodapé do detalhe do clube.
 - [ ] Feed: tipo "recorde" (carga recorde do 5-3-1) não implementado — o sistema não guarda recorde de carga; depende de criar esse registro.
 
 - [x] Lote 3 portal: Clube sem níveis (migrações 0214/0215), multiplicador por plano em clube_config, custo de resgate único (+30% agregador), conquista 8 Semanas Seguidas (fn_clube_semanas_seguidas), menu lateral, "Benefícios", SeloPlano, Perfil com progresso (/portal/meu-perfil). Ensaio revertido: Start 10, Power 13, Pro 15, agregador 5, Pro+clima 23. Telas não vistas com aluno logado.

@@ -10,7 +10,7 @@ export const VERSAO_TERMO_FEED = "v1";
 export const TERMO_FEED =
   "Ao participar, seu nome abreviado, seu plano e os eventos que você escolher compartilhar ficam visíveis para outros alunos participantes. Você decide cada compartilhamento, pode apagar e pode sair a qualquer momento, o que remove suas publicações.";
 export const AVISO_FOTO_FEED =
-  "Fotos passam por análise da equipe antes de aparecer. Use fotos sem outras pessoas identificáveis.";
+  "Sua foto fica visível na hora para os participantes. Use fotos sem outras pessoas identificáveis.";
 
 export type FeedFiltro = "fortem" | "clubes";
 export type FeedStatus = { participa: boolean; suspenso: boolean; versao_termo: string | null };

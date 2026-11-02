@@ -21,11 +21,8 @@ export function useFeedPendencias() {
   return useQuery({
     queryKey: ["admin-feed-pendencias"],
     queryFn: async () => {
-      const [f, d] = await Promise.all([
-        supabase.from("comunidade_feed_posts" as any).select("id", { count: "exact", head: true }).eq("status", "foto_pendente"),
-        supabase.from("comunidade_feed_denuncias" as any).select("id", { count: "exact", head: true }).is("resolvido_em", null),
-      ]);
-      return (f.count ?? 0) + (d.count ?? 0);
+      const d = await supabase.from("comunidade_feed_denuncias" as any).select("id", { count: "exact", head: true }).is("resolvido_em", null);
+      return d.count ?? 0;
     },
   });
 }
@@ -33,10 +30,12 @@ export function useFeedPendencias() {
 export function AdminComunidadeFeed() {
   const qc = useQueryClient();
   const sel = "*, aluno:alunos!comunidade_feed_posts_aluno_id_fkey(nome)";
-  const { data: pendentes, isLoading: l1 } = useQuery({
-    queryKey: ["admin-feed-pendentes"],
+  const { data: fotosRecentes, isLoading: l1 } = useQuery({
+    queryKey: ["admin-feed-fotos-recentes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("comunidade_feed_posts" as any).select(sel).eq("status", "foto_pendente").order("created_at");
+      const desde = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data, error } = await supabase.from("comunidade_feed_posts" as any).select(sel)
+        .eq("status", "publicado").not("foto_path", "is", null).gte("created_at", desde).order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Post[];
     },
@@ -68,14 +67,14 @@ export function AdminComunidadeFeed() {
       return (data ?? []) as unknown as Consent[];
     },
   });
-  const todasFotos = [...(pendentes ?? []), ...(denuncias ?? []).map((d) => d.post).filter(Boolean) as Post[], ...(recentes ?? [])].map((p) => p.foto_path);
+  const todasFotos = [...(fotosRecentes ?? []), ...(denuncias ?? []).map((d) => d.post).filter(Boolean) as Post[], ...(recentes ?? [])].map((p) => p.foto_path);
   const { data: fotos } = useFotosFeed(todasFotos);
 
   const atualizar = () => {
-    ["admin-feed-pendentes", "admin-feed-denuncias", "admin-feed-recentes", "admin-feed-pendencias", "admin-feed-participantes"]
+    ["admin-feed-fotos-recentes", "admin-feed-denuncias", "admin-feed-recentes", "admin-feed-pendencias", "admin-feed-participantes"]
       .forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
   };
-  const moderar = async (p: Post, acao: "aprovar" | "recusar" | "ocultar" | "remover") => {
+  const moderar = async (p: Post, acao: "ocultar" | "remover") => {
     const { data, error } = await supabase.rpc("fn_comunidade_feed_moderar" as any, { p_post: p.id, p_acao: acao });
     if (error) return toast.error(mensagemErroFeed(error));
     await apagarFotosFeed([data as string | null]);
@@ -108,14 +107,20 @@ export function AdminComunidadeFeed() {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h3 className="font-semibold">Fotos pendentes {!!pendentes?.length && <Badge variant="destructive">{pendentes.length}</Badge>}</h3>
-        {l1 ? <Skeleton className="h-24" /> : !pendentes?.length ? <p className="text-sm text-muted-foreground">Nenhuma foto aguardando análise.</p> :
-          pendentes.map((p) => (
-            <Card key={p.id}><CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
-              {resumo(p)}
+        <h3 className="font-semibold">Fotos recentes <span className="text-xs font-normal text-muted-foreground">últimos 30 dias</span></h3>
+        {l1 ? <Skeleton className="h-24" /> : !fotosRecentes?.length ? <p className="text-sm text-muted-foreground">Nenhuma foto nos últimos 30 dias.</p> :
+          fotosRecentes.map((p) => (
+            <Card key={p.id}><CardContent className="flex items-center gap-3 p-3">
+              {p.foto_path && fotos?.[p.foto_path]
+                ? <img src={fotos[p.foto_path]} alt="" className="h-16 w-16 shrink-0 object-cover" />
+                : <div className="h-16 w-16 shrink-0 bg-muted" />}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{p.aluno?.nome ?? "Aluno"}</p>
+                <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), "dd/MM/yyyy HH:mm")}</p>
+              </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => moderar(p, "aprovar")}>Aprovar</Button>
-                <Button size="sm" variant="destructive" onClick={() => moderar(p, "recusar")}>Recusar</Button>
+                <Button size="sm" variant="outline" onClick={() => moderar(p, "ocultar")}>Ocultar</Button>
+                <Button size="sm" variant="destructive" onClick={() => moderar(p, "remover")}>Remover</Button>
               </div>
             </CardContent></Card>
           ))}
