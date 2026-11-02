@@ -25,12 +25,16 @@ function Quadrado({ texto, grande }: { texto: string; grande?: boolean }) {
   );
 }
 
-/** Imagem de capa ao fundo com degradê escuro para manter o texto legível. */
-function FundoCapa({ url, children, className }: { url: string; children: React.ReactNode; className?: string }) {
+/** Sombra leve para o texto continuar legível sobre a capa. */
+const SOMBRA: React.CSSProperties = { textShadow: "0 1px 2px rgba(0,0,0,.6)" };
+
+/** Imagem de capa cobrindo o card inteiro, com degradê escuro para manter o texto legível. */
+function FundoCapa({ url, children, className, posicao = "center" }: { url: string; children: React.ReactNode; className?: string; posicao?: string }) {
   return (
-    <div className={cn("relative overflow-hidden bg-[#0e0e0e]", className)}>
-      <img src={url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0e0e0e]/60 to-[#0e0e0e]" />
+    <div className={cn("relative min-h-[140px] overflow-hidden bg-[#0e0e0e]", className)}>
+      <img src={url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: posicao }} />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,14,14,0.92) 0%, rgba(14,14,14,0.62) 45%, rgba(14,14,14,0.35) 100%)" }} />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(14,14,14,0.75) 0%, rgba(14,14,14,0) 70%)" }} />
       <div className="relative">{children}</div>
     </div>
   );
