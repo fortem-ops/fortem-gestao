@@ -43,7 +43,7 @@ export default function PortalDesafioColetivo({ enabled, compacto = false }: { e
             <div><dt className="text-muted-foreground">Meta</dt><dd className="font-bold">{d.valor_meta.toLocaleString("pt-BR")}</dd></div>
           </dl>
           <p className="text-xs text-muted-foreground">Até {new Date(`${d.data_fim}T12:00:00`).toLocaleDateString("pt-BR")} · {dias > 0 ? `${dias} dias restantes` : "Último dia"}</p>
-          {(d.pontos_recompensa ?? 0) > 0 && <p className="text-xs text-muted-foreground">Ao atingir a meta, todos os alunos ativos recebem {d.pontos_recompensa} pontos no Clube FORTEM.</p>}
+          {(d.pontos_recompensa ?? 0) > 0 && <p className="text-xs text-muted-foreground">Ao atingir a meta, todos os alunos ativos recebem {d.pontos_recompensa} pontos.</p>}
           {d.mensagem_recompensa && <p className="text-xs text-muted-foreground">{d.mensagem_recompensa}</p>}
         </>}
       </>;
