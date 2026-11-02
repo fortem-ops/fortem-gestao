@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SeloPlano } from "@/components/portal/SeloPlano";
+import { ComunidadeFeed } from "@/components/portal/ComunidadeFeed";
 import {
   AVISO_VISIBILIDADE, MODALIDADES, DESCRICAO_MAX, ORIENTACAO_CAPA, CAPA_TIPOS, enviarCapa, useCapasClubes, validarArquivoCapa, iniciaisAbrev, mensagemErroComunidade, useMeusClubes, useRankingClube,
   type ComunidadeClube,
@@ -116,8 +117,31 @@ export default function PortalComunidade() {
   const meus = (clubes ?? []).filter((c) => c.sou_membro || (c.sou_criador && c.status !== "ativo"));
   const explorar = (clubes ?? []).filter((c) => c.status === "ativo" && !c.sou_membro);
 
+  const aba = params.get("aba") === "clubes" ? "clubes" : "feed";
+  const abas = (
+    <div className="grid grid-cols-2 border-b border-[#4A4B4B] pt-2" role="tablist">
+      {(["feed", "clubes"] as const).map((v) => (
+        <button key={v} role="tab" aria-selected={aba === v}
+          onClick={() => { const p = new URLSearchParams(params); p.set("aba", v); setParams(p); }}
+          className={cn(BOTAO, "border-b-2", aba === v ? "border-[#C8282A] text-foreground" : "border-transparent text-[#B1B3B3]")}>
+          {v === "feed" ? "Feed" : "Clubes"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (aba === "feed") {
+    return (
+      <div className="space-y-6 pb-8" style={{ fontFamily: "Archivo, sans-serif" }}>
+        {abas}
+        <ComunidadeFeed alunoId={alunoId} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-8" style={{ fontFamily: "Archivo, sans-serif" }}>
+      {abas}
       <header className="flex items-end justify-between gap-3 pt-2">
         <div>
           <p className={ROTULO}>Comunidade</p>
