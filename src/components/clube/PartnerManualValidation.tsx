@@ -17,7 +17,6 @@ interface PartnerManualValidationProps {
 interface MembroInfo {
   aluno_id: string;
   fortem_id: string;
-  nivel_membro: string;
   status_membro: string;
   nome: string;
 }
@@ -54,7 +53,7 @@ export function PartnerManualValidation({ parceiroId }: PartnerManualValidationP
       const hash = await hashCpfClient(cpf);
       const { data: m, error } = await supabase
         .from("clube_fortem_membros")
-        .select("aluno_id, fortem_id, nivel_membro, status_membro")
+        .select("aluno_id, fortem_id, status_membro")
         .eq("cpf_hash", hash)
         .maybeSingle();
       if (error) throw error;

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MembershipCard } from "@/components/clube/MembershipCard";
 import { BenefitHistory } from "@/components/clube/BenefitHistory";
-import { NIVEL_LABEL, STATUS_LABEL } from "@/lib/clube";
+import { STATUS_LABEL } from "@/lib/clube";
 import { Sparkles } from "lucide-react";
 
 interface Props {
