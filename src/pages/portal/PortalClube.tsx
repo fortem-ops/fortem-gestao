@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
+import { useMeuPlanoClube, custoRecompensa, proximoMarco, EXPLICACAO_BADGE } from "@/lib/clubePlano";
+import { SeloPlano } from "@/components/portal/SeloPlano";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,47 +15,6 @@ import { Sparkles, CloudRain, Trophy, Gift, Copy, ChevronDown, ChevronUp, Chevro
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-const NIVEIS = [
-  { key: "bronze",   nome: "Bronze",   min: 0,    max: 0,     cor: "text-amber-700" },
-  { key: "prata",    nome: "Prata",    min: 0,    max: 300,   cor: "text-slate-300" },
-  { key: "ouro",     nome: "Ouro",     min: 300,  max: 1000,  cor: "text-yellow-400" },
-  { key: "diamante", nome: "Diamante", min: 1000, max: 3000,  cor: "text-cyan-400" },
-  { key: "platina",  nome: "Platina",  min: 3000, max: Infinity, cor: "text-purple-400" },
-];
-
-function isAgregadorPlan(tipo?: string | null): boolean {
-  if (!tipo) return false;
-  const t = tipo.toLowerCase();
-  return t.includes("wellhub") || t.includes("gympass") || t.includes("total pass") || t.includes("totalpass");
-}
-
-function getCustoParaPlano(recompensa: any, tipoPlano: string): number {
-  if (isAgregadorPlan(tipoPlano)) {
-    return recompensa.custo_agregador ?? Math.round((recompensa.custo_start ?? recompensa.custo_pontos) * 1.3);
-  }
-  const tipo = tipoPlano.toLowerCase().replace('+', '_plus').replace(' ', '_');
-  const mapa: Record<string, string> = {
-    max: 'custo_max',
-    pro: 'custo_pro',
-    power: 'custo_power',
-    start_plus: 'custo_start_plus',
-    start: 'custo_start',
-  };
-  const campo = mapa[tipo];
-  return campo && recompensa[campo] != null ? recompensa[campo] : recompensa.custo_pontos;
-}
-
-const EXPLICACAO_BADGE: Record<string, string> = {
-  "Primeiro Passo": "Concedida ao concluir seu primeiro treino na Fortem.",
-  "Mês Completo": "Concedida ao treinar nas 4 semanas seguidas de um mesmo mês.",
-  "Sequência de Fogo": "Concedida ao treinar por 30 dias seguidos.",
-  "Veterano": "Concedida ao completar 1 ano de Fortem.",
-  "Lenda FORTEM": "Concedida ao completar 2 anos de Fortem.",
-  "Embaixador FORTEM": "Concedida ao indicar 3 pessoas que se tornaram alunos.",
-  "Evolução Real": "Concedida quando o resultado de uma reavaliação melhora em relação à anterior.",
-  "Guerreiro da Chuva": "Concedida ao treinar em um dia de chuva forte, frio ou calor extremo.",
-};
 
 function iniciais(nome?: string | null): string {
   const partes = (nome ?? "").trim().split(/\s+/).filter(Boolean);
@@ -67,7 +27,6 @@ export default function PortalClube() {
   const qc = useQueryClient();
   const [rankingAberto, setRankingAberto] = useState(false);
   const [resgateConfirm, setResgateConfirm] = useState<any>(null);
-  const [showComparativo, setShowComparativo] = useState(false);
   const [showRegras, setShowRegras] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
   const [badgeAberto, setBadgeAberto] = useState<any>(null);
@@ -85,14 +44,7 @@ export default function PortalClube() {
     },
   });
 
-  const { data: planoAtivo } = useQuery({
-    queryKey: ["portal-clube-plano", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await queryPlanoPrincipalAtivo(student!.id, "tipo");
-      return data?.tipo ?? "Start";
-    },
-  });
+  const { data: meuPlano } = useMeuPlanoClube(!!student);
 
   const { data: pontos } = useQuery({
     queryKey: ["portal-clube-pontos", student?.id],
@@ -125,7 +77,7 @@ export default function PortalClube() {
     queryFn: async () => {
       const { data } = await supabase
         .from("clube_recompensas")
-        .select("id, nome, descricao, custo_pontos, custo_start, custo_start_plus, custo_power, custo_pro, custo_max, custo_agregador, tipo, icone, planos_elegiveis")
+        .select("id, nome, descricao, custo_pontos, custo_start, custo_agregador, tipo, icone, planos_elegiveis")
         .eq("ativo", true)
         .order("custo_pontos");
       return data || [];
@@ -219,27 +171,9 @@ export default function PortalClube() {
   if (!student) return null;
 
   const saldo = pontos?.saldo ?? 0;
-  const nivelKey = pontos?.nivel ?? "prata";
-  const nivelAtual = NIVEIS.find((n) => n.key === nivelKey) ?? NIVEIS[1];
-  const isAgregador = nivelKey === "bronze";
-
-  // Nível que o saldo bruto atingia sozinho (sem considerar o plano ativo)
-  const nivelPorPontos = isAgregador
-    ? NIVEIS[0]
-    : NIVEIS.slice(1).reduce((acc, n) => (saldo >= n.min ? n : acc), NIVEIS[1]);
-  const boostedByPlan =
-    NIVEIS.findIndex((n) => n.key === nivelKey) >
-    NIVEIS.findIndex((n) => n.key === nivelPorPontos.key);
-
-  // Próximo nível: sempre o nível seguinte ao exibido (combina plano + pontos)
-  const nivelAtualIdx = NIVEIS.findIndex((n) => n.key === nivelKey);
-  const proxNivel = isAgregador ? undefined : NIVEIS[nivelAtualIdx + 1]; // undefined se já for Platina
-  const faltamParaProximo = proxNivel ? Math.max(0, proxNivel.min - saldo) : 0;
-  
-
-  const progresso = proxNivel
-    ? Math.min(100, Math.round((saldo / proxNivel.min) * 100))
-    : 100;
+  const isAgregador = !!meuPlano?.agregador;
+  const marco = proximoMarco(saldo, (recompensas ?? []) as any[], isAgregador);
+  const fmtMult = (v?: number | null) => (v == null ? "—" : `${String(v).replace(".", ",")}x`);
   const posMinhaMes = ranking?.findIndex((r) => r.aluno_id === student.id);
 
   const posicaoRanking = posMinhaMes !== undefined && posMinhaMes >= 0 ? posMinhaMes + 1 : null;
@@ -253,12 +187,8 @@ export default function PortalClube() {
         <div className="min-w-0">
           <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Programa de Fidelidade</p>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Clube FORTEM</h1>
-            {planoAtivo && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                Plano {planoAtivo}
-              </span>
-            )}
+            <h1 className="text-xl font-black uppercase text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Benefícios</h1>
+            <SeloPlano chave={meuPlano?.chave} />
           </div>
         </div>
         <button
@@ -292,46 +222,32 @@ export default function PortalClube() {
         </div>
       </Link>
 
-      {/* Card principal — nível + saldo */}
-      <Card className="glass-card p-6 bg-gradient-to-br from-primary/20 to-transparent border-primary/30">
+      {/* Card principal — plano + saldo + próximo marco */}
+      <Card className="p-6 border-[#4A4B4B] bg-card">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Nível</p>
-            <p className="text-2xl font-heading font-bold mt-1">{nivelAtual.nome}</p>
+            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Plano</p>
+            <p className="text-2xl font-black uppercase mt-1" style={{fontFamily:'Archivo,sans-serif'}}>{meuPlano?.plano ?? "—"}</p>
+            {meuPlano && (
+              <p className="text-[11px] text-muted-foreground mt-1">Seus pontos de treino valem {fmtMult(meuPlano.multiplicador)}</p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Saldo</p>
-            <p className="text-3xl font-heading font-bold text-primary mt-1">{saldo}</p>
+            <p className="text-3xl font-black text-foreground mt-1" style={{fontFamily:'Archivo,sans-serif'}}>{saldo}</p>
             <p className="text-[10px] text-muted-foreground">pontos</p>
           </div>
         </div>
-        {proxNivel ? (
+        {marco && (
           <div className="mt-4">
-            <div className="flex justify-between text-[11px] mb-1">
-              <span>
-                {boostedByPlan ? (
-                  <>
-                    Seu plano já garante {nivelAtual.nome}. Faltam{" "}
-                    <strong>{faltamParaProximo}</strong> pts para chegar em {proxNivel.nome} por pontuação
-                  </>
-                ) : faltamParaProximo === 0 ? (
-                  `Próximo nível desbloqueado`
-                ) : (
-                  <>
-                    Faltam <strong>{faltamParaProximo}</strong> pts para {proxNivel.nome}
-                  </>
-                )}
-              </span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${progresso}%` }}
-              />
+            <p className="text-[11px] mb-1.5 text-foreground">
+              Faltam <strong>{marco.faltam}</strong> pontos para a próxima recompensa
+              <span className="text-muted-foreground"> · {marco.recompensa.nome}</span>
+            </p>
+            <div className="h-1 bg-[#2C2C2C] overflow-hidden" role="progressbar" aria-valuenow={marco.progresso} aria-valuemin={0} aria-valuemax={100}>
+              <div className="h-full bg-[#c8282a] transition-all" style={{ width: `${marco.progresso}%` }} />
             </div>
           </div>
-        ) : !isAgregador && (
-          <p className="text-xs text-emerald-400 font-semibold mt-4">Nível máximo atingido</p>
         )}
         {pontos?.pontos_expiram_em && (
           <p className="text-[11px] text-muted-foreground mt-3">
@@ -342,14 +258,14 @@ export default function PortalClube() {
           <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
             <p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">Plano Agregador</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Você tem plano <strong>Wellhub/Gympass</strong> ou <strong>Total Pass</strong> — seu nível fica fixo em Bronze,
-              pontua 50% menos e resgates custam 30% a mais. Migre para um plano Fortem para desbloquear todos os níveis.
+              Com plano <strong>Wellhub/Gympass</strong> ou <strong>Total Pass</strong> você pontua 50% menos
+              e os resgates custam 30% a mais. Nos planos Fortem os pontos valem mais.
             </p>
           </div>
         )}
       </Card>
 
-      {pontos?.nivel === 'bronze' && (
+      {isAgregador && (
         <button
           onClick={() => window.open('https://wa.me/555135199451?text=Olá! Sou aluno Wellhub/TotalPass e quero conhecer os planos FORTEM.', '_blank')}
           className="w-full py-3 rounded-2xl bg-amber-500 text-black text-sm font-black flex items-center justify-center gap-2"
@@ -360,12 +276,12 @@ export default function PortalClube() {
       )}
 
       {/* Multiplicador climático */}
-      {clima?.multiplicador_ativo && pontos?.nivel !== 'bronze' && (
+      {clima?.multiplicador_ativo && !isAgregador && (
         <Card className="glass-card p-4 border-primary/50 bg-primary/10 flex items-center gap-3">
           <CloudRain className="w-6 h-6 text-primary" />
           <div>
             <p className="font-heading font-semibold">Dia especial!</p>
-            <p className="text-xs text-muted-foreground">{clima.motivo} — seus pontos de treino valem 1,5× hoje.</p>
+            <p className="text-xs text-muted-foreground">{clima.motivo} — o multiplicador do clima ({fmtMult(meuPlano?.clima_multiplicador)}) se soma ao do seu plano hoje.</p>
           </div>
         </Card>
       )}
@@ -479,7 +395,7 @@ export default function PortalClube() {
         </p>
         <div className="grid grid-cols-1 gap-3">
           {recompensas?.map((r: any) => {
-            const custo = getCustoParaPlano(r, planoAtivo ?? "Start");
+            const custo = custoRecompensa(r, isAgregador);
             const podeResgatar = saldo >= custo;
             return (
               <Card key={r.id} className="glass-card p-4 flex items-center gap-3">
@@ -491,11 +407,6 @@ export default function PortalClube() {
                     <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-full">
                       {custo} pts
                     </span>
-                    {custo < r.custo_pontos && (
-                      <span className="text-[10px] text-emerald-400 font-semibold">
-                        ↓ Benefício {planoAtivo}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <Button size="sm" disabled={!podeResgatar} onClick={() => setResgateConfirm({ ...r, __custo: custo })}>
@@ -505,83 +416,6 @@ export default function PortalClube() {
             );
           })}
         </div>
-      </section>
-
-      {/* Comparativo de planos */}
-      <section className="space-y-2">
-        <button
-          onClick={() => setShowComparativo(!showComparativo)}
-          className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
-        >
-          <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">Ver vantagens por plano</p>
-          </div>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showComparativo ? 'rotate-180' : ''}`} />
-        </button>
-
-        {showComparativo && (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            {/* Header */}
-            <div className="grid border-b border-border" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr'}}>
-              <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Recompensa</div>
-              {['Agregador', 'Start', 'Start+', 'Power', 'Pro', 'Max'].map(p => {
-                const key = p.toLowerCase().replace('+','_plus').replace(' ','_');
-                const userKey = isAgregador ? 'agregador' : (planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
-                const isUser = key === userKey;
-                return (
-                  <div key={p} className={`px-1 py-2 text-center text-[10px] font-bold uppercase ${isUser ? 'text-primary' : p === 'Agregador' ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                    {p}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Linhas por recompensa */}
-            {recompensas?.map((r: any) => {
-              const custoAg = r.custo_agregador ?? Math.round((r.custo_start ?? r.custo_pontos) * 1.3);
-              const custos = [
-                custoAg,
-                r.custo_start ?? r.custo_pontos,
-                r.custo_start_plus ?? r.custo_pontos,
-                r.custo_power ?? r.custo_pontos,
-                r.custo_pro ?? r.custo_pontos,
-                r.custo_max ?? r.custo_pontos,
-              ];
-              const minCusto = Math.min(...custos);
-              const userKey = isAgregador ? 'agregador' : (planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
-              const userIdx = ['agregador','start','start_plus','power','pro','max'].indexOf(userKey);
-              return (
-                <div key={r.id} className="grid border-b border-border last:border-0" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr'}}>
-                  <div className="px-3 py-2.5 flex items-center gap-1.5">
-                    <span className="text-sm shrink-0">{r.icone}</span>
-                    <p className="text-[11px] font-medium text-foreground leading-tight">{r.nome}</p>
-                  </div>
-                  {custos.map((c, i) => {
-                    const isUserPlan = i === userIdx;
-                    const isCheapest = c === minCusto;
-                    const isAgCol = i === 0;
-                    return (
-                      <div key={i} className={`px-1 py-2.5 text-center ${isUserPlan ? 'bg-primary/5' : isAgCol ? 'bg-amber-500/5' : ''}`}>
-                        <p className={`text-[11px] font-bold ${
-                          isUserPlan ? 'text-primary' :
-                          isCheapest ? 'text-emerald-400' :
-                          'text-foreground'
-                        }`}>{c}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-
-            {/* Legenda */}
-            <div className="px-3 py-2 border-t border-border flex gap-3 flex-wrap">
-              <span className="text-[10px] text-primary font-semibold">● Seu plano</span>
-              <span className="text-[10px] text-emerald-400 font-semibold">● Menor custo</span>
-              <span className="text-[10px] text-muted-foreground">Valores em pontos</span>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Indicação */}
@@ -652,7 +486,7 @@ export default function PortalClube() {
 
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-                Como funciona o Clube
+                Como funcionam os benefícios
               </h2>
               <button onClick={() => setShowRegras(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
                 <X className="w-4 h-4 text-muted-foreground" />
@@ -660,42 +494,34 @@ export default function PortalClube() {
             </div>
 
             <section className="space-y-3">
-              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Níveis da carteirinha</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Pontos por plano</p>
               <p className="text-xs text-muted-foreground">
-                Seu nível é definido pela combinação do seu plano ativo e dos pontos acumulados — sempre prevalece o maior entre os dois.
+                Cada plano multiplica os pontos que você ganha. O custo das recompensas é o mesmo para Start, Power e Pro.
               </p>
-              <div className="space-y-2">
+              <div className="border border-[#4A4B4B] divide-y divide-[#4A4B4B]">
                 {[
-                  { nivel: "Bronze", cor: "text-amber-700", plano: "Wellhub / Gympass / Total Pass", pontos: "fixo", desc: "Nível fixo para planos agregadores. Acesso aos benefícios básicos dos parceiros, mas pontua 50% menos e resgates custam 30% a mais." },
-                  { nivel: "Prata", cor: "text-slate-300", plano: "Start / Start+", pontos: "0 – 299 pts", desc: "Nível inicial dos planos FORTEM. Acesso aos benefícios básicos dos parceiros." },
-                  { nivel: "Ouro", cor: "text-yellow-400", plano: "Power", pontos: "300 – 999 pts", desc: "Acesso a benefícios intermediários e desconto em recompensas." },
-                  { nivel: "Diamante", cor: "text-cyan-400", plano: "Pro", pontos: "1.000 – 2.999 pts", desc: "Acesso a benefícios premium e desconto significativo nas recompensas." },
-                  { nivel: "Platina", cor: "text-purple-400", plano: "Max", pontos: "3.000+ pts", desc: "Nível máximo. Acesso VIP a todos os benefícios e melhores condições de resgate." },
-                ].map(n => (
-                  <div key={n.nivel} className="bg-background border border-border rounded-xl p-3 space-y-1.5">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <p className={`text-sm font-black ${n.cor}`} style={{fontFamily:'Archivo,sans-serif'}}>{n.nivel}</p>
-                      <div className="flex gap-2">
-                        <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{n.plano}</span>
-                        <span className="text-[10px] bg-primary/10 px-2 py-0.5 rounded-full text-primary">{n.pontos}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{n.desc}</p>
+                  { rotulo: "Start", chave: "mult_plano_start" },
+                  { rotulo: "Power", chave: "mult_plano_power" },
+                  { rotulo: "Pro", chave: "mult_plano_pro" },
+                  { rotulo: "Consultoria Online", chave: "mult_plano_consultoria" },
+                  { rotulo: "Wellhub / Total Pass", chave: "mult_agregador" },
+                ].map((l) => (
+                  <div key={l.chave} className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-sm text-foreground">{l.rotulo}</span>
+                    <span className="text-sm font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{fmtMult(meuPlano?.multiplicadores?.[l.chave])}</span>
                   </div>
                 ))}
               </div>
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-                <p className="text-xs text-foreground">
-                  <strong>Exemplo:</strong> Aluno com plano Power (nível mínimo Ouro) que acumula 1.200 pontos sobe automaticamente para <strong>Diamante</strong> — o maior entre os dois prevalece.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Em dia de clima extremo, o multiplicador do clima se soma ao do plano (por exemplo, Pro em dia de chuva: 1,5 x 1,5 = 2,25x). Wellhub e Total Pass não recebem o do clima. Os resgates para esses planos custam 30% a mais.
+              </p>
             </section>
 
             <section className="space-y-3">
               <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Como ganhar pontos</p>
               <div className="space-y-2">
                 {[
-                  { acao: "Treino realizado", pts: "10 pts", obs: "Por sessão confirmada" },
+                  { acao: "Treino realizado", pts: "10 pts", obs: "Por sessão confirmada, antes do multiplicador do plano" },
                   { acao: "Avaliação funcional", pts: "50 pts", obs: "A cada avaliação" },
                   { acao: "Indicação convertida", pts: "100 pts", obs: "Quando o indicado contrata" },
                   { acao: "Bônus por ser indicado", pts: "50 pts", obs: "Única vez" },
@@ -723,7 +549,7 @@ export default function PortalClube() {
               <div className="bg-background border border-border rounded-xl p-3 space-y-1.5">
                 <p className="text-sm font-bold text-foreground">Dias de chuva, frio ou calor intenso</p>
                 <p className="text-xs text-muted-foreground">
-                  Em dias de clima extremo em Porto Alegre, seus pontos de treino valem <strong className="text-foreground">1,5×</strong> automaticamente. O app exibe um aviso quando o multiplicador está ativo.
+                  Em dias de clima extremo em Porto Alegre, o multiplicador do clima (<strong className="text-foreground">{fmtMult(meuPlano?.clima_multiplicador)}</strong>) se soma ao do seu plano. O app exibe um aviso quando o multiplicador está ativo.
                 </p>
               </div>
             </section>
@@ -741,7 +567,7 @@ export default function PortalClube() {
               <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Parceiros FORTEM</p>
               <div className="bg-background border border-border rounded-xl p-3">
                 <p className="text-xs text-muted-foreground">
-                  Estabelecimentos parceiros oferecem benefícios exclusivos para membros do Clube FORTEM. Apresente sua carteirinha digital com QR Code ao fazer uso do benefício. Cada parceiro pode ter um nível mínimo exigido para acesso.
+                  Estabelecimentos parceiros oferecem benefícios exclusivos para alunos FORTEM. Apresente sua carteirinha digital com QR Code ao fazer uso do benefício.
                 </p>
               </div>
             </section>
