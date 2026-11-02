@@ -35,14 +35,27 @@ type Agendamento = {
 
 const DIA_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-// Serviços sempre exibidos na aba "Serviços" do portal
-const SERVICOS_PORTAL = [
-  "Nutrição",
-  "Reabilitação",
-  "Avaliação Física",
-  "Avaliação Funcional",
-  "Bota de Compressão Pneumática",
+// Serviços sempre exibidos na aba "Serviços" do portal.
+// `atividade` precisa ser idêntico a agenda_servicos.atividade (é o filtro da grade e
+// o nome que fn_agendar_servico usa); `label` é só o nome de exibição.
+const SERVICOS_PORTAL: { label: string; atividade: string }[] = [
+  { label: "Nutrição", atividade: "Nutrição" },
+  { label: "Reabilitação", atividade: "Reabilitação" },
+  { label: "Avaliação Física", atividade: "Avaliação Física" },
+  { label: "Avaliação Funcional", atividade: "Avaliação Funcional" },
+  { label: "Bota de Compressão Pneumática (Recovery)", atividade: "Recovery (Bota de Compressão)" },
 ];
+
+const PERIODOS = [
+  { key: "manha", label: "Manhã", de: 0, ate: 11 * 60 + 59 },
+  { key: "tarde", label: "Tarde", de: 12 * 60, ate: 17 * 60 + 59 },
+  { key: "noite", label: "Noite", de: 18 * 60, ate: 24 * 60 },
+] as const;
+
+function minutosDe(h: string): number {
+  const [hh, mm] = h.slice(0, 5).split(":").map(Number);
+  return hh * 60 + (mm || 0);
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -457,9 +470,10 @@ export default function PortalAgenda() {
   }, [horariosServico, dias14, ocupadosSet, agoraVisual]);
 
 
+  // Só dias com pelo menos um horário livre (já sem os horários passados de hoje).
   const diasServicoDisponiveis = useMemo(
-    () => dias14,
-    [dias14]
+    () => dias14.filter((d) => (horariosServicoPorDia[format(d, "yyyy-MM-dd")]?.length ?? 0) > 0),
+    [dias14, horariosServicoPorDia]
   );
 
 
@@ -1118,27 +1132,32 @@ export default function PortalAgenda() {
             )}
           </section>
       {(() => {
-        const diaServicoStr = diaServico ? format(diaServico, "yyyy-MM-dd") : null;
+        // Dia efetivo: o escolhido, se tiver horário livre; senão o primeiro dia com horário livre.
+        const diaEfetivo = diaServico && diasServicoDisponiveis.some((d) => isSameDay(d, diaServico))
+          ? diaServico
+          : diasServicoDisponiveis[0] ?? null;
+        const diaServicoStr = diaEfetivo ? format(diaEfetivo, "yyyy-MM-dd") : null;
         const horariosDoDia = diaServicoStr ? horariosServicoPorDia[diaServicoStr] ?? [] : [];
         return (
         <div className="space-y-4">
           <SectionLabel>Agendar serviço</SectionLabel>
 
           <div className="space-y-2">
-            {SERVICOS_PORTAL.map((atividade) => {
+            {SERVICOS_PORTAL.map(({ label, atividade }) => {
               const info = saldoPorAtividade[atividade];
               const ilimitado = !!info?.ilimitado;
               const saldoS = info?.saldo ?? 0;
               const { icon: Icon } = iconServico(atividade);
               const isSelected = servicoSelecionado === atividade;
               const temCredito = !!info && (info.ilimitado || info.saldo > 0);
+              const diaServico = diaEfetivo;
               return (
                 <div key={atividade} className="space-y-2">
                   <button
                     onClick={() => {
                       const next = isSelected ? null : atividade;
                       setServicoSelecionado(next);
-                      setDiaServico(next ? new Date() : null);
+                      setDiaServico(null);
                     }}
                     className={cn(
                       "w-full flex items-center gap-3 p-4 rounded-xl border transition-colors text-left",
@@ -1149,7 +1168,7 @@ export default function PortalAgenda() {
                       <Icon className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{atividade}</p>
+                      <p className="text-sm font-semibold text-foreground">{label}</p>
                       <p className="text-xs text-muted-foreground">
                         {ilimitado
                           ? "Ilimitado"
@@ -1167,25 +1186,13 @@ export default function PortalAgenda() {
 
                   {isSelected && (
                     <div className="space-y-3 pl-2">
-                      <SectionLabel>Horários disponíveis — {atividade}</SectionLabel>
+                      <SectionLabel>Horários disponíveis — {label}</SectionLabel>
 
                       {diasServicoDisponiveis.length === 0 ? (
-                        <div className="bg-card border border-border rounded-xl p-4 text-center space-y-2">
+                        <div className="bg-card border border-border p-4 text-center">
                           <p className="text-sm text-muted-foreground">
-                            Nenhum horário disponível no momento — fale com a equipe.
+                            Sem horários disponíveis no momento. Fale com a recepção.
                           </p>
-                          <button
-                            onClick={() =>
-                              window.open(
-                                "https://wa.me/555135199451?text=" +
-                                  encodeURIComponent(`Olá! Quero saber mais sobre o serviço de ${atividade}.`),
-                                "_blank"
-                              )
-                            }
-                            className="py-2 px-3 rounded-lg bg-[#25D366] text-white text-xs font-bold"
-                          >
-                            WhatsApp
-                          </button>
                         </div>
                       ) : (
                         <>
@@ -1447,47 +1454,133 @@ export default function PortalAgenda() {
 
 
 
-      {/* Dialog confirmar */}
-      <Dialog open={!!confirmando} onOpenChange={(v) => !v && setConfirmando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar agendamento</DialogTitle>
-            <DialogDescription>Verifique os detalhes abaixo antes de confirmar.</DialogDescription>
-          </DialogHeader>
-          {confirmando && (
-            <div className="space-y-2 text-sm">
-              <p className="font-semibold text-foreground">
-                {format(parseISO(confirmando.data), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-              </p>
-              <p className="text-foreground">
-                {confirmando.slot.horario_inicio.slice(0, 5)} → {confirmando.slot.horario_fim.slice(0, 5)}
-              </p>
-              {confirmando.instrutor && <p className="text-muted-foreground">Instrutor: {confirmando.instrutor}</p>}
-              <div className="bg-muted/50 rounded-lg p-3 mt-2">
-                {confirmando.slot.modalidade === "corrida" ? (
-                  <p className="text-xs text-muted-foreground">
-                    Sua vaga será confirmada. Horários de Corrida não consomem créditos.
-                  </p>
-                ) : (
-                  <>
-                    <p className="text-xs text-muted-foreground">1 crédito será debitado.</p>
-                    <p className="text-xs text-muted-foreground">Você terá {Math.max(0, saldo - 1)} crédito(s) restante(s).</p>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmando(null)}>Cancelar</Button>
-            <Button
-              onClick={() => confirmando && agendar.mutate({ slotId: confirmando.slot.id, data: confirmando.data })}
-              disabled={agendar.isPending}
+      {/* Folha inferior: confirmar treino */}
+      {confirmando && (() => {
+        const ini = confirmando.slot.horario_inicio.slice(0, 5);
+        const fim = confirmando.slot.horario_fim.slice(0, 5);
+        const [hh, mm] = ini.split(":").map(Number);
+        const limiteMin = (hh * 60 + mm - 60 + 1440) % 1440;
+        const limite = `${String(Math.floor(limiteMin / 60)).padStart(2, "0")}:${String(limiteMin % 60).padStart(2, "0")}`;
+        const corrida = confirmando.slot.modalidade === "corrida";
+        return (
+          <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => !agendar.isPending && setConfirmando(null)}>
+            <div
+              role="dialog"
+              aria-label="Confirmar treino"
+              className="w-full max-h-[100dvh] overflow-y-auto border-t border-[#4A4B4B] bg-card px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-4"
+              style={{ fontFamily: "Archivo, sans-serif" }}
+              onClick={(e) => e.stopPropagation()}
             >
-              Confirmar agendamento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Confirmar treino</p>
+              <div>
+                <p className="text-[32px] font-black leading-tight text-foreground">{ini} → {fim}</p>
+                <p className="mt-1 text-sm text-foreground first-letter:uppercase">
+                  {format(parseISO(confirmando.data), "EEEE, dd 'de' MMMM", { locale: ptBR })} · {corrida ? "Corrida" : "Funcional"}
+                </p>
+                {confirmando.instrutor && <p className="text-xs text-[#B1B3B3]">Instrutor: {confirmando.instrutor}</p>}
+              </div>
+              <div className="divide-y divide-[#4A4B4B] border-y border-[#4A4B4B]">
+                <div className="py-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Crédito</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {corrida ? "Horários de Corrida não consomem créditos." : "Usa 1 crédito do seu plano."}
+                  </p>
+                </div>
+                <div className="py-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Cancelamento</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    Gratuito até 1 hora antes ({limite}). Depois disso, o crédito não é devolvido.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => agendar.mutate({ slotId: confirmando.slot.id, data: confirmando.data })}
+                disabled={agendar.isPending}
+                className="min-h-[52px] w-full bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white disabled:opacity-50"
+              >
+                {agendar.isPending ? "Agendando…" : "Confirmar agendamento"}
+              </button>
+              <button
+                onClick={() => setConfirmando(null)}
+                disabled={agendar.isPending}
+                className="min-h-[44px] w-full border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground"
+              >
+                Voltar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Folha inferior: meus agendamentos */}
+      {meusAgendamentosAberto && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setMeusAgendamentosAberto(false)}>
+          <div
+            role="dialog"
+            aria-label="Meus agendamentos"
+            className="w-full max-h-[100dvh] flex flex-col border-t border-[#4A4B4B] bg-card"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#4A4B4B] shrink-0">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Meus agendamentos</p>
+              <button onClick={() => setMeusAgendamentosAberto(false)} aria-label="Fechar" className="w-11 h-11 flex items-center justify-center">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-2">
+              {meusAgendamentos.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum treino agendado.</p>
+              ) : meusAgendamentos.map((ag: any) => {
+                const deadline = new Date(`${ag.data}T${ag.horario_inicio}`);
+                deadline.setHours(deadline.getHours() - 1);
+                const dentroDoPrazo = new Date() < deadline;
+                return (
+                  <div key={ag.id} className="border border-[#4A4B4B] p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[44px] shrink-0">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                          {format(parseISO(ag.data + "T12:00:00"), "EEE", { locale: ptBR })}
+                        </p>
+                        <p className="text-2xl font-black text-foreground">{format(parseISO(ag.data + "T12:00:00"), "d")}</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground">
+                          {ag.horario_inicio?.slice(0, 5)} → {ag.horario_fim?.slice(0, 5)}
+                          {ag.treino_slots?.modalidade === "corrida" ? " · Corrida" : ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(parseISO(ag.data + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setCancelando(ag.id)}
+                        className="min-h-[44px] px-4 border border-[#4A4B4B] text-xs font-bold uppercase tracking-[0.08em] text-foreground"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                    {!dentroDoPrazo && (
+                      <p className="mt-2 text-[11px] text-[#E3B341]">Cancelamento fora do prazo não estorna crédito</p>
+                    )}
+                  </div>
+                );
+              })}
+              <p className="pt-1 text-xs text-[#E3B341]">Cancelando com menos de 1 hora de antecedência, o crédito não é devolvido.</p>
+              <button
+                onClick={() => { setMeusAgendamentosAberto(false); setShowHistoricoTreinos(true); }}
+                className="w-full min-h-[44px] flex items-center justify-between border border-[#4A4B4B] px-4"
+              >
+                <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Histórico de treinos</span>
+                <span className="flex items-center gap-2">
+                  {historicoTreinos.length > 0 && <span className="text-xs font-bold text-[#B1B3B3]">{historicoTreinos.length}</span>}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dialog cancelar */}
       {cancelando && (() => {
@@ -1708,19 +1801,25 @@ export default function PortalAgenda() {
       {/* Bottom sheet: Adicionar horário fixo */}
       {showAdicionarFixo && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowAdicionarFixo(false)}>
-          <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
-            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Novo Horário Fixo</p>
+          <div
+            className="bg-card border-t border-[#4A4B4B] w-full max-h-[100dvh] flex flex-col"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 pt-5 pb-3 shrink-0">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Novo horário fixo</p>
+            </div>
 
-            <div className="space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-4 space-y-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-1.5 font-semibold uppercase tracking-wide">Dia da semana</p>
-                <div className="flex gap-2 flex-wrap">
+                <div className="grid grid-cols-4 gap-2">
                   {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((d, i) => (
                     <button
                       key={i}
                       onClick={() => { setDiaFixo(i); setSlotFixo(""); }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${diaFixo === i ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+                      aria-pressed={diaFixo === i}
+                      className={`min-h-[44px] text-xs font-bold uppercase tracking-[0.08em] border ${diaFixo === i ? "bg-[#C8282A] border-[#C8282A] text-white" : "border-[#4A4B4B] text-[#B1B3B3]"}`}
                     >
                       {d}
                     </button>
@@ -1738,11 +1837,9 @@ export default function PortalAgenda() {
                       <button
                         key={s.id}
                         onClick={() => setSlotFixo(s.id)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${slotFixo === s.id ? "bg-primary/10 border-primary/40" : "bg-background border-border"}`}
+                        aria-pressed={slotFixo === s.id}
+                        className={`w-full min-h-[44px] flex items-center gap-3 p-3 border text-left ${slotFixo === s.id ? "border-[#C8282A] bg-[#C8282A]/10" : "bg-background border-[#4A4B4B]"}`}
                       >
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${slotFixo === s.id ? "border-primary" : "border-muted-foreground"}`}>
-                          {slotFixo === s.id && <div className="w-2 h-2 rounded-full bg-primary" />}
-                        </div>
                         <p className="text-sm font-semibold text-foreground">{s.horario_inicio.slice(0,5)} → {s.horario_fim.slice(0,5)}</p>
                       </button>
                     ))}
@@ -1751,8 +1848,8 @@ export default function PortalAgenda() {
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <button onClick={() => { setShowAdicionarFixo(false); setSlotFixo(""); }} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Cancelar</button>
+            <div className="shrink-0 border-t border-[#4A4B4B] bg-card px-6 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] flex gap-3">
+              <button onClick={() => { setShowAdicionarFixo(false); setSlotFixo(""); }} className="flex-1 min-h-[44px] border border-[#4A4B4B] text-foreground font-bold uppercase tracking-[0.08em] text-[13px]">Cancelar</button>
               <button
                 disabled={!slotFixo}
                 onClick={async () => {
@@ -1779,7 +1876,7 @@ export default function PortalAgenda() {
                     toast.error(e.message);
                   }
                 }}
-                className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm disabled:opacity-40"
+                className="flex-1 min-h-[44px] bg-[#C8282A] text-white font-bold uppercase tracking-[0.08em] text-[13px] disabled:opacity-40"
               >
                 Confirmar
               </button>
