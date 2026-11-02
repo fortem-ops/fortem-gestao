@@ -130,10 +130,10 @@ export default function PortalComunidade() {
                   <button
                     disabled={!clicavel}
                     onClick={() => abrir(c.id)}
-                    className={cn("flex w-full items-center gap-3 p-3 text-left", capa ? "min-h-[120px] items-end" : "min-h-[64px]")}
+                    className={cn("flex w-full items-center gap-3 p-3 text-left", capa ? "min-h-[140px] items-end" : "min-h-[64px]")}
                   >
                     {!capa && <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />}
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1" style={capa ? SOMBRA : undefined}>
                       <p className="truncate font-bold text-foreground">{c.nome}{c.tipo === "oficial" && capa && <SeloOficial />}</p>
                       {capa && c.descricao && <p className="line-clamp-2 text-xs text-foreground/90">{c.descricao}</p>}
                       {capa && <p className="text-xs text-[#B1B3B3]">{c.membros} {c.membros === 1 ? "membro" : "membros"}</p>}
@@ -164,9 +164,9 @@ export default function PortalComunidade() {
             {explorar.map((c) => {
               const capa = c.capa_url ? capas?.[c.capa_url] : undefined;
               const linha = (
-              <div className={cn("flex items-center gap-3 p-3", capa && "min-h-[120px] items-end")}>
+              <div className={cn("flex items-center gap-3 p-3", capa && "min-h-[140px] items-end")}>
                 {!capa && <Quadrado texto={c.nome[0]?.toUpperCase() ?? ""} />}
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1" style={capa ? SOMBRA : undefined}>
                   <p className="truncate font-bold text-foreground">{c.nome}{capa && c.tipo === "oficial" && <SeloOficial />}</p>
                   {capa && c.descricao && <p className="line-clamp-2 text-xs text-foreground/90">{c.descricao}</p>}
                   <p className="text-xs text-[#B1B3B3]">
@@ -311,7 +311,7 @@ function DetalheClube({ clube, capa, voltar, aoSair }: { clube: ComunidadeClube;
 
       {capa ? (
         <FundoCapa url={capa} className="-mx-4">
-          <header className="flex min-h-[180px] flex-col justify-end gap-1 p-4">
+          <header className="flex min-h-[180px] flex-col justify-end gap-1 p-4" style={SOMBRA}>
             <h1 className="text-xl font-black uppercase leading-tight text-foreground">{clube.nome}</h1>
             {clube.descricao && <p className="line-clamp-2 text-sm text-foreground/90">{clube.descricao}</p>}
             <p className="text-xs text-[#B1B3B3]">
