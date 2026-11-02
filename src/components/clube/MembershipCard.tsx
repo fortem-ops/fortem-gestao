@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MembershipQR } from "./MembershipQR";
-import { NIVEL_BADGE, NIVEL_THEME, STATUS_DOT, STATUS_LABEL } from "@/lib/clube";
+import type { ReactNode } from "react";
+import { STATUS_DOT, STATUS_LABEL } from "@/lib/clube";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { RotateCw } from "lucide-react";
@@ -13,16 +14,21 @@ interface MembershipCardProps {
   alunoEmail?: string | null;
   categoria?: string | null;
   contato?: string | null;
+  /** Nome do plano (Clube sem níveis). */
+  plano?: string | null;
+  /** Selo do plano exibido ao lado do nome. */
+  selo?: ReactNode;
 }
 
 /**
  * Carteirinha digital wallet-style com flip frente/verso.
- * Cores aplicadas conforme paleta por nível (start/start+/power/pro/max).
+ * Tema único (Clube sem níveis); mostra o nome do plano.
  */
-export function MembershipCard({ membro, alunoNome, alunoEmail, categoria, contato }: MembershipCardProps) {
+const THEME = { bg: "#111111", text: "#FFFFFF", accent: "#E73C3E", muted: "#4A4B4B" };
+
+export function MembershipCard({ membro, alunoNome, alunoEmail, categoria, contato, plano, selo }: MembershipCardProps) {
   const [flipped, setFlipped] = useState(false);
-  const theme = NIVEL_THEME[membro.nivel_membro];
-  const isMax = membro.nivel_membro === "platina";
+  const theme = THEME;
   const qrFg = theme.text === "#FFFFFF" ? "#FFFFFF" : "#000000";
   const qrBg = theme.text === "#FFFFFF" ? "#111111" : "#FFFFFF";
 
@@ -43,7 +49,7 @@ export function MembershipCard({ membro, alunoNome, alunoEmail, categoria, conta
       >
         {/* FRENTE */}
         <div
-          className="absolute inset-0 rounded-3xl shadow-2xl overflow-hidden"
+          className="absolute inset-0  overflow-hidden"
           style={{
             backgroundColor: theme.bg,
             color: theme.text,
@@ -67,15 +73,14 @@ export function MembershipCard({ membro, alunoNome, alunoEmail, categoria, conta
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold uppercase tracking-wide leading-tight">{alunoNome}</h2>
-              <p className="text-[11px] tracking-[0.25em] font-semibold" style={{ color: theme.accent }}>
-                {NIVEL_BADGE[membro.nivel_membro]}
-              </p>
-              {isMax && theme.metallic && (
-                <div
-                  className="h-px w-32 mx-auto mt-2"
-                  style={{ background: `linear-gradient(90deg, transparent, ${theme.metallic}, transparent)` }}
-                />
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <h2 className="text-2xl font-bold uppercase tracking-wide leading-tight">{alunoNome}</h2>
+                {selo}
+              </div>
+              {plano && (
+                <p className="text-[11px] tracking-[0.25em] font-semibold uppercase" style={{ color: "#B1B3B3" }}>
+                  Plano {plano}
+                </p>
               )}
             </div>
 
@@ -104,7 +109,7 @@ export function MembershipCard({ membro, alunoNome, alunoEmail, categoria, conta
 
         {/* VERSO */}
         <div
-          className="absolute inset-0 rounded-3xl shadow-2xl overflow-hidden"
+          className="absolute inset-0  overflow-hidden"
           style={{
             backgroundColor: theme.bg,
             color: theme.text,
@@ -129,7 +134,7 @@ export function MembershipCard({ membro, alunoNome, alunoEmail, categoria, conta
               <Field label="Aluno desde" value={dataInicioFmt} accent={theme.accent} />
               <Field label="Validade" value={validadeFmt} accent={theme.accent} />
               <Field label="Status" value={STATUS_LABEL[membro.status_membro]} accent={theme.accent} />
-              <Field label="Categoria" value={categoria || "—"} accent={theme.accent} />
+              <Field label="Plano" value={plano || categoria || "—"} accent={theme.accent} />
             </div>
 
             <div className="border-t opacity-30 my-1" style={{ borderColor: theme.text }} />
