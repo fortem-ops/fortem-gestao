@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, Award } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -128,7 +128,8 @@ export function PortalLayout() {
           </SheetHeader>
           <nav className="flex flex-col py-2">
             {[
-              { to: "/portal/meu-perfil", label: "Perfil", icon: UserRound },
+              { to: "/portal/perfil", label: "Perfil", icon: UserRound },
+              { to: "/portal/meu-perfil", label: "Progresso", icon: TrendingUp },
               { to: "/portal/clube", label: "Benefícios", icon: Sparkles },
               { to: "/portal/meu-perfil?aba=conquistas", label: "Conquistas", icon: Award },
             ].map((item) => (
