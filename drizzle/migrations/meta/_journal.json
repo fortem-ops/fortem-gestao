@@ -1527,6 +1527,13 @@
       "when": 1793645610883,
       "tag": "0217_comunidade_clubes",
       "breakpoints": true
+    },
+    {
+      "idx": 218,
+      "version": "7",
+      "when": 1793648429986,
+      "tag": "0218_comunidade_capa_clubes",
+      "breakpoints": true
     }
   ]
 }

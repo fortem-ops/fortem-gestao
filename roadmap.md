@@ -161,3 +161,4 @@
 - [x] 3 clubes oficiais: Ratinhas da Fortem, Frangos da Fortem (funcional), Corredores Fortem (corrida).
 - [x] Portal `/portal/comunidade` (no lugar de Benefícios na barra inferior), aba Clubes no Progresso, aba Clubes no gestor com aviso push ao aluno.
 - [ ] Feed e Ranking da Comunidade (próximo lote).
+- [x] Comunidade: capa dos clubes (migração 0218, bucket privado comunidade-clubes com links temporários porque o workspace bloqueia buckets públicos; descrição até 120; capa enviada pelo aluno em {aluno_id}/, pela equipe em equipe/).
