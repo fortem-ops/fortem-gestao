@@ -82,7 +82,7 @@ function OverviewContent() {
           .gte("created_at", `${hoje}T00:00:00`).gt("pontos_final", 0),
         supabase.from("clube_resgates").select("id", { count: "exact", head: true }).eq("status", "pendente"),
         supabase.from("clube_clima_cache").select("*").eq("data", hoje).maybeSingle(),
-        supabase.from("clube_pontos").select("aluno_id, saldo, nivel, alunos!inner(nome)")
+        supabase.from("clube_pontos").select("aluno_id, saldo, alunos!inner(nome)")
           .order("saldo", { ascending: false }).limit(5),
       ]);
       const pontosHoje = (hist.data || []).reduce((s, r: any) => s + (r.pontos_final || 0), 0);
@@ -160,7 +160,6 @@ function OverviewContent() {
             <div key={r.aluno_id} className="flex justify-between text-sm">
               <span>#{i + 1} {r.alunos?.nome}</span>
               <span className="flex items-center gap-2">
-                <Badge variant="outline">{r.nivel}</Badge>
                 <strong>{r.saldo} pts</strong>
               </span>
             </div>
