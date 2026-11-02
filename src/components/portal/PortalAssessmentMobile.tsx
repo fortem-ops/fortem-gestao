@@ -393,16 +393,21 @@ function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: Resumo
   );
 }
 
-function ReassessmentCard({ latestDate }: { latestDate: string }) {
+/** Mesma condição usada na Evolução e na Home: 4 meses ou mais desde a última avaliação. */
+export function precisaReavaliarPortal(latestDate: string): boolean {
+  return Math.floor(differenceInDays(new Date(), parseISO(latestDate)) / 30) >= MESES_IDEAL_REAVALIAR;
+}
+
+export function ReassessmentCard({ latestDate, titulo = "Hora de reavaliar", somenteNoPeriodo = false }: { latestDate: string; titulo?: string; somenteNoPeriodo?: boolean }) {
   const semAgenda = agendaOculta(useStudentPortalOptional()?.somenteOnline);
   const monthsSince = Math.floor(differenceInDays(new Date(), parseISO(latestDate)) / 30);
-  const overdue = monthsSince >= MESES_IDEAL_REAVALIAR;
+  const overdue = precisaReavaliarPortal(latestDate);
   const prevista = addMonths(parseISO(`${latestDate}T12:00:00`), MESES_IDEAL_REAVALIAR);
-  if (!overdue) return <p className="text-xs text-muted-foreground">Data prevista: {format(prevista, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>;
+  if (!overdue) return somenteNoPeriodo ? null : <p className="text-xs text-muted-foreground">Data prevista: {format(prevista, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>;
   return <div className="space-y-3 border border-border bg-card p-4">
     <div className="flex items-start gap-3">
       <AlertCircle className="h-5 w-5 shrink-0 text-muted-foreground" />
-      <div><p className="text-sm font-bold">Hora de reavaliar</p><p className="mt-1 text-xs text-muted-foreground">Sua última avaliação foi há {monthsSince} meses.</p></div>
+      <div><p className="text-sm font-bold">{titulo}</p><p className="mt-1 text-xs text-muted-foreground">Sua última avaliação foi há {monthsSince} meses.</p></div>
     </div>
     {!semAgenda && <Button asChild className="min-h-11 w-full font-bold"><Link to="/portal/agenda">Agendar reavaliação <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>}
   </div>;

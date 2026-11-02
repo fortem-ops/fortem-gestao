@@ -45,6 +45,23 @@ function getCustoParaPlano(recompensa: any, tipoPlano: string): number {
   return campo && recompensa[campo] != null ? recompensa[campo] : recompensa.custo_pontos;
 }
 
+const EXPLICACAO_BADGE: Record<string, string> = {
+  "Primeiro Passo": "Concedida ao concluir seu primeiro treino na Fortem.",
+  "Mês Completo": "Concedida ao treinar nas 4 semanas seguidas de um mesmo mês.",
+  "Sequência de Fogo": "Concedida ao treinar por 30 dias seguidos.",
+  "Veterano": "Concedida ao completar 1 ano de Fortem.",
+  "Lenda FORTEM": "Concedida ao completar 2 anos de Fortem.",
+  "Embaixador FORTEM": "Concedida ao indicar 3 pessoas que se tornaram alunos.",
+  "Evolução Real": "Concedida quando o resultado de uma reavaliação melhora em relação à anterior.",
+  "Guerreiro da Chuva": "Concedida ao treinar em um dia de chuva forte, frio ou calor extremo.",
+};
+
+function iniciais(nome?: string | null): string {
+  const partes = (nome ?? "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "";
+  return ((partes[0][0] ?? "") + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
+}
+
 export default function PortalClube() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
@@ -53,6 +70,20 @@ export default function PortalClube() {
   const [showComparativo, setShowComparativo] = useState(false);
   const [showRegras, setShowRegras] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
+  const [badgeAberto, setBadgeAberto] = useState<any>(null);
+
+  const { data: membroFoto } = useQuery({
+    queryKey: ["portal-clube-membro-foto", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("clube_fortem_membros")
+        .select("foto_url")
+        .eq("aluno_id", student!.id)
+        .maybeSingle();
+      return (data?.foto_url as string | null) || null;
+    },
+  });
 
   const { data: planoAtivo } = useQuery({
     queryKey: ["portal-clube-plano", student?.id],
@@ -244,8 +275,13 @@ export default function PortalClube() {
       {/* Acesso rápido à carteirinha */}
       <Link to="/portal/carteirinha">
         <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-                      </div>
+          {membroFoto ? (
+            <img src={membroFoto} alt="" className="w-12 h-12 object-cover shrink-0" />
+          ) : (
+            <div aria-hidden className="w-12 h-12 bg-[#2C2C2C] flex items-center justify-center shrink-0 text-sm font-black uppercase text-[#B1B3B3]" style={{ fontFamily: "Archivo,sans-serif" }}>
+              {iniciais(student.nome)}
+            </div>
+          )}
           <div className="flex-1">
             <p className="font-black text-base text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
               Minha Carteirinha
@@ -340,16 +376,46 @@ export default function PortalClube() {
         {!badges ? <Skeleton className="h-32" /> : (
           <div className="grid grid-cols-3 gap-3">
             {badges.map((b) => (
-              <Card key={b.id} className={`p-3 text-center ${b.conquistado ? "" : "opacity-40 grayscale"}`}>
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => setBadgeAberto(b)}
+                className={`min-h-[44px] border border-[#4A4B4B] bg-card p-3 text-center ${b.conquistado ? "" : "opacity-40 grayscale"}`}
+              >
                 <p className="text-[11px] font-semibold mt-1 leading-tight">{b.nome}</p>
                 <p className="text-[10px] text-muted-foreground">
                   {b.conquistado ? format(new Date(b.conquistado_em!), "dd/MM/yy") : "Bloqueado"}
                 </p>
-              </Card>
+              </button>
             ))}
           </div>
         )}
       </section>
+
+      {badgeAberto && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setBadgeAberto(null)}>
+          <div
+            role="dialog"
+            aria-label={badgeAberto.nome}
+            className="w-full border-t border-[#4A4B4B] bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-3"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Conquista</p>
+            <p className="text-xl font-black uppercase text-foreground">{badgeAberto.nome}</p>
+            <p className={`text-xs font-bold uppercase tracking-[0.08em] ${badgeAberto.conquistado ? "text-[#4CC38A]" : "text-[#E3B341]"}`}>
+              {badgeAberto.conquistado ? "Conquistada" : "Em andamento"}
+            </p>
+            <p className="text-sm text-muted-foreground">{EXPLICACAO_BADGE[badgeAberto.nome] ?? badgeAberto.descricao ?? ""}</p>
+            <button
+              onClick={() => setBadgeAberto(null)}
+              className="min-h-[44px] w-full border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Meu ranking */}
       <Card className="glass-card p-4 flex items-center gap-3">
