@@ -726,7 +726,7 @@ export default function PortalAgenda() {
               <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Meus agendamentos</p>
               <p className="text-xs text-[#B1B3B3] truncate">
                 {(() => {
-                  const prox = meusAgendamentos[0];
+                  const prox = [...meusAgendamentos].sort((a, b) => `${a.data} ${a.horario_inicio}`.localeCompare(`${b.data} ${b.horario_inicio}`))[0];
                   if (!prox) return "Nenhum treino agendado.";
                   const d = parseISO(prox.data + "T12:00:00");
                   const hojeSP = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(agoraVisual);
@@ -1542,7 +1542,7 @@ export default function PortalAgenda() {
         deadline.setHours(deadline.getHours() - 1);
         const dentroDoprazo = new Date() < deadline;
         return (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+          <div className="fixed inset-0 bg-black/70 z-[60] flex items-end">
             <div className="bg-card border border-border rounded-t-2xl w-full p-6 space-y-4">
               <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Cancelar treino?</p>
               <p className="text-sm text-muted-foreground">
@@ -1582,7 +1582,7 @@ export default function PortalAgenda() {
         const s = servicosFuturos.find((x: any) => x.id === cancelandoServico);
         if (!s) return null;
         return (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+          <div className="fixed inset-0 bg-black/70 z-[60] flex items-end">
             <div className="bg-card border border-border rounded-t-2xl w-full p-6 space-y-4">
               <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Cancelar serviço?</p>
               <p className="text-sm text-muted-foreground">
