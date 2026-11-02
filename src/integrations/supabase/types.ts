@@ -2751,6 +2751,112 @@ export type Database = {
         }
         Relationships: []
       }
+      comunidade_clube_membros: {
+        Row: {
+          aluno_id: string
+          clube_id: string
+          entrou_em: string
+          id: string
+          papel: string
+          saiu_em: string | null
+        }
+        Insert: {
+          aluno_id: string
+          clube_id: string
+          entrou_em?: string
+          id?: string
+          papel?: string
+          saiu_em?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          clube_id?: string
+          entrou_em?: string
+          id?: string
+          papel?: string
+          saiu_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_clube_membros_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_clube_membros_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "comunidade_clube_membros_clube_id_fkey"
+            columns: ["clube_id"]
+            isOneToOne: false
+            referencedRelation: "comunidade_clubes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comunidade_clubes: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          criador_aluno_id: string | null
+          descricao: string | null
+          id: string
+          modalidade: string
+          motivo_recusa: string | null
+          nome: string
+          status: string
+          tipo: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          criador_aluno_id?: string | null
+          descricao?: string | null
+          id?: string
+          modalidade?: string
+          motivo_recusa?: string | null
+          nome: string
+          status?: string
+          tipo?: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          criador_aluno_id?: string | null
+          descricao?: string | null
+          id?: string
+          modalidade?: string
+          motivo_recusa?: string | null
+          nome?: string
+          status?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_clubes_criador_aluno_id_fkey"
+            columns: ["criador_aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_clubes_criador_aluno_id_fkey"
+            columns: ["criador_aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       conciliacoes_bancarias: {
         Row: {
           confianca: string
@@ -12402,6 +12508,42 @@ export type Database = {
         Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
         Returns: number
       }
+      fn_comunidade_criar_clube: {
+        Args: { p_descricao: string; p_modalidade: string; p_nome: string }
+        Returns: Json
+      }
+      fn_comunidade_entrar: { Args: { p_clube_id: string }; Returns: Json }
+      fn_comunidade_meu_aluno: { Args: never; Returns: string }
+      fn_comunidade_meus_clubes: { Args: never; Returns: Json }
+      fn_comunidade_moderar: {
+        Args: { p_acao: string; p_clube_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      fn_comunidade_nome_abreviado: {
+        Args: { p_nome: string }
+        Returns: string
+      }
+      fn_comunidade_ranking_clube: {
+        Args: { p_clube_id: string; p_mes?: string }
+        Returns: {
+          dias: number
+          eh_voce: boolean
+          nome: string
+          plano_chave: string
+          posicao: number
+        }[]
+      }
+      fn_comunidade_ranking_interno: {
+        Args: { p_clube_id: string; p_mes: string }
+        Returns: {
+          aluno_id: string
+          dias: number
+          nome: string
+          plano_chave: string
+          posicao: number
+        }[]
+      }
+      fn_comunidade_sair: { Args: { p_clube_id: string }; Returns: Json }
       fn_consultas_2027_aceitar: {
         Args: {
           p_chave: string

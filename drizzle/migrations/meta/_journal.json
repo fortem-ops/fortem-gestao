@@ -1520,6 +1520,13 @@
       "when": 1793637431607,
       "tag": "0216_clube_resgatar_sem_elegibilidade",
       "breakpoints": true
+    },
+    {
+      "idx": 217,
+      "version": "7",
+      "when": 1793645610883,
+      "tag": "0217_comunidade_clubes",
+      "breakpoints": true
     }
   ]
 }
