@@ -18,6 +18,7 @@ import {
   montarSelosInicio,
   type PortalNivel,
 } from "@/components/portal/portalAssessmentLogic";
+import { ReassessmentCard } from "@/components/portal/PortalAssessmentMobile";
 
 const COR_AVISO = "text-[#E3B341]";
 const COR_OK = "text-[#4CC38A]";
@@ -313,6 +314,11 @@ export default function PortalHome() {
 
   return (
     <div className="space-y-5 pb-32 pt-4" style={{ fontFamily: "Archivo, sans-serif" }}>
+      {/* Reavaliação: mesmo cartão e condição da Evolução */}
+      {avaliacaoResume && (
+        <ReassessmentCard latestDate={avaliacaoResume.data} titulo="HORA DE REAVALIAR!" somenteNoPeriodo />
+      )}
+
       {/* 1. Saudação */}
       <h1 className="pt-2 text-2xl font-black uppercase tracking-tight text-foreground">
         {saudacao}, {primeiroNome}
