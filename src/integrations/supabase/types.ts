@@ -2860,6 +2860,206 @@ export type Database = {
           },
         ]
       }
+      comunidade_consentimentos: {
+        Row: {
+          aceito_em: string
+          aluno_id: string
+          id: string
+          revogado_em: string | null
+          suspenso_em: string | null
+          suspenso_por: string | null
+          versao_termo: string
+        }
+        Insert: {
+          aceito_em?: string
+          aluno_id: string
+          id?: string
+          revogado_em?: string | null
+          suspenso_em?: string | null
+          suspenso_por?: string | null
+          versao_termo: string
+        }
+        Update: {
+          aceito_em?: string
+          aluno_id?: string
+          id?: string
+          revogado_em?: string | null
+          suspenso_em?: string | null
+          suspenso_por?: string | null
+          versao_termo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_consentimentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_consentimentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      comunidade_feed_denuncias: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          id: string
+          motivo: string
+          post_id: string
+          resolvido_em: string | null
+          resolvido_por: string | null
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          id?: string
+          motivo: string
+          post_id: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          id?: string
+          motivo?: string
+          post_id?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_feed_denuncias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_feed_denuncias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "comunidade_feed_denuncias_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "comunidade_feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comunidade_feed_posts: {
+        Row: {
+          aluno_id: string
+          audiencia: string
+          created_at: string
+          expira_em: string
+          foto_path: string | null
+          id: string
+          moderado_em: string | null
+          moderado_por: string | null
+          payload: Json
+          referencia_id: string
+          referencia_tipo: string
+          status: string
+          tipo: string
+        }
+        Insert: {
+          aluno_id: string
+          audiencia?: string
+          created_at?: string
+          expira_em?: string
+          foto_path?: string | null
+          id?: string
+          moderado_em?: string | null
+          moderado_por?: string | null
+          payload?: Json
+          referencia_id: string
+          referencia_tipo: string
+          status: string
+          tipo: string
+        }
+        Update: {
+          aluno_id?: string
+          audiencia?: string
+          created_at?: string
+          expira_em?: string
+          foto_path?: string | null
+          id?: string
+          moderado_em?: string | null
+          moderado_por?: string | null
+          payload?: Json
+          referencia_id?: string
+          referencia_tipo?: string
+          status?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_feed_posts_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_feed_posts_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      comunidade_feed_reacoes: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          post_id: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          post_id: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_feed_reacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_feed_reacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "comunidade_feed_reacoes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "comunidade_feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conciliacoes_bancarias: {
         Row: {
           confianca: string
@@ -12511,6 +12711,20 @@ export type Database = {
         Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
         Returns: number
       }
+      fn_comunidade_clube_em_comum: {
+        Args: { p_a: string; p_b: string }
+        Returns: boolean
+      }
+      fn_comunidade_compartilhar: {
+        Args: {
+          p_audiencia?: string
+          p_foto_path?: string
+          p_referencia_id: string
+          p_tipo: string
+        }
+        Returns: string
+      }
+      fn_comunidade_compartilhaveis: { Args: never; Returns: Json }
       fn_comunidade_criar_clube:
         | {
             Args: { p_descricao: string; p_modalidade: string; p_nome: string }
@@ -12526,6 +12740,80 @@ export type Database = {
             Returns: Json
           }
       fn_comunidade_entrar: { Args: { p_clube_id: string }; Returns: Json }
+      fn_comunidade_feed: {
+        Args: { p_antes?: string; p_filtro?: string; p_limite?: number }
+        Returns: {
+          audiencia: string
+          created_at: string
+          eh_meu: boolean
+          eu_reagi: boolean
+          foto_path: string
+          id: string
+          nome: string
+          payload: Json
+          plano_chave: string
+          reacoes: number
+          tipo: string
+        }[]
+      }
+      fn_comunidade_feed_aceitar: {
+        Args: { p_versao?: string }
+        Returns: undefined
+      }
+      fn_comunidade_feed_apagar: { Args: { p_post: string }; Returns: string }
+      fn_comunidade_feed_denunciar: {
+        Args: { p_motivo?: string; p_post: string }
+        Returns: undefined
+      }
+      fn_comunidade_feed_desreagir: {
+        Args: { p_post: string }
+        Returns: undefined
+      }
+      fn_comunidade_feed_dispensar_denuncias: {
+        Args: { p_post: string }
+        Returns: undefined
+      }
+      fn_comunidade_feed_expirar: {
+        Args: never
+        Returns: {
+          foto_path: string
+          post_id: string
+        }[]
+      }
+      fn_comunidade_feed_foto_visivel: {
+        Args: { p_nome: string }
+        Returns: boolean
+      }
+      fn_comunidade_feed_fotos_apagadas: {
+        Args: { p_posts: string[] }
+        Returns: undefined
+      }
+      fn_comunidade_feed_moderar: {
+        Args: { p_acao: string; p_post: string }
+        Returns: string
+      }
+      fn_comunidade_feed_participa: {
+        Args: { p_aluno: string }
+        Returns: boolean
+      }
+      fn_comunidade_feed_pode_publicar: {
+        Args: { p_aluno: string }
+        Returns: boolean
+      }
+      fn_comunidade_feed_pode_ver: {
+        Args: { p_eu: string; p_post: string }
+        Returns: boolean
+      }
+      fn_comunidade_feed_reagir: {
+        Args: { p_post: string }
+        Returns: undefined
+      }
+      fn_comunidade_feed_revogar: { Args: never; Returns: string[] }
+      fn_comunidade_feed_status: { Args: never; Returns: Json }
+      fn_comunidade_feed_suspender: {
+        Args: { p_aluno: string; p_suspender: boolean }
+        Returns: undefined
+      }
       fn_comunidade_meu_aluno: { Args: never; Returns: string }
       fn_comunidade_meus_clubes: { Args: never; Returns: Json }
       fn_comunidade_moderar: {
