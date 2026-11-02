@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { MembershipCard } from "@/components/clube/MembershipCard";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useMeuPlanoClube } from "@/lib/clubePlano";
+import { SeloPlano } from "@/components/portal/SeloPlano";
 
 export default function PortalCarteirinha() {
   const { student } = useStudentPortal();
@@ -22,6 +24,8 @@ export default function PortalCarteirinha() {
     },
   });
 
+  const { data: meuPlano } = useMeuPlanoClube(!!student);
+
   if (!student) return null;
 
   return (
@@ -34,7 +38,7 @@ export default function PortalCarteirinha() {
           <ArrowLeft className="w-4 h-4 text-muted-foreground" />
         </button>
         <div>
-          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Clube FORTEM</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Benefícios</p>
           <h1 className="text-lg font-black text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
             Minha Carteirinha
           </h1>
@@ -62,6 +66,8 @@ export default function PortalCarteirinha() {
               membro={membro}
               alunoNome={student.nome}
               alunoEmail={student.email}
+              plano={meuPlano?.plano}
+              selo={<SeloPlano chave={meuPlano?.chave} />}
             />
 
             <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
@@ -87,7 +93,7 @@ export default function PortalCarteirinha() {
 
             <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-foreground">Ver parceiros FORTEM</p>
+                <p className="text-sm font-semibold text-foreground">Ver benefícios FORTEM</p>
                 <p className="text-xs text-muted-foreground">Onde usar sua carteirinha</p>
               </div>
               <button
