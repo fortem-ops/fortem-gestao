@@ -10,7 +10,7 @@ import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Send } from "lucide-react";
+import { Send, Image as ImageIcon } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   Sidebar,
@@ -90,6 +90,7 @@ const comercialItems = [
 const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
   { title: "Disparo de Mensagens", url: "/comercial/disparos", icon: Send },
+  { title: "Fotos do site", url: "/equipe/site/fotos", icon: ImageIcon },
 ];
 
 /* ─── Loja ─── */
