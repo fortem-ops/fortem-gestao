@@ -10335,6 +10335,51 @@ export type Database = {
         }
         Relationships: []
       }
+      site_fotos_ajuste: {
+        Row: {
+          arquivo_height: number | null
+          arquivo_path: string | null
+          arquivo_width: number | null
+          chave: string
+          desk_x: number
+          desk_y: number
+          desk_zoom: number
+          mob_x: number
+          mob_y: number
+          mob_zoom: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          arquivo_height?: number | null
+          arquivo_path?: string | null
+          arquivo_width?: number | null
+          chave: string
+          desk_x?: number
+          desk_y?: number
+          desk_zoom?: number
+          mob_x?: number
+          mob_y?: number
+          mob_zoom?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          arquivo_height?: number | null
+          arquivo_path?: string | null
+          arquivo_width?: number | null
+          chave?: string
+          desk_x?: number
+          desk_y?: number
+          desk_zoom?: number
+          mob_x?: number
+          mob_y?: number
+          mob_zoom?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       student_workout_progress: {
         Row: {
           aluno_id: string
@@ -14012,6 +14057,7 @@ export type Database = {
         Args: { p_tipo_servico: string }
         Returns: string
       }
+      fn_site_fotos_admin: { Args: never; Returns: boolean }
       fn_staff_excluir_treino_agendamento: {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
         Returns: Json
