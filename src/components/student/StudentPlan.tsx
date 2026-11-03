@@ -16,6 +16,7 @@ import { StudentServicos } from "./StudentServicos";
 import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
 import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+import { creditoCarteira } from "@/lib/creditosPlano2027";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
