@@ -8,7 +8,7 @@ export const SERVICOS_HOME = [
   { rotulo: "Avaliação", titulo: "Avaliação funcional e de força", texto: "Análise quantitativa de mobilidade articular, flexibilidade e saúde muscular.", path: "/avaliacao" },
 ];
 
-export const FOTOS_ESTRUTURA = ["área principal de treino", "equipamentos de força", "sala de reabilitação", "consultório de nutrição", "vestiários", "Recepção"];
+export const FOTOS_ESTRUTURA = ["ÁREA DE TREINO", "EQUIPAMENTOS DE QUALIDADE", "CONSUTÓRIO DE REABILITAÇÃO", "consultório de nutrição", "vestiários", "Recepção"];
 /** Deixe vazio para ocultar o link do vídeo. */
 export const VIDEO_ESTRUTURA_URL = "https://youtu.be/-qUUvtacXAs";
 export const NUMEROS_ESTRUTURA = [
@@ -41,14 +41,14 @@ export const DEPOIMENTOS: { texto: string; nome: string; tempo: string; destaque
 export const ETAPAS = [
   { n: "01", titulo: "Treino experimental", texto: "Queremos conhecer seus padrões de movimento e seu condicionamento atual. Você tem o primeiro contato com a metodologia e a estrutura." },
   { n: "02", titulo: "Avaliação funcional e de força", texto: "Análise quantitativa de mobilidade articular, flexibilidade e saúde muscular com dinamômetro." },
-  { n: "03", titulo: "Plano personalizado", texto: "Estruturamos o treinamento a partir das suas características, limitações e objetivos, junto aos serviços da reabilitação." },
-  { n: "04", titulo: "Programa multidisciplinar", texto: "Começamos a programação dos treinos e oferecemos sessões individuais de reabilitação, com foco no que precisa evoluir." },
+  { n: "03", titulo: "Plano personalizado", texto: "Estruturamos o treinamento a partir das suas características, limitações e objetivos." },
+  { n: "04", titulo: "Programa multidisciplinar", texto: "Começamos a programação dos treinos e oferecemos sessões individuais de nutrição e reabilitação, que podem ser contratados à parte." },
 ];
 
 export const PLANOS_HOME = [
-  { nome: "Start", sub: "Mensal, sem fidelidade", texto: "Pagamento por recorrência. Cancele quando quiser, com acesso até o fim do ciclo pago." },
-  { nome: "Power", sub: "12 meses", texto: "Uma avaliação funcional, 10 dias de licença e brinde camiseta." },
-  { nome: "Pro", sub: "12 meses, o mais completo", texto: "Duas avaliações funcionais, 20 dias de licença, horários fixos, bota pneumática e reposição de créditos ao final." },
+  { nome: "Start", sub: "Mensal, sem fidelidade", texto: "Pagamento por recorrência. Cancele quando quiser." },
+  { nome: "Power", sub: "12 meses", texto: "Uma avaliação funcional inclusa, 10 dias de licença e uma caiseta de brinde." },
+  { nome: "Pro", sub: "12 meses, o mais completo", texto: "Duas avaliações funcionais inclusas, 20 dias de licença, horários fixos, sessões com bota pneumática e reposição de créditos de treinos ao final do contrato." },
 ];
 
 export const HORARIOS = [
