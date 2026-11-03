@@ -67,7 +67,7 @@ export function SiteHome() {
           <div className="sp-home-texto">
             <p className="sp-rotulo text-[hsl(var(--sp-vermelho))]">Centro de treinamento, nutrição e reabilitação</p>
             <h1 className="mt-4 text-4xl uppercase leading-[1.05] md:text-6xl">Treino, nutrição e reabilitação no mesmo lugar.</h1>
-            <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">Treinamento funcional em Porto Alegre, com metodologia que respeita seus limites e faz você evoluir. Desde 2017 na Avenida Independência.</p>
+            <p className="mt-5 max-w-lg text-[hsl(var(--sp-cinza))]">Treinamento funcional em Porto Alegre, com metodologia própria que respeita seus limites e te auxilia evoluir. Desde 2017 na Avenida Independência.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <BotaoWhats origem="home" />
               <Link to="/planos" className="sp-btn sp-btn-contorno">Ver planos</Link>
@@ -177,7 +177,7 @@ export function SiteHome() {
       <section className="sp-fundo-preto py-16 md:py-24">
         <div className="sp-container">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <Cabecalho claro rotulo="Planos" titulo="Escolha pela frequência e pelo acompanhamento." texto="Monte o seu plano em poucos passos e veja os valores na página de planos." />
+            <Cabecalho claro rotulo="Planos" titulo="Escolha sua frequência e benefícios." texto="Monte o seu plano em poucos passos." />
             <Link to="/planos" className="sp-btn sp-btn-acao self-start">Montar meu plano →</Link>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -197,7 +197,7 @@ export function SiteHome() {
         <div className="sp-container grid gap-4 md:grid-cols-2">
           {[
             { rotulo: "Corrida", titulo: "Grupo de Corrida FORTEM", texto: "Treino de corrida em grupo, com orientação profissional, do iniciante ao avançado.", cta: "Conhecer o grupo →", to: "/corrida" },
-            { rotulo: "Loja", titulo: "Loja FORTEM", texto: "Produtos e serviços avulsos da FORTEM, com pagamento online.", cta: "Ir para a loja →", to: "/store" },
+            { rotulo: "Loja", titulo: "Loja FORTEM", texto: "Produtos com a marca da FORTEM.", cta: "Ir para a loja →", to: "/store" },
           ].map((b) => (
             <Link key={b.to} to={b.to} className="group sp-fundo-superficie p-8">
               <p className="sp-rotulo sp-texto-acao">{b.rotulo}</p>
@@ -213,7 +213,7 @@ export function SiteHome() {
       <section id="horarios" className="scroll-mt-20 sp-fundo-superficie py-16 md:py-24">
         <div className="sp-container grid gap-12 lg:grid-cols-2">
           <div>
-            <Cabecalho rotulo="Horários" titulo="Quando atendemos." />
+            <Cabecalho rotulo="Horários" titulo="Quando atendemos" />
             <div className="mt-8 space-y-6">
               {HORARIOS.map((h) => (
                 <div key={h.servico} className="border-t border-[hsl(var(--sp-cinza))] pt-4">
