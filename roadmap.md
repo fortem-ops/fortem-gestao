@@ -167,3 +167,4 @@
 - [ ] Feed e Ranking da Comunidade (próximo lote).
 - [x] Comunidade: capa dos clubes (migração 0218, bucket privado comunidade-clubes com links temporários porque o workspace bloqueia buckets públicos; descrição até 120; capa enviada pelo aluno em {aluno_id}/, pela equipe em equipe/).
 - [x] Comunidade: capas cobrindo o card inteiro (object-cover, object-position center, altura mínima 140px) em Meus clubes, Explorar e cabeçalho do detalhe; degradê reforçado (#0e0e0e 0,92 na base → 0,35 no topo + lateral 0,75 até 70%) e sombra leve no texto. Só front-end, sem migração.
+- [x] Ajuste fino das fotos do site (Fotos do site, /equipe/site/fotos)
