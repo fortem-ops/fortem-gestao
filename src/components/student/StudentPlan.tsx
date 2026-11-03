@@ -16,6 +16,7 @@ import { StudentServicos } from "./StudentServicos";
 import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
 import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+import { creditoCarteira } from "@/lib/creditosPlano2027";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
@@ -142,6 +143,25 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       const servicos = plano.servicos || [];
 
+      // Planos 2027: créditos ficam na carteira (creditos_aluno) ligados à venda do plano.
+      let carteira: any[] | null = null;
+      if (plano.catalogo_id) {
+        const { data: vendas } = await supabase
+          .from("vendas").select("id").eq("plano_id", plano.id);
+        const ids = (vendas ?? []).map((v: any) => v.id);
+        if (ids.length > 0) {
+          const { data: cred } = await supabase
+            .from("creditos_aluno")
+            .select("atividade, quantidade_inicial, quantidade_usada, ativo, data_validade")
+            .eq("aluno_id", student.id)
+            .eq("origem_tipo", "plano")
+            .in("origem_id", ids);
+          carteira = cred ?? [];
+        } else {
+          carteira = [];
+        }
+      }
+
       const countPurchased = (tipo: string) =>
         consumos?.filter((c: any) => c.tipo_servico === tipo && c.tipo_registro === "compra")
           .reduce((sum: number, c: any) => sum + (c.quantidade ?? 1), 0) || 0;
@@ -149,7 +169,9 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       const countUsed = (tipo: string) =>
         consumos?.filter((c: any) => c.tipo_servico === tipo && (!!c.agenda_id || c.tipo_registro === "uso_manual")).length || 0;
 
-      const buildCredit = (tipo: string) => ({
+      const buildCredit = (tipo: string) => carteira
+        ? creditoCarteira(carteira, tipo, today)
+        : ({
         base: parseServiceCount(servicos, tipo),
         comprado: countPurchased(tipo),
         total: parseServiceCount(servicos, tipo) + countPurchased(tipo),
@@ -159,6 +181,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       return {
         ...plano,
         consumos: consumos || [],
+        creditosCarteira: !!carteira,
         credits: {
           avalFuncional: buildCredit("Avaliação Funcional"),
           nutricao: buildCredit("Consultas Nutrição"),
@@ -586,7 +609,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                             <Badge variant="outline" className={`text-xs ${restante > 0 ? "status-active" : "status-urgent"}`}>
                               {restante > 0 ? `${restante} disponível${restante !== 1 ? "eis" : ""}` : "Esgotado"}
                             </Badge>
-                            {isAdmin && (
+                            {isAdmin && !(data as any).creditosCarteira && (
                               <div className="flex items-center gap-1 ml-1">
                                 <button
                                   className="text-muted-foreground hover:text-primary transition-colors"
