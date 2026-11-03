@@ -609,7 +609,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                             <Badge variant="outline" className={`text-xs ${restante > 0 ? "status-active" : "status-urgent"}`}>
                               {restante > 0 ? `${restante} disponível${restante !== 1 ? "eis" : ""}` : "Esgotado"}
                             </Badge>
-                            {isAdmin && (
+                            {isAdmin && !(data as any).creditosCarteira && (
                               <div className="flex items-center gap-1 ml-1">
                                 <button
                                   className="text-muted-foreground hover:text-primary transition-colors"
