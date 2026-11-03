@@ -94,6 +94,33 @@ async function baixarPendente(sb: any, m: any, registrosUsados: Set<string>): Pr
   return "baixado";
 }
 
+const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtData = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+
+/** Um aviso por saída: a chave primária em conciliacao_avisos impede repetir nos dias seguintes. */
+async function avisarSaidaSemDespesa(sb: any, m: any): Promise<boolean> {
+  const { error: resErr } = await sb.from("conciliacao_avisos").insert({ movimento_id: m.id });
+  if (resErr) { if (resErr.code !== "23505") console.error("reservar aviso", resErr.message); return false; }
+  const { data: adm } = await sb.from("user_roles").select("user_id").eq("role", "admin").order("user_id").limit(1);
+  const criador = adm?.[0]?.user_id;
+  if (!criador) return false;
+  const desc = [m.titulo, m.descricao].filter(Boolean).join(" · ") || "sem descrição";
+  const { data: n, error } = await sb.from("notificacoes").insert({
+    titulo: `Saída no Inter sem despesa: ${brl(Number(m.valor))} em ${fmtData(m.data_entrada)}`,
+    descricao: `Foi identificada uma saída no Banco Inter que não corresponde a nenhuma despesa lançada.\n\n` +
+      `Data: ${fmtData(m.data_entrada)}\nValor: ${brl(Number(m.valor))}\nDescrição no extrato: ${desc}\n\n` +
+      `Para conciliar (vincular a uma despesa existente ajustando o valor, ou criar uma nova despesa), abra: ` +
+      `/financeiro/conciliacao-bancaria?mov=${m.id}`,
+    categoria: "financeiro", prioridade: "media", tipo: "simples", criado_por: criador,
+  }).select("id").single();
+  if (error || !n) { console.error("criar aviso", error?.message); return false; }
+  await sb.from("conciliacao_avisos").update({ notificacao_id: n.id }).eq("movimento_id", m.id);
+  const { data: dest } = await sb.from("user_roles").select("user_id").eq("role", "admin");
+  const ids = [...new Set((dest ?? []).map((d: any) => d.user_id))];
+  if (ids.length) await sb.from("notificacao_destinatarios").insert(ids.map((u) => ({ notificacao_id: n.id, usuario_id: u })));
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -128,7 +155,7 @@ Deno.serve(async (req) => {
     }
 
     const pendentesMov = movs.filter((m) => !vinculados.has(m.id));
-    const resumo = { processados: 0, conciliados: 0, exatas: 0, aproximadas: 0, baixados_automaticamente: 0, pendentes_sem_candidato: 0, pendentes_multiplos: 0, erros: 0 };
+    const resumo = { processados: 0, conciliados: 0, exatas: 0, aproximadas: 0, baixados_automaticamente: 0, pendentes_sem_candidato: 0, pendentes_multiplos: 0, erros: 0, avisos_criados: 0 };
 
     for (const m of pendentesMov) {
       if (m.tipo_operacao !== "C" && m.tipo_operacao !== "D") continue;
@@ -156,7 +183,9 @@ Deno.serve(async (req) => {
         if (r === "baixado") { resumo.baixados_automaticamente++; continue; }
         if (r === "multiplos") { resumo.pendentes_multiplos++; continue; }
         if (r === "erro") { resumo.erros++; continue; }
-        resumo.pendentes_sem_candidato++; continue;
+        resumo.pendentes_sem_candidato++;
+        if (await avisarSaidaSemDespesa(sb, m)) resumo.avisos_criados++;
+        continue;
       }
 
       const c: any = lista[0];

@@ -3060,6 +3060,35 @@ export type Database = {
           },
         ]
       }
+      conciliacao_avisos: {
+        Row: {
+          created_at: string
+          movimento_id: string
+          notificacao_id: string | null
+          resolvido_em: string | null
+        }
+        Insert: {
+          created_at?: string
+          movimento_id: string
+          notificacao_id?: string | null
+          resolvido_em?: string | null
+        }
+        Update: {
+          created_at?: string
+          movimento_id?: string
+          notificacao_id?: string | null
+          resolvido_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conciliacao_avisos_movimento_id_fkey"
+            columns: ["movimento_id"]
+            isOneToOne: true
+            referencedRelation: "inter_extrato_movimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conciliacoes_bancarias: {
         Row: {
           confianca: string
@@ -3071,6 +3100,7 @@ export type Database = {
           registro_id: string
           tabela_origem: string
           tipo_match: string
+          valor_anterior: number | null
         }
         Insert: {
           confianca: string
@@ -3082,6 +3112,7 @@ export type Database = {
           registro_id: string
           tabela_origem: string
           tipo_match: string
+          valor_anterior?: number | null
         }
         Update: {
           confianca?: string
@@ -3093,6 +3124,7 @@ export type Database = {
           registro_id?: string
           tabela_origem?: string
           tipo_match?: string
+          valor_anterior?: number | null
         }
         Relationships: [
           {
@@ -12890,6 +12922,23 @@ export type Database = {
         }[]
       }
       fn_comunidade_sair: { Args: { p_clube_id: string }; Returns: Json }
+      fn_conciliacao_pode_editar: { Args: never; Returns: boolean }
+      fn_conciliar_saida_despesa: {
+        Args: { p_despesa_id: string; p_movimento_id: string }
+        Returns: Json
+      }
+      fn_conciliar_saida_nova_despesa: {
+        Args: {
+          p_categoria_id: string
+          p_descricao: string
+          p_forma_pagamento?: string
+          p_fornecedor_id?: string
+          p_movimento_id: string
+          p_observacao?: string
+          p_tipo: string
+        }
+        Returns: string
+      }
       fn_consultas_2027_aceitar: {
         Args: {
           p_chave: string
@@ -13044,6 +13093,10 @@ export type Database = {
         Returns: number
       }
       fn_desativar_planos_vencidos: { Args: never; Returns: number }
+      fn_desfazer_conciliacao_saida: {
+        Args: { p_movimento_id: string }
+        Returns: undefined
+      }
       fn_detect_evasao: { Args: never; Returns: Json }
       fn_dias_uteis_entre: {
         Args: { p_ate: string; p_de: string }
