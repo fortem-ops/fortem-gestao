@@ -1555,6 +1555,13 @@
       "when": 1793713063774,
       "tag": "0221_site_fotos_ajuste",
       "breakpoints": true
+    },
+    {
+      "idx": 222,
+      "version": "7",
+      "when": 1793714354169,
+      "tag": "0222_site_fotos_admin_user_id",
+      "breakpoints": true
     }
   ]
 }
