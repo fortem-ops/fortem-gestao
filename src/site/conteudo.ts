@@ -40,7 +40,7 @@ export const DEPOIMENTOS: { texto: string; nome: string; tempo: string; destaque
 
 export const ETAPAS = [
   { n: "01", titulo: "Treino experimental", texto: "Queremos conhecer seus padrões de movimento e seu condicionamento atual. Você tem o primeiro contato com a metodologia e a estrutura." },
-  { n: "02", titulo: "Avaliação funcional e de força", texto: "Análise quantitativa de mobilidade articular, flexibilidade e saúde muscular." },
+  { n: "02", titulo: "Avaliação funcional e de força", texto: "Análise quantitativa de mobilidade articular, flexibilidade e saúde muscular com dinamômetro." },
   { n: "03", titulo: "Plano personalizado", texto: "Estruturamos o treinamento a partir das suas características, limitações e objetivos, junto aos serviços da reabilitação." },
   { n: "04", titulo: "Programa multidisciplinar", texto: "Começamos a programação dos treinos e oferecemos sessões individuais de reabilitação, com foco no que precisa evoluir." },
 ];
