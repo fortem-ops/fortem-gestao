@@ -1597,6 +1597,13 @@
       "when": 1793793158421,
       "tag": "0227_conciliar_saida_creditos_fatura",
       "breakpoints": true
+    },
+    {
+      "idx": 228,
+      "version": "7",
+      "when": 1793801719551,
+      "tag": "0228_restringir_leitura_fotos_site_e_capas",
+      "breakpoints": true
     }
   ]
 }
