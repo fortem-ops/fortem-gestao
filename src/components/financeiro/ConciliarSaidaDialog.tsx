@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoriasDespesa, useFornecedores } from "@/hooks/useDespesas";
 import { diferencaValor } from "@/lib/conciliacaoSaida";
+import { ConciliarSaidaSoma } from "@/components/financeiro/ConciliarSaidaSoma";
 
 const JANELA_DIAS = 15;
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -137,6 +138,7 @@ export function ConciliarSaidaDialog({ mov, onClose }: { mov: MovimentoSaida; on
         <Tabs defaultValue="existente">
           <TabsList>
             <TabsTrigger value="existente">Despesa existente</TabsTrigger>
+            <TabsTrigger value="soma">Várias despesas (soma)</TabsTrigger>
             <TabsTrigger value="nova">Nova despesa</TabsTrigger>
           </TabsList>
 
@@ -175,6 +177,11 @@ export function ConciliarSaidaDialog({ mov, onClose }: { mov: MovimentoSaida; on
                 {vincular.isPending ? "Conciliando…" : dif !== 0 ? "Ajustar valor e conciliar" : "Conciliar"}
               </Button>
             </DialogFooter>
+          </TabsContent>
+
+          <TabsContent value="soma">
+            <ConciliarSaidaSoma movId={mov.id} data={mov.data_entrada} valorBanco={valorBanco}
+              onDone={() => fim("Conciliação registrada")} onClose={onClose} />
           </TabsContent>
 
           <TabsContent value="nova" className="space-y-3">
