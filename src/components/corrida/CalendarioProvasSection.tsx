@@ -50,7 +50,14 @@ const CalendarioProvasSection = ({ provas = CALENDARIO_PROVAS_2027, filtroMes = 
                       </time>
                       <h4 className="sp-cal-nome">{p.nome}</h4>
                       {p.local && <p className="sp-cal-extra">{p.local}</p>}
-                      {p.distancias && <p className="sp-cal-extra">{p.distancias}</p>}
+                      {p.distancias && p.distancias.length > 0 && (
+                        <div className="sp-cal-dist">
+                          <span className="sp-cal-dist-apoio">Distâncias da equipe FORTEM</span>
+                          <ul className="sp-cal-dist-lista">
+                            {p.distancias.map((d) => <li key={d} className="sp-cal-dist-item">{d}</li>)}
+                          </ul>
+                        </div>
+                      )}
                       {p.observacao && <p className="sp-cal-extra">{p.observacao}</p>}
                     </div>
                     <div className="sp-cal-rodape">
