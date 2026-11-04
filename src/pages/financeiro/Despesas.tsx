@@ -31,6 +31,9 @@ import { useDespesasPeriodo, useCategoriasDespesa, useDespesaMutations, useForne
 import { exportarDespesasXLSX, exportarDespesasPDF, type DespesaExportRow, type DespesasExportMeta } from "@/lib/despesasExport";
 import { LancarFolhaDialog } from "@/components/financeiro/LancarFolhaDialog";
 import { ImportarFaturaDialog } from "@/components/financeiro/ImportarFaturaDialog";
+import { ConciliarSaidaDialog, type MovimentoSaida } from "@/components/financeiro/ConciliarSaidaDialog";
+import { SaidasSemDespesaCard } from "@/components/financeiro/SaidasSemDespesaCard";
+import { useSearchParams } from "react-router-dom";
 import {
   CategoriasHierarquia, FornecedoresCadastro, nomeCategoria, useArvoreCategorias,
 } from "@/components/financeiro/DespesasCadastros";
@@ -163,6 +166,10 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
   const [copiando, setCopiando] = useState<Despesa | null>(null);
   const [baixando, setBaixando] = useState<Despesa | null>(null);
   const [novoAberto, setNovoAberto] = useState(false);
+  const [searchParams] = useSearchParams();
+  const movDestaque = searchParams.get("mov");
+  const [saidaAssociar, setSaidaAssociar] = useState<MovimentoSaida | null>(null);
+  const [saidaNova, setSaidaNova] = useState<MovimentoSaida | null>(null);
   const [excluindo, setExcluindo] = useState<Despesa | null>(null);
 
   const inicio12 = format(startOfMonth(addMonths(mesRef, -11)), "yyyy-MM-dd");
@@ -408,6 +415,8 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
         )}
       </div>
 
+      {canEdit && <SaidasSemDespesaCard destaqueId={movDestaque} onAssociar={setSaidaAssociar} onNova={setSaidaNova} />}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Total fixas" value={brl(resumo.fixa)} icon={Receipt} />
         <KpiCard label="Total variáveis" value={brl(resumo.variavel)} icon={Receipt} />
@@ -649,6 +658,17 @@ function Lancamentos({ canEdit }: { canEdit: boolean }) {
       )}
       {folhaAberta && <LancarFolhaDialog mesTela={mesRef} onClose={() => setFolhaAberta(false)} />}
       {faturaAberta && <ImportarFaturaDialog onClose={() => setFaturaAberta(false)} />}
+      {saidaAssociar && (
+        <ConciliarSaidaDialog mov={saidaAssociar} onClose={() => {
+          setSaidaAssociar(null);
+          qc.invalidateQueries({ queryKey: ["saidas-sem-despesa"] });
+          qc.invalidateQueries({ queryKey: ["despesas"] });
+        }} />
+      )}
+      {saidaNova && (
+        <DespesaDialog despesa={null} categorias={categorias} mesPadrao={mesRef} movSaida={saidaNova}
+          onClose={() => { setSaidaNova(null); qc.invalidateQueries({ queryKey: ["saidas-sem-despesa"] }); qc.invalidateQueries({ queryKey: ["despesas"] }); }} />
+      )}
       {(novoAberto || editando || copiando) && (
         <DespesaDialog
           despesa={editando}
@@ -826,8 +846,9 @@ function DarBaixaDialog({ despesa, onClose }: { despesa: Despesa; onClose: () =>
   );
 }
 
-function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose }: {
+function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose, movSaida }: {
   despesa: Despesa | null; copiaDe?: Despesa | null; categorias: DespesaCategoria[]; mesPadrao: Date; onClose: () => void;
+  movSaida?: MovimentoSaida | null;
 }) {
   const { salvar, criarLote, atualizarFuturasGrupo } = useDespesaMutations();
   const { data: fornecedores = [] } = useFornecedores();
@@ -847,10 +868,11 @@ function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose }: {
   const [manterAntiga, setManterAntiga] = useState(ehAntiga);
 
   const [fornecedorId, setFornecedorId] = useState<string | null>(src?.fornecedor_id ?? null);
-  const [descricao, setDescricao] = useState(src?.descricao ?? "");
-  const [valor, setValor] = useState(src ? String(src.valor) : "");
-  const [competencia, setCompetencia] = useState(src?.data_competencia ?? compPadrao);
-  const [pagamento, setPagamento] = useState(despesa?.data_pagamento ?? "");
+  const movDesc = movSaida ? [movSaida.titulo, movSaida.descricao].filter(Boolean).join(" · ") : "";
+  const [descricao, setDescricao] = useState(src?.descricao ?? movDesc);
+  const [valor, setValor] = useState(src ? String(src.valor) : movSaida ? String(movSaida.valor) : "");
+  const [competencia, setCompetencia] = useState(src?.data_competencia ?? movSaida?.data_entrada ?? compPadrao);
+  const [pagamento, setPagamento] = useState(despesa?.data_pagamento ?? movSaida?.data_entrada ?? "");
   const [tipo, setTipo] = useState<DespesaTipo>(src?.tipo ?? "fixa");
   const [status, setStatus] = useState<DespesaStatus>(despesa?.status ?? (copiaDe ? "pendente" : "pago"));
   const [observacao, setObservacao] = useState(src?.observacao ?? "");
@@ -938,7 +960,13 @@ function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose }: {
       return salvarEdicao(input, "este");
     }
     try {
-      if (!repetir) {
+      if (movSaida) {
+        const id = await salvar.mutateAsync({ input: { ...input, conciliado: false } });
+        if (!id) throw new Error("Despesa criada sem identificador");
+        const { error } = await supabase.rpc("fn_conciliar_saida_despesa", { p_movimento_id: movSaida.id, p_despesa_id: id });
+        if (error) { toast.error(`Despesa cadastrada, mas não conciliada: ${error.message}`); onClose(); return; }
+        toast.success("Despesa cadastrada e conciliada com o Inter");
+      } else if (!repetir) {
         await salvar.mutateAsync({ input });
         toast.success("Despesa cadastrada");
       } else {
@@ -1073,11 +1101,15 @@ function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose }: {
               </Select>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Switch id="conciliado" checked={conciliado} onCheckedChange={setConciliado} />
-            <Label htmlFor="conciliado">Conciliado</Label>
-          </div>
-          {!despesa && (
+          {movSaida ? (
+            <p className="text-xs text-muted-foreground">Ao salvar, esta despesa será conciliada com a saída do Banco Inter de {brl(Number(movSaida.valor))}.</p>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Switch id="conciliado" checked={conciliado} onCheckedChange={setConciliado} />
+              <Label htmlFor="conciliado">Conciliado</Label>
+            </div>
+          )}
+          {!despesa && !movSaida && (
             <div className="rounded-md border p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Checkbox id="repetir" checked={repetir} onCheckedChange={(v) => setRepetir(v === true)} />

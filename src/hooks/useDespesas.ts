@@ -76,14 +76,17 @@ export function useDespesaMutations() {
   const uidAtual = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
   const salvar = useMutation({
-    mutationFn: async ({ id, input }: { id?: string; input: DespesaInput }) => {
+    mutationFn: async ({ id, input }: { id?: string; input: DespesaInput }): Promise<string | undefined> => {
       const uid = await uidAtual();
       if (id) {
         const { error } = await supabase.from('despesas').update({ ...input, updated_by: uid }).eq('id', id);
         if (error) throw error;
+        return id;
       } else {
-        const { error } = await supabase.from('despesas').insert({ ...input, origem: 'manual', created_by: uid, updated_by: uid });
+        const { data, error } = await supabase.from('despesas')
+          .insert({ ...input, origem: 'manual', created_by: uid, updated_by: uid }).select('id').single();
         if (error) throw error;
+        return data?.id;
       }
     },
     onSuccess: inval,
