@@ -1569,6 +1569,13 @@
       "when": 1793718367982,
       "tag": "0223_conciliacao_saidas_sem_despesa",
       "breakpoints": true
+    },
+    {
+      "idx": 224,
+      "version": "7",
+      "when": 1793790490232,
+      "tag": "0224_conciliar_saida_vincular_conciliada",
+      "breakpoints": true
     }
   ]
 }
