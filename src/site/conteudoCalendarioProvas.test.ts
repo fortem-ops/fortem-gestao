@@ -16,3 +16,15 @@ describe("calendário de provas 2027", () => {
   });
   it("mensagem cita a prova", () => expect(mensagemProva("3ª NEW BALANCE")).toContain("preparação para a 3ª NEW BALANCE"));
 });
+
+import { agruparPorMes, statusProva } from "./conteudoCalendarioProvas";
+describe("cards por mês", () => {
+  it("agrupa só meses com prova", () => {
+    expect(agruparPorMes(CALENDARIO_PROVAS_2027).map((g) => g.rotulo)).toEqual(["ABRIL 2027", "JUNHO 2027", "AGOSTO 2027", "OUTUBRO 2027"]);
+  });
+  it("contagem regressiva", () => {
+    expect(statusProva("2027-04-25", "2027-04-15")).toBe("FALTAM 10 DIAS");
+    expect(statusProva("2027-04-25", "2027-04-25")).toBe("É HOJE");
+    expect(statusProva("2027-04-25", "2027-04-26")).toBe("REALIZADA");
+  });
+});

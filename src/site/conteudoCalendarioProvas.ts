@@ -40,3 +40,35 @@ export function provaRealizada(iso: string, hojeIso: string) {
 export function mensagemProva(nome: string) {
   return `Olá! Vim pelo site e quero saber mais sobre a preparação para a ${nome}.`;
 }
+
+const MESES_NOME = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+
+/** Agrupa por mês (AAAA-MM), só meses com prova, em ordem de data. */
+export function agruparPorMes(provas: ProvaCalendario[]) {
+  const grupos: { chave: string; rotulo: string; provas: ProvaCalendario[] }[] = [];
+  for (const p of ordenarProvas(provas)) {
+    const chave = p.data.slice(0, 7);
+    let g = grupos.find((x) => x.chave === chave);
+    if (!g) {
+      const [a, m] = chave.split("-").map(Number);
+      g = { chave, rotulo: `${MESES_NOME[m - 1]} ${a}`, provas: [] };
+      grupos.push(g);
+    }
+    g.provas.push(p);
+  }
+  return grupos;
+}
+
+/** Dias inteiros entre duas datas ISO (sem horário). */
+export function diasEntre(deIso: string, ateIso: string) {
+  const t = (s: string) => { const [a, m, d] = s.split("-").map(Number); return Date.UTC(a, m - 1, d); };
+  return Math.round((t(ateIso) - t(deIso)) / 86400000);
+}
+
+/** Texto do rodapé: FALTAM X DIAS / FALTA 1 DIA / É HOJE / REALIZADA. */
+export function statusProva(iso: string, hojeIso: string) {
+  const n = diasEntre(hojeIso, iso);
+  if (n < 0) return "REALIZADA";
+  if (n === 0) return "É HOJE";
+  return n === 1 ? "FALTA 1 DIA" : `FALTAM ${n} DIAS`;
+}
