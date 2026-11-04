@@ -272,12 +272,14 @@ function AjustesRecentes({ canEdit }: { canEdit: boolean }) {
       const mapa = new Map((desp ?? []).map((d) => [d.id, d]));
       const multIds = (data ?? []).filter((r) => r.tabela_origem === "despesas_multiplas").map((r) => r.id);
       const { data: itens } = multIds.length
-        ? await supabase.from("conciliacao_saida_itens").select("conciliacao_id, valor").eq("ativo", true).in("conciliacao_id", multIds)
-        : { data: [] as { conciliacao_id: string; valor: number }[] };
-      const resumo = new Map<string, { n: number; soma: number }>();
+        ? await supabase.from("conciliacao_saida_itens").select("conciliacao_id, valor, tipo").eq("ativo", true).in("conciliacao_id", multIds)
+        : { data: [] as { conciliacao_id: string; valor: number; tipo: string }[] };
+      const resumo = new Map<string, { n: number; soma: number; cred: number }>();
       (itens ?? []).forEach((i) => {
-        const r = resumo.get(i.conciliacao_id) ?? { n: 0, soma: 0 };
-        resumo.set(i.conciliacao_id, { n: r.n + 1, soma: r.soma + Number(i.valor) });
+        const r = resumo.get(i.conciliacao_id) ?? { n: 0, soma: 0, cred: 0 };
+        resumo.set(i.conciliacao_id, i.tipo === "credito"
+          ? { ...r, cred: r.cred + Number(i.valor) }
+          : { ...r, n: r.n + 1, soma: r.soma + Number(i.valor) });
       });
       return (data ?? []).map((r) => ({ ...r, despesa: mapa.get(r.registro_id), mult: resumo.get(r.id) }));
     },
@@ -301,9 +303,9 @@ function AjustesRecentes({ canEdit }: { canEdit: boolean }) {
             {q.data.map((r) => (
               <TableRow key={r.movimento_id}>
                 <TableCell>{r.tabela_origem === "ignorado" ? `Não é despesa: ${r.motivo ?? ""}`
-                  : r.tabela_origem === "despesas_multiplas" ? `Soma de ${r.mult?.n ?? 0} despesas`
+                  : r.tabela_origem === "despesas_multiplas" ? `Soma de ${r.mult?.n ?? 0} despesas${r.mult?.cred ? ` − ${brl(r.mult.cred)} em créditos` : ""}`
                   : r.despesa?.descricao ?? "—"}</TableCell>
-                <TableCell>{r.tabela_origem === "ignorado" ? "—" : r.tabela_origem === "despesas_multiplas" ? brl(r.mult?.soma ?? 0) : r.valor_anterior != null
+                <TableCell>{r.tabela_origem === "ignorado" ? "—" : r.tabela_origem === "despesas_multiplas" ? brl((r.mult?.soma ?? 0) - (r.mult?.cred ?? 0)) : r.valor_anterior != null
                   ? `${brl(Number(r.valor_anterior))} → ${brl(Number(r.despesa?.valor ?? 0))}`
                   : brl(Number(r.despesa?.valor ?? 0))}</TableCell>
                 <TableCell className="text-right">

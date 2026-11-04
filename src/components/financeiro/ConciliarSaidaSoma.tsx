@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { somaCentavos } from "@/lib/conciliacaoSaida";
+import { somaCentavos, totalLiquidoFatura } from "@/lib/conciliacaoSaida";
+import { Plus, Trash2 } from "lucide-react";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtData = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—");
@@ -20,7 +21,8 @@ const ERROS: Record<string, string> = {
   movimento_ja_vinculado: "Esta saída já foi conciliada.",
   despesa_ja_ligada: "Alguma despesa já está ligada a outra saída.",
   soma_diferente: "A soma não bate com o valor da saída.",
-  selecione_varias: "Selecione pelo menos duas despesas.",
+  selecione_varias: "Selecione pelo menos duas despesas (ou uma, com crédito).",
+  creditos_invalidos: "Cada crédito precisa de descrição e valor maior que zero.",
 };
 
 /** Liga uma saída (ex.: fatura de cartão) à soma de várias despesas já lançadas, sem mudar valores. */
@@ -30,6 +32,7 @@ export function ConciliarSaidaSoma({ movId, data, valorBanco, onDone, onClose }:
   const qc = useQueryClient();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [busca, setBusca] = useState("");
+  const [creditos, setCreditos] = useState<{ descricao: string; valor: string }[]>([]);
   const ini = addDias(data, -45);
   const fim = addDias(data, 5);
 
@@ -66,7 +69,12 @@ export function ConciliarSaidaSoma({ movId, data, valorBanco, onDone, onClose }:
   }, [q.data, busca]);
   const escolhidos = (q.data ?? []).filter((r) => sel.has(r.id));
   const soma = somaCentavos(escolhidos.map((r) => r.valor));
-  const dif = Math.round((valorBanco - soma) * 100) / 100;
+  const credVals = creditos.map((c) => Number(c.valor.replace(/\./g, "").replace(",", ".")) || 0);
+  const totalCred = somaCentavos(credVals);
+  const total = totalLiquidoFatura(escolhidos.map((r) => r.valor), credVals);
+  const dif = Math.round((valorBanco - total) * 100) / 100;
+  const credOk = creditos.every((c, i) => c.descricao.trim() && credVals[i] > 0);
+  const minimo = creditos.length ? 1 : 2;
   const visiveisTodos = lista.length > 0 && lista.every((r) => sel.has(r.id));
 
   const toggle = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -78,7 +86,8 @@ export function ConciliarSaidaSoma({ movId, data, valorBanco, onDone, onClose }:
 
   const ligar = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("fn_conciliar_saida_multiplas", { p_movimento_id: movId, p_despesa_ids: [...sel] });
+      const { error } = await supabase.rpc("fn_conciliar_saida_multiplas", { p_movimento_id: movId, p_despesa_ids: [...sel],
+        p_creditos: creditos.map((c, i) => ({ descricao: c.descricao.trim(), valor: credVals[i] })) });
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["saidas-sem-despesa"] }); toast.success("Saída ligada às despesas selecionadas"); onDone(); },
@@ -114,14 +123,36 @@ export function ConciliarSaidaSoma({ movId, data, valorBanco, onDone, onClose }:
           </TableBody>
         </Table>
       </div>
+      <div className="space-y-2 rounded-md border p-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">Créditos da fatura (estornos/devoluções)</p>
+          <Button size="sm" variant="outline" onClick={() => setCreditos((c) => [...c, { descricao: "", valor: "" }])}>
+            <Plus className="h-4 w-4 mr-1" />Adicionar crédito
+          </Button>
+        </div>
+        {creditos.map((c, i) => (
+          <div key={i} className="flex gap-2">
+            <Input placeholder="Descrição (ex.: devolução de compra)" value={c.descricao} maxLength={200}
+              onChange={(e) => setCreditos((l) => l.map((x, j) => (j === i ? { ...x, descricao: e.target.value } : x)))} />
+            <Input className="w-36" inputMode="decimal" placeholder="0,00" value={c.valor}
+              onChange={(e) => setCreditos((l) => l.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)))} />
+            <Button size="icon" variant="ghost" aria-label="Remover crédito" onClick={() => setCreditos((l) => l.filter((_, j) => j !== i))}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        {!creditos.length && <p className="text-xs text-muted-foreground">Use quando a fatura veio menor por um valor devolvido no cartão. O crédito é descontado da soma.</p>}
+      </div>
       <div className="flex flex-wrap gap-4 text-sm">
         <span>Saída: <strong>{brl(valorBanco)}</strong></span>
         <span>Selecionado ({escolhidos.length}): <strong>{brl(soma)}</strong></span>
+        {creditos.length > 0 && <span>Créditos: <strong>− {brl(totalCred)}</strong></span>}
+        {creditos.length > 0 && <span>Total: <strong>{brl(total)}</strong></span>}
         <span className={Math.abs(dif) <= 0.01 ? "text-success" : "text-destructive"}>Diferença: {brl(dif)}</span>
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button disabled={escolhidos.length < 2 || Math.abs(dif) > 0.01 || ligar.isPending} onClick={() => ligar.mutate()}>
+        <Button disabled={escolhidos.length < minimo || !credOk || Math.abs(dif) > 0.01 || ligar.isPending} onClick={() => ligar.mutate()}>
           {ligar.isPending ? "Ligando…" : "Associar à soma"}
         </Button>
       </DialogFooter>
