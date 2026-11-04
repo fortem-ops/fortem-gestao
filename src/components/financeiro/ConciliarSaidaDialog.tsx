@@ -55,16 +55,37 @@ export function ConciliarSaidaDialog({ mov, onClose }: { mov: MovimentoSaida; on
     queryFn: async () => {
       const ini = addDias(mov.data_entrada, -JANELA_DIAS);
       const fim = addDias(mov.data_entrada, JANELA_DIAS);
-      const { data, error } = await supabase.from("despesas")
-        .select("id, descricao, valor, status, data_pagamento, data_competencia, conta_bancaria")
-        .eq("conciliado", false)
-        .or(`and(data_pagamento.gte.${ini},data_pagamento.lte.${fim}),and(data_pagamento.is.null,data_competencia.gte.${ini},data_competencia.lte.${fim})`)
-        .limit(300);
+      const janela = `and(data_pagamento.gte.${ini},data_pagamento.lte.${fim}),and(data_pagamento.is.null,data_competencia.gte.${ini},data_competencia.lte.${fim})`;
+      const [{ data, error }, { data: manuais, error: e2 }] = await Promise.all([
+        supabase.from("despesas")
+          .select("id, descricao, valor, status, data_pagamento, data_competencia, conta_bancaria")
+          .eq("conciliado", false).or(janela).limit(300),
+        supabase.from("despesas")
+          .select("id, descricao, valor, status, data_pagamento, data_competencia, conta_bancaria")
+          .eq("conciliado", true).eq("valor", valorBanco)
+          .or(`and(data_pagamento.gte.${ini},data_pagamento.lte.${fim}),and(data_competencia.gte.${ini},data_competencia.lte.${fim})`)
+          .limit(20),
+      ]);
       if (error) throw error;
-      return (data ?? []).map((r) => ({
+      if (e2) throw e2;
+      // Conciliadas à mão sem ligação com nenhuma linha do extrato.
+      const idsMan = (manuais ?? []).map((r) => r.id);
+      let semVinculo = manuais ?? [];
+      if (idsMan.length) {
+        const { data: v, error: e3 } = await supabase.from("conciliacoes_bancarias")
+          .select("registro_id").eq("desfeito", false).in("registro_id", idsMan);
+        if (e3) throw e3;
+        const lig = new Set((v ?? []).map((x) => x.registro_id));
+        semVinculo = semVinculo.filter((r) => !lig.has(r.id));
+      }
+      const map = (r: NonNullable<typeof data>[number], manual: boolean) => ({
         id: r.id, descricao: r.descricao, valor: Number(r.valor), status: r.status,
-        data: r.data_pagamento ?? r.data_competencia, conta: r.conta_bancaria,
-      })).sort((a, b) => Math.abs(a.valor - valorBanco) - Math.abs(b.valor - valorBanco));
+        data: r.data_pagamento ?? r.data_competencia, conta: r.conta_bancaria, manual,
+      });
+      return [
+        ...semVinculo.map((r) => map(r, true)),
+        ...(data ?? []).map((r) => map(r, false)).sort((a, b) => Math.abs(a.valor - valorBanco) - Math.abs(b.valor - valorBanco)),
+      ];
     },
   });
 
@@ -77,10 +98,17 @@ export function ConciliarSaidaDialog({ mov, onClose }: { mov: MovimentoSaida; on
 
   const vincular = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("fn_conciliar_saida_despesa", { p_movimento_id: mov.id, p_despesa_id: id });
+      const manual = cands.data?.find((c) => c.id === id)?.manual;
+      const { error } = manual
+        ? await supabase.rpc("fn_conciliar_saida_vincular_conciliada", { p_movimento_id: mov.id, p_despesa_id: id })
+        : await supabase.rpc("fn_conciliar_saida_despesa", { p_movimento_id: mov.id, p_despesa_id: id });
       if (error) throw error;
+      return manual;
     },
-    onSuccess: () => fim("Saída conciliada e valor da despesa ajustado"),
+    onSuccess: (manual) => {
+      qc.invalidateQueries({ queryKey: ["saidas-sem-despesa"] });
+      fim(manual ? "Saída ligada à despesa já conciliada" : "Saída conciliada e valor da despesa ajustado");
+    },
     onError: (e) => toast.error(msgErro(e)),
   });
 
@@ -114,7 +142,7 @@ export function ConciliarSaidaDialog({ mov, onClose }: { mov: MovimentoSaida; on
 
           <TabsContent value="existente" className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Despesas não conciliadas entre {fmtData(addDias(mov.data_entrada, -JANELA_DIAS))} e {fmtData(addDias(mov.data_entrada, JANELA_DIAS))}, pelo valor mais próximo. Se o valor for diferente, a despesa passa a ter o valor do banco.
+              Despesas já conciliadas à mão com o mesmo valor aparecem primeiro. Depois, despesas não conciliadas entre {fmtData(addDias(mov.data_entrada, -JANELA_DIAS))} e {fmtData(addDias(mov.data_entrada, JANELA_DIAS))}, pelo valor mais próximo. Se o valor for diferente, a despesa passa a ter o valor do banco.
             </p>
             <div className="max-h-[340px] overflow-auto">
               <Table>
@@ -131,7 +159,7 @@ export function ConciliarSaidaDialog({ mov, onClose }: { mov: MovimentoSaida; on
                       <TableCell><input type="radio" checked={escolhido === c.id} onChange={() => setEscolhido(c.id)} /></TableCell>
                       <TableCell>{c.descricao}</TableCell>
                       <TableCell>{fmtData(c.data)}</TableCell>
-                      <TableCell>{c.status}</TableCell>
+                      <TableCell>{c.manual ? "Conciliada manualmente" : c.status}</TableCell>
                       <TableCell className="text-right">{brl(c.valor)}</TableCell>
                     </TableRow>
                   ))}

@@ -12939,6 +12939,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_conciliar_saida_vincular_conciliada: {
+        Args: { p_despesa_id: string; p_movimento_id: string }
+        Returns: Json
+      }
       fn_consultas_2027_aceitar: {
         Args: {
           p_chave: string

@@ -39,6 +39,50 @@ export function casaPorNome(movDesc: string, despDesc: string): boolean {
   return tokensNome(despDesc).some((t) => tm.has(t));
 }
 
+/** Boleto que vence no fim de semana é debitado no próximo dia útil. */
+export function proximoDiaUtil(d: string): string {
+  let x = d;
+  for (;;) { const w = new Date(`${x}T00:00:00Z`).getUTCDay(); if (w !== 0 && w !== 6) return x; x = addDias(x, 1); }
+}
+const JANELA_MANUAL_DIAS = 3;
+/** Data da despesa (pagamento ou vencimento) compatível com a data do extrato. */
+export function dataCompativel(dataDespesa: string | null, dataMov: string): boolean {
+  if (!dataDespesa) return false;
+  const diff = Math.abs((Date.parse(proximoDiaUtil(dataDespesa)) - Date.parse(dataMov)) / 86400000);
+  return diff <= JANELA_MANUAL_DIAS;
+}
+/** Escolhe a única despesa conciliada à mão (sem vínculo) que bate valor e data; null se nenhuma ou várias. */
+export function escolherConciliadaManual(cands: { id: string; valor: number; data_pagamento: string | null; data_competencia: string | null }[], m: { valor: number; data_entrada: string }, usados: Set<string>): string | null | "multiplos" {
+  const v = Math.round(Number(m.valor) * 100) / 100;
+  const ok = cands.filter((d) => !usados.has(d.id) && Math.abs(Number(d.valor) - v) < 0.005 &&
+    (dataCompativel(d.data_pagamento, m.data_entrada) || dataCompativel(d.data_competencia, m.data_entrada)));
+  if (ok.length > 1) return "multiplos";
+  return ok[0]?.id ?? null;
+}
+
+async function vincularConciliadaManual(sb: any, m: any, registrosUsados: Set<string>): Promise<ResultadoPendente> {
+  const valor = Math.round(Number(m.valor) * 100) / 100;
+  const ini = addDias(m.data_entrada, -7), fim = addDias(m.data_entrada, 7);
+  const { data, error } = await sb.from("despesas")
+    .select("id, valor, data_pagamento, data_competencia")
+    .eq("conciliado", true).eq("conta_bancaria", "BANCO INTER").eq("valor", valor)
+    .or(`and(data_pagamento.gte.${ini},data_pagamento.lte.${fim}),and(data_competencia.gte.${ini},data_competencia.lte.${fim})`)
+    .limit(20);
+  if (error) { console.error("conciliadas manuais", error.message); return "erro"; }
+  const id = escolherConciliadaManual(data ?? [], m, registrosUsados);
+  if (id === "multiplos") return "multiplos";
+  if (!id) return "nenhum";
+  const d = (data ?? []).find((x: any) => x.id === id);
+  const { error: insErr } = await sb.from("conciliacoes_bancarias").insert({
+    movimento_id: m.id, tabela_origem: "despesas", registro_id: id, tipo_match: "automatico",
+    confianca: d?.data_pagamento === m.data_entrada ? "exata" : "aproximada",
+  });
+  if (insErr) { console.error("vínculo conciliada manual", insErr.message); return "erro"; }
+  await sb.from("conciliacao_avisos").update({ resolvido_em: new Date().toISOString() }).eq("movimento_id", m.id).is("resolvido_em", null);
+  registrosUsados.add(id);
+  return "baixado";
+}
+
 type ResultadoPendente = "baixado" | "multiplos" | "nenhum" | "erro";
 let mapeamentosCache: { padrao_pix: string; despesa_descricao: string }[] | null = null;
 
@@ -155,7 +199,7 @@ Deno.serve(async (req) => {
     }
 
     const pendentesMov = movs.filter((m) => !vinculados.has(m.id));
-    const resumo = { processados: 0, conciliados: 0, exatas: 0, aproximadas: 0, baixados_automaticamente: 0, pendentes_sem_candidato: 0, pendentes_multiplos: 0, erros: 0, avisos_criados: 0 };
+    const resumo = { processados: 0, conciliados: 0, exatas: 0, aproximadas: 0, baixados_automaticamente: 0, pendentes_sem_candidato: 0, pendentes_multiplos: 0, erros: 0, avisos_criados: 0, vinculados_manuais: 0 };
 
     for (const m of pendentesMov) {
       if (m.tipo_operacao !== "C" && m.tipo_operacao !== "D") continue;
@@ -183,6 +227,9 @@ Deno.serve(async (req) => {
         if (r === "baixado") { resumo.baixados_automaticamente++; continue; }
         if (r === "multiplos") { resumo.pendentes_multiplos++; continue; }
         if (r === "erro") { resumo.erros++; continue; }
+        const r2 = await vincularConciliadaManual(sb, m, registrosUsados);
+        if (r2 === "baixado") { resumo.vinculados_manuais++; continue; }
+        if (r2 === "erro") { resumo.erros++; continue; }
         resumo.pendentes_sem_candidato++;
         if (await avisarSaidaSemDespesa(sb, m)) resumo.avisos_criados++;
         continue;
