@@ -50,7 +50,7 @@ export function useAjustesFotosSite() {
     queryKey: AJUSTES_QUERY_KEY,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<Record<string, AjusteFoto>> => {
-      const { data, error } = await supabase.from("site_fotos_ajuste").select("*");
+      const { data, error } = await supabase.rpc("fn_site_fotos_publico");
       if (error) throw error;
       const caminhos = (data ?? []).map((r) => r.arquivo_path).filter(Boolean) as string[];
       const links = new Map<string, string>();
