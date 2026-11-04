@@ -1576,6 +1576,20 @@
       "when": 1793790490232,
       "tag": "0224_conciliar_saida_vincular_conciliada",
       "breakpoints": true
+    },
+    {
+      "idx": 225,
+      "version": "7",
+      "when": 1793792319250,
+      "tag": "0225_conciliar_saida_multiplas_ignorar",
+      "breakpoints": true
+    },
+    {
+      "idx": 226,
+      "version": "7",
+      "when": 1793792346080,
+      "tag": "0226_conciliacoes_tabela_origem_ampliar",
+      "breakpoints": true
     }
   ]
 }
