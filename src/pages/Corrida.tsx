@@ -2,6 +2,7 @@ import NbCortesiaBanner from "@/components/corrida/NbCortesiaBanner";
 import CorridaConfigurator from "@/components/corrida/CorridaConfigurator";
 import WhyFortemSection from "@/components/corrida/WhyFortemSection";
 import TrainingLocationsSection from "@/components/corrida/TrainingLocationsSection";
+import CalendarioProvasSection from "@/components/corrida/CalendarioProvasSection";
 import DifferentialsSection from "@/components/corrida/DifferentialsSection";
 import MipoaSection from "@/components/corrida/MipoaSection";
 
@@ -57,6 +58,7 @@ const Corrida = () => {
         <CorridaConfigurator />
         <WhyFortemSection />
         <TrainingLocationsSection />
+        <CalendarioProvasSection />
         <DifferentialsSection />
         <MipoaSection />
         <VideoTestimonialsSection />
