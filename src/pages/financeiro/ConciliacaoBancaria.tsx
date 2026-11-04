@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { ConciliarSaidaDialog } from "@/components/financeiro/ConciliarSaidaDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -61,6 +63,16 @@ export default function ConciliacaoBancaria() {
   const canEdit = !!roles?.isCoordAdmin;
   const { data, isLoading } = useDados();
   const [sel, setSel] = useState<Movimento | null>(null);
+  const [params, setParams] = useSearchParams();
+  const movParam = params.get("mov");
+  useEffect(() => {
+    if (!movParam || !data || !canEdit) return;
+    const m = data.movs.find((x) => x.id === movParam);
+    const jaVinculado = data.vincs.some((v) => v.movimento_id === movParam);
+    if (m && !jaVinculado) setSel(m);
+    else if (m) toast.info("Esta saída já foi conciliada.");
+    params.delete("mov"); setParams(params, { replace: true });
+  }, [movParam, data, canEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { pendentes, totalMes, autoMes } = useMemo(() => {
     const movs = data?.movs ?? [];
@@ -134,7 +146,10 @@ export default function ConciliacaoBancaria() {
         </CardContent>
       </Card>
 
-      {sel && <VincularDialog mov={sel} onClose={() => setSel(null)} />}
+      <AjustesRecentes canEdit={canEdit} />
+
+      {sel && sel.tipo_operacao === "D" && <ConciliarSaidaDialog mov={sel} onClose={() => setSel(null)} />}
+      {sel && sel.tipo_operacao !== "D" && <VincularDialog mov={sel} onClose={() => setSel(null)} />}
     </div>
   );
 }
@@ -236,5 +251,58 @@ function VincularDialog({ mov, onClose }: { mov: Movimento; onClose: () => void 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Últimas saídas conciliadas manualmente, com opção de desfazer (volta o valor anterior da despesa). */
+function AjustesRecentes({ canEdit }: { canEdit: boolean }) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["conciliacao-bancaria", "manuais-saida"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("conciliacoes_bancarias")
+        .select("movimento_id, registro_id, valor_anterior, created_at")
+        .eq("desfeito", false).eq("tipo_match", "manual").eq("tabela_origem", "despesas")
+        .order("created_at", { ascending: false }).limit(15);
+      if (error) throw error;
+      const ids = (data ?? []).map((r) => r.registro_id);
+      const { data: desp } = ids.length
+        ? await supabase.from("despesas").select("id, descricao, valor").in("id", ids)
+        : { data: [] as { id: string; descricao: string; valor: number }[] };
+      const mapa = new Map((desp ?? []).map((d) => [d.id, d]));
+      return (data ?? []).map((r) => ({ ...r, despesa: mapa.get(r.registro_id) }));
+    },
+  });
+  const desfazer = useMutation({
+    mutationFn: async (movId: string) => {
+      const { error } = await supabase.rpc("fn_desfazer_conciliacao_saida", { p_movimento_id: movId });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Conciliação desfeita"); qc.invalidateQueries({ queryKey: ["conciliacao-bancaria"] }); qc.invalidateQueries({ queryKey: ["despesas"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao desfazer"),
+  });
+  if (!q.data?.length) return null;
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Saídas conciliadas manualmente</CardTitle></CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader><TableRow><TableHead>Despesa</TableHead><TableHead>Ajuste</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {q.data.map((r) => (
+              <TableRow key={r.movimento_id}>
+                <TableCell>{r.despesa?.descricao ?? "—"}</TableCell>
+                <TableCell>{r.valor_anterior != null
+                  ? `${brl(Number(r.valor_anterior))} → ${brl(Number(r.despesa?.valor ?? 0))}`
+                  : brl(Number(r.despesa?.valor ?? 0))}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="sm" variant="outline" disabled={!canEdit || desfazer.isPending} onClick={() => desfazer.mutate(r.movimento_id)}>Desfazer</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
