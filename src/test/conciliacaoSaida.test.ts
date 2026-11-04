@@ -1,0 +1,7 @@
+import { describe, it, expect } from "vitest";
+import { diferencaValor } from "@/lib/conciliacaoSaida";
+describe("diferencaValor", () => {
+  it("valores iguais dão zero", () => expect(diferencaValor(150.1, 150.1)).toBe(0));
+  it("banco maior que lançado", () => expect(diferencaValor(100, 112.35)).toBe(12.35));
+  it("evita erro de ponto flutuante", () => expect(diferencaValor(0.1 + 0.2, 0.3)).toBe(0));
+});
