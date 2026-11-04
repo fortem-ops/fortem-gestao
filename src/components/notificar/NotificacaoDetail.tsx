@@ -1,4 +1,13 @@
 import { descricaoNotificacaoExibicao } from "@/lib/notificacaoTexto";
+import { Link as RouterLink } from "react-router-dom";
+
+/** Torna clicáveis caminhos internos do sistema (ex.: /financeiro/despesas?mov=...) só na exibição. */
+function comLinksInternos(txt: string) {
+  const partes = txt.split(/(\/financeiro\/[\w\-/]+(?:\?[\w=&\-]+)?)/g);
+  return partes.map((p, i) => i % 2 === 1
+    ? <RouterLink key={i} to={p} className="text-primary underline">Abrir em Financeiro</RouterLink>
+    : p);
+}
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -404,7 +413,7 @@ export function NotificacaoDetail({ id, onFechar }: { id: string | null; onFecha
         <div className="space-y-3">
           <DiaSeparador data={n.created_at} />
           <div className="border rounded-md p-4">
-            <p className="text-sm whitespace-pre-wrap">{descricaoNotificacaoExibicao(n.descricao)}</p>
+            <p className="text-sm whitespace-pre-wrap">{comLinksInternos(descricaoNotificacaoExibicao(n.descricao))}</p>
             <div className="text-xs text-muted-foreground mt-2">{format(new Date(n.created_at), "HH:mm", { locale: ptBR })}</div>
           </div>
           {data.coments.map((c: any, i: number) => {
