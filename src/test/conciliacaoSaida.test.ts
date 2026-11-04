@@ -12,3 +12,10 @@ describe("somaCentavos", () => {
     expect(somaCentavos([0.1, 0.2, 2208.58])).toBe(2208.88);
   });
 });
+
+import { totalLiquidoFatura } from "@/lib/conciliacaoSaida";
+describe("totalLiquidoFatura", () => {
+  it("desconta estorno de R$ 154,44 da soma das compras", () => {
+    expect(totalLiquidoFatura([4000, 892.43], [154.44])).toBe(4737.99);
+  });
+});

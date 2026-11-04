@@ -8,3 +8,8 @@ export function diferencaValor(lancado: number, banco: number): number {
 export function somaCentavos(valores: number[]): number {
   return valores.reduce((s, v) => s + Math.round(v * 100), 0) / 100;
 }
+
+/** Total da fatura: compras selecionadas menos créditos (estornos), em centavos exatos. */
+export function totalLiquidoFatura(despesas: number[], creditos: number[]): number {
+  return (Math.round(somaCentavos(despesas) * 100) - Math.round(somaCentavos(creditos) * 100)) / 100;
+}

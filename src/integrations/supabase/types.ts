@@ -3094,27 +3094,33 @@ export type Database = {
           ativo: boolean
           conciliacao_id: string
           created_at: string
-          despesa_id: string
+          descricao: string | null
+          despesa_id: string | null
           id: string
           marcou_conciliado: boolean
+          tipo: string
           valor: number
         }
         Insert: {
           ativo?: boolean
           conciliacao_id: string
           created_at?: string
-          despesa_id: string
+          descricao?: string | null
+          despesa_id?: string | null
           id?: string
           marcou_conciliado?: boolean
+          tipo?: string
           valor: number
         }
         Update: {
           ativo?: boolean
           conciliacao_id?: string
           created_at?: string
-          despesa_id?: string
+          descricao?: string | null
+          despesa_id?: string | null
           id?: string
           marcou_conciliado?: boolean
+          tipo?: string
           valor?: number
         }
         Relationships: [
@@ -12976,7 +12982,11 @@ export type Database = {
         Returns: Json
       }
       fn_conciliar_saida_multiplas: {
-        Args: { p_despesa_ids: string[]; p_movimento_id: string }
+        Args: {
+          p_creditos?: Json
+          p_despesa_ids: string[]
+          p_movimento_id: string
+        }
         Returns: Json
       }
       fn_conciliar_saida_nova_despesa: {
