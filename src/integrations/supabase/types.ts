@@ -14180,7 +14180,23 @@ export type Database = {
         Args: { p_tipo_servico: string }
         Returns: string
       }
+      fn_site_foto_publicada: { Args: { p_nome: string }; Returns: boolean }
       fn_site_fotos_admin: { Args: never; Returns: boolean }
+      fn_site_fotos_publico: {
+        Args: never
+        Returns: {
+          arquivo_height: number
+          arquivo_path: string
+          arquivo_width: number
+          chave: string
+          desk_x: number
+          desk_y: number
+          desk_zoom: number
+          mob_x: number
+          mob_y: number
+          mob_zoom: number
+        }[]
+      }
       fn_staff_excluir_treino_agendamento: {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
         Returns: Json
