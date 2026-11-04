@@ -938,7 +938,13 @@ function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose }: {
       return salvarEdicao(input, "este");
     }
     try {
-      if (!repetir) {
+      if (movSaida) {
+        const id = await salvar.mutateAsync({ input: { ...input, conciliado: false } });
+        if (!id) throw new Error("Despesa criada sem identificador");
+        const { error } = await supabase.rpc("fn_conciliar_saida_despesa", { p_movimento_id: movSaida.id, p_despesa_id: id });
+        if (error) { toast.error(`Despesa cadastrada, mas não conciliada: ${error.message}`); onClose(); return; }
+        toast.success("Despesa cadastrada e conciliada com o Inter");
+      } else if (!repetir) {
         await salvar.mutateAsync({ input });
         toast.success("Despesa cadastrada");
       } else {
@@ -1073,11 +1079,15 @@ function DespesaDialog({ despesa, copiaDe, categorias, mesPadrao, onClose }: {
               </Select>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Switch id="conciliado" checked={conciliado} onCheckedChange={setConciliado} />
-            <Label htmlFor="conciliado">Conciliado</Label>
-          </div>
-          {!despesa && (
+          {movSaida ? (
+            <p className="text-xs text-muted-foreground">Ao salvar, esta despesa será conciliada com a saída do Banco Inter de {brl(Number(movSaida.valor))}.</p>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Switch id="conciliado" checked={conciliado} onCheckedChange={setConciliado} />
+              <Label htmlFor="conciliado">Conciliado</Label>
+            </div>
+          )}
+          {!despesa && !movSaida && (
             <div className="rounded-md border p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Checkbox id="repetir" checked={repetir} onCheckedChange={(v) => setRepetir(v === true)} />
