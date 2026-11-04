@@ -109,8 +109,8 @@ async function avisarSaidaSemDespesa(sb: any, m: any): Promise<boolean> {
     titulo: `Saída no Inter sem despesa: ${brl(Number(m.valor))} em ${fmtData(m.data_entrada)}`,
     descricao: `Foi identificada uma saída no Banco Inter que não corresponde a nenhuma despesa lançada.\n\n` +
       `Data: ${fmtData(m.data_entrada)}\nValor: ${brl(Number(m.valor))}\nDescrição no extrato: ${desc}\n\n` +
-      `Para conciliar (vincular a uma despesa existente ajustando o valor, ou criar uma nova despesa), abra: ` +
-      `/financeiro/conciliacao-bancaria?mov=${m.id}`,
+      `Para conciliar (associar a uma despesa existente ajustando o valor, ou criar uma nova despesa), abra: ` +
+      `/financeiro/despesas?mov=${m.id}`,
     categoria: "financeiro", prioridade: "media", tipo: "simples", criado_por: criador,
   }).select("id").single();
   if (error || !n) { console.error("criar aviso", error?.message); return false; }
