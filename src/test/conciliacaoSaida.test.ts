@@ -5,3 +5,10 @@ describe("diferencaValor", () => {
   it("banco maior que lançado", () => expect(diferencaValor(100, 112.35)).toBe(12.35));
   it("evita erro de ponto flutuante", () => expect(diferencaValor(0.1 + 0.2, 0.3)).toBe(0));
 });
+
+import { somaCentavos } from "@/lib/conciliacaoSaida";
+describe("somaCentavos", () => {
+  it("soma itens de fatura sem erro de arredondamento", () => {
+    expect(somaCentavos([0.1, 0.2, 2208.58])).toBe(2208.88);
+  });
+});

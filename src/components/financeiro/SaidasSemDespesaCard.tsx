@@ -1,6 +1,9 @@
-import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link2, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Ban, Link2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +42,22 @@ export function SaidasSemDespesaCard({ destaqueId, onAssociar, onNova }: {
   onNova: (m: MovimentoSaida) => void;
 }) {
   const { data = [] } = useSaidasSemDespesa();
+  const qc = useQueryClient();
+  const [ignorar, setIgnorar] = useState<MovimentoSaida | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const ign = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("fn_ignorar_saida", { p_movimento_id: ignorar!.id, p_motivo: motivo });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Saída marcada como não sendo despesa");
+      qc.invalidateQueries({ queryKey: ["saidas-sem-despesa"] });
+      qc.invalidateQueries({ queryKey: ["conciliacao-bancaria"] });
+      setIgnorar(null); setMotivo("");
+    },
+    onError: (e: { message?: string }) => toast.error(e?.message?.includes("sem_permissao") ? "Apenas administradores e coordenadores." : e?.message ?? "Erro"),
+  });
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (destaqueId && data.some((m) => m.id === destaqueId)) ref.current?.scrollIntoView({ block: "center" });
@@ -63,11 +82,28 @@ export function SaidasSemDespesaCard({ destaqueId, onAssociar, onNova }: {
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => onAssociar(m)}><Link2 className="h-4 w-4 mr-1" />Associar a conta</Button>
                 <Button size="sm" onClick={() => onNova(m)}><Plus className="h-4 w-4 mr-1" />Nova despesa</Button>
+                <Button size="sm" variant="ghost" onClick={() => setIgnorar(m)}><Ban className="h-4 w-4 mr-1" />Não é despesa</Button>
               </div>
             </div>
           );
         })}
       </CardContent>
+      {ignorar && (
+        <Dialog open onOpenChange={(o) => !o && setIgnorar(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Não é despesa</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              {brl(Number(ignorar.valor))} · {fmtData(ignorar.data_entrada)} — {[ignorar.titulo, ignorar.descricao].filter(Boolean).join(" · ")}
+            </p>
+            <p className="text-sm">A saída sai desta lista e nada é apagado do extrato. Dá para desfazer em Conciliação Bancária.</p>
+            <Input autoFocus placeholder="Motivo (ex.: estorno de entrada de teste)" value={motivo} maxLength={300} onChange={(e) => setMotivo(e.target.value)} />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIgnorar(null)}>Cancelar</Button>
+              <Button disabled={!motivo.trim() || ign.isPending} onClick={() => ign.mutate()}>{ign.isPending ? "Salvando…" : "Confirmar"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }

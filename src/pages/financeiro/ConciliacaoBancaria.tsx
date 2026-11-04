@@ -261,16 +261,25 @@ function AjustesRecentes({ canEdit }: { canEdit: boolean }) {
     queryKey: ["conciliacao-bancaria", "manuais-saida"],
     queryFn: async () => {
       const { data, error } = await supabase.from("conciliacoes_bancarias")
-        .select("movimento_id, registro_id, valor_anterior, created_at")
-        .eq("desfeito", false).eq("tipo_match", "manual").eq("tabela_origem", "despesas")
-        .order("created_at", { ascending: false }).limit(15);
+        .select("id, movimento_id, registro_id, valor_anterior, created_at, tabela_origem, motivo")
+        .eq("desfeito", false).eq("tipo_match", "manual").in("tabela_origem", ["despesas", "despesas_multiplas", "ignorado"])
+        .order("created_at", { ascending: false }).limit(20);
       if (error) throw error;
       const ids = (data ?? []).map((r) => r.registro_id);
       const { data: desp } = ids.length
         ? await supabase.from("despesas").select("id, descricao, valor").in("id", ids)
         : { data: [] as { id: string; descricao: string; valor: number }[] };
       const mapa = new Map((desp ?? []).map((d) => [d.id, d]));
-      return (data ?? []).map((r) => ({ ...r, despesa: mapa.get(r.registro_id) }));
+      const multIds = (data ?? []).filter((r) => r.tabela_origem === "despesas_multiplas").map((r) => r.id);
+      const { data: itens } = multIds.length
+        ? await supabase.from("conciliacao_saida_itens").select("conciliacao_id, valor").eq("ativo", true).in("conciliacao_id", multIds)
+        : { data: [] as { conciliacao_id: string; valor: number }[] };
+      const resumo = new Map<string, { n: number; soma: number }>();
+      (itens ?? []).forEach((i) => {
+        const r = resumo.get(i.conciliacao_id) ?? { n: 0, soma: 0 };
+        resumo.set(i.conciliacao_id, { n: r.n + 1, soma: r.soma + Number(i.valor) });
+      });
+      return (data ?? []).map((r) => ({ ...r, despesa: mapa.get(r.registro_id), mult: resumo.get(r.id) }));
     },
   });
   const desfazer = useMutation({
@@ -284,15 +293,17 @@ function AjustesRecentes({ canEdit }: { canEdit: boolean }) {
   if (!q.data?.length) return null;
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Saídas conciliadas manualmente</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-base">Saídas conciliadas ou descartadas manualmente</CardTitle></CardHeader>
       <CardContent>
         <Table>
           <TableHeader><TableRow><TableHead>Despesa</TableHead><TableHead>Ajuste</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
           <TableBody>
             {q.data.map((r) => (
               <TableRow key={r.movimento_id}>
-                <TableCell>{r.despesa?.descricao ?? "—"}</TableCell>
-                <TableCell>{r.valor_anterior != null
+                <TableCell>{r.tabela_origem === "ignorado" ? `Não é despesa: ${r.motivo ?? ""}`
+                  : r.tabela_origem === "despesas_multiplas" ? `Soma de ${r.mult?.n ?? 0} despesas`
+                  : r.despesa?.descricao ?? "—"}</TableCell>
+                <TableCell>{r.tabela_origem === "ignorado" ? "—" : r.tabela_origem === "despesas_multiplas" ? brl(r.mult?.soma ?? 0) : r.valor_anterior != null
                   ? `${brl(Number(r.valor_anterior))} → ${brl(Number(r.despesa?.valor ?? 0))}`
                   : brl(Number(r.despesa?.valor ?? 0))}</TableCell>
                 <TableCell className="text-right">
