@@ -81,3 +81,32 @@ html.sp-comercio-portal [data-planos2027="true"] { --primary: 359 67% 47%; --rin
   /* Barra fixa de "Continuar" do /planos (aparece até 1023px). */
   .site-publico:has(.sp-comercio [data-planos2027] .fixed.inset-x-0.bottom-0) .sp-flutuante { bottom: calc(150px + var(--sp-banner-altura, 0px)); }
 }
+
+/* Calendário de Provas (/corrida#calendario) */
+.site-publico .sp-cal { padding: 80px 0; background: hsl(var(--sp-branco)); color: hsl(var(--sp-preto)); scroll-margin-top: 80px; }
+.site-publico .sp-cal-wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+.site-publico .sp-cal-titulo { font-family: "Archivo", system-ui, sans-serif; font-weight: 700; font-size: clamp(28px, 5vw, 44px); line-height: 1.1; border-left: 6px solid hsl(var(--sp-vermelho)); padding-left: 16px; }
+.site-publico .sp-cal-apoio { margin: 16px 0 40px; max-width: 640px; color: hsl(0 0% 20%); font-size: 17px; }
+.site-publico .sp-cal-lista { list-style: none; margin: 0; padding: 0; border-top: 1px solid hsl(0 0% 0% / .15); }
+.site-publico .sp-cal-item { display: grid; grid-template-columns: 96px 1fr auto; gap: 24px; align-items: center; padding: 20px 0; border-bottom: 1px solid hsl(0 0% 0% / .15); }
+.site-publico .sp-cal-data { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 96px; height: 96px; background: hsl(var(--sp-preto)); color: hsl(var(--sp-branco)); border-bottom: 6px solid hsl(var(--sp-vermelho)); }
+.site-publico .sp-cal-dia { font-size: 40px; font-weight: 700; line-height: 1; }
+.site-publico .sp-cal-mes { font-size: 15px; font-weight: 700; letter-spacing: .12em; margin-top: 4px; }
+.site-publico .sp-cal-nome { font-family: "Archivo", system-ui, sans-serif; font-weight: 700; font-size: 20px; line-height: 1.25; margin: 0; }
+.site-publico .sp-cal-extra { margin: 4px 0 0; color: hsl(0 0% 25%); font-size: 15px; }
+.site-publico .sp-cal-realizada { display: inline-block; margin-bottom: 6px; padding: 2px 8px; font-size: 12px; font-weight: 700; letter-spacing: .1em; background: hsl(0 0% 90%); color: hsl(0 0% 15%); }
+.site-publico .sp-cal-acoes { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.site-publico .sp-cal-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; background: hsl(var(--sp-acao)); color: hsl(var(--sp-branco)); font-weight: 700; font-size: 14px; letter-spacing: .06em; border-radius: 0; text-decoration: none; white-space: nowrap; }
+.site-publico .sp-cal-btn:hover { background: hsl(var(--sp-vermelho)); }
+.site-publico .sp-cal-btn:focus-visible, .site-publico .sp-cal-link:focus-visible { outline: 3px solid hsl(var(--sp-preto)); outline-offset: 2px; }
+.site-publico .sp-cal-link { font-weight: 700; font-size: 14px; color: hsl(var(--sp-acao)); text-decoration: underline; min-height: 44px; display: inline-flex; align-items: center; }
+@media (max-width: 640px) {
+  .site-publico .sp-cal { padding: 56px 0; }
+  .site-publico .sp-cal-wrap { padding: 0 20px; }
+  .site-publico .sp-cal-item { grid-template-columns: 72px 1fr; gap: 16px; align-items: start; }
+  .site-publico .sp-cal-data { width: 72px; height: 72px; }
+  .site-publico .sp-cal-dia { font-size: 30px; }
+  .site-publico .sp-cal-nome { font-size: 17px; overflow-wrap: anywhere; }
+  .site-publico .sp-cal-acoes { grid-column: 1 / -1; align-items: stretch; }
+  .site-publico .sp-cal-btn { width: 100%; white-space: normal; text-align: center; }
+}
