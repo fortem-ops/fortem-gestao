@@ -3089,6 +3089,51 @@ export type Database = {
           },
         ]
       }
+      conciliacao_saida_itens: {
+        Row: {
+          ativo: boolean
+          conciliacao_id: string
+          created_at: string
+          despesa_id: string
+          id: string
+          marcou_conciliado: boolean
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          conciliacao_id: string
+          created_at?: string
+          despesa_id: string
+          id?: string
+          marcou_conciliado?: boolean
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          conciliacao_id?: string
+          created_at?: string
+          despesa_id?: string
+          id?: string
+          marcou_conciliado?: boolean
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conciliacao_saida_itens_conciliacao_id_fkey"
+            columns: ["conciliacao_id"]
+            isOneToOne: false
+            referencedRelation: "conciliacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conciliacao_saida_itens_despesa_id_fkey"
+            columns: ["despesa_id"]
+            isOneToOne: false
+            referencedRelation: "despesas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conciliacoes_bancarias: {
         Row: {
           confianca: string
@@ -3096,6 +3141,7 @@ export type Database = {
           criado_por: string | null
           desfeito: boolean
           id: string
+          motivo: string | null
           movimento_id: string
           registro_id: string
           tabela_origem: string
@@ -3108,6 +3154,7 @@ export type Database = {
           criado_por?: string | null
           desfeito?: boolean
           id?: string
+          motivo?: string | null
           movimento_id: string
           registro_id: string
           tabela_origem: string
@@ -3120,6 +3167,7 @@ export type Database = {
           criado_por?: string | null
           desfeito?: boolean
           id?: string
+          motivo?: string | null
           movimento_id?: string
           registro_id?: string
           tabela_origem?: string
@@ -12927,6 +12975,10 @@ export type Database = {
         Args: { p_despesa_id: string; p_movimento_id: string }
         Returns: Json
       }
+      fn_conciliar_saida_multiplas: {
+        Args: { p_despesa_ids: string[]; p_movimento_id: string }
+        Returns: Json
+      }
       fn_conciliar_saida_nova_despesa: {
         Args: {
           p_categoria_id: string
@@ -13352,6 +13404,10 @@ export type Database = {
       fn_golive_2027_ativar: { Args: { p_data_inicio: string }; Returns: Json }
       fn_golive_2027_reverter: { Args: never; Returns: Json }
       fn_golive_2027_snapshot: { Args: { p_rotulo: string }; Returns: number }
+      fn_ignorar_saida: {
+        Args: { p_motivo: string; p_movimento_id: string }
+        Returns: undefined
+      }
       fn_inserir_inscricao_prova: {
         Args: {
           p_aceite_inscricao: boolean
