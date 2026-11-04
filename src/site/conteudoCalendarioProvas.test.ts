@@ -7,8 +7,9 @@ describe("calendário de provas 2027", () => {
     expect(o.map((p) => p.data)).toEqual(["2027-04-25", "2027-06-05", "2027-08-21", "2027-10-03"]);
   });
   it("não inventa campos opcionais", () => {
-    for (const p of CALENDARIO_PROVAS_2027) expect([p.local, p.distancias, p.linkInscricao, p.observacao].every((v) => !v)).toBe(true);
+    for (const p of CALENDARIO_PROVAS_2027) expect([p.local, p.linkInscricao, p.observacao].every((v) => !v)).toBe(true);
   });
+  it("distâncias da equipe", () => { for (const p of CALENDARIO_PROVAS_2027) expect(p.distancias).toEqual(["5 KM", "10 KM", "21 KM"]); });
   it("formata dia e mês", () => expect(partesData("2027-06-05")).toEqual({ dia: "05", mes: "JUN" }));
   it("marca realizada só depois do dia", () => {
     expect(provaRealizada("2027-04-25", "2027-04-25")).toBe(false);

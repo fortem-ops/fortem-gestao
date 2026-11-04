@@ -112,3 +112,7 @@ html.sp-comercio-portal [data-planos2027="true"] { --primary: 359 67% 47%; --rin
   .site-publico .sp-cal-wrap { padding: 0 20px; }
   .site-publico .sp-cal-grade { grid-template-columns: 1fr; }
 }
+.site-publico .sp-cal-dist { margin-top: 12px; }
+.site-publico .sp-cal-dist-apoio { display: block; font-size: 13px; color: hsl(0 0% 38%); margin-bottom: 6px; }
+.site-publico .sp-cal-dist-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.site-publico .sp-cal-dist-item { border: 1px solid #4A4B4B; border-radius: 0; padding: 3px 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; line-height: 1.3; }

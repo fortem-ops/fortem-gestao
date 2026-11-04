@@ -9,16 +9,19 @@ export type ProvaCalendario = {
   data: string;
   nome: string;
   local?: string;
-  distancias?: string;
+  /** Distâncias em que a equipe FORTEM participa (não necessariamente todas as da prova). */
+  distancias?: string[];
   linkInscricao?: string;
   observacao?: string;
 };
 
+const DIST_EQUIPE = ["5 KM", "10 KM", "21 KM"];
+
 export const CALENDARIO_PROVAS_2027: ProvaCalendario[] = [
-  { id: "meia-usina-gasometro-2027", data: "2027-04-25", nome: "1ª MEIA MARATONA DA USINA DO GASÔMETRO" },
-  { id: "maratona-poa-2027", data: "2027-06-05", nome: "42ª MARATONA INTERNACIONAL DE PORTO ALEGRE" },
-  { id: "new-balance-2027", data: "2027-08-21", nome: "3ª NEW BALANCE" },
-  { id: "meia-mercado-publico-2027", data: "2027-10-03", nome: "3ª MEIA MARATONA DO MERCADO PÚBLICO" },
+  { id: "meia-usina-gasometro-2027", data: "2027-04-25", nome: "1ª MEIA MARATONA DA USINA DO GASÔMETRO", distancias: DIST_EQUIPE },
+  { id: "maratona-poa-2027", data: "2027-06-05", nome: "42ª MARATONA INTERNACIONAL DE PORTO ALEGRE", distancias: DIST_EQUIPE },
+  { id: "new-balance-2027", data: "2027-08-21", nome: "3ª NEW BALANCE", distancias: DIST_EQUIPE },
+  { id: "meia-mercado-publico-2027", data: "2027-10-03", nome: "3ª MEIA MARATONA DO MERCADO PÚBLICO", distancias: DIST_EQUIPE },
 ];
 
 const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
