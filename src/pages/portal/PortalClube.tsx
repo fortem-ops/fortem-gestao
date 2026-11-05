@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMeuPlanoClube, custoRecompensa, proximoMarco, EXPLICACAO_BADGE } from "@/lib/clubePlano";
+import { useMeuPlanoClube, custoRecompensa, proximoMarco, EXPLICACAO_BADGE, useRegrasClube, useLimitesResgate, fmtDataBr } from "@/lib/clubePlano";
+import { ResumoRankingGeral } from "@/components/portal/RankingGeral";
 import { SeloPlano } from "@/components/portal/SeloPlano";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Card } from "@/components/ui/card";
@@ -25,7 +26,6 @@ function iniciais(nome?: string | null): string {
 export default function PortalClube() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
-  const [rankingAberto, setRankingAberto] = useState(false);
   const [resgateConfirm, setResgateConfirm] = useState<any>(null);
   const [showRegras, setShowRegras] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
@@ -111,49 +111,15 @@ export default function PortalClube() {
     },
   });
 
-  const { data: ranking } = useQuery({
-    queryKey: ["portal-clube-ranking"],
-    enabled: rankingAberto,
-    queryFn: async () => {
-      const inicio = new Date();
-      inicio.setDate(1); inicio.setHours(0, 0, 0, 0);
-      const { data } = await supabase.from("clube_historico")
-        .select("aluno_id, pontos_final, alunos!inner(nome)")
-        .gte("created_at", inicio.toISOString())
-        .gt("pontos_final", 0);
-      const agrup = new Map<string, { nome: string; pontos: number }>();
-      (data || []).forEach((r: any) => {
-        const cur = agrup.get(r.aluno_id) || { nome: r.alunos?.nome ?? "—", pontos: 0 };
-        cur.pontos += r.pontos_final;
-        agrup.set(r.aluno_id, cur);
-      });
-      return Array.from(agrup.entries())
-        .map(([id, v]) => ({ aluno_id: id, ...v }))
-        .sort((a, b) => b.pontos - a.pontos);
-    },
-  });
-
-  const { data: pontosMes } = useQuery({
-    queryKey: ["portal-clube-pontos-mes", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const inicio = new Date();
-      inicio.setDate(1); inicio.setHours(0, 0, 0, 0);
-      const { data } = await supabase
-        .from("clube_historico")
-        .select("pontos_final")
-        .eq("aluno_id", student!.id)
-        .gte("created_at", inicio.toISOString());
-      return (data || []).reduce((sum: number, r: any) => sum + (r.pontos_final ?? 0), 0);
-    },
-  });
+  const { data: regras } = useRegrasClube(!!student);
+  const { data: limites } = useLimitesResgate(!!student);
 
   const resgatar = useMutation({
     mutationFn: async (recompensa_id: string) => {
       const { data, error } = await supabase.rpc("fn_clube_resgatar", { p_recompensa_id: recompensa_id });
       if (error) throw error;
       const r = data as any;
-      if (!r?.ok) throw new Error(r?.erro === "saldo_insuficiente" ? "Saldo insuficiente" : (r?.erro ?? "Falha"));
+      if (!r?.ok) throw new Error(r?.erro === "saldo_insuficiente" ? "Saldo insuficiente" : r?.erro === "limite_mensal" ? r.mensagem : (r?.erro ?? "Falha"));
       return r;
     },
     onSuccess: (r) => {
@@ -164,6 +130,7 @@ export default function PortalClube() {
       setResgateConfirm(null);
       qc.invalidateQueries({ queryKey: ["portal-clube-pontos"] });
       qc.invalidateQueries({ queryKey: ["portal-clube-hist"] });
+      qc.invalidateQueries({ queryKey: ["portal-clube-limites"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -174,9 +141,6 @@ export default function PortalClube() {
   const isAgregador = !!meuPlano?.agregador;
   const marco = proximoMarco(saldo, (recompensas ?? []) as any[], isAgregador);
   const fmtMult = (v?: number | null) => (v == null ? "—" : `${String(v).replace(".", ",")}x`);
-  const posMinhaMes = ranking?.findIndex((r) => r.aluno_id === student.id);
-
-  const posicaoRanking = posMinhaMes !== undefined && posMinhaMes >= 0 ? posMinhaMes + 1 : null;
 
   const meuCodigo = indicacoes?.[0]?.codigo;
   const indicConvertidas = indicacoes?.filter((i: any) => i.status === "convertido").length ?? 0;
@@ -333,60 +297,18 @@ export default function PortalClube() {
         </div>
       )}
 
-      {/* Meu ranking */}
-      <Card className="glass-card p-4 flex items-center gap-3">
-        <Trophy className="w-8 h-8 text-amber-500" />
-        <div className="flex-1">
-          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Ranking mensal</p>
-          <p className="font-heading font-bold">
-            {posicaoRanking
-              ? `#${posicaoRanking} este mês`
-              : (pontosMes ?? 0) > 0
-              ? `Fora do top · ${pontosMes} pontos este mês`
-              : "Nenhum ponto este mês ainda"}
-          </p>
-        </div>
-        <Button size="sm" variant="outline" onClick={() => setRankingAberto((v) => !v)}>
-          {rankingAberto ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </Button>
-      </Card>
+      {/* Ranking único (treinos do mês) */}
+      <ResumoRankingGeral />
 
-      {rankingAberto && ranking && (
-        <div className="space-y-2">
-          {ranking.slice(0, 10).map((r, i) => {
-            const posicao = `#${i + 1}`;
-            const isMe = r.aluno_id === student.id;
-            return isMe ? (
-              <div key={r.aluno_id} className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-                    {student.nome}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{pontos?.saldo ?? 0} pontos</p>
-                </div>
-                <span className="text-xs font-bold text-primary">#{posicaoRanking} este mês</span>
-              </div>
-            ) : (
-              <div key={r.aluno_id} className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
-                <span className="text-base">{posicao}</span>
-                <p className="flex-1 text-sm font-semibold text-foreground truncate">{r.nome}</p>
-                <p className="text-sm font-bold text-foreground">{r.pontos} pts</p>
-              </div>
-            );
-          })}
-          {posicaoRanking && posicaoRanking > 10 && (
-            <div className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
-              <div className="flex-1">
-                <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-                  {student.nome}
-                </p>
-                <p className="text-xs text-muted-foreground">{pontos?.saldo ?? 0} pontos</p>
-              </div>
-              <span className="text-xs font-bold text-primary">#{posicaoRanking} este mês</span>
-            </div>
-          )}
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={() => setShowRegras(true)}
+        className="flex min-h-[56px] w-full items-center justify-between border border-[#4A4B4B] bg-card px-4 text-left"
+        style={{ fontFamily: "Archivo,sans-serif" }}
+      >
+        <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Como funcionam os pontos</span>
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      </button>
 
       {/* Recompensas */}
       <section>
@@ -396,7 +318,9 @@ export default function PortalClube() {
         <div className="grid grid-cols-1 gap-3">
           {recompensas?.map((r: any) => {
             const custo = custoRecompensa(r, isAgregador);
-            const podeResgatar = saldo >= custo;
+            const lim = limites?.find((l) => l.recompensa_id === r.id);
+            const limiteAtingido = !!lim && lim.resgates_mes >= lim.limite_mensal;
+            const podeResgatar = saldo >= custo && !limiteAtingido;
             return (
               <Card key={r.id} className="glass-card p-4 flex items-center gap-3">
                 <span className="text-2xl">{r.icone}</span>
@@ -409,8 +333,8 @@ export default function PortalClube() {
                     </span>
                   </div>
                 </div>
-                <Button size="sm" disabled={!podeResgatar} onClick={() => setResgateConfirm({ ...r, __custo: custo })}>
-                  {podeResgatar ? "Resgatar" : `Faltam ${custo - saldo}`}
+                <Button size="sm" className="whitespace-normal h-auto min-h-[44px] max-w-[140px] text-center" disabled={!podeResgatar} onClick={() => setResgateConfirm({ ...r, __custo: custo })}>
+                  {limiteAtingido ? `Disponível novamente em ${fmtDataBr(lim!.disponivel_em)}` : podeResgatar ? "Resgatar" : `Faltam ${custo - saldo}`}
                 </Button>
               </Card>
             );
@@ -486,7 +410,7 @@ export default function PortalClube() {
 
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-                Como funcionam os benefícios
+                Como funcionam os pontos
               </h2>
               <button onClick={() => setShowRegras(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
                 <X className="w-4 h-4 text-muted-foreground" />
@@ -521,7 +445,7 @@ export default function PortalClube() {
               <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Como ganhar pontos</p>
               <div className="space-y-2">
                 {[
-                  { acao: "Treino realizado", pts: "10 pts", obs: "Por sessão confirmada, antes do multiplicador do plano" },
+                  { acao: "Treino realizado", pts: `${regras?.pontos_treino ?? 10} pts`, obs: "Por sessão confirmada, antes do multiplicador do plano" },
                   { acao: "Avaliação funcional", pts: "50 pts", obs: "A cada avaliação" },
                   { acao: "Indicação convertida", pts: "100 pts", obs: "Quando o indicado contrata" },
                   { acao: "Bônus por ser indicado", pts: "50 pts", obs: "Única vez" },
@@ -550,6 +474,27 @@ export default function PortalClube() {
                 <p className="text-sm font-bold text-foreground">Dias de chuva, frio ou calor intenso</p>
                 <p className="text-xs text-muted-foreground">
                   Em dias de clima extremo em Porto Alegre, o multiplicador do clima (<strong className="text-foreground">{fmtMult(meuPlano?.clima_multiplicador)}</strong>) se soma ao do seu plano. O app exibe um aviso quando o multiplicador está ativo.
+                </p>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Limite de resgate</p>
+              <div className="bg-background border border-border p-3 space-y-1">
+                {(regras?.limites ?? []).length ? (regras!.limites).map((l) => (
+                  <p key={l.nome} className="text-xs text-muted-foreground">
+                    <strong className="text-foreground">{l.nome}</strong>: {l.limite_mensal} {l.limite_mensal === 1 ? "resgate" : "resgates"} por mês
+                  </p>
+                )) : <p className="text-xs text-muted-foreground">Sem limite mensal nas recompensas atuais.</p>}
+                <p className="text-xs text-muted-foreground">O mês conta do dia 1 ao último dia, no horário de Brasília.</p>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)]">Plano FORTEM x agregador</p>
+              <div className="bg-background border border-border p-3">
+                <p className="text-xs text-muted-foreground">
+                  Alunos com plano FORTEM ganham mais pontos do que alunos de Wellhub ou Total Pass, que pontuam {fmtMult(meuPlano?.multiplicadores?.mult_agregador ?? regras?.mult_agregador)}.
                 </p>
               </div>
             </section>

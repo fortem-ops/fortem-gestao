@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SeloPlano } from "@/components/portal/SeloPlano";
 import { ComunidadeFeed } from "@/components/portal/ComunidadeFeed";
+import { RankingGeralLista } from "@/components/portal/RankingGeral";
 import {
   AVISO_VISIBILIDADE, MODALIDADES, DESCRICAO_MAX, ORIENTACAO_CAPA, CAPA_TIPOS, enviarCapa, useCapasClubes, validarArquivoCapa, iniciaisAbrev, mensagemErroComunidade, useMeusClubes, useRankingClube,
   type ComunidadeClube,
@@ -117,18 +118,28 @@ export default function PortalComunidade() {
   const meus = (clubes ?? []).filter((c) => c.sou_membro || (c.sou_criador && c.status !== "ativo"));
   const explorar = (clubes ?? []).filter((c) => c.status === "ativo" && !c.sou_membro);
 
-  const aba = params.get("aba") === "clubes" ? "clubes" : "feed";
+  const abaParam = params.get("aba");
+  const aba = abaParam === "clubes" || abaParam === "ranking" ? abaParam : "feed";
   const abas = (
-    <div className="grid grid-cols-2 border-b border-[#4A4B4B] pt-2" role="tablist">
-      {(["feed", "clubes"] as const).map((v) => (
+    <div className="grid grid-cols-3 border-b border-[#4A4B4B] pt-2" role="tablist">
+      {(["feed", "ranking", "clubes"] as const).map((v) => (
         <button key={v} role="tab" aria-selected={aba === v}
           onClick={() => { const p = new URLSearchParams(params); p.set("aba", v); setParams(p); }}
           className={cn(BOTAO, "border-b-2", aba === v ? "border-[#C8282A] text-foreground" : "border-transparent text-[#B1B3B3]")}>
-          {v === "feed" ? "Feed" : "Clubes"}
+          {v === "feed" ? "Feed" : v === "ranking" ? "Ranking" : "Clubes"}
         </button>
       ))}
     </div>
   );
+
+  if (aba === "ranking") {
+    return (
+      <div className="space-y-6 pb-8" style={{ fontFamily: "Archivo, sans-serif" }}>
+        {abas}
+        <RankingGeralLista />
+      </div>
+    );
+  }
 
   if (aba === "feed") {
     return (

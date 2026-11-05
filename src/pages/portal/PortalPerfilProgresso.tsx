@@ -9,6 +9,7 @@ import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SeloPlano } from "@/components/portal/SeloPlano";
+import { ComoGanharConquistas } from "@/components/portal/ComoGanharConquistas";
 import { useMeuPlanoClube, ultimasSemanas, EXPLICACAO_BADGE } from "@/lib/clubePlano";
 import { dataClienteDesde } from "@/lib/clienteDesde";
 import { cn } from "@/lib/utils";
@@ -227,7 +228,8 @@ export default function PortalPerfilProgresso() {
           )}
         </div>
       ) : (
-        <section>
+        <section className="space-y-3">
+          <ComoGanharConquistas />
           {!badges ? <Skeleton className="h-32" /> : (
             <div className="grid grid-cols-3 gap-3">
               {badges.map((b: any) => (

@@ -169,3 +169,10 @@
 - [x] Comunidade: capas cobrindo o card inteiro (object-cover, object-position center, altura mínima 140px) em Meus clubes, Explorar e cabeçalho do detalhe; degradê reforçado (#0e0e0e 0,92 na base → 0,35 no topo + lateral 0,75 até 70%) e sombra leve no texto. Só front-end, sem migração.
 - [x] Ajuste fino das fotos do site (Fotos do site, /equipe/site/fotos)
 - [x] Portal: pergunta "Compartilhar treino?" ligada às conclusões de todos os métodos (componente único PerguntaCompartilharTreino).
+- [x] Clube Parte 0: fontes conferidas (treinos = treino_agendamentos realizado; nutrição/reabilitação = agenda_presencas comparecimento; avaliações = avaliacoes funcional/funcional_v2). Recovery sem registro de sessões realizadas: conquistas de Recovery não criadas.
+- [x] Clube Parte 1: "Evolução Real" desativada (quem já ganhou mantém).
+- [x] Clube Parte 2: 15 conquistas novas com concessão automática e idempotente; carga inicial sem pontos (corte em clube_config.conquistas_bonus_desde).
+- [x] Clube Parte 3: pontos_bonus por conquista (sem multiplicador; agregador x mult_agregador para cima), editável na aba Conquistas do gestor.
+- [x] Clube Parte 4: limite_mensal por recompensa, bloqueio em fn_clube_resgatar (mês de Brasília) e botão "Disponível novamente em".
+- [x] Clube Parte 5: cards "Como funcionam os pontos" e "Como ganhar conquistas" com valores do banco.
+- [x] Clube Parte 6: ranking único por dias de treino no mês (fn_comunidade_ranking_geral), aba Ranking na Comunidade e resumo em Benefícios.

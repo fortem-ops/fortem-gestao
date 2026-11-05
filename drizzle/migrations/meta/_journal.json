@@ -1625,6 +1625,13 @@
       "when": 1793888848899,
       "tag": "0231_comunidade_capas_select_vinculado",
       "breakpoints": true
+    },
+    {
+      "idx": 232,
+      "version": "7",
+      "when": 1793905503095,
+      "tag": "0232_clube_conquistas_bonus_limite_ranking",
+      "breakpoints": true
     }
   ]
 }

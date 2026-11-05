@@ -20,7 +20,7 @@ import { Star, CloudRain, Users, Gift, Trophy, Sparkles, Plus, Trash2, Pencil, C
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "parceiros" | "desafios" | "ranking" | "clubes" | "feed";
+type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "conquistas" | "parceiros" | "desafios" | "ranking" | "clubes" | "feed";
 
 export default function ClubeFortem() {
   const [aba, setAba] = useState<Aba>("dashboard");
@@ -44,6 +44,7 @@ export default function ClubeFortem() {
           <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>
           <TabsTrigger value="resgates">Resgates</TabsTrigger>
           <TabsTrigger value="recompensas">Recompensas</TabsTrigger>
+          <TabsTrigger value="conquistas">Conquistas</TabsTrigger>
           <TabsTrigger value="parceiros">Parceiros</TabsTrigger>
           <TabsTrigger value="desafios">Desafios</TabsTrigger>
           <TabsTrigger value="ranking">Ranking</TabsTrigger>
@@ -67,6 +68,7 @@ export default function ClubeFortem() {
         <TabsContent value="pontuacao" className="pt-6"><PontuacaoTab /></TabsContent>
         <TabsContent value="resgates" className="pt-6"><ResgatesTab /></TabsContent>
         <TabsContent value="recompensas" className="pt-6"><RecompensasTab /></TabsContent>
+        <TabsContent value="conquistas" className="pt-6"><ConquistasTab /></TabsContent>
         <TabsContent value="parceiros" className="pt-6"><AdminParceirosTable /></TabsContent>
         <TabsContent value="desafios" className="pt-6"><DesafiosTab /></TabsContent>
         <TabsContent value="clubes" className="pt-6"><AdminComunidadeClubes /></TabsContent>
@@ -365,6 +367,7 @@ function RecompensasTab() {
         // Custo único para Start, Power e Pro (fn_clube_resgatar usa custo_start).
         custo_start: r.custo_pontos,
         custo_agregador: r.custo_agregador ?? null,
+        limite_mensal: r.limite_mensal ?? null,
       };
       if (r.id) {
         const { error } = await supabase.from("clube_recompensas").update(payload).eq("id", r.id);
@@ -403,6 +406,7 @@ function RecompensasTab() {
                 <p className="text-xs mt-1">
                   <Badge variant="outline">{r.custo_pontos} pts</Badge>{" "}
                   <Badge variant="secondary">{r.tipo}</Badge>{" "}
+                  {r.limite_mensal != null && <Badge variant="outline">{r.limite_mensal}/mês</Badge>}{" "}
                   {!r.ativo && <Badge variant="destructive">inativo</Badge>}
                 </p>
                 <div className="flex gap-1 flex-wrap mt-1">
@@ -461,6 +465,11 @@ function RecompensasTab() {
                 </div>
               </div>
 
+              <div>
+                <Label>Limite de resgates por mês (vazio = sem limite)</Label>
+                <Input type="number" min={1} placeholder="Sem limite" value={editing.limite_mensal ?? ""}
+                  onChange={(e) => setEditing({ ...editing, limite_mensal: e.target.value === "" ? null : Math.max(1, parseInt(e.target.value) || 1) })} />
+              </div>
 
               <div className="flex items-center gap-2">
                 <Switch checked={editing.ativo} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
@@ -474,6 +483,50 @@ function RecompensasTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/* ─── CONQUISTAS ─── */
+function ConquistasTab() {
+  const qc = useQueryClient();
+  const [valores, setValores] = useState<Record<string, string>>({});
+  const { data: badges } = useQuery({
+    queryKey: ["clube-badges-admin"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clube_badges").select("id, nome, descricao, ativo, pontos_bonus").order("created_at");
+      return data || [];
+    },
+  });
+  const salvar = useMutation({
+    mutationFn: async ({ id, pontos }: { id: string; pontos: number }) => {
+      const { error } = await supabase.from("clube_badges").update({ pontos_bonus: pontos }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Bônus salvo"); qc.invalidateQueries({ queryKey: ["clube-badges-admin"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Pontos de bônus ao ganhar cada conquista. Sem multiplicador de plano ou clima; agregador recebe o bônus x multiplicador do agregador (arredondado para cima). Vale só para conquistas ganhas depois da publicação.
+      </p>
+      {badges?.filter((b: any) => b.ativo).map((b: any) => {
+        const v = valores[b.id] ?? String(b.pontos_bonus ?? 0);
+        return (
+          <Card key={b.id}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">{b.nome}</p>
+                <p className="text-xs text-muted-foreground">{b.descricao}</p>
+              </div>
+              <Input type="number" min={0} className="w-24" value={v} onChange={(e) => setValores({ ...valores, [b.id]: e.target.value })} />
+              <Button size="sm" disabled={Number(v) === (b.pontos_bonus ?? 0) || salvar.isPending}
+                onClick={() => salvar.mutate({ id: b.id, pontos: Math.max(0, parseInt(v) || 0) })}>Salvar</Button>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

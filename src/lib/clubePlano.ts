@@ -92,6 +92,68 @@ export const EXPLICACAO_BADGE: Record<string, string> = {
   "Veterano": "Concedida ao completar 1 ano de Fortem.",
   "Lenda FORTEM": "Concedida ao completar 2 anos de Fortem.",
   "Embaixador FORTEM": "Concedida ao indicar 3 pessoas que se tornaram alunos.",
-  "Evolução Real": "Concedida quando o resultado de uma reavaliação melhora em relação à anterior.",
   "Guerreiro da Chuva": "Concedida ao treinar em um dia de chuva forte, frio ou calor extremo.",
 };
+
+// ---- Regras exibidas no portal (valores do banco: clube_badges.pontos_bonus, clube_recompensas.limite_mensal, clube_config) ----
+export interface RegrasClube {
+  conquistas_bonus_desde: string | null;
+  mult_agregador: number | null;
+  pontos_treino: number | null;
+  conquistas: { id: string; nome: string; descricao: string | null; pontos_bonus: number }[];
+  limites: { nome: string; limite_mensal: number }[];
+}
+
+export function useRegrasClube(enabled = true) {
+  return useQuery({
+    queryKey: ["portal-clube-regras"],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_clube_regras_portal");
+      if (error) throw error;
+      return (data ?? null) as RegrasClube | null;
+    },
+  });
+}
+
+/** Bônus de conquista para agregador: bônus x mult_agregador, arredondado para cima (mesma regra do banco). */
+export function bonusAgregador(bonus: number, mult: number | null | undefined): number {
+  return Math.ceil(bonus * (mult ?? 0.5));
+}
+
+export interface LimiteResgate { recompensa_id: string; resgates_mes: number; limite_mensal: number; disponivel_em: string }
+
+export function useLimitesResgate(enabled = true) {
+  return useQuery({
+    queryKey: ["portal-clube-limites"],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_clube_resgates_limite_mes");
+      if (error) throw error;
+      return (data ?? []) as LimiteResgate[];
+    },
+  });
+}
+
+export interface LinhaRankingGeral { posicao: number; nome: string; treinos_mes: number; treinos_total: number; eh_voce: boolean }
+export interface RankingGeral {
+  top: LinhaRankingGeral[];
+  eu: { participa: boolean; posicao: number | null; nome: string; treinos_mes: number; treinos_total: number } | null;
+}
+
+export function useRankingGeral(enabled = true) {
+  return useQuery({
+    queryKey: ["comunidade-ranking-geral"],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_comunidade_ranking_geral");
+      if (error) throw error;
+      return data as RankingGeral;
+    },
+  });
+}
+
+export function fmtDataBr(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+}

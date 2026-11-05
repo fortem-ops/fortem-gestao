@@ -1813,6 +1813,7 @@ export type Database = {
           emoji: string
           id: string
           nome: string
+          pontos_bonus: number
         }
         Insert: {
           ativo?: boolean
@@ -1823,6 +1824,7 @@ export type Database = {
           emoji?: string
           id?: string
           nome: string
+          pontos_bonus?: number
         }
         Update: {
           ativo?: boolean
@@ -1833,6 +1835,7 @@ export type Database = {
           emoji?: string
           id?: string
           nome?: string
+          pontos_bonus?: number
         }
         Relationships: []
       }
@@ -2313,6 +2316,7 @@ export type Database = {
           estoque: number | null
           icone: string | null
           id: string
+          limite_mensal: number | null
           nome: string
           planos_elegiveis: string[] | null
           tipo: string
@@ -2331,6 +2335,7 @@ export type Database = {
           estoque?: number | null
           icone?: string | null
           id?: string
+          limite_mensal?: number | null
           nome: string
           planos_elegiveis?: string[] | null
           tipo?: string
@@ -2349,6 +2354,7 @@ export type Database = {
           estoque?: number | null
           icone?: string | null
           id?: string
+          limite_mensal?: number | null
           nome?: string
           planos_elegiveis?: string[] | null
           tipo?: string
@@ -12800,6 +12806,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_clube_avaliar_conquistas: {
+        Args: { p_aluno_id: string }
+        Returns: undefined
+      }
       fn_clube_check_divergencias: { Args: never; Returns: Json }
       fn_clube_conceder_badge: {
         Args: { p_aluno_id: string; p_badge_nome: string }
@@ -12815,7 +12825,17 @@ export type Database = {
       fn_clube_meu_plano: { Args: never; Returns: Json }
       fn_clube_nivel_por_plano: { Args: { _aluno_id: string }; Returns: Json }
       fn_clube_plano_info: { Args: { p_aluno_id: string }; Returns: Json }
+      fn_clube_regras_portal: { Args: never; Returns: Json }
       fn_clube_resgatar: { Args: { p_recompensa_id: string }; Returns: Json }
+      fn_clube_resgates_limite_mes: {
+        Args: never
+        Returns: {
+          disponivel_em: string
+          limite_mensal: number
+          recompensa_id: string
+          resgates_mes: number
+        }[]
+      }
       fn_clube_resync_todos: { Args: never; Returns: Json }
       fn_clube_resync_todos_safe: { Args: never; Returns: Json }
       fn_clube_semanas_seguidas: {
@@ -12965,6 +12985,7 @@ export type Database = {
           posicao: number
         }[]
       }
+      fn_comunidade_ranking_geral: { Args: never; Returns: Json }
       fn_comunidade_ranking_interno: {
         Args: { p_clube_id: string; p_mes: string }
         Returns: {
