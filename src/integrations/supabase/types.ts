@@ -1872,6 +1872,39 @@ export type Database = {
         }
         Relationships: []
       }
+      clube_codigos_indicacao: {
+        Row: {
+          aluno_id: string
+          codigo: string
+          created_at: string
+        }
+        Insert: {
+          aluno_id: string
+          codigo: string
+          created_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          codigo?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_codigos_indicacao_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_codigos_indicacao_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       clube_config: {
         Row: {
           chave: string
@@ -2145,28 +2178,58 @@ export type Database = {
           codigo: string
           convertido_em: string | null
           created_at: string
+          created_by: string | null
+          criada_em: string
+          expira_em: string | null
           id: string
           indicado_id: string | null
+          motivo_recusa: string | null
+          origem: string
           padrinho_id: string
+          pontos_indicado: number
+          pontos_pagos: number
+          sem_pontos_motivo: string | null
           status: string
+          updated_at: string
+          venda_id: string | null
         }
         Insert: {
           codigo?: string
           convertido_em?: string | null
           created_at?: string
+          created_by?: string | null
+          criada_em?: string
+          expira_em?: string | null
           id?: string
           indicado_id?: string | null
+          motivo_recusa?: string | null
+          origem?: string
           padrinho_id: string
+          pontos_indicado?: number
+          pontos_pagos?: number
+          sem_pontos_motivo?: string | null
           status?: string
+          updated_at?: string
+          venda_id?: string | null
         }
         Update: {
           codigo?: string
           convertido_em?: string | null
           created_at?: string
+          created_by?: string | null
+          criada_em?: string
+          expira_em?: string | null
           id?: string
           indicado_id?: string | null
+          motivo_recusa?: string | null
+          origem?: string
           padrinho_id?: string
+          pontos_indicado?: number
+          pontos_pagos?: number
+          sem_pontos_motivo?: string | null
           status?: string
+          updated_at?: string
+          venda_id?: string | null
         }
         Relationships: [
           {
@@ -2196,6 +2259,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "clube_indicacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "clube_indicacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "clube_indicacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_indicacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
           },
         ]
       }
@@ -13175,10 +13266,12 @@ export type Database = {
         Args: { p_desafio_id: string }
         Returns: Json
       }
-      fn_desafio_calcular_progresso: {
-        Args: { p_desafio_id: string }
-        Returns: number
-      }
+      fn_desafio_calcular_progresso:
+        | { Args: { p_desafio_id: string }; Returns: number }
+        | {
+            Args: { p_aluno_id: string; p_desafio_id: string }
+            Returns: number
+          }
       fn_desativar_planos_vencidos: { Args: never; Returns: number }
       fn_desfazer_conciliacao_saida: {
         Args: { p_movimento_id: string }
@@ -13439,6 +13532,35 @@ export type Database = {
         Args: { p_motivo: string; p_movimento_id: string }
         Returns: undefined
       }
+      fn_indicacao_aluno_ativo: {
+        Args: { p_aluno_id: string }
+        Returns: boolean
+      }
+      fn_indicacao_buscar_indicador: {
+        Args: { p_termo: string }
+        Returns: {
+          aluno_id: string
+          ativo: boolean
+          nome: string
+        }[]
+      }
+      fn_indicacao_converter: { Args: { p_venda_id: string }; Returns: Json }
+      fn_indicacao_estornar_pontos: {
+        Args: { p_acao: string; p_aluno_id: string; p_indicacao_id: string }
+        Returns: number
+      }
+      fn_indicacao_gerar_codigo: { Args: never; Returns: string }
+      fn_indicacao_registrar: {
+        Args: {
+          p_codigo?: string
+          p_indicado_id: string
+          p_origem?: string
+          p_padrinho_id?: string
+        }
+        Returns: Json
+      }
+      fn_indicacao_reverter: { Args: { p_venda_id: string }; Returns: Json }
+      fn_indicacoes_expirar: { Args: never; Returns: number }
       fn_inserir_inscricao_prova: {
         Args: {
           p_aceite_inscricao: boolean
@@ -14272,6 +14394,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_venda_plano_fortem: { Args: { p_venda_id: string }; Returns: boolean }
       fn_venda_servicos_2027_criar: { Args: { p: Json }; Returns: Json }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       get_webhook_secret: { Args: never; Returns: string }

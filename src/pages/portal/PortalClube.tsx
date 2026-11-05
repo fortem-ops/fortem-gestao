@@ -143,7 +143,7 @@ export default function PortalClube() {
   const fmtMult = (v?: number | null) => (v == null ? "—" : `${String(v).replace(".", ",")}x`);
 
   const meuCodigo = indicacoes?.[0]?.codigo;
-  const indicConvertidas = indicacoes?.filter((i: any) => i.status === "convertido").length ?? 0;
+  const indicConvertidas = indicacoes?.filter((i: any) => i.status === "convertida").length ?? 0;
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
