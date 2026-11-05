@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, Link2, Plus } from "lucide-react";
+import { Ban, Link2, Plus, RefreshCw } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -58,15 +59,38 @@ export function SaidasSemDespesaCard({ destaqueId, onAssociar, onNova }: {
     },
     onError: (e: { message?: string }) => toast.error(e?.message?.includes("sem_permissao") ? "Apenas administradores e coordenadores." : e?.message ?? "Erro"),
   });
+  const { data: roles } = useUserRoles();
+  const atualizar = useMutation({
+    mutationFn: async () => {
+      const s1 = await supabase.functions.invoke("inter-extrato-sync", { body: {} });
+      if (s1.error) throw new Error("Falha ao buscar o extrato do Inter");
+      const s2 = await supabase.functions.invoke("conciliar-extrato-diario", { body: {} });
+      if (s2.error) throw new Error("Falha ao rodar a conciliação");
+      return s2.data?.resumo ?? {};
+    },
+    onSuccess: (r: Record<string, number>) => {
+      const conc = (r.conciliados ?? 0) + (r.baixados_automaticamente ?? 0) + (r.vinculados_manuais ?? 0);
+      toast.success(`Conciliação atualizada: ${conc} conciliada(s), ${r.avisos_criados ?? 0} nova(s) saída(s) sem despesa`);
+      ["saidas-sem-despesa", "conciliacao-bancaria", "despesas"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const botao = roles?.isAdmin ? (
+    <Button size="sm" variant="outline" disabled={atualizar.isPending} onClick={() => atualizar.mutate()}>
+      <RefreshCw className={`h-4 w-4 mr-1 ${atualizar.isPending ? "animate-spin" : ""}`} />
+      {atualizar.isPending ? "Atualizando…" : "ATUALIZAR CONCILIAÇÃO"}
+    </Button>
+  ) : null;
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (destaqueId && data.some((m) => m.id === destaqueId)) ref.current?.scrollIntoView({ block: "center" });
   }, [destaqueId, data]);
-  if (!data.length) return null;
+  if (!data.length) return botao ? <div className="flex justify-end">{botao}</div> : null;
   return (
     <Card className="border-warning/50">
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-2 flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <CardTitle className="text-base">Saídas do Inter sem despesa ({data.length})</CardTitle>
+        {botao}
       </CardHeader>
       <CardContent className="space-y-2 max-h-80 overflow-y-auto">
         {data.map((m) => {
