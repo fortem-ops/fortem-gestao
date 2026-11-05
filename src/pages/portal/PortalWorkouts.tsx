@@ -7,7 +7,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { registrarSessao } from "@/lib/frequenciaTreino";
 import { useNavigate } from "react-router-dom";
-import { dispensarEventoFeed, eventoFeedDispensado } from "@/components/portal/ComunidadeFeed";
+import { PerguntaCompartilharTreino, perguntarCompartilharTreino } from "@/components/portal/PerguntaCompartilharTreino";
 import { CargaInput } from "@/components/portal/CargaInput";
 import {
   computeWave as compute531Wave,
@@ -175,6 +175,15 @@ function dividirEmBlocos(exercicios: any[]): { label: string; items: any[] }[] {
 
 
 export default function PortalWorkouts() {
+  return (
+    <>
+      <PortalWorkoutsConteudo />
+      <PerguntaCompartilharTreino />
+    </>
+  );
+}
+
+function PortalWorkoutsConteudo() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
 
@@ -266,7 +275,6 @@ export default function PortalWorkouts() {
   const [cargasEditaveis, setCargasEditaveis] = useState<Record<string, string>>({});
   const [concluindo, setConcluindo] = useState(false);
   const [concluido, setConcluido] = useState(false);
-  const [perguntaFeed, setPerguntaFeed] = useState<string | null>(null);
   const navigate = useNavigate();
   const [variacaoConcluida, setVariacaoConcluida] = useState<string | null>(null);
   const [variacaoOriginalConcluida, setVariacaoOriginalConcluida] = useState<string | null>(null);
@@ -651,11 +659,7 @@ export default function PortalWorkouts() {
       setConcluido(true);
       toast.success(`${variacaoFeita} concluído! ${foiTrocado ? "(troca registrada)" : ""}`);
       // Só pergunta se o agendamento do dia já está 'realizado' (o feed só aceita esses).
-      const agId = agendamentoHoje.id;
-      if (!eventoFeedDispensado(agId)) {
-        const { data: ag } = await supabase.from("treino_agendamentos").select("status").eq("id", agId).maybeSingle();
-        if (ag?.status === "realizado") setPerguntaFeed(agId);
-      }
+      void perguntarCompartilharTreino(agendamentoHoje.id);
     } catch (e: any) {
       toast.error(e.message || "Erro ao concluir treino.");
     } finally {
@@ -702,20 +706,6 @@ export default function PortalWorkouts() {
 
     return (
       <div className="space-y-5 pb-32 animate-fade-in px-1 pt-4">
-        {perguntaFeed && (
-          <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => { dispensarEventoFeed(perguntaFeed); setPerguntaFeed(null); }}>
-            <div role="dialog" aria-label="Compartilhar treino?" onClick={(e) => e.stopPropagation()}
-              className="w-full space-y-4 border-t border-[#4A4B4B] bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-              style={{ fontFamily: "Archivo, sans-serif" }}>
-              <p className="text-lg font-black uppercase text-foreground">Compartilhar treino?</p>
-              <p className="text-sm text-muted-foreground">Você escolhe quem vê e pode anexar uma foto.</p>
-              <button className="min-h-[44px] w-full bg-[#C8282A] px-4 text-[13px] font-bold uppercase tracking-[0.08em] text-white"
-                onClick={() => { const id = perguntaFeed; setPerguntaFeed(null); navigate(`/portal/comunidade?aba=feed&compartilhar_treino=${id}`); }}>Sim</button>
-              <button className="min-h-[44px] w-full border border-[#4A4B4B] px-4 text-[13px] font-bold uppercase tracking-[0.08em] text-foreground"
-                onClick={() => { dispensarEventoFeed(perguntaFeed); setPerguntaFeed(null); }}>Agora não</button>
-            </div>
-          </div>
-        )}
         <div className="bg-card border border-primary/30 rounded-2xl p-6 text-center space-y-3">
           <p className="font-black text-xl text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
             {variacaoConcluida ?? variacaoExibida} concluído!
@@ -1252,6 +1242,7 @@ function Portal531View({
         variacao: variacao531(semanaAtiva, dia.ordem),
         agendamentoId: agendamentoHoje.id,
       });
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
       qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
@@ -1576,6 +1567,7 @@ function PortalM102View({
         variacao: slot,
         agendamentoId: agendamentoHoje.id,
       });
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
       qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
@@ -1847,6 +1839,7 @@ function PortalXFabView({
         variacao: slot,
         agendamentoId: agendamentoHoje.id,
       });
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
       qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
@@ -2086,6 +2079,7 @@ function PortalPlanStrongView({
         variacao,
         agendamentoId: agendamentoHoje.id,
       });
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
       qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
@@ -2326,6 +2320,8 @@ function PortalPTTPView({
         variacao: slot,
         agendamentoId: agendamentoHoje.id,
       });
+
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-ativo"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
@@ -2618,6 +2614,8 @@ function PortalPTTP2View({
         variacao: slot,
         agendamentoId: agendamentoHoje.id,
       });
+
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-ativo"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
@@ -2887,6 +2885,8 @@ function PortalFoolproofView({
         variacao: slot,
         agendamentoId: agendamentoHoje.id,
       });
+
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-ativo"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
@@ -3156,6 +3156,7 @@ function PortalEasyStrengthView({
         variacao: slot,
         agendamentoId: agendamentoHoje.id,
       });
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-ativo"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
@@ -3395,6 +3396,7 @@ function PortalMileDeepView({
         variacao: slot,
         agendamentoId: agendamentoHoje.id,
       });
+      void perguntarCompartilharTreino(agendamentoHoje.id);
       qc.invalidateQueries({ queryKey: ["portal-treino-ativo"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
       qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
