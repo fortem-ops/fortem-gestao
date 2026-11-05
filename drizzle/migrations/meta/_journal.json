@@ -1604,6 +1604,13 @@
       "when": 1793801719551,
       "tag": "0228_restringir_leitura_fotos_site_e_capas",
       "breakpoints": true
+    },
+    {
+      "idx": 229,
+      "version": "7",
+      "when": 1793880840418,
+      "tag": "0229_ponto_consolidar_banco_limpeza_antes",
+      "breakpoints": true
     }
   ]
 }
