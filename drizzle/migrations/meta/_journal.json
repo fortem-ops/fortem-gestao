@@ -1639,6 +1639,13 @@
       "when": 1793906051851,
       "tag": "0233_clube_mes_completo_automatico",
       "breakpoints": true
+    },
+    {
+      "idx": 234,
+      "version": "7",
+      "when": 1793907168339,
+      "tag": "0234_notif_anexos_upload_destinatarios",
+      "breakpoints": true
     }
   ]
 }
