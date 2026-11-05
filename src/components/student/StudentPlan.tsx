@@ -148,7 +148,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       if (plano.catalogo_id) {
         const { data: vendas } = await supabase
           .from("vendas").select("id").eq("plano_id", plano.id);
-        const ids = (vendas ?? []).map((v: any) => v.id);
+        // Créditos ligados à venda e ao próprio plano (ex.: 2ª Avaliação Funcional do Pro, mês 6).
+        const ids = [...(vendas ?? []).map((v: any) => v.id), plano.id];
         if (ids.length > 0) {
           const { data: cred } = await supabase
             .from("creditos_aluno")

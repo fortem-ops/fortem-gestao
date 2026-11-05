@@ -60,6 +60,8 @@ export function useAjustesFotosSite() {
       }
       const mapa: Record<string, AjusteFoto> = {};
       for (const r of data ?? []) {
+        // Foto trocada sem link legível: não aplicar o enquadramento da nova na foto original.
+        if (r.arquivo_path && !links.has(r.arquivo_path)) continue;
         mapa[r.chave] = {
           chave: r.chave,
           desk: normalizarEnquadramento({ x: r.desk_x, y: r.desk_y, zoom: r.desk_zoom }),
