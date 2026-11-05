@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { adminAtivo } from "../_shared/admin-ativo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,14 +87,18 @@ Deno.serve(async (req) => {
   // 1) Validação anti-spoof
   const expected = Deno.env.get("INTER_EXTRATO_WEBHOOK_SECRET");
   const provided = req.headers.get("x-webhook-secret");
-  if (!expected || !provided || provided !== expected) {
-    return json({ ok: false, error: "Unauthorized" }, 401);
+  const viaSegredo = !!expected && !!provided && provided === expected;
+  if (!viaSegredo) {
+    const sbAdm = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await adminAtivo(sbAdm, req.headers.get("authorization")))) {
+      return json({ ok: false, error: "Unauthorized" }, 401);
+    }
   }
 
   // Período
   let dias = 10;
   let modoDiag = false;
-  try {
+  if (viaSegredo) try {
     const body = await req.json();
     if (body && body.dias !== undefined && body.dias !== null) dias = Number(body.dias);
     if (body && (body.diag === true || body.dias === "diag")) modoDiag = true;
