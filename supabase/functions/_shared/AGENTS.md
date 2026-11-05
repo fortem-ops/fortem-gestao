@@ -1,0 +1,2 @@
+- Cobrança mensal 2027 (R4) roda só em `planos-recorrencia-diario` sobre `planos_2027_mensalidades`; nunca reaproveitar `cobrar-recorrencias-diario`. Código de cartão compartilhado fica em `_shared/planos-cartao*.ts` (funções não importam umas das outras). Por quê: escopo duro 2027 e bundling isolado por função.
+- Nome do titular só persiste em tokens de recorrência ligados ao cronograma, até fim do contrato/cancelamento. Por quê: MIT exige o nome; compra única não.
