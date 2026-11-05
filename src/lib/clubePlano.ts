@@ -87,7 +87,7 @@ export function ultimasSemanas(datasRealizadas: string[], meta: number, hojeIso:
 
 export const EXPLICACAO_BADGE: Record<string, string> = {
   "Primeiro Passo": "Concedida ao concluir seu primeiro treino na Fortem.",
-  "Mês Completo": "Concedida ao treinar nas 4 semanas seguidas de um mesmo mês.",
+  "Mês Completo": "Concedida ao treinar em todas as semanas completas (segunda a domingo) de um mesmo mês.",
   "8 Semanas Seguidas": "Concedida ao cumprir a frequência semanal do seu plano por 8 semanas seguidas.",
   "Veterano": "Concedida ao completar 1 ano de Fortem.",
   "Lenda FORTEM": "Concedida ao completar 2 anos de Fortem.",

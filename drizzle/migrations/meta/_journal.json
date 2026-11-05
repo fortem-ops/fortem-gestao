@@ -1632,6 +1632,13 @@
       "when": 1793905503095,
       "tag": "0232_clube_conquistas_bonus_limite_ranking",
       "breakpoints": true
+    },
+    {
+      "idx": 233,
+      "version": "7",
+      "when": 1793906051851,
+      "tag": "0233_clube_mes_completo_automatico",
+      "breakpoints": true
     }
   ]
 }

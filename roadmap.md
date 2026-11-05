@@ -176,3 +176,5 @@
 - [x] Clube Parte 4: limite_mensal por recompensa, bloqueio em fn_clube_resgatar (mês de Brasília) e botão "Disponível novamente em".
 - [x] Clube Parte 5: cards "Como funcionam os pontos" e "Como ganhar conquistas" com valores do banco.
 - [x] Clube Parte 6: ranking único por dias de treino no mês (fn_comunidade_ranking_geral), aba Ranking na Comunidade e resumo em Benefícios.
+- [x] Clube: Mês Completo concedida automaticamente (todas as semanas ISO completas do mês com treino realizado; semanas parciais ignoradas; Consultoria fora), carga inicial sem pontos.
+- [ ] Recovery (pendente até a equipe marcar presença realizada nas sessões de bota): criar Primeira Sessão de Recovery (1, bônus 10), Recovery Regular (10, bônus 30) e Recovery Frequente (25, bônus 60), e incluir Recovery em Fortem Completo (treino + nutrição + reabilitação ou Recovery no mesmo ano).
