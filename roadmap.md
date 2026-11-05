@@ -182,3 +182,8 @@
 - [x] Indicação Parte 1: clube_indicacoes evoluída (origem, venda, validade 90 dias, status pendente/convertida/recusada/expirada), indicador único por prospect, código próprio por aluno e expiração diária.
 - [x] Indicação Parte 2: conversão automática na 1ª venda FORTEM paga (100/50 pontos, agregador 0,5x, indicador inativo sem pontos, teto 10/ano, estorno em 30 dias, Embaixador e desafio só convertidas válidas, corte indicacoes_pontos_desde).
 - [ ] Indicação Etapa 2: telas (equipe registra indicador, portal mostra código e indicações).
+- [x] Indicação etapa 2 · Parte 0: convertem todos os planos pagos exceto agregador (Wellhub/Gympass/TotalPass); indicador ativo = qualquer plano vigente; só Corrida pontua como Start (Corrida - Power/Pro seguem o nome).
+- [x] Indicação etapa 2 · Parte 1: campo "Indicado por" nos cadastros de lead/prospect/aluno/dados comerciais; "Indicado por" em cards, listas e perfil; seção Indicações no perfil do indicador.
+- [x] Indicação etapa 2 · Parte 2: portal Benefícios com INDIQUE UM AMIGO, MINHAS INDICAÇÕES e regras vindas do banco; push ao indicador na conversão.
+- [x] Indicação etapa 2 · Parte 3: /experimental guarda ?ind= por 90 dias e inclui o código na mensagem do WhatsApp; sem formulário público (não existe).
+- [x] Indicação etapa 2 · Parte 4: aba Indicações no Clube (filtros, recusar/reverter/corrigir, sem indicador, KPIs, conversão por indicador).

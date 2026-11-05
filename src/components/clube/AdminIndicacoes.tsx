@@ -229,7 +229,7 @@ export function AdminIndicacoes() {
           {(acao?.tipo === "corrigir" || acao?.tipo === "vincular") && (
             <div className="space-y-1.5"><Label>{acao.tipo === "corrigir" ? "Novo indicador" : "Indicado por"}</Label>
               <BuscaIndicador value={novoIndicador} onChange={setNovoIndicador}
-                excluirId={acao.tipo === "corrigir" ? acao.linha.indicado_id : acao.aluno.aluno_id} /></div>
+                excluirId={acao.tipo === "vincular" ? acao.aluno.aluno_id : acao.linha.indicado_id} /></div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={fechar}>Cancelar</Button>
