@@ -1611,6 +1611,13 @@
       "when": 1793880840418,
       "tag": "0229_ponto_consolidar_banco_limpeza_antes",
       "breakpoints": true
+    },
+    {
+      "idx": 230,
+      "version": "7",
+      "when": 1793888290158,
+      "tag": "0230_site_fotos_admin_grant_anon",
+      "breakpoints": true
     }
   ]
 }
