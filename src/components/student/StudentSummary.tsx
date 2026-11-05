@@ -19,6 +19,8 @@ import MarkPresentialSignatureDialog from "@/components/student/MarkPresentialSi
 import { CpfRevealField } from "./CpfRevealField";
 import { Link } from "react-router-dom";
 import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+import { IndicadoPorTexto } from "@/components/indicacoes/IndicadoPorField";
+import { IndicacoesDoIndicador } from "@/components/indicacoes/IndicacoesDoIndicador";
 
 
 
@@ -1101,6 +1103,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
               <span className="text-xs text-muted-foreground">Origem</span>
             </div>
             <p className="text-sm font-semibold text-foreground">{origemLead || "Não informada"}</p>
+            <IndicadoPorTexto alunoId={student.id} className="mt-1 text-xs text-muted-foreground" />
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -1274,6 +1277,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
           <p className="text-sm text-muted-foreground">{student.observacoes}</p>
         </div>
       )}
+
+      <IndicacoesDoIndicador alunoId={student.id} />
 
       <AnnexDetailModal annex={viewingAnnex} open={!!viewingAnnex} onClose={() => setViewingAnnex(null)} />
       <ContratoDetailModal contrato={viewingContrato} open={!!viewingContrato} onClose={() => setViewingContrato(null)} />

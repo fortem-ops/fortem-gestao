@@ -28,6 +28,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialog";
 
 import { PROSPECT_STAGE_NAMES as PROSPECT_STAGE_NAMES_CONST } from "@/lib/pipeline";
+import { IndicadoPorTexto } from "@/components/indicacoes/IndicadoPorField";
 const PROSPECT_STAGE_NAMES = PROSPECT_STAGE_NAMES_CONST as unknown as string[];
 
 
@@ -520,7 +521,7 @@ export default function Prospects() {
                     <p className="text-sm font-medium text-foreground">{p.nome}</p>
                   </td>
                   <td className="p-4 hidden md:table-cell text-sm text-muted-foreground">{p.telefone || "—"}</td>
-                  <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge></td>
+                  <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge><IndicadoPorTexto alunoId={p.id} className="mt-1 text-[11px] text-muted-foreground" /></td>
                   <td className="p-4 hidden lg:table-cell">
                     <div className="flex flex-col gap-1">
                       {p.motivo_perda ? (

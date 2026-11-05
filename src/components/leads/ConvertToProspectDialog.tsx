@@ -16,6 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { SEXO_OPTIONS, convertLeadToProspect, type OrigemLead } from "@/lib/leads";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
+import { IndicadoPorField, useIndicacaoDoIndicado } from "@/components/indicacoes/IndicadoPorField";
+import { indicadorObrigatorio, salvarIndicacaoDoFormulario, type IndicadorOpcao } from "@/lib/indicacoes";
 
 interface Props {
   alunoId: string | null;
@@ -60,6 +62,7 @@ export function ConvertToProspectDialog({
     created_at: undefined as Date | undefined,
   });
   const [professores, setProfessores] = useState<{ user_id: string; full_name: string }[]>([]);
+  const [indicador, setIndicador] = useState<IndicadorOpcao | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -121,11 +124,25 @@ export function ConvertToProspectDialog({
     }
   }, [data]);
 
+  const { data: indicacaoExistente } = useIndicacaoDoIndicado(alunoId, open);
+  const indicadorObrig = !indicacaoExistente && indicadorObrigatorio(form.origem, (data as any)?.meta?.origem_lead, false);
+
   async function save() {
     if (!alunoId) return;
     if (!form.data_nascimento || !form.email.trim() || !form.sexo || !form.origem ||
         !form.limitacoes.trim() || !form.atividade_fisica.trim() || !form.objetivo_treinamento.trim()) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+    if (indicadorObrig && !indicador) {
+      toast.error("Informe quem indicou (campo Indicado por)");
+      return;
+    }
+    try {
+      await salvarIndicacaoDoFormulario(alunoId, form.origem, indicador);
+      qc.invalidateQueries({ queryKey: ["indicacao-do-indicado", alunoId] });
+    } catch (e: any) {
+      toast.error(e.message);
       return;
     }
     setSaving(true);
@@ -259,6 +276,8 @@ export function ConvertToProspectDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <IndicadoPorField alunoId={alunoId} origem={form.origem} value={indicador} onChange={setIndicador} obrigatorio={indicadorObrig} />
 
           <div className="space-y-1.5">
             <Label>Professor responsável (opcional)</Label>

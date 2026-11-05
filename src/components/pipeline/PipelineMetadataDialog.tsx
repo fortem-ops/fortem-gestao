@@ -15,11 +15,14 @@ interface Props {
 }
 
 import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
+import { IndicadoPorField, useIndicacaoDoIndicado } from "@/components/indicacoes/IndicadoPorField";
+import { indicadorObrigatorio, salvarIndicacaoDoFormulario, type IndicadorOpcao } from "@/lib/indicacoes";
 const ORIGEM_OPTIONS = ORIGEM_LEAD_OPTIONS;
 
 export function PipelineMetadataDialog({ alunoId, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [indicador, setIndicador] = useState<IndicadorOpcao | null>(null);
   const [form, setForm] = useState({
     temperatura_lead: "",
     probabilidade_fechamento: "",
@@ -67,9 +70,19 @@ export function PipelineMetadataDialog({ alunoId, open, onOpenChange }: Props) {
     }
   }, [existing, open]);
 
+  const { data: indicacaoExistente } = useIndicacaoDoIndicado(alunoId, open);
+  const indicadorObrig = !indicacaoExistente && indicadorObrigatorio(form.origem_lead, existing?.origem_lead, false);
+
   async function handleSave() {
+    if (indicadorObrig && !indicador) {
+      toast.error("Informe quem indicou (campo Indicado por)");
+      return;
+    }
     setSaving(true);
     try {
+      await salvarIndicacaoDoFormulario(alunoId, form.origem_lead, indicador);
+      queryClient.invalidateQueries({ queryKey: ["indicacao-do-indicado", alunoId] });
+      setIndicador(null);
       const payload: any = {
         aluno_id: alunoId,
         temperatura_lead: form.temperatura_lead || null,
@@ -142,6 +155,8 @@ export function PipelineMetadataDialog({ alunoId, open, onOpenChange }: Props) {
                 onChange={(e) => setForm({ ...form, valor_estimado_plano: e.target.value })} />
             </div>
           </div>
+
+          <IndicadoPorField alunoId={alunoId} origem={form.origem_lead} value={indicador} onChange={setIndicador} obrigatorio={indicadorObrig} />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

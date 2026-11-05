@@ -100,6 +100,9 @@ export interface RegrasClube {
   conquistas_bonus_desde: string | null;
   mult_agregador: number | null;
   pontos_treino: number | null;
+  pontos_indicacao?: number | null;
+  pontos_indicado?: number | null;
+  teto_indicacoes_ano?: number | null;
   conquistas: { id: string; nome: string; descricao: string | null; pontos_bonus: number }[];
   limites: { nome: string; limite_mensal: number }[];
 }

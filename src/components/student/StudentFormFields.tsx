@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { IndicadoPorField } from "@/components/indicacoes/IndicadoPorField";
+import type { IndicadorOpcao } from "@/lib/indicacoes";
 
 const PLAN_CONFIG: Record<string, { label: string; duracao: number; servicos: string[] }> = {
   Start:    { label: "Start",  duracao: 1,  servicos: [] },
@@ -73,6 +75,9 @@ interface StudentFormFieldsProps {
   loading: boolean;
   submitLabel: string;
   onCancel: () => void;
+  /** Indicador escolhido quando a origem é Indicação (cadastro novo). */
+  indicador?: IndicadorOpcao | null;
+  onIndicadorChange?: (v: IndicadorOpcao | null) => void;
 }
 
 function PlanServicesSelector({ control }: { control: any }) {
@@ -186,7 +191,7 @@ function PlanServicesSelector({ control }: { control: any }) {
   );
 }
 
-export default function StudentFormFields({ defaultValues, onSubmit, loading, submitLabel, onCancel }: StudentFormFieldsProps) {
+export default function StudentFormFields({ defaultValues, onSubmit, loading, submitLabel, onCancel, indicador, onIndicadorChange }: StudentFormFieldsProps) {
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentSchema),
     defaultValues,
@@ -432,6 +437,10 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
             </FormItem>
           )}
         />
+
+        {onIndicadorChange && (
+          <IndicadoPorField origem={form.watch("origem_lead")} value={indicador ?? null} onChange={onIndicadorChange} obrigatorio />
+        )}
 
         <FormField
           control={form.control}

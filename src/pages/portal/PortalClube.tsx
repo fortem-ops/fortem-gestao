@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMeuPlanoClube, custoRecompensa, proximoMarco, EXPLICACAO_BADGE, useRegrasClube, useLimitesResgate, fmtDataBr } from "@/lib/clubePlano";
 import { ResumoRankingGeral } from "@/components/portal/RankingGeral";
 import { SeloPlano } from "@/components/portal/SeloPlano";
+import { IndiqueUmAmigo } from "@/components/portal/IndiqueUmAmigo";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,15 +103,6 @@ export default function PortalClube() {
     },
   });
 
-  const { data: indicacoes } = useQuery({
-    queryKey: ["portal-clube-indic", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await supabase.from("clube_indicacoes").select("*").eq("padrinho_id", student!.id);
-      return data || [];
-    },
-  });
-
   const { data: regras } = useRegrasClube(!!student);
   const { data: limites } = useLimitesResgate(!!student);
 
@@ -142,8 +134,6 @@ export default function PortalClube() {
   const marco = proximoMarco(saldo, (recompensas ?? []) as any[], isAgregador);
   const fmtMult = (v?: number | null) => (v == null ? "—" : `${String(v).replace(".", ",")}x`);
 
-  const meuCodigo = indicacoes?.[0]?.codigo;
-  const indicConvertidas = indicacoes?.filter((i: any) => i.status === "convertida").length ?? 0;
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
@@ -343,20 +333,7 @@ export default function PortalClube() {
       </section>
 
       {/* Indicação */}
-      {meuCodigo && (
-        <Card className="glass-card p-4">
-          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[hsl(180,1%,70%)] mb-2">Seu código de indicação</p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 text-lg font-mono font-bold tracking-wider bg-muted/50 rounded-md px-3 py-2">{meuCodigo}</code>
-            <Button size="icon" variant="outline" onClick={() => { navigator.clipboard.writeText(meuCodigo); toast.success("Copiado"); }}>
-              <Copy className="w-4 h-4" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Você indicou <strong>{indicConvertidas}</strong> aluno(s) que contrataram.
-          </p>
-        </Card>
-      )}
+      <IndiqueUmAmigo regras={regras} />
 
       {/* Histórico */}
       <section>
@@ -447,8 +424,8 @@ export default function PortalClube() {
                 {[
                   { acao: "Treino realizado", pts: `${regras?.pontos_treino ?? 10} pts`, obs: "Por sessão confirmada, antes do multiplicador do plano" },
                   { acao: "Avaliação funcional", pts: "50 pts", obs: "A cada avaliação" },
-                  { acao: "Indicação convertida", pts: "100 pts", obs: "Quando o indicado contrata" },
-                  { acao: "Bônus por ser indicado", pts: "50 pts", obs: "Única vez" },
+                  { acao: "Indicação convertida", pts: `${regras?.pontos_indicacao ?? 100} pts`, obs: `Quando o indicado contrata um plano FORTEM (não vale Wellhub ou Total Pass). Limite de ${regras?.teto_indicacoes_ano ?? 10} por ano; só conta enquanto seu plano estiver ativo` },
+                  { acao: "Bônus por ser indicado", pts: `${regras?.pontos_indicado ?? 50} pts`, obs: "Única vez, ao contratar o plano" },
                   { acao: "Serviço contratado", pts: "30 pts", obs: "Por serviço" },
                   { acao: "Aniversário FORTEM", pts: "100 pts", obs: "Por ano completado" },
                   { acao: "Aniversário do aluno", pts: "50 pts", obs: "Uma vez por ano" },

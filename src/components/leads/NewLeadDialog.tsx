@@ -10,6 +10,8 @@ import { createLead, findAlunoByPhone, type OrigemLead } from "@/lib/leads";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { IndicadoPorField } from "@/components/indicacoes/IndicadoPorField";
+import { isOrigemIndicacao, salvarIndicacaoDoFormulario, type IndicadorOpcao } from "@/lib/indicacoes";
 
 interface Props {
   open: boolean;
@@ -26,14 +28,19 @@ export function NewLeadDialog({ open, onOpenChange }: Props) {
   const [origem, setOrigem] = useState<OrigemLead | "">("");
   const [saving, setSaving] = useState(false);
   const [duplicate, setDuplicate] = useState<{ id: string; nome: string } | null>(null);
+  const [indicador, setIndicador] = useState<IndicadorOpcao | null>(null);
 
   function reset() {
-    setNome(""); setTelefone(""); setOrigem(""); setDuplicate(null);
+    setNome(""); setTelefone(""); setOrigem(""); setDuplicate(null); setIndicador(null);
   }
 
   async function handleSave(force = false) {
     if (!nome.trim() || !telefone.trim() || !origem) {
       toast.error("Preencha nome, telefone e origem");
+      return;
+    }
+    if (isOrigemIndicacao(origem) && !indicador) {
+      toast.error("Informe quem indicou (campo Indicado por)");
       return;
     }
     setSaving(true);
@@ -46,7 +53,12 @@ export function NewLeadDialog({ open, onOpenChange }: Props) {
           return;
         }
       }
-      await createLead({ nome, telefone, origem: origem as OrigemLead, responsavel_id: user?.id ?? null });
+      const novoId = await createLead({ nome, telefone, origem: origem as OrigemLead, responsavel_id: user?.id ?? null });
+      try {
+        await salvarIndicacaoDoFormulario(novoId, origem, indicador);
+      } catch (e: any) {
+        toast.error(`Lead criado, mas a indicação não foi registrada: ${e.message}`);
+      }
       toast.success("Lead criado");
       qc.invalidateQueries({ queryKey: ["leads-list"] });
       qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
@@ -84,6 +96,8 @@ export function NewLeadDialog({ open, onOpenChange }: Props) {
               </SelectContent>
             </Select>
           </div>
+
+          <IndicadoPorField origem={origem} value={indicador} onChange={setIndicador} obrigatorio />
 
           {duplicate && (
             <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">

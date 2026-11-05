@@ -22,6 +22,7 @@ import { waMeLink, formatDaysAgo, LEAD_STAGE_NAMES } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
+import { IndicadoPorTexto } from "@/components/indicacoes/IndicadoPorField";
 
 export default function Leads() {
   const navigate = useNavigate();
@@ -322,7 +323,7 @@ export default function Leads() {
                     <p className="text-sm font-medium text-foreground">{l.nome}</p>
                   </td>
                   <td className="p-4 hidden md:table-cell text-sm text-muted-foreground">{l.telefone || "—"}</td>
-                  <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{l.origem}</Badge></td>
+                  <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{l.origem}</Badge><IndicadoPorTexto alunoId={l.id} className="mt-1 text-[11px] text-muted-foreground" /></td>
                   <td className="p-4 hidden lg:table-cell text-sm text-muted-foreground">{profilesMap[l.responsavel_id] || "—"}</td>
                   <td className="p-4 hidden lg:table-cell text-xs text-muted-foreground">
                     {format(new Date(l.created_at), "dd/MM/yyyy")} · {formatDaysAgo(l.created_at)}

@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { jsonLdFaq } from "../seo";
+import { capturarCodigoIndicacao } from "../indicacao";
 import { Link } from "react-router-dom";
 import { SiteLayout } from "../SiteLayout";
 import { PlaceholderFoto } from "../components/PlaceholderFoto";
@@ -13,6 +15,8 @@ import { FOTOS_SITE, FOTOS_ESTRUTURA_SITE } from "../fotos";
 const h2 = "text-3xl leading-tight md:text-4xl";
 
 export function SiteExperimental() {
+  // Captura ?ind= antes de montar os links do WhatsApp (que leem o código guardado).
+  useState(() => { capturarCodigoIndicacao(); return null; });
   return (
     <SiteLayout minimo titulo={E.meta.titulo} descricao={E.meta.descricao} path={sitePath("/experimental")} origem="experimental-topo" noIndex jsonLd={[jsonLdFaq(E.faq)]}>
       <section className="sp-fundo-preto">

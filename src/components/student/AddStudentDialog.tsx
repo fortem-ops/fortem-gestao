@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
 import { isAutoRenewPlan } from "@/lib/planTipo";
+import { isOrigemIndicacao, salvarIndicacaoDoFormulario, type IndicadorOpcao } from "@/lib/indicacoes";
 
 interface AddStudentDialogProps {
   onStudentAdded: () => void;
@@ -14,6 +15,7 @@ interface AddStudentDialogProps {
 export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [indicador, setIndicador] = useState<IndicadorOpcao | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -28,6 +30,10 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
   };
 
   async function onSubmit(values: StudentFormValues) {
+    if (isOrigemIndicacao(values.origem_lead) && !indicador) {
+      toast.error("Informe quem indicou (campo Indicado por)");
+      return;
+    }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -47,6 +53,15 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
         consultor_id: values.consultor_id || null,
       }).select("id").single();
       if (error) throw error;
+
+      // Indicação antes do plano: com plano vigente o indicado seria recusado como "já ativo".
+      if (aluno && isOrigemIndicacao(values.origem_lead)) {
+        try {
+          await salvarIndicacaoDoFormulario(aluno.id, values.origem_lead, indicador);
+        } catch (e: any) {
+          toast.error(`Aluno cadastrado, mas a indicação não foi registrada: ${e.message}`);
+        }
+      }
 
       const plan = getPlanDetails(values.plano, values.plano_consultas);
       if (plan && aluno) {
@@ -113,6 +128,8 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
           loading={loading}
           submitLabel="Cadastrar"
           onCancel={() => setOpen(false)}
+          indicador={indicador}
+          onIndicadorChange={setIndicador}
         />
       </DialogContent>
     </Dialog>

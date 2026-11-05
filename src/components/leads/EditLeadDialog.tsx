@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
+import { IndicadoPorField, useIndicacaoDoIndicado } from "@/components/indicacoes/IndicadoPorField";
+import { indicadorObrigatorio, salvarIndicacaoDoFormulario, type IndicadorOpcao } from "@/lib/indicacoes";
 
 interface Props {
   alunoId: string | null;
@@ -28,6 +30,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
     nome: "", telefone: "", email: "", origem: "", responsavel_id: "", created_at: undefined,
   });
   const [saving, setSaving] = useState(false);
+  const [indicador, setIndicador] = useState<IndicadorOpcao | null>(null);
   const [professores, setProfessores] = useState<{ user_id: string; full_name: string }[]>([]);
 
   useEffect(() => {
@@ -70,8 +73,15 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
     }
   }, [data]);
 
+  const { data: indicacaoExistente } = useIndicacaoDoIndicado(alunoId, open);
+  const obrigatorio = !indicacaoExistente && indicadorObrigatorio(form.origem, data?.origem, false);
+
   async function save() {
     if (!alunoId) return;
+    if (obrigatorio && !indicador) {
+      toast.error("Informe quem indicou (campo Indicado por)");
+      return;
+    }
     setSaving(true);
     try {
       const update: any = {
@@ -89,6 +99,9 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
           { onConflict: "aluno_id" }
         );
       }
+      await salvarIndicacaoDoFormulario(alunoId, form.origem, indicador);
+      qc.invalidateQueries({ queryKey: ["indicacao-do-indicado", alunoId] });
+      setIndicador(null);
       toast.success("Dados atualizados");
       qc.invalidateQueries({ queryKey: ["leads-list"] });
       qc.invalidateQueries({ queryKey: ["prospects-list"] });
@@ -152,6 +165,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
               </SelectContent>
             </Select>
           </div>
+          <IndicadoPorField alunoId={alunoId} origem={form.origem} value={indicador} onChange={setIndicador} obrigatorio={obrigatorio} />
           <div className="space-y-1.5">
             <Label>Professor responsável</Label>
             <Select

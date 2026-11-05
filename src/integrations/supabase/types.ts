@@ -13545,11 +13545,20 @@ export type Database = {
         }[]
       }
       fn_indicacao_converter: { Args: { p_venda_id: string }; Returns: Json }
+      fn_indicacao_corrigir_indicador: {
+        Args: { p_id: string; p_padrinho_id: string }
+        Returns: Json
+      }
       fn_indicacao_estornar_pontos: {
         Args: { p_acao: string; p_aluno_id: string; p_indicacao_id: string }
         Returns: number
       }
       fn_indicacao_gerar_codigo: { Args: never; Returns: string }
+      fn_indicacao_minhas: { Args: never; Returns: Json }
+      fn_indicacao_recusar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: Json
+      }
       fn_indicacao_registrar: {
         Args: {
           p_codigo?: string
@@ -13560,7 +13569,53 @@ export type Database = {
         Returns: Json
       }
       fn_indicacao_reverter: { Args: { p_venda_id: string }; Returns: Json }
+      fn_indicacao_reverter_admin: { Args: { p_id: string }; Returns: Json }
+      fn_indicacao_vincular_antiga: {
+        Args: { p_indicado_id: string; p_padrinho_id: string }
+        Returns: Json
+      }
       fn_indicacoes_expirar: { Args: never; Returns: number }
+      fn_indicacoes_lista: {
+        Args: {
+          p_ate?: string
+          p_de?: string
+          p_indicado?: string
+          p_padrinho?: string
+          p_status?: string
+        }
+        Returns: {
+          convertido_em: string
+          criada_em: string
+          expira_em: string
+          id: string
+          indicado_id: string
+          indicado_nome: string
+          indicado_status: string
+          motivo_recusa: string
+          origem: string
+          padrinho_ativo: boolean
+          padrinho_id: string
+          padrinho_nome: string
+          pontos_indicado: number
+          pontos_pagos: number
+          sem_pontos_motivo: string
+          status: string
+          venda_id: string
+        }[]
+      }
+      fn_indicacoes_resumo: {
+        Args: { p_ate: string; p_de: string }
+        Returns: Json
+      }
+      fn_indicacoes_sem_indicador: {
+        Args: never
+        Returns: {
+          aluno_id: string
+          created_at: string
+          nome: string
+          status: string
+        }[]
+      }
       fn_inserir_inscricao_prova: {
         Args: {
           p_aceite_inscricao: boolean

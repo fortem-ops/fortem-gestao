@@ -20,7 +20,9 @@ import { Star, CloudRain, Users, Gift, Trophy, Sparkles, Plus, Trash2, Pencil, C
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "conquistas" | "parceiros" | "desafios" | "ranking" | "clubes" | "feed";
+import { AdminIndicacoes } from "@/components/clube/AdminIndicacoes";
+
+type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "conquistas" | "parceiros" | "desafios" | "ranking" | "clubes" | "feed" | "indicacoes";
 
 export default function ClubeFortem() {
   const [aba, setAba] = useState<Aba>("dashboard");
@@ -50,6 +52,7 @@ export default function ClubeFortem() {
           <TabsTrigger value="ranking">Ranking</TabsTrigger>
           <TabsTrigger value="clubes" className="gap-1.5">Clubes{pendentesClubes > 0 && <span className="rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">{pendentesClubes}</span>}</TabsTrigger>
           <TabsTrigger value="feed" className="gap-1.5">Feed{pendentesFeed > 0 && <span className="rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">{pendentesFeed}</span>}</TabsTrigger>
+          <TabsTrigger value="indicacoes">Indicações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="pt-6">
@@ -73,6 +76,7 @@ export default function ClubeFortem() {
         <TabsContent value="desafios" className="pt-6"><DesafiosTab /></TabsContent>
         <TabsContent value="clubes" className="pt-6"><AdminComunidadeClubes /></TabsContent>
         <TabsContent value="feed" className="pt-6"><AdminComunidadeFeed /></TabsContent>
+        <TabsContent value="indicacoes" className="pt-6"><AdminIndicacoes /></TabsContent>
 
         <TabsContent value="ranking" className="pt-6"><RankingTab /></TabsContent>
       </Tabs>

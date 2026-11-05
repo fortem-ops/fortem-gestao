@@ -1,4 +1,5 @@
 /** Configuração única do site público. */
+import { lerCodigoIndicacao } from "./indicacao";
 export const WHATSAPP_NUMERO = "555135199451";
 export const WHATSAPP_EXIBICAO = "(51) 3519-9451";
 export const ENDERECO_CURTO = "Av. Independência, 358, Porto Alegre";
@@ -40,5 +41,10 @@ export const MENSAGENS_WHATSAPP: Record<OrigemWhatsApp, string> = {
 };
 
 export function linkWhatsApp(origem: OrigemWhatsApp = "geral"): string {
-  return `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(MENSAGENS_WHATSAPP[origem])}`;
+  let texto = MENSAGENS_WHATSAPP[origem];
+  if (origem.startsWith("experimental")) {
+    const codigo = lerCodigoIndicacao();
+    if (codigo) texto += `\nCódigo de indicação: ${codigo}`;
+  }
+  return `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`;
 }

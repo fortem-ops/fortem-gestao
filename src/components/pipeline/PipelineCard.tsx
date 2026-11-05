@@ -20,6 +20,7 @@ import { ConvertToAvulsoButton } from "@/components/leads/ConvertToAvulsoButton"
 import { isLeadStage, isProspectStage } from "@/lib/pipeline";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { cn } from "@/lib/utils";
+import { IndicadoPorTexto } from "@/components/indicacoes/IndicadoPorField";
 
 export interface PipelineCardData {
   id: string;
@@ -188,6 +189,7 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
             Origem: <span className="text-foreground/80">{student.meta.origem_lead}</span>
           </p>
         )}
+        <IndicadoPorTexto alunoId={student.id} className="text-[10px] text-muted-foreground truncate" />
 
         {/* Próxima ação */}
         {student.next_task && (() => {
