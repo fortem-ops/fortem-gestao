@@ -1618,6 +1618,13 @@
       "when": 1793888290158,
       "tag": "0230_site_fotos_admin_grant_anon",
       "breakpoints": true
+    },
+    {
+      "idx": 231,
+      "version": "7",
+      "when": 1793888848899,
+      "tag": "0231_comunidade_capas_select_vinculado",
+      "breakpoints": true
     }
   ]
 }
