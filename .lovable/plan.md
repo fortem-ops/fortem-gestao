@@ -1,20 +1,14 @@
-# Exercício do Gustavo que não aparece em Preventivo > Ombro
+# Corrigir erro ao enviar imagem em resposta no Notificar
 
-## O que foi encontrado
-- O exercício está gravado corretamente no Banco de Exercícios, com o nome **"F2 - Rot. externa de ombros em abdução + press HSR"** (não "F2 Rotação externa de ombro...").
-- Ele está em dois lugares: Aquecimento > Ativação Muscular > Ombro/Escápula e Aquecimento > Preventivo > Ombro (mesma categoria e subcategoria dos outros 22 exercícios que aparecem ali).
-- Criado às 16:12 e alterado às 16:15 (horário de Brasília). É provável que o vínculo com Preventivo > Ombro tenha entrado só na segunda gravação, pouco antes do relato.
-- O seletor do treino lista tudo de Preventivo > Ombro e filtra pelo que é digitado. Digitando "rotação", ele não acha, porque o nome salvo usa "Rot.".
+## Causa (confirmada)
+Você tentou colar uma imagem na resposta da notificação "Erro ao adicionar exercícios no banco de dados", que o Gustavo criou e enviou a você. Hoje, só quem criou a notificação pode enviar anexos para ela. Quem a recebeu, mesmo sendo destinatário, é bloqueado e vê "new row violates row-level security policy". A leitura dos anexos já permite autor e destinatários, mas o envio não.
 
-## Causa mais provável (não confirmada na tela)
-1. Busca por "rotação" com o nome salvo como "Rot."; ou
-2. Teste feito antes da segunda gravação, que incluiu Preventivo > Ombro.
-
-## Proposta
-1. Pedir ao Gustavo para abrir o bloco Preventivo > Ombro, sem digitar nada (ou digitando "HSR" ou "rot"), e conferir se o exercício aparece. Nenhuma mudança no sistema.
-2. Melhoria opcional na busca do seletor de exercícios: ignorar acentos e maiúsculas e aceitar parte de cada palavra em qualquer ordem (ex.: "rot ext ombro" acha "Rot. externa de ombros"). Só a busca muda; o cadastro e a montagem do treino ficam iguais.
-3. Opcional: renomear o exercício para o nome que ele usa ("F2 Rotação externa de ombro em abdução + press HSR"), se ele preferir.
+## Correção
+- Quem recebeu a notificação também pode enviar imagens e arquivos nas respostas.
+- Continua bloqueado para quem não é autor nem destinatário. O formato das pastas segue validado (uma pasta por notificação).
+- Nada muda nas telas nem nos anexos que já existem.
 
 ## Detalhes técnicos
-- Dados: `exercicios_personalizados.id = 3f172d0b-...`, `grupos` contém `{grupo: Aquecimento, categoria: Preventivo, subcategoria: Ombro}`; `exercicio_categorias` tem a mesma subcategoria `Ombro` (PREV).
-- Seletor: `src/components/student/workout/ExerciseSelector.tsx` filtra por `itemCasaAlvo` e depois `nome.toLowerCase().includes(query)`. A melhoria 2 troca esse filtro por uma comparação normalizada (NFD sem acentos) por termos, com teste unitário.
+- Nova migração: remover e recriar a policy de INSERT "Authenticated upload notif anexos" em `storage.objects` (bucket `notificacao-anexos`). A condição passa a ser `n.criado_por = auth.uid()` OU existir uma linha em `notificacao_destinatarios` com `notificacao_id` = pasta e `usuario_id = auth.uid()`. As mesmas checagens de pasta UUID continuam.
+- Rollback: recriar a policy anterior (registrada em comentário na migração).
+- Verificação: conferir a policy em `pg_policies` e ensaiar o envio como destinatário, se houver sessão disponível.
