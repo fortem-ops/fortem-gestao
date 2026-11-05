@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { adminAtivo } from "../_shared/admin-ativo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -169,10 +170,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const secret = Deno.env.get("INTER_EXTRATO_WEBHOOK_SECRET");
-  if (!secret || req.headers.get("x-webhook-secret") !== secret) return json({ ok: false, error: "unauthorized" }, 401);
-
   mapeamentosCache = null;
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const viaSegredo = !!secret && req.headers.get("x-webhook-secret") === secret;
+  if (!viaSegredo && !(await adminAtivo(sb, req.headers.get("authorization")))) {
+    return json({ ok: false, error: "unauthorized" }, 401);
+  }
 
   try {
     // Movimentos desde a data de início
