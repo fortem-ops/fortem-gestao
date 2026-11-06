@@ -29,7 +29,7 @@ import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { StudentPipelinePanel } from "@/components/pipeline/StudentPipelinePanel";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { StudentClubePanel } from "@/components/clube/StudentClubePanel";
-import ContratoFinanceiro from "@/pages/alunos/ContratoFinanceiro";
+import { StudentPlanoFinanceiro, PLANO_FIN_SUBTABS, type PlanoFinSubTab } from "@/components/student/StudentPlanoFinanceiro";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import { selecionarPlanoExibicao, planoDataFim } from "@/lib/planoPrincipal";
 import type { AlunoLicenca } from "@/lib/licencas";
@@ -50,7 +50,7 @@ export default function StudentProfile() {
   const podeVerComercial = !!roles?.isCoordAdmin;
   const validTabs = [
     "resumo",
-    ...(podeVerComercial ? ["pipeline","clube","plano","financeiro","contrato"] : []),
+    ...(podeVerComercial ? ["pipeline","clube","plano"] : []),
     "treinos","frequencia","registros","facial",
   ];
   const LEGACY_TAB_MAP: Record<string, RegistroSubTab> = {
@@ -60,7 +60,13 @@ export default function StudentProfile() {
     tarefas: "tarefas",
     uploads: "uploads",
   };
-  const tabParam = searchParams.get("tab");
+  const rawTab = searchParams.get("tab");
+  const LEGACY_PLANO_MAP: Record<string, PlanoFinSubTab> = { financeiro: "carteira", contrato: "cobrancas" };
+  const legacyPlanoSub = rawTab ? LEGACY_PLANO_MAP[rawTab] : undefined;
+  const tabParam = legacyPlanoSub ? "plano" : rawTab;
+  const planoSubParam = searchParams.get("sub") as PlanoFinSubTab | null;
+  const planoSub: PlanoFinSubTab =
+    legacyPlanoSub ?? (planoSubParam && PLANO_FIN_SUBTABS.includes(planoSubParam) ? planoSubParam : "servicos");
   const legacySub = tabParam ? LEGACY_TAB_MAP[tabParam] : undefined;
   const tabValue = legacySub
     ? "registros"
@@ -252,7 +258,7 @@ export default function StudentProfile() {
       <Tabs
         value={tabValue}
         onValueChange={(v) =>
-          setSearchParams(v === "registros" ? { tab: v, sub: subValue } : { tab: v }, { replace: true })
+          setSearchParams(v === "registros" ? { tab: v, sub: subValue } : v === "plano" ? { tab: v, sub: planoSub } : { tab: v }, { replace: true })
         }
         className="w-full"
       >
@@ -261,9 +267,7 @@ export default function StudentProfile() {
           {podeVerComercial && <>
             <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
             <TabsTrigger value="clube">Clube FORTEM</TabsTrigger>
-            <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
-            <TabsTrigger value="financeiro">Carteira</TabsTrigger>
-            <TabsTrigger value="contrato">Pagamentos</TabsTrigger>
+            <TabsTrigger value="plano">Plano & Financeiro</TabsTrigger>
           </>}
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="frequencia">Frequência</TabsTrigger>
@@ -275,9 +279,13 @@ export default function StudentProfile() {
         {podeVerComercial && <>
           <TabsContent value="pipeline"><StudentPipelinePanel student={student} onChanged={() => refetch()} /></TabsContent>
           <TabsContent value="clube"><StudentClubePanel student={student} /></TabsContent>
-          <TabsContent value="plano"><StudentPlan student={student} /></TabsContent>
-          <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
-          <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
+          <TabsContent value="plano">
+            <StudentPlanoFinanceiro
+              student={student}
+              sub={planoSub}
+              onSubChange={(s) => setSearchParams({ tab: "plano", sub: s }, { replace: true })}
+            />
+          </TabsContent>
         </>}
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
         <TabsContent value="frequencia"><StudentFrequencia student={student} /></TabsContent>
