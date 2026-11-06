@@ -108,6 +108,17 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     },
   });
 
+  const [renovando, setRenovando] = useState(false);
+  const renovarAntecipado = async () => {
+    if (!data) return;
+    setRenovando(true);
+    const { error } = await supabase.rpc("fn_plano_renovar_antecipado" as any, { _plano_id: data.id } as any);
+    setRenovando(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Plano renovado. Nova mensalidade gerada com vencimento hoje.");
+    queryClient.invalidateQueries();
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ["plano_ativo", student.id],
     queryFn: async () => {
@@ -493,6 +504,27 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                 <DollarSign className="h-4 w-4" />
                 <span>R$ {Number(data.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
               </div>
+            )}
+            {isAdmin && !(data as any).catalogo_id && (data as any).renovacao_automatica && data.duracao_meses === 1 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={renovando} className="gap-1.5">
+                    <RefreshCw className="h-3.5 w-3.5" /> Renovar antecipadamente
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Renovar plano antecipadamente?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O ciclo atual ({new Date(data.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}) é encerrado hoje e começa um novo ciclo de 1 mês a partir de hoje, com nova mensalidade de R$ {Number(data.valor ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} vencendo hoje. Os próximos vencimentos passam para o dia de hoje de cada mês. Nada é cobrado automaticamente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={renovarAntecipado}>Confirmar renovação</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             {isCoordAdmin && (
               <Button size="sm" variant="outline" onClick={openEditPlan} disabled={saving} className="gap-1.5">

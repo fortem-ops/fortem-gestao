@@ -1695,6 +1695,34 @@
       "when": 1793972935011,
       "tag": "0241_recovery_avulso_revoke_anon",
       "breakpoints": true
+    },
+    {
+      "idx": 242,
+      "version": "7",
+      "when": 1793974234096,
+      "tag": "0242_plano_renovar_antecipado",
+      "breakpoints": true
+    },
+    {
+      "idx": 243,
+      "version": "7",
+      "when": 1793974260852,
+      "tag": "0243_plano_renovar_antecipado_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 244,
+      "version": "7",
+      "when": 1793974295923,
+      "tag": "0244_plano_renovar_antecipado_audit_op",
+      "breakpoints": true
+    },
+    {
+      "idx": 245,
+      "version": "7",
+      "when": 1793974323647,
+      "tag": "0245_plano_renovar_antecipado_audit_op2",
+      "breakpoints": true
     }
   ]
 }

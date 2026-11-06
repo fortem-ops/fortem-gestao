@@ -14028,6 +14028,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fn_plano_renovar_antecipado: {
+        Args: { _plano_id: string }
+        Returns: Json
+      }
       fn_planos_codigo_validar: {
         Args: { p_hash: string; p_id: string }
         Returns: Json
