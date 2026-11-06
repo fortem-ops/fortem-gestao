@@ -10477,6 +10477,7 @@ export type Database = {
           custo_repasse_unitario: Json | null
           gera_pendencia_comissao: boolean
           id: string
+          liberar_apos_pagamento: boolean
           nome: string
           quantidade_sessoes: number
           sobrevive_cancelamento: boolean
@@ -10496,6 +10497,7 @@ export type Database = {
           custo_repasse_unitario?: Json | null
           gera_pendencia_comissao?: boolean
           id?: string
+          liberar_apos_pagamento?: boolean
           nome: string
           quantidade_sessoes?: number
           sobrevive_cancelamento?: boolean
@@ -10515,6 +10517,7 @@ export type Database = {
           custo_repasse_unitario?: Json | null
           gera_pendencia_comissao?: boolean
           id?: string
+          liberar_apos_pagamento?: boolean
           nome?: string
           quantidade_sessoes?: number
           sobrevive_cancelamento?: boolean
@@ -11440,6 +11443,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_planos_base"
             referencedColumns: ["plano_id"]
+          },
+        ]
+      }
+      vendas_creditos_pos_pagamento: {
+        Row: {
+          credito_id: string
+          liberado_em: string
+          retirado_em: string | null
+          venda_id: string
+        }
+        Insert: {
+          credito_id: string
+          liberado_em?: string
+          retirado_em?: string | null
+          venda_id: string
+        }
+        Update: {
+          credito_id?: string
+          liberado_em?: string
+          retirado_em?: string | null
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_creditos_pos_pagamento_credito_id_fkey"
+            columns: ["credito_id"]
+            isOneToOne: false
+            referencedRelation: "creditos_aluno"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_creditos_pos_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "vendas_creditos_pos_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "vendas_creditos_pos_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_creditos_pos_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
           },
         ]
       }
@@ -14089,6 +14149,8 @@ export type Database = {
         Returns: Json
       }
       fn_portal_link_aluno: { Args: never; Returns: Json }
+      fn_portal_recovery_avulso_link: { Args: never; Returns: Json }
+      fn_portal_recovery_avulso_preco: { Args: never; Returns: number }
       fn_preco_servico_rescisao: {
         Args: { p_tipo_servico: string }
         Returns: number

@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
 
     const { data: venda } = await admin
       .from("vendas")
-      .select("id, valor_final, nome_snapshot, status_pagamento")
+      .select("id, valor_final, nome_snapshot, status_pagamento, origem")
       .eq("id", vendaId)
       .maybeSingle();
     if (!venda) return json(200, { ok: false, error: "venda_nao_encontrada" });
@@ -133,7 +133,8 @@ Deno.serve(async (req) => {
       return json(200, { ok: false, error: "valor_da_venda_invalido" });
     }
 
-    const descricao = `Corrida Fortem — ${String(venda.nome_snapshot ?? "Plano").slice(0, 60)}`;
+    const prefixo = (venda as any).origem === "portal_avulso" ? "Fortem" : "Corrida Fortem";
+    const descricao = `${prefixo} — ${String(venda.nome_snapshot ?? "Plano").slice(0, 60)}`;
     const txid = genTxid();
 
     const { status, data, raw } = await interCobFetch(`/pix/v2/cob/${txid}`, {

@@ -190,4 +190,4 @@
 - Portal Agenda P1: Avaliação Física removida dos serviços do portal (feito; sem agendamentos de alunos).
 - Portal Agenda P2: Recovery mensal Pro/VIP/Corrida (4 por ciclo, rotina diária 07:15 UTC, liberação inicial feita para 22 alunos) (feito).
 - Portal Agenda P3: aba Serviços no padrão dos treinos (cartões, dias, grade Manhã/Tarde/Noite, folha de confirmação) (feito; sem teste com aluno logado).
-- Portal Agenda P4: compra avulsa de Recovery R$ 50 — PAUSADA: link genérico de pagamento hoje não oferece PIX; aguardando decisão do dono.
+- Portal Agenda P4: compra avulsa "Recovery - 1 sessão" (R$ 50, catálogo) pelo portal com PIX e cartão em /pagamento/:token; crédito só após pago, uma vez por venda, retirado se não usado no estorno (feito; pagamento real ainda não testado).

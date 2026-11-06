@@ -513,6 +513,29 @@ export default function PortalAgenda() {
     },
   });
 
+  // Compra avulsa de Recovery: valor sempre lido do catálogo.
+  const { data: precoRecoveryAvulso } = useQuery({
+    queryKey: ["portal-recovery-avulso-preco"],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await (supabase as any).rpc("fn_portal_recovery_avulso_preco");
+      const v = Number(data);
+      return Number.isFinite(v) && v > 0 ? v : null;
+    },
+  });
+
+  const comprarRecovery = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_portal_recovery_avulso_link");
+      if (error || !data?.token) throw new Error(error?.message ?? "sem_link");
+      return String(data.token);
+    },
+    onSuccess: (token) => {
+      window.location.assign(`/pagamento/${token}`);
+    },
+    onError: () => toast.error("Não foi possível abrir o pagamento agora. Tente novamente."),
+  });
+
   const abrirWhatsAppServico = (label: string) =>
     window.open(
       "https://wa.me/555135199451?text=" + encodeURIComponent(`Olá! Quero saber sobre o serviço ${label}.`),
@@ -1488,9 +1511,25 @@ export default function PortalAgenda() {
                   <div className="border-y border-[#4A4B4B] py-3">
                     <p className="text-sm text-foreground">Você não tem créditos para este serviço.</p>
                   </div>
+                  {ativ === RECOVERY && precoRecoveryAvulso && (
+                    <button
+                      onClick={() => comprarRecovery.mutate()}
+                      disabled={comprarRecovery.isPending}
+                      className="min-h-[52px] w-full bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white disabled:opacity-50"
+                    >
+                      {comprarRecovery.isPending
+                        ? "Abrindo pagamento…"
+                        : `Comprar 1 sessão por ${precoRecoveryAvulso.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+                    </button>
+                  )}
                   <button
                     onClick={() => abrirWhatsAppServico(label)}
-                    className="min-h-[52px] w-full bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white"
+                    className={cn(
+                      "min-h-[52px] w-full text-[13px] font-bold uppercase tracking-[0.08em]",
+                      ativ === RECOVERY && precoRecoveryAvulso
+                        ? "border border-[#4A4B4B] text-foreground"
+                        : "bg-[#C8282A] text-white",
+                    )}
                   >
                     Falar com a equipe
                   </button>

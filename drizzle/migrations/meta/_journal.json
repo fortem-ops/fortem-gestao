@@ -1681,6 +1681,20 @@
       "when": 1793972006474,
       "tag": "0239_recovery_mensal_fix_aluno",
       "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1793972877981,
+      "tag": "0240_recovery_avulso_portal",
+      "breakpoints": true
+    },
+    {
+      "idx": 241,
+      "version": "7",
+      "when": 1793972935011,
+      "tag": "0241_recovery_avulso_revoke_anon",
+      "breakpoints": true
     }
   ]
 }

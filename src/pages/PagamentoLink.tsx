@@ -15,6 +15,8 @@ type Validacao = {
   venda: { id: string; valor_final: number; parcelas: number; nome_snapshot: string | null };
   resumo_linhas: { label: string; valor: number }[];
   pix_disponivel: boolean;
+  /** Compra avulsa de serviço feita pelo próprio aluno no portal (PIX liberado). */
+  servico_portal?: boolean;
   aluno: { nome: string; email: string; telefone: string };
   pedido: PedidoCriado;
 };
@@ -53,7 +55,11 @@ export default function PagamentoLink() {
   const [dados, setDados] = useState<Validacao | null>(null);
   const [pedido, setPedido] = useState<PedidoCriado | null>(null);
   const corrida = dados?.origem !== "generica";
-  const subtitulo = corrida ? "Pagamento da sua inscrição" : "Pagamento do seu plano";
+  const subtitulo = corrida
+    ? "Pagamento da sua inscrição"
+    : dados?.servico_portal
+      ? "Pagamento do seu serviço"
+      : "Pagamento do seu plano";
 
   useEffect(() => {
     let ativo = true;
@@ -177,6 +183,15 @@ export default function PagamentoLink() {
           token: token,
         }}
       />
+
+      {dados.servico_portal && (
+        <a
+          href="/portal/agenda"
+          className="block w-full border border-border py-3 text-center text-sm font-semibold uppercase tracking-wide text-foreground"
+        >
+          Voltar ao portal
+        </a>
+      )}
     </Moldura>
   );
 }

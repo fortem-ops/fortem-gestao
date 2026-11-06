@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
     const { data: venda } = await admin
       .from("vendas")
-      .select("id, aluno_id, plano_id, valor_final, parcelas, forma_pagamento, nome_snapshot, status_pagamento, observacoes")
+      .select("id, aluno_id, plano_id, valor_final, parcelas, forma_pagamento, nome_snapshot, status_pagamento, observacoes, origem, tipo, catalogo_id")
       .eq("id", link.venda_id)
       .maybeSingle();
 
@@ -118,6 +118,7 @@ Deno.serve(async (req) => {
 
     let linhas: { label: string; valor: number }[];
     let pixDisponivel = false;
+    let servicoPortal = false;
 
     if (origem === "corrida") {
       let resumo: any = null;
@@ -142,6 +143,17 @@ Deno.serve(async (req) => {
         valor: Number(venda.valor_final ?? 0),
       }];
       pixDisponivel = false;
+      // Única exceção: compra avulsa de serviço feita pelo próprio aluno no portal
+      // (item do catálogo com liberar_apos_pagamento). Demais vendas internas seguem só cartão.
+      if (venda.origem === "portal_avulso" && venda.tipo === "servico" && venda.catalogo_id) {
+        const { data: cat } = await admin
+          .from("servicos_catalogo")
+          .select("liberar_apos_pagamento")
+          .eq("id", venda.catalogo_id)
+          .maybeSingle();
+        servicoPortal = Boolean(cat?.liberar_apos_pagamento);
+        pixDisponivel = servicoPortal;
+      }
     }
 
     return json(200, {
@@ -156,6 +168,7 @@ Deno.serve(async (req) => {
       },
       resumo_linhas: linhas,
       pix_disponivel: pixDisponivel,
+      servico_portal: servicoPortal,
       aluno: {
         nome: aluno?.nome ?? "",
         email: aluno?.email ?? "",
