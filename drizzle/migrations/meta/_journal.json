@@ -1667,6 +1667,20 @@
       "when": 1793964185127,
       "tag": "0237_ponto_data_brasilia",
       "breakpoints": true
+    },
+    {
+      "idx": 238,
+      "version": "7",
+      "when": 1793971978430,
+      "tag": "0238_recovery_mensal_pro_corrida",
+      "breakpoints": true
+    },
+    {
+      "idx": 239,
+      "version": "7",
+      "when": 1793972006474,
+      "tag": "0239_recovery_mensal_fix_aluno",
+      "breakpoints": true
     }
   ]
 }

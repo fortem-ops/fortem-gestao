@@ -45,6 +45,8 @@ const SERVICOS_PORTAL: { label: string; atividade: string }[] = [
   { label: "Bota de Compressão Pneumática (Recovery)", atividade: "Recovery (Bota de Compressão)" },
 ];
 
+const RECOVERY = "Recovery (Bota de Compressão)";
+
 const PERIODOS = [
   { key: "manha", label: "Manhã", de: 0, ate: 11 * 60 + 59 },
   { key: "tarde", label: "Tarde", de: 12 * 60, ate: 17 * 60 + 59 },
@@ -82,6 +84,7 @@ export default function PortalAgenda() {
   const [meusAgendamentosAberto, setMeusAgendamentosAberto] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
   const [diaServico, setDiaServico] = useState<Date | null>(null);
+  const [confirmandoServico, setConfirmandoServico] = useState<{ h: any; data: string; label: string } | null>(null);
   const [showHistoricoTreinos, setShowHistoricoTreinos] = useState(false);
   const [filtroTreinos, setFiltroTreinos] = useState<"todos" | "realizado" | "faltou" | "cancelado">("todos");
   const [showHistoricoServicos, setShowHistoricoServicos] = useState(false);
@@ -447,6 +450,21 @@ export default function PortalAgenda() {
     return s;
   }, [reservasServico]);
 
+  // Agendamentos futuros de serviços
+  const { data: servicosFuturos = [] } = useQuery({
+    queryKey: ["portal-servicos-futuros", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("agenda_servicos")
+        .select("id, atividade, local, data_especifica, horario_inicio, horario_fim")
+        .eq("aluno_id", student!.id)
+        .gte("data_especifica", format(new Date(), "yyyy-MM-dd"))
+        .order("data_especifica", { ascending: true });
+      return (data || []) as any[];
+    },
+  });
+
   const horariosServicoPorDia = useMemo(() => {
     const map: Record<string, any[]> = {};
     for (const d of dias14) {
@@ -455,19 +473,51 @@ export default function PortalAgenda() {
         if (h.data_especifica) return h.data_especifica === key;
         return h.dia_semana === d.getDay();
       });
-      const validos = doDia.filter((h) => {
-        if (!horarioFuturoPortal(key, String(h.horario_inicio), agoraVisual)) return false;
-        const ocupado = ocupadosSet.has(
-          `${h.profissional_id ?? ""}|${key}|${String(h.horario_inicio).slice(0, 5)}`,
-        );
-        return !ocupado;
-      });
-      if (validos.length > 0) {
-        map[key] = validos.sort((a, b) => String(a.horario_inicio).localeCompare(String(b.horario_inicio)));
+      // Estado de cada horário: do próprio aluno, ocupado por outro (mesmo profissional, data e horário) ou livre.
+      const chips = doDia
+        .filter((h) => horarioFuturoPortal(key, String(h.horario_inicio), agoraVisual))
+        .map((h) => {
+          const ini = String(h.horario_inicio).slice(0, 5);
+          const meu = (servicosFuturos as any[]).find(
+            (s) => s.atividade === h.atividade && s.data_especifica === key && String(s.horario_inicio).slice(0, 5) === ini,
+          );
+          if (meu) return { h, estado: "meu" as const, meuId: meu.id as string };
+          const ocupado = ocupadosSet.has(`${h.profissional_id ?? ""}|${key}|${ini}`);
+          return { h, estado: ocupado ? ("ocupado" as const) : ("livre" as const), meuId: null };
+        });
+      if (chips.length > 0) {
+        map[key] = chips.sort((a, b) => String(a.h.horario_inicio).localeCompare(String(b.h.horario_inicio)));
       }
     }
     return map;
-  }, [horariosServico, dias14, ocupadosSet, agoraVisual]);
+  }, [horariosServico, dias14, ocupadosSet, agoraVisual, servicosFuturos]);
+
+  const { data: profissionaisNomes = {} } = useQuery({
+    queryKey: ["portal-servico-profissionais", profissionaisHorarios.join(",")],
+    enabled: profissionaisHorarios.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name").in("id", profissionaisHorarios as string[]);
+      const map: Record<string, string> = {};
+      for (const p of (data as any[]) || []) map[p.id] = p.full_name;
+      return map;
+    },
+  });
+
+  // Regra mensal de Recovery (Pro/Corrida): saldo do ciclo e data de renovação.
+  const { data: recoveryMensal } = useQuery({
+    queryKey: ["portal-recovery-mensal", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await (supabase as any).rpc("fn_recovery_mensal_meu");
+      return (data ?? null) as { ativo: boolean; total: number; saldo: number; renova_em: string } | null;
+    },
+  });
+
+  const abrirWhatsAppServico = (label: string) =>
+    window.open(
+      "https://wa.me/555135199451?text=" + encodeURIComponent(`Olá! Quero saber sobre o serviço ${label}.`),
+      "_blank",
+    );
 
 
   // Só dias com pelo menos um horário livre (já sem os horários passados de hoje).
@@ -500,21 +550,6 @@ export default function PortalAgenda() {
     const inicio = new Date(`${s.data_especifica}T${(s.horario_inicio || "00:00:00").slice(0, 8)}`);
     return inicio.getTime() - Date.now() >= 8 * 60 * 60 * 1000;
   };
-
-  // Agendamentos futuros de serviços
-  const { data: servicosFuturos = [] } = useQuery({
-    queryKey: ["portal-servicos-futuros", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("agenda_servicos")
-        .select("id, atividade, local, data_especifica, horario_inicio, horario_fim")
-        .eq("aluno_id", student!.id)
-        .gte("data_especifica", format(new Date(), "yyyy-MM-dd"))
-        .order("data_especifica", { ascending: true });
-      return (data || []) as any[];
-    },
-  });
 
   // Histórico de serviços (atendimentos já realizados)
   const { data: historicoServicos = [] } = useQuery({
@@ -599,6 +634,7 @@ export default function PortalAgenda() {
       qc.invalidateQueries({ queryKey: ["portal-agenda-reservas-servico"] });
       qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
       qc.invalidateQueries({ queryKey: ["portal-servicos-futuros"] });
+      qc.invalidateQueries({ queryKey: ["portal-recovery-mensal"] });
     },
     onError: (e: any) => {
       // eslint-disable-next-line no-console
@@ -655,6 +691,7 @@ export default function PortalAgenda() {
       });
       setCancelandoServico(null);
       qc.invalidateQueries({ queryKey: ["portal-servicos-futuros"] });
+      qc.invalidateQueries({ queryKey: ["portal-recovery-mensal"] });
       qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
       qc.invalidateQueries({ queryKey: ["portal-agenda-servicos-creditos"] });
       qc.invalidateQueries({ queryKey: ["portal-agenda-consumos"] });
@@ -1031,231 +1068,184 @@ export default function PortalAgenda() {
         </div>
       )}
 
-      {abaAgenda === "servicos" && (
-        <div className="space-y-6">
-          <section className="space-y-3">
-            <SectionLabel>Meus agendamentos</SectionLabel>
-            {servicosFuturos.length === 0 ? (
-              <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Nenhum serviço agendado.
-                </p>
-
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {servicosFuturos.map((s: any) => (
-                  <div key={s.id} className="bg-card border border-border rounded-xl p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[44px] shrink-0">
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                          {format(parseISO(s.data_especifica + "T12:00:00"), "EEE", { locale: ptBR })}
-                        </p>
-                        <p className="text-2xl font-black text-foreground" style={{ fontFamily: 'Archivo,sans-serif' }}>
-                          {format(parseISO(s.data_especifica + "T12:00:00"), "d")}
-                        </p>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-foreground truncate">
-                          {s.horario_inicio?.slice(0, 5)}{s.horario_fim ? ` → ${s.horario_fim.slice(0, 5)}` : ""} · {s.atividade}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {format(parseISO(s.data_especifica + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
-                          {s.local ? ` · ${s.local}` : ""}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setCancelandoServico(s.id)}
-                        className="min-h-[44px] px-4 border border-[#4A4B4B] text-xs font-bold uppercase tracking-[0.08em] text-foreground"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                    {!servicoDentroPrazo(s) && (
-                      <p className="mt-2 text-[11px] text-amber-400 flex items-start gap-1.5">
-                        <span>Faltam menos de 8h — cancelar agora não estorna o crédito.</span>
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-              </div>
-            )}
-          </section>
-      {(() => {
-        // Dia efetivo: o escolhido, se tiver horário livre; senão o primeiro dia com horário livre.
+      {abaAgenda === "servicos" && (() => {
         const diaEfetivo = diaServico && diasServicoDisponiveis.some((d) => isSameDay(d, diaServico))
           ? diaServico
           : diasServicoDisponiveis[0] ?? null;
         const diaServicoStr = diaEfetivo ? format(diaEfetivo, "yyyy-MM-dd") : null;
-        const horariosDoDia = diaServicoStr ? horariosServicoPorDia[diaServicoStr] ?? [] : [];
+        const chipsDoDia = diaServicoStr ? horariosServicoPorDia[diaServicoStr] ?? [] : [];
+        const servicoAtual = SERVICOS_PORTAL.find((s) => s.atividade === servicoSelecionado) ?? null;
+        const hojeSP = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(agoraVisual);
         return (
-        <div className="space-y-4">
-          <SectionLabel>Agendar serviço</SectionLabel>
+        <div className="space-y-6" style={{ fontFamily: "Archivo, sans-serif" }}>
+          <button
+            type="button"
+            onClick={() => setMeusAgendamentosAberto(true)}
+            className="w-full min-h-[64px] flex items-center gap-3 border border-[#4A4B4B] bg-[#1A1A1A] px-4 text-left"
+          >
+            <CalendarDays className="w-5 h-5 shrink-0 text-[#B1B3B3]" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Meus agendamentos</p>
+              <p className="text-xs text-[#B1B3B3] truncate">
+                {servicosFuturos.length === 0
+                  ? "Nenhum serviço agendado."
+                  : `Próximo: ${servicosFuturos[0].atividade}, ${format(parseISO(servicosFuturos[0].data_especifica + "T12:00:00"), "dd/MM")} ${String(servicosFuturos[0].horario_inicio).slice(0, 5)}`}
+              </p>
+            </div>
+            <span className="min-w-[28px] h-7 px-2 flex items-center justify-center border border-[#4A4B4B] text-xs font-bold text-foreground">
+              {meusAgendamentos.length + servicosFuturos.length}
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
 
-          <div className="space-y-2">
+          <section className="space-y-2">
+            <SectionLabel>Agendar serviço</SectionLabel>
             {SERVICOS_PORTAL.map(({ label, atividade }) => {
               const info = saldoPorAtividade[atividade];
-              const ilimitado = !!info?.ilimitado;
               const saldoS = info?.saldo ?? 0;
               const { icon: Icon } = iconServico(atividade);
-              const isSelected = servicoSelecionado === atividade;
-              const temCredito = !!info && (info.ilimitado || info.saldo > 0);
-              const diaServico = diaEfetivo;
+              const ativo = servicoSelecionado === atividade;
+              const mensal = atividade === RECOVERY && recoveryMensal?.ativo ? recoveryMensal : null;
               return (
-                <div key={atividade} className="space-y-2">
-                  <button
-                    onClick={() => {
-                      const next = isSelected ? null : atividade;
-                      setServicoSelecionado(next);
-                      setDiaServico(null);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-4 rounded-xl border transition-colors text-left",
-                      isSelected ? "bg-primary/10 border-primary/40" : "bg-card border-border hover:border-primary/20"
-                    )}
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {ilimitado
+                <button
+                  key={atividade}
+                  type="button"
+                  aria-pressed={ativo}
+                  onClick={() => { setServicoSelecionado(ativo ? null : atividade); setDiaServico(null); }}
+                  className={cn(
+                    "w-full min-h-[64px] flex items-center gap-3 border px-4 py-3 text-left",
+                    ativo ? "border-[#C8282A] bg-[#1A1A1A]" : "border-[#4A4B4B] bg-[#1A1A1A]"
+                  )}
+                >
+                  <Icon className="w-5 h-5 shrink-0 text-[#C8282A]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">{label}</p>
+                    <p className="text-xs text-[#B1B3B3]">
+                      {mensal
+                        ? `${mensal.saldo} de ${mensal.total} sessões neste ciclo · renova em ${format(parseISO(mensal.renova_em + "T12:00:00"), "dd/MM")}`
+                        : info?.ilimitado
                           ? "Ilimitado"
                           : saldoS > 0
                             ? `${saldoS} ${saldoS === 1 ? "sessão disponível" : "sessões disponíveis"}`
-                            : "Nenhum crédito disponível"}
-                      </p>
-                    </div>
-                    {isSelected ? (
-                      <ChevronDown className="w-4 h-4 text-primary shrink-0" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                            : "Sem créditos"}
+                    </p>
+                    {mensal && saldoS > mensal.saldo && (
+                      <p className="text-xs text-[#B1B3B3]">{saldoS} no total, com sessões avulsas</p>
                     )}
-                  </button>
-
-                  {isSelected && (
-                    <div className="space-y-3 pl-2">
-                      <SectionLabel>Horários disponíveis — {label}</SectionLabel>
-
-                      {diasServicoDisponiveis.length === 0 ? (
-                        <div className="bg-card border border-border p-4 text-center">
-                          <p className="text-sm text-muted-foreground">
-                            Sem horários disponíveis no momento. Fale com a recepção.
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
-                            {diasServicoDisponiveis.map((d) => {
-                              const ativo = !!diaServico && isSameDay(d, diaServico);
-                              return (
-                                <button
-                                  key={d.toISOString()}
-                                  onClick={() => setDiaServico(d)}
-                                  className={cn(
-                                    "min-w-[62px] snap-start rounded-2xl border py-3 px-2 text-center transition-all",
-                                    ativo
-                                      ? "bg-primary border-primary text-primary-foreground"
-                                      : "bg-card border-border text-foreground hover:border-primary/40"
-                                  )}
-                                >
-                                  <div className="text-[10px] uppercase tracking-wider font-bold opacity-80">
-                                    {DIA_ABREV[d.getDay()]}
-                                  </div>
-                                  <div className="text-xl font-black mt-0.5" style={{ fontFamily: "Archivo, sans-serif" }}>
-                                    {d.getDate()}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {!diaServico ? (
-                            <div className="bg-card border border-border rounded-xl p-4 text-center">
-                              <p className="text-sm text-muted-foreground">Escolha um dia para ver os horários.</p>
-                            </div>
-                          ) : horariosDoDia.length === 0 ? (
-                            <div className="bg-card border border-border rounded-xl p-4 text-center">
-                              <p className="text-sm text-muted-foreground">{new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(agoraVisual) === diaServicoStr ? "Não há mais horários hoje" : "Sem horários disponíveis neste dia."}</p>
-                            </div>
-                          ) : (
-                            horariosDoDia.map((h: any) => (
-                              <div key={`${h.id}-${diaServicoStr}`} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                                <div className="min-w-[44px] text-center">
-                                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                                    {format(diaServico, "dd/MM")}
-                                  </p>
-                                  <p className="text-base font-black text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
-                                    {h.horario_inicio.slice(0, 5)}
-                                  </p>
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-sm font-semibold text-foreground">{h.atividade}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {h.horario_inicio.slice(0, 5)} → {h.horario_fim.slice(0, 5)}
-                                    {h.local ? ` · ${h.local}` : ""}
-                                  </p>
-                                </div>
-                                {temCredito ? (
-                                  <button
-                                    disabled={agendarServico.isPending}
-                                    onClick={() =>
-                                      agendarServico.mutate({ agendaId: h.id, data: diaServicoStr! })
-                                    }
-                                    className="py-2 px-3 rounded-lg bg-primary text-white text-xs font-bold disabled:opacity-50"
-                                  >
-                                    Agendar
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() =>
-                                      window.open(
-                                        "https://wa.me/555135199451?text=" +
-                                          encodeURIComponent(`Olá! Quero saber mais sobre o serviço de ${h.atividade}.`),
-                                        "_blank"
-                                      )
-                                    }
-                                    className="py-2 px-3 rounded-lg bg-[#25D366] text-white text-xs font-bold"
-                                  >
-                                    Comprar
-                                  </button>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </>
-                      )}
-
-                      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-foreground">Prefere outro horário?</p>
-                          <p className="text-xs text-muted-foreground">Fale com a equipe FORTEM pelo WhatsApp</p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            window.open(
-                              "https://wa.me/555135199451?text=" + encodeURIComponent("Olá! Quero agendar um serviço."),
-                              "_blank"
-                            )
-                          }
-                          className="py-2 px-3 rounded-lg bg-[#25D366] text-white text-xs font-bold"
-                        >
-                          WhatsApp
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                  {ativo ? <ChevronDown className="w-4 h-4 text-foreground shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                </button>
               );
             })}
-          </div>
+          </section>
+
+          {servicoAtual && (
+            <section className="space-y-4">
+              <SectionLabel>{servicoAtual.label}</SectionLabel>
+              {diasServicoDisponiveis.length === 0 ? (
+                <div className="border border-[#4A4B4B] bg-[#1A1A1A] p-6 text-center space-y-3">
+                  <p className="text-sm text-[#B1B3B3]">Sem horários nos próximos 14 dias.</p>
+                  <button
+                    onClick={() => abrirWhatsAppServico(servicoAtual.label)}
+                    className="min-h-[44px] w-full border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground"
+                  >
+                    Falar com a equipe
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
+                    {diasServicoDisponiveis.map((d) => {
+                      const sel = !!diaEfetivo && isSameDay(d, diaEfetivo);
+                      return (
+                        <button
+                          key={d.toISOString()}
+                          onClick={() => setDiaServico(d)}
+                          aria-pressed={sel}
+                          className={cn(
+                            "min-w-[62px] min-h-[64px] snap-start border py-3 px-2 text-center",
+                            sel ? "bg-[#C8282A] border-[#C8282A] text-white" : "bg-[#1A1A1A] border-[#4A4B4B] text-foreground"
+                          )}
+                        >
+                          <div className="text-[10px] uppercase tracking-wider font-bold opacity-80">{DIA_ABREV[d.getDay()]}</div>
+                          <div className="text-xl font-black mt-0.5">{d.getDate()}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {diaEfetivo && <SectionLabel>{format(diaEfetivo, "EEEE, dd 'de' MMMM", { locale: ptBR })}</SectionLabel>}
+
+                  {PERIODOS.map((p) => {
+                    const doPeriodo = chipsDoDia.filter((c: any) => {
+                      const m = minutosDe(c.h.horario_inicio);
+                      return m >= p.de && m <= p.ate;
+                    });
+                    if (doPeriodo.length === 0) return null;
+                    return (
+                      <div key={p.key} className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">{p.label}</p>
+                          <span aria-hidden className="h-px flex-1 bg-[#4A4B4B]" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {doPeriodo.map((c: any) => {
+                            const ini = String(c.h.horario_inicio).slice(0, 5);
+                            const key = `${c.h.id}-${diaServicoStr}`;
+                            if (c.estado === "meu") {
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => c.meuId && setCancelandoServico(c.meuId)}
+                                  aria-label={`${ini}, agendado`}
+                                  className="h-14 border-2 border-[#4CC38A] bg-[#1A1A1A] flex flex-col items-center justify-center leading-none"
+                                >
+                                  <span className="text-[18px] font-bold text-foreground">{ini}</span>
+                                  <span className="mt-1 text-[12px] font-bold text-[#4CC38A]">AGENDADO</span>
+                                </button>
+                              );
+                            }
+                            if (c.estado === "ocupado") {
+                              return (
+                                <div
+                                  key={key}
+                                  aria-label={`${ini}, ocupado`}
+                                  className="h-14 border border-dashed border-[#4A4B4B] flex flex-col items-center justify-center leading-none text-[#B1B3B3]"
+                                >
+                                  <span className="text-[18px] font-bold">{ini}</span>
+                                  <span className="mt-1 text-[12px] font-bold">OCUPADO</span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                aria-label={`${ini}, livre`}
+                                onClick={() => setConfirmandoServico({ h: c.h, data: diaServicoStr!, label: servicoAtual.label })}
+                                className="h-14 border border-[#4A4B4B] bg-[#1A1A1A] flex flex-col items-center justify-center leading-none"
+                              >
+                                <span className="text-[18px] font-bold text-foreground">{ini}</span>
+                                <span className="mt-1 text-[12px] font-bold text-[#C8282A]">AGENDAR</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {diaServicoStr === hojeSP && chipsDoDia.length === 0 && (
+                    <p className="text-sm text-[#B1B3B3]">Não há mais horários hoje</p>
+                  )}
+                </>
+              )}
+              <p className="text-xs text-[#B1B3B3]">Cancelando com 8 horas ou mais de antecedência, o crédito é devolvido. Depois disso, não é devolvido.</p>
+            </section>
+          )}
         </div>
         );
       })()}
-        </div>
-      )}
 
       <div className="space-y-3">
           {/* ── SINCRONIZAR CALENDÁRIO ── */}
@@ -1463,6 +1453,88 @@ export default function PortalAgenda() {
         );
       })()}
 
+      {/* Folha inferior: confirmar serviço */}
+      {confirmandoServico && (() => {
+        const { h, data, label } = confirmandoServico;
+        const ativ = String(h.atividade);
+        const info = saldoPorAtividade[ativ];
+        const ilim = !!info?.ilimitado;
+        const saldoS = info?.saldo ?? 0;
+        const semCredito = !ilim && saldoS <= 0;
+        const ini = String(h.horario_inicio).slice(0, 5);
+        const fim = String(h.horario_fim).slice(0, 5);
+        const prof = h.profissional_id ? profissionaisNomes[h.profissional_id] : null;
+        const fechar = () => !agendarServico.isPending && setConfirmandoServico(null);
+        return (
+          <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={fechar}>
+            <div
+              role="dialog"
+              aria-label={`Confirmar ${label}`}
+              className="w-full max-h-[100dvh] overflow-y-auto border-t border-[#4A4B4B] bg-card px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-4"
+              style={{ fontFamily: "Archivo, sans-serif" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Confirmar {label}</p>
+              <div>
+                <p className="text-[32px] font-black leading-tight text-foreground">{ini} → {fim}</p>
+                <p className="mt-1 text-sm text-foreground first-letter:uppercase">
+                  {format(parseISO(data + "T12:00:00"), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                </p>
+                {h.local && <p className="text-xs text-[#B1B3B3]">Local: {h.local}</p>}
+                {prof && <p className="text-xs text-[#B1B3B3]">Profissional: {prof}</p>}
+              </div>
+              {semCredito ? (
+                <>
+                  <div className="border-y border-[#4A4B4B] py-3">
+                    <p className="text-sm text-foreground">Você não tem créditos para este serviço.</p>
+                  </div>
+                  <button
+                    onClick={() => abrirWhatsAppServico(label)}
+                    className="min-h-[52px] w-full bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white"
+                  >
+                    Falar com a equipe
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="divide-y divide-[#4A4B4B] border-y border-[#4A4B4B]">
+                    <div className="py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Crédito</p>
+                      <p className="mt-1 text-sm text-foreground">
+                        {ilim ? "Usa 1 sessão. Seu saldo é ilimitado." : `Usa 1 crédito. Saldo depois: ${Math.max(saldoS - 1, 0)}.`}
+                      </p>
+                    </div>
+                    <div className="py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Cancelamento</p>
+                      <p className="mt-1 text-sm text-foreground">
+                        Com 8 horas ou mais de antecedência, o crédito é devolvido. Depois disso, não é devolvido.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => agendarServico.mutate(
+                      { agendaId: h.id, data },
+                      { onSettled: () => setConfirmandoServico(null) },
+                    )}
+                    disabled={agendarServico.isPending}
+                    className="min-h-[52px] w-full bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white disabled:opacity-50"
+                  >
+                    {agendarServico.isPending ? "Agendando…" : "Confirmar agendamento"}
+                  </button>
+                </>
+              )}
+              <button
+                onClick={fechar}
+                disabled={agendarServico.isPending}
+                className="min-h-[44px] w-full border border-[#4A4B4B] text-[13px] font-bold uppercase tracking-[0.08em] text-foreground"
+              >
+                Voltar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Folha inferior: meus agendamentos */}
       {meusAgendamentosAberto && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setMeusAgendamentosAberto(false)}>
@@ -1527,6 +1599,46 @@ export default function PortalAgenda() {
                   {historicoTreinos.length > 0 && <span className="text-xs font-bold text-[#B1B3B3]">{historicoTreinos.length}</span>}
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </span>
+              </button>
+              {servicosFuturos.length > 0 && (
+                <p className="pt-3 text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Serviços</p>
+              )}
+              {servicosFuturos.map((s: any) => (
+                <div key={s.id} className="border border-[#4A4B4B] p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center min-w-[44px] shrink-0">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                        {format(parseISO(s.data_especifica + "T12:00:00"), "EEE", { locale: ptBR })}
+                      </p>
+                      <p className="text-2xl font-black text-foreground">{format(parseISO(s.data_especifica + "T12:00:00"), "d")}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-foreground truncate">
+                        {s.horario_inicio?.slice(0, 5)}{s.horario_fim ? ` → ${s.horario_fim.slice(0, 5)}` : ""} · {s.atividade}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {format(parseISO(s.data_especifica + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
+                        {s.local ? ` · ${s.local}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setCancelandoServico(s.id)}
+                      className="min-h-[44px] px-4 border border-[#4A4B4B] text-xs font-bold uppercase tracking-[0.08em] text-foreground"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  {!servicoDentroPrazo(s) && (
+                    <p className="mt-2 text-[11px] text-[#E3B341]">Faltam menos de 8 horas: cancelar agora não devolve o crédito.</p>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={() => { setMeusAgendamentosAberto(false); setShowHistoricoServicos(true); }}
+                className="w-full min-h-[44px] flex items-center justify-between border border-[#4A4B4B] px-4"
+              >
+                <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Histórico de serviços</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
           </div>

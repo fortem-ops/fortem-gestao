@@ -10176,6 +10176,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recovery_mensal_ciclos: {
+        Row: {
+          aluno_id: string
+          carga_inicial: boolean
+          competencia: string
+          credito_id: string | null
+          criado_em: string
+          plano_id: string
+          quantidade: number
+          validade: string
+        }
+        Insert: {
+          aluno_id: string
+          carga_inicial?: boolean
+          competencia: string
+          credito_id?: string | null
+          criado_em?: string
+          plano_id: string
+          quantidade: number
+          validade: string
+        }
+        Update: {
+          aluno_id?: string
+          carga_inicial?: boolean
+          competencia?: string
+          credito_id?: string | null
+          criado_em?: string
+          plano_id?: string
+          quantidade?: number
+          validade?: string
+        }
+        Relationships: []
+      }
       rede_tokenizacoes: {
         Row: {
           aluno_id: string | null
@@ -14335,6 +14368,15 @@ export type Database = {
       fn_recorrencia_2027_teste_real_reservar: {
         Args: { p_proposta_id: string }
         Returns: Json
+      }
+      fn_recovery_mensal: {
+        Args: { p_carga_inicial?: boolean; p_data?: string }
+        Returns: Json
+      }
+      fn_recovery_mensal_meu: { Args: never; Returns: Json }
+      fn_recovery_mensal_tipo_elegivel: {
+        Args: { p_tipo: string }
+        Returns: boolean
       }
       fn_registrar_motivo_edicao_cobranca: {
         Args: { p_cobranca_ids: string[]; p_motivo: string }

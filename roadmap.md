@@ -188,3 +188,6 @@
 - [x] Indicação etapa 2 · Parte 3: /experimental guarda ?ind= por 90 dias e inclui o código na mensagem do WhatsApp; sem formulário público (não existe).
 - [x] Indicação etapa 2 · Parte 4: aba Indicações no Clube (filtros, recusar/reverter/corrigir, sem indicador, KPIs, conversão por indicador).
 - Portal Agenda P1: Avaliação Física removida dos serviços do portal (feito; sem agendamentos de alunos).
+- Portal Agenda P2: Recovery mensal Pro/VIP/Corrida (4 por ciclo, rotina diária 07:15 UTC, liberação inicial feita para 22 alunos) (feito).
+- Portal Agenda P3: aba Serviços no padrão dos treinos (cartões, dias, grade Manhã/Tarde/Noite, folha de confirmação) (feito; sem teste com aluno logado).
+- Portal Agenda P4: compra avulsa de Recovery R$ 50 — PAUSADA: link genérico de pagamento hoje não oferece PIX; aguardando decisão do dono.
