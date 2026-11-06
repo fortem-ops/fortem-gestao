@@ -187,3 +187,4 @@
 - [x] Indicação etapa 2 · Parte 2: portal Benefícios com INDIQUE UM AMIGO, MINHAS INDICAÇÕES e regras vindas do banco; push ao indicador na conversão.
 - [x] Indicação etapa 2 · Parte 3: /experimental guarda ?ind= por 90 dias e inclui o código na mensagem do WhatsApp; sem formulário público (não existe).
 - [x] Indicação etapa 2 · Parte 4: aba Indicações no Clube (filtros, recusar/reverter/corrigir, sem indicador, KPIs, conversão por indicador).
+- Portal Agenda P1: Avaliação Física removida dos serviços do portal (feito; sem agendamentos de alunos).

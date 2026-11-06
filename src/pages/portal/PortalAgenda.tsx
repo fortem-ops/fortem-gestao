@@ -41,7 +41,6 @@ const DIA_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const SERVICOS_PORTAL: { label: string; atividade: string }[] = [
   { label: "Nutrição", atividade: "Nutrição" },
   { label: "Reabilitação", atividade: "Reabilitação" },
-  { label: "Avaliação Física", atividade: "Avaliação Física" },
   { label: "Avaliação Funcional", atividade: "Avaliação Funcional" },
   { label: "Bota de Compressão Pneumática (Recovery)", atividade: "Recovery (Bota de Compressão)" },
 ];
