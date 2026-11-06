@@ -1723,6 +1723,20 @@
       "when": 1793974323647,
       "tag": "0245_plano_renovar_antecipado_audit_op2",
       "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1793978001468,
+      "tag": "0246_estorno_pix_venda_portal",
+      "breakpoints": true
+    },
+    {
+      "idx": 247,
+      "version": "7",
+      "when": 1793978116956,
+      "tag": "0247_estorno_pix_venda_credito_info",
+      "breakpoints": true
     }
   ]
 }

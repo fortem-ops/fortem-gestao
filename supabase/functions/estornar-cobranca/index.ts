@@ -12,6 +12,7 @@ import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { executarRefundRede, loadRedeSecrets, redeBaseUrl } from "../_shared/rede-refund.ts";
 import { interCobFetch } from "../_shared/inter-cob.ts";
 import { bloqueioTeste, devolverPixSite } from "./pix-site.ts";
+import { devolverPixVenda } from "./pix-venda.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,12 @@ Deno.serve(async (req) => {
   if (!isAdmin) return erro("Apenas administradores podem estornar cobranças", 403);
 
   const body = await req.json().catch(() => ({}));
+
+  // Devolução Pix de compra avulsa do portal (Recovery), direto pela venda.
+  if (typeof body.venda_id === "string") {
+    return await devolverPixVenda(supabase, user.id, body, headers, erro);
+  }
+
   const cobrancaId = typeof body.cobranca_id === "string" ? body.cobranca_id.trim() : "";
   const idempotencyKey = typeof body.idempotency_key === "string" ? body.idempotency_key.trim() : "";
   const motivo = typeof body.motivo === "string" ? body.motivo.trim() : "";

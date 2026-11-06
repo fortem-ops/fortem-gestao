@@ -4392,6 +4392,89 @@ export type Database = {
         }
         Relationships: []
       }
+      estornos_pix_venda: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          credito_retirado: boolean | null
+          credito_usado: number | null
+          devolucao_id: string
+          e2e_id: string | null
+          id: string
+          idempotency_key: string
+          motivo: string | null
+          retorno: Json | null
+          status: string
+          txid: string
+          updated_at: string
+          valor_centavos: number
+          venda_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          credito_retirado?: boolean | null
+          credito_usado?: number | null
+          devolucao_id: string
+          e2e_id?: string | null
+          id?: string
+          idempotency_key: string
+          motivo?: string | null
+          retorno?: Json | null
+          status?: string
+          txid: string
+          updated_at?: string
+          valor_centavos: number
+          venda_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          credito_retirado?: boolean | null
+          credito_usado?: number | null
+          devolucao_id?: string
+          e2e_id?: string | null
+          id?: string
+          idempotency_key?: string
+          motivo?: string | null
+          retorno?: Json | null
+          status?: string
+          txid?: string
+          updated_at?: string
+          valor_centavos?: number
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estornos_pix_venda_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "estornos_pix_venda_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "estornos_pix_venda_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estornos_pix_venda_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
+          },
+        ]
+      }
       exercicio_articulacoes: {
         Row: {
           articulacao_key: string
@@ -13433,6 +13516,21 @@ export type Database = {
         Returns: Json
       }
       fn_estorno_pix_site_resultado: {
+        Args: {
+          _e2e: string
+          _estorno_id: string
+          _motivo: string
+          _retorno: Json
+          _status: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      fn_estorno_pix_venda_reservar: {
+        Args: { _idempotency_key: string; _user_id: string; _venda_id: string }
+        Returns: Json
+      }
+      fn_estorno_pix_venda_resultado: {
         Args: {
           _e2e: string
           _estorno_id: string

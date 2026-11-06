@@ -20,6 +20,7 @@ import { PaymentFields, useFormasPagamento } from "./PaymentFields";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { GerarLinkPagamento } from "@/components/pagamentos/GerarLinkPagamento";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
+import { DevolverPixVenda } from "./DevolverPixVenda";
 
 
 type Props = { alunoId: string };
@@ -412,6 +413,7 @@ export function HistoricoVendas({ alunoId }: Props) {
                               <Undo2 className="w-3.5 h-3.5" />
                             </Button>
                           )}
+                          {isAdmin && <DevolverPixVenda venda={v} />}
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
