@@ -25,7 +25,7 @@ function ResumoFinanceiro({ alunoId }: { alunoId: string }) {
         .from("cobrancas")
         .select("id, valor, data_vencimento, status")
         .eq("aluno_id", alunoId)
-        .eq("status", "pendente")
+        .in("status", ["pendente", "atrasado"])
         .order("data_vencimento", { ascending: true });
       if (error) throw error;
       return data ?? [];
@@ -33,8 +33,8 @@ function ResumoFinanceiro({ alunoId }: { alunoId: string }) {
   });
   if (!data) return null;
   const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-  const atrasadas = data.filter((c: any) => c.data_vencimento < hoje);
-  const proxima = data.find((c: any) => c.data_vencimento >= hoje);
+  const atrasadas = data.filter((c: any) => c.status === "atrasado" || c.data_vencimento < hoje);
+  const proxima = data.find((c: any) => c.status === "pendente" && c.data_vencimento >= hoje);
   const totalAtraso = atrasadas.reduce((s: number, c: any) => s + Number(c.valor || 0), 0);
   const fmt = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("pt-BR");
 
