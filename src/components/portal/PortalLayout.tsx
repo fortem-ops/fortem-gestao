@@ -11,6 +11,7 @@ import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { cn } from "@/lib/utils";
 import { filtrarNavPortal } from "@/lib/portalAgenda";
+import { lerReservaPendente } from "@/lib/recoveryReservaPendente";
 
 const navItems = [
   { to: "/portal/home", label: "Início", icon: House },
@@ -35,6 +36,14 @@ export function PortalLayout() {
     document.body.setAttribute("data-portal", "true");
     return () => document.body.removeAttribute("data-portal");
   }, []);
+
+  // Compra avulsa de Recovery com horário guardado (ex.: PIX pago e página fechada):
+  // ao abrir o portal, leva à Agenda, que confirma o horário se ainda houver vaga.
+  useEffect(() => {
+    if (!student?.id) return;
+    if (window.location.pathname.startsWith("/portal/agenda")) return;
+    if (lerReservaPendente(student.id)) navigate("/portal/agenda", { replace: true });
+  }, [student?.id, navigate]);
 
 
   if (loading) {

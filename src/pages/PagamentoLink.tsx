@@ -54,6 +54,12 @@ export default function PagamentoLink() {
   const [estado, setEstado] = useState<Estado>("carregando");
   const [dados, setDados] = useState<Validacao | null>(null);
   const [pedido, setPedido] = useState<PedidoCriado | null>(null);
+  const [pagoPortal, setPagoPortal] = useState(false);
+  useEffect(() => {
+    if (!pagoPortal) return;
+    const t = setTimeout(() => window.location.assign("/portal/agenda"), 2500);
+    return () => clearTimeout(t);
+  }, [pagoPortal]);
   const corrida = dados?.origem !== "generica";
   const subtitulo = corrida
     ? "Pagamento da sua inscrição"
@@ -144,6 +150,23 @@ export default function PagamentoLink() {
 
   if (!dados || !pedido) return null;
 
+  if (pagoPortal) {
+    return (
+      <Moldura subtitulo={subtitulo}>
+        <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="font-display text-lg font-bold">Pagamento confirmado. Estamos confirmando seu horário...</p>
+        </div>
+        <a
+          href="/portal/agenda"
+          className="block w-full border border-border py-3 text-center text-sm font-semibold uppercase tracking-wide text-foreground"
+        >
+          Voltar ao portal
+        </a>
+      </Moldura>
+    );
+  }
+
   return (
     <Moldura subtitulo={subtitulo}>
       <div className="bg-card border border-border rounded-2xl p-5">
@@ -177,6 +200,7 @@ export default function PagamentoLink() {
         onVoltar={() => {}}
         pedido={pedido}
         setPedido={setPedido}
+        onSucesso={dados.servico_portal ? () => setPagoPortal(true) : undefined}
         modoLink={{
           pixDisponivel: dados.pix_disponivel,
           origem: dados.origem ?? "corrida",

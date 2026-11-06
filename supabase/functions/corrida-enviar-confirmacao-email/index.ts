@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
 
     const { data: venda } = await supabase
       .from("vendas")
-      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, forma_pagamento, observacoes")
+      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, forma_pagamento, observacoes, origem")
       .eq("id", vendaId)
       .maybeSingle();
     if (!venda) return json(404, { ok: false, error: "venda_nao_encontrada" });
@@ -114,6 +114,44 @@ Deno.serve(async (req) => {
       .select("id, nome, email, telefone")
       .eq("id", venda.aluno_id)
       .maybeSingle();
+
+    // Compra avulsa feita pelo aluno no portal: só o resumo, sem contrato e sem citar Corrida.
+    if ((venda as any).origem === "portal_avulso") {
+      const destinoPortal = overrideEmail || aluno?.email || "";
+      if (!destinoPortal) return json(400, { ok: false, error: "email_do_aluno_ausente" });
+      const htmlPortal = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
+        <div style="max-width:600px;margin:0 auto;background:#ffffff">
+          <div style="background:#111111;padding:20px 24px;color:#ffffff;font-size:20px;font-weight:bold">FORTEM</div>
+          <div style="padding:24px">
+            <h2 style="margin:0 0 8px;font-size:20px;color:#111">Pagamento confirmado</h2>
+            <p style="margin:0 0 16px;font-size:13px;color:#777">Protocolo: ${esc(venda.id)}</p>
+            <table style="width:100%;border-collapse:collapse">
+              <tr>
+                <td style="padding:8px 0;border-bottom:1px solid #eee;font-size:14px;color:#111">${esc(venda.nome_snapshot ?? "Serviço")}</td>
+                <td style="padding:8px 0;border-bottom:1px solid #eee;font-size:14px;text-align:right;white-space:nowrap;color:#111">${brl(venda.valor_final)}</td>
+              </tr>
+            </table>
+            <p style="margin:16px 0 0;font-size:14px;color:#111">Sua sessão já está disponível no portal. Se você escolheu um horário antes de pagar, ele é confirmado automaticamente; caso contrário, agende pela aba Serviços da sua Agenda.</p>
+          </div>
+          <div style="background:#111111;padding:16px 24px;color:#999;font-size:12px">
+            Fortem Gestão Técnica · contatofortem@gmail.com<br>Este é um e-mail automático de confirmação de pagamento.
+          </div>
+        </div>
+      </body></html>`;
+      try {
+        await sendGmailEmail(destinoPortal, `Fortem - Pagamento confirmado (${String(venda.id).slice(0, 8)})`, htmlPortal);
+      } catch (e) {
+        console.error("[corrida-enviar-confirmacao-email] falha no envio (portal):", String(e));
+        await supabase.from("system_logs").insert({
+          modulo: "corrida-enviar-confirmacao-email",
+          acao: "email_portal_falhou",
+          mensagem: `Falha ao enviar e-mail da compra avulsa ${vendaId}: ${String(e)}`,
+          payload: { venda_id: vendaId },
+        });
+        return json(200, { ok: false, error: "falha_envio" });
+      }
+      return json(200, { ok: true });
+    }
 
     const { data: inscricao } = await supabase
       .from("corrida_inscricoes_prova")

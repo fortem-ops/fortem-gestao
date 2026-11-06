@@ -1,5 +1,5 @@
 import { horarioFuturoPortal } from "@/components/portal/portalPresentation";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { saldoTotalPorAtividade } from "@/lib/creditosServicos";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
+import { lerReservaPendente, limparReservaPendente, salvarReservaPendente } from "@/lib/recoveryReservaPendente";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -525,9 +526,18 @@ export default function PortalAgenda() {
   });
 
   const comprarRecovery = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (escolha?: { agendaId: string; data: string; atividade: string; horario: string }) => {
       const { data, error } = await (supabase as any).rpc("fn_portal_recovery_avulso_link");
       if (error || !data?.token) throw new Error(error?.message ?? "sem_link");
+      if (escolha && student?.id) {
+        salvarReservaPendente({
+          aluno_id: student.id,
+          agenda_id: escolha.agendaId,
+          data: escolha.data,
+          atividade: escolha.atividade,
+          horario: escolha.horario,
+        });
+      }
       return String(data.token);
     },
     onSuccess: (token) => {
@@ -535,6 +545,56 @@ export default function PortalAgenda() {
     },
     onError: () => toast.error("Não foi possível abrir o pagamento agora. Tente novamente."),
   });
+
+  // Depois da compra avulsa: agenda sozinho o horário guardado assim que o crédito entrar.
+  // Quem decide crédito e vaga é sempre fn_agendar_servico; aqui só repetimos a chamada.
+  const reservaEmAndamento = useRef(false);
+  useEffect(() => {
+    if (!student?.id || reservaEmAndamento.current) return;
+    const reserva = lerReservaPendente(student.id);
+    if (!reserva) return;
+    reservaEmAndamento.current = true;
+    setAbaAgenda("servicos");
+    const aviso = toast.loading("Confirmando seu horário de Recovery…");
+    const atualizar = () => {
+      qc.invalidateQueries({ queryKey: ["portal-agenda-servicos-creditos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-horarios-servico"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-reservas-servico"] });
+      qc.invalidateQueries({ queryKey: ["portal-servicos-futuros"] });
+      qc.invalidateQueries({ queryKey: ["portal-recovery-mensal"] });
+    };
+    (async () => {
+      for (let tentativa = 0; tentativa < 10; tentativa++) {
+        if (!lerReservaPendente(student.id)) break;
+        const { data: r, error } = await (supabase as any).rpc("fn_agendar_servico", {
+          p_agenda_servico_id: reserva.agenda_id,
+          p_data: reserva.data,
+        });
+        const erro = error ? "erro_interno" : r?.ok ? null : String(r?.erro ?? "erro");
+        if (!erro) {
+          limparReservaPendente();
+          atualizar();
+          const dia = format(parseISO(reserva.data + "T12:00:00"), "EEEE, dd/MM", { locale: ptBR });
+          toast.success(`Sessão de Recovery confirmada para ${dia} às ${reserva.horario}`, { id: aviso });
+          return;
+        }
+        if (erro === "sem_vaga" || erro === "horario_passado" || erro === "horario_invalido") {
+          limparReservaPendente();
+          atualizar();
+          setServicoSelecionado(reserva.atividade);
+          toast.error("O horário escolhido não está mais disponível. Seu crédito está salvo: escolha outro horário.", { id: aviso });
+          return;
+        }
+        if (erro !== "sem_creditos") break;
+        await new Promise((res) => setTimeout(res, 3000));
+      }
+      atualizar();
+      toast.message("Ainda não recebemos a confirmação do pagamento. Seu horário será confirmado quando ele entrar.", { id: aviso });
+    })().finally(() => {
+      reservaEmAndamento.current = false;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student?.id]);
 
   const abrirWhatsAppServico = (label: string) =>
     window.open(
@@ -1513,7 +1573,7 @@ export default function PortalAgenda() {
                   </div>
                   {ativ === RECOVERY && precoRecoveryAvulso && (
                     <button
-                      onClick={() => comprarRecovery.mutate()}
+                      onClick={() => comprarRecovery.mutate({ agendaId: String(h.id), data, atividade: ativ, horario: ini })}
                       disabled={comprarRecovery.isPending}
                       className="min-h-[52px] w-full bg-[#C8282A] text-[13px] font-bold uppercase tracking-[0.08em] text-white disabled:opacity-50"
                     >

@@ -191,3 +191,4 @@
 - Portal Agenda P2: Recovery mensal Pro/VIP/Corrida (4 por ciclo, rotina diária 07:15 UTC, liberação inicial feita para 22 alunos) (feito).
 - Portal Agenda P3: aba Serviços no padrão dos treinos (cartões, dias, grade Manhã/Tarde/Noite, folha de confirmação) (feito; sem teste com aluno logado).
 - Portal Agenda P4: compra avulsa "Recovery - 1 sessão" (R$ 50, catálogo) pelo portal com PIX e cartão em /pagamento/:token; crédito só após pago, uma vez por venda, retirado se não usado no estorno (feito; pagamento real ainda não testado).
+- [x] Compra avulsa de Recovery: horário confirmado sozinho após o pagamento (guardado 2 h no navegador, via fn_agendar_servico) e e-mail sem contrato/menção à Corrida para origem portal_avulso.

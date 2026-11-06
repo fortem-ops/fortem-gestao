@@ -82,7 +82,8 @@ Deno.serve(async (req) => {
         .maybeSingle()
       : { data: null as any };
 
-    const contratoId: string | null = contrato?.id ?? null;
+    // Compra avulsa do portal nunca tem contrato nem aceite.
+    const contratoId: string | null = venda.origem === "portal_avulso" ? null : (contrato?.id ?? null);
 
     let documentosPendentes: { id: string; nome: string; conteudo_gerado: string }[] = [];
     if (contratoId) {
