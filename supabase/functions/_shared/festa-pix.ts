@@ -2,9 +2,10 @@
 // Não toca em pix_cobrancas, recorrência nem checkout dos planos.
 import { interCobFetch } from "./inter-cob.ts";
 import { valorPagoFestaCorreto } from "./festa-valor.ts";
+import { FESTA_PRAZO_FIM } from "./festa-prazo.ts";
+export { FESTA_PRAZO_FIM } from "./festa-prazo.ts";
 
 export const FESTA_TXID_PREFIXO = "FESTA10";
-export const FESTA_PRAZO_FIM = new Date("2026-11-06T23:59:59.999-03:00");
 
 export function ehTxidFesta(txid: string | null | undefined) {
   return typeof txid === "string" && txid.startsWith(FESTA_TXID_PREFIXO);

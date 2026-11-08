@@ -1,11 +1,13 @@
 /**
  * Conteúdo editável da festa de 10 anos (/10anos).
- * Valores aqui são só para exibição: o servidor recalcula total e prazo por conta própria.
+ * Valores aqui são só para exibição: o servidor recalcula o total.
+ * O prazo é compartilhado com o servidor em festa-prazo.ts.
  */
 
 import festa2016 from "@/assets/festa-2016.jpg.asset.json";
 import festa2017a from "@/assets/festa-2017-1.jpg.asset.json";
 import festa2017b from "@/assets/festa-2017-2.jpg.asset.json";
+import { FESTA_PRAZO_ISO, FESTA_PRAZO_TEXTO } from "../../supabase/functions/_shared/festa-prazo";
 
 export type MarcoFoto = { url: string; alt?: string };
 
@@ -33,8 +35,8 @@ export const festa10AnosConfig = {
     cidade: "Porto Alegre, RS",
   },
   /** Último dia para confirmar (fecha às 23:59:59 de Brasília). */
-  prazoIso: "2026-11-06",
-  prazoTexto: "até 6 de novembro",
+  prazoIso: FESTA_PRAZO_ISO,
+  prazoTexto: FESTA_PRAZO_TEXTO,
   limiteAcompanhantes: 3,
   valores: {
     pessoaCentavos: 7500,

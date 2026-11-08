@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] /10anos: prazo único em festa-prazo.ts até 12/11/2026 às 23:59:59 Brasília; festa-confirmar atualizada no servidor e teste sem dados confirmou remoção do bloqueio. 26 testes passaram e formulário conferido, 103 pessoas preservadas. Site não publicado; nenhuma confirmação ou PIX de teste gerado.
+
 - [x] Lote 5 — Feed da Comunidade (0219): consentimento, publicação só por fn_comunidade_compartilhar (treino, conquista, sequência), limite 3/dia, foto pendente de análise, reação "Força", apagar/denunciar, sair do feed, aba Feed no gestor (fotos, denúncias, remover, suspender). Bucket privado comunidade-feed (3 MB). Limpeza diária 06:30 UTC (função comunidade-feed-limpeza). Ensaio revertido aprovado. Telas não vistas com aluno logado.
 - [x] Ajustes Comunidade (0220): foto entra publicada na hora (foto_pendente sem uso, mantido no CHECK), moderação posterior; gestor com "Fotos recentes" (30 dias) e contador só de denúncias; pergunta "Compartilhar treino?" ao concluir o treino (só quando o agendamento já está realizado); capas dos cards alinhadas ao topo; espaço no rodapé do detalhe do clube.
 - [ ] Feed: tipo "recorde" (carga recorde do 5-3-1) não implementado — o sistema não guarda recorde de carga; depende de criar esse registro.
