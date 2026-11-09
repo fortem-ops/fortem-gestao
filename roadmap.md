@@ -195,3 +195,8 @@
 - Portal Agenda P4: compra avulsa "Recovery - 1 sessão" (R$ 50, catálogo) pelo portal com PIX e cartão em /pagamento/:token; crédito só após pago, uma vez por venda, retirado se não usado no estorno (feito; pagamento real ainda não testado).
 - [x] Compra avulsa de Recovery: horário confirmado sozinho após o pagamento (guardado 2 h no navegador, via fn_agendar_servico) e e-mail sem contrato/menção à Corrida para origem portal_avulso.
 - [x] Devolver PIX pela venda (compra avulsa de Recovery do portal) no Histórico de Vendas: só admin, mesma devolução Inter, crédito retirado só se não usado.
+
+## Nova Venda sem "Planos atuais"
+- [x] R0 (leitura) — reprovado em 09/11/2026: Gympass/Wellhub, Total Pass e VIP só existem no fluxo atual (71 vendas em 30 dias) e Start legado teve 12 vendas. Aguarda decisão do dono.
+- [ ] R1 tela — bloqueado pelo R0.
+- [ ] R2 catálogo (encerrar pacotes 2027) — não autorizado.
