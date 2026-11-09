@@ -1,3 +1,4 @@
+import { NOVA_VENDA_R1, filtrarPlanosLegadoR1, opcoesPlanosVisiveis, OPCOES_PLANOS_R1 } from "@/lib/novaVendaAbas";
 import { planoBaseAtivoDe, sugerirVarianteCorrida } from "@/lib/corridaPlanoBase";
 import { useState, useEffect, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -136,6 +137,11 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   useEffect(() => { if (!open) setModo2027(false); }, [open]);
 
   const [tab, setTab] = useState<"planos" | "servicos">("planos");
+  // Nova Venda R1: opção escolhida na aba Planos (Start/Power/Pro/Consultoria = 2027; demais = fluxo legado).
+  const [opcaoPlano, setOpcaoPlano] = useState("");
+  useEffect(() => { if (!open) setOpcaoPlano(""); }, [open]);
+  useEffect(() => { setOpcaoPlano(""); }, [tab]);
+  const opcaoR1 = OPCOES_PLANOS_R1.find((o) => o.chave === opcaoPlano);
 
   // Plano wizard
   const [pStep, setPStep] = useState(1);
@@ -280,7 +286,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   });
 
   const modoCorrida = atividadeSel === "corrida";
-  const planosFiltrados = modoCorrida
+  const planosFiltrados = NOVA_VENDA_R1
+    ? (opcaoR1?.tipo === "legado" ? filtrarPlanosLegadoR1<any>(planos, opcaoR1.chave) : [])
+    : modoCorrida
     ? planos.filter((p: any) => p.atividade === "corrida")
     : planos.filter((p: any) => p.frequencia === frequencia && p.atividade !== "corrida");
   const planoSelecionado = planos.find((p: any) => p.id === planoId);
@@ -698,7 +706,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           </DialogTitle>
         </DialogHeader>
 
-        {podeVender2027 && (
+        {!NOVA_VENDA_R1 && podeVender2027 && (
           <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Catálogo">
             <Button type="button" variant={!modo2027 ? "default" : "outline"} size="sm" onClick={() => setModo2027(false)}>
               Planos atuais
@@ -708,11 +716,11 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
             </Button>
           </div>
         )}
-        {podeVender2027 && modo2027 && (
+        {!NOVA_VENDA_R1 && podeVender2027 && modo2027 && (
           <Venda2027Steps alunoId={alunoId} temPlanoAtivo={!!planoVigente} onDone={() => onOpenChange(false)} />
         )}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className={cn(podeVender2027 && modo2027 && "hidden")}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className={cn(!NOVA_VENDA_R1 && podeVender2027 && modo2027 && "hidden")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="planos">Planos</TabsTrigger>
             <TabsTrigger value="servicos">Serviços</TabsTrigger>
@@ -720,11 +728,51 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
           {/* ============= PLANOS ============= */}
           <TabsContent value="planos" className="mt-6">
-            <StepIndicator steps={planoSteps} current={displayStep} />
+            {NOVA_VENDA_R1 && (
+              <div className="space-y-4 mb-4">
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Plano">
+                  {opcoesPlanosVisiveis(podeVender2027).map((o) => (
+                    <button
+                      key={o.chave}
+                      type="button"
+                      role="radio"
+                      aria-checked={opcaoPlano === o.chave}
+                      onClick={() => {
+                        reset();
+                        setOpcaoPlano(o.chave);
+                        if (o.tipo === "legado") {
+                          setAtividadeSel(o.tipo === "legado" && o.corrida ? "corrida" : "treinamento_funcional");
+                          setPStep(2);
+                        }
+                      }}
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-sm transition-all",
+                        opcaoPlano === o.chave ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/20" : "border-border hover:border-primary/40",
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                {!opcaoR1 && <p className="text-sm text-muted-foreground">Escolha o plano.</p>}
+                {opcaoR1?.tipo === "2027" && (
+                  <Venda2027Steps
+                    key={opcaoR1.familia}
+                    alunoId={alunoId}
+                    temPlanoAtivo={!!planoVigente}
+                    familiaFixa={opcaoR1.familia}
+                    ocultarServicos
+                    onDone={() => onOpenChange(false)}
+                  />
+                )}
+              </div>
+            )}
+            {(!NOVA_VENDA_R1 || opcaoR1?.tipo === "legado") && (<>
+            {!NOVA_VENDA_R1 && <StepIndicator steps={planoSteps} current={displayStep} />}
 
             {lp ? <Skeleton className="h-40 w-full" /> : (
               <>
-                {pStep === 1 && (
+                {pStep === 1 && !NOVA_VENDA_R1 && (
                   <div className="space-y-2">
                     {FREQ_OPTIONS.map((f) => (
                       <RadioCard
@@ -740,7 +788,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       selected={modoCorrida}
                       onClick={() => { setAtividadeSel("corrida"); setFrequencia(""); setPlanoId(""); }}
                       icon={<Activity className="w-5 h-5" />}
-                      title="Corrida — plano adicional"
+                      title={NOVA_VENDA_R1 ? "Corrida" : "Corrida — plano adicional"}
                       subtitle="Contrato paralelo ao plano principal, sem controle de créditos."
                     />
                     <div className="flex justify-end pt-4">
@@ -877,7 +925,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
                     )}
                     <div className="flex justify-between pt-4">
-                      <Button variant="outline" onClick={() => setPStep(1)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button variant="outline" onClick={() => { if (NOVA_VENDA_R1) { reset(); setOpcaoPlano(""); } else setPStep(1); }}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
                       <Button disabled={!planoId} onClick={() => setPStep(hasServicos ? 3 : 4)}>Continuar</Button>
                     </div>
                   </div>
@@ -915,7 +963,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div><span className="text-muted-foreground">Aluno:</span> <span className="font-medium">{alunoNome}</span></div>
-                        <div><span className="text-muted-foreground">{planoEhCorrida ? "Atividade:" : "Frequência:"}</span> <span className="font-medium">{planoEhCorrida ? "Corrida" : frequencia}</span></div>
+                        <div><span className="text-muted-foreground">{planoEhCorrida ? "Atividade:" : "Frequência:"}</span> <span className="font-medium">{planoEhCorrida ? "Corrida" : (frequencia || planoSelecionado.frequencia)}</span></div>
                         <div><span className="text-muted-foreground">Período:</span> <span className="font-medium">{planoSelecionado.periodo_meses} {planoSelecionado.periodo_meses === 1 ? "mês" : "meses"}</span></div>
                         <div><span className="text-muted-foreground">Créditos:</span> <span className="font-medium">{planoEhCorrida ? "Sem controle de créditos" : planoSelecionado.ilimitado ? "Ilimitado" : `${planoSelecionado.quantidade_creditos}`}</span></div>
                       </div>
@@ -923,9 +971,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
                     {planoEhCorrida ? (
                       <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">
-                        <div className="font-medium text-foreground">Plano adicional</div>
+                        <div className="font-medium text-foreground">{NOVA_VENDA_R1 ? "Corrida" : "Plano adicional"}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          Este plano é adicional e não substitui o plano atual do aluno.
+                          {NOVA_VENDA_R1 ? "Não substitui o plano atual do aluno." : "Este plano é adicional e não substitui o plano atual do aluno."}
                         </div>
                       </div>
                     ) : planoVigente && (
@@ -1093,6 +1141,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                 )}
               </>
             )}
+            </>)}
           </TabsContent>
 
           {/* ============= SERVIÇOS ============= */}

@@ -198,5 +198,10 @@
 
 ## Nova Venda sem "Planos atuais"
 - [x] R0 (leitura) — reprovado em 09/11/2026: Gympass/Wellhub, Total Pass e VIP só existem no fluxo atual (71 vendas em 30 dias) e Start legado teve 12 vendas. Aguarda decisão do dono.
-- [ ] R1 tela — bloqueado pelo R0.
+- [x] R0 aceito pelo dono (09/11/2026): Gympass/Wellhub, Total Pass e VIP ficam na aba Planos com o fluxo atual intacto.
+- [x] R1 tela — abas Planos/Serviços sem seletor "Planos atuais/2027"; Planos = Start, Power, Pro, Consultoria Online (fluxo 2027 sem serviços/pacotes) + Corrida, Gympass/Wellhub, Total Pass, VIP (fluxo atual intacto); itens legados restantes escondidos só na tela (`NOVA_VENDA_R1` em `src/lib/novaVendaAbas.ts` reverte). Testes em `src/test/novaVendaAbas.test.ts`.
+- [ ] R2 catálogo (encerrar pacotes 2027) — não autorizado.
+- [ ] R3 — não autorizado.
+- [ ] Remover o código do fluxo antigo — não autorizado.
+- [ ] Pré-existente: `src/test/portalAgendaE5a.test.tsx` (menu inferior do portal) falha 4 testes, sem relação com a Nova Venda.
 - [ ] R2 catálogo (encerrar pacotes 2027) — não autorizado.

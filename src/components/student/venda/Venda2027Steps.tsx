@@ -59,6 +59,10 @@ type Props = {
   alunoId: string;
   temPlanoAtivo: boolean;
   onDone: () => void;
+  /** Nova Venda R1: família escolhida fora (aba Planos); esconde a escolha de plano e o rótulo 2027. */
+  familiaFixa?: string;
+  /** Nova Venda R1: sem serviços/pacotes 2027 dentro da venda do plano (serviços vão em venda separada). */
+  ocultarServicos?: boolean;
 };
 
 function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -76,11 +80,11 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
   );
 }
 
-export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
+export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, ocultarServicos }: Props) {
   const qc = useQueryClient();
   const hoje = format(new Date(), "yyyy-MM-dd");
 
-  const [familia, setFamiliaState] = useState("power_2027");
+  const [familia, setFamiliaState] = useState(familiaFixa ?? "power_2027");
   const [freq, setFreq] = useState("2x");
   const [duracao, setDuracaoState] = useState(1);
   const [pagamento, setPagamento] = useState<FormaPlano2027>("cartao_parcelado");
@@ -252,11 +256,15 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
 
   return (
     <div className="space-y-5">
+      {!familiaFixa && (
       <div className="flex items-center gap-2">
         <Badge variant="outline">Planos 2027</Badge>
         {alunoDeTeste && <Badge variant="destructive">TESTE 2027</Badge>}
       </div>
+      )}
+      {familiaFixa && alunoDeTeste && <Badge variant="destructive">TESTE</Badge>}
 
+      {!familiaFixa && (
       <div className="space-y-2">
         <Label>Plano</Label>
         <div className="flex flex-wrap gap-2">
@@ -265,6 +273,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
           ))}
         </div>
       </div>
+      )}
 
       {!soServicos && (<>
       {consultoria ? (
@@ -325,6 +334,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
       </div>
       </>)}
 
+      {!ocultarServicos && (
       <div className="space-y-2">
         <Label>Serviços complementares</Label>
         {pacote && (
@@ -371,6 +381,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone }: Props) {
           <p className="text-xs text-muted-foreground">Os serviços entram nas mesmas parcelas do plano.</p>
         )}
       </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
