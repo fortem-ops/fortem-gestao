@@ -6109,6 +6109,8 @@ export type Database = {
           criado_por: string | null
           expira_em: string
           id: string
+          parcelas_fixas: boolean | null
+          parcelas_max: number | null
           token: string
           usado_em: string | null
           venda_id: string
@@ -6118,6 +6120,8 @@ export type Database = {
           criado_por?: string | null
           expira_em?: string
           id?: string
+          parcelas_fixas?: boolean | null
+          parcelas_max?: number | null
           token: string
           usado_em?: string | null
           venda_id: string
@@ -6127,6 +6131,8 @@ export type Database = {
           criado_por?: string | null
           expira_em?: string
           id?: string
+          parcelas_fixas?: boolean | null
+          parcelas_max?: number | null
           token?: string
           usado_em?: string | null
           venda_id?: string

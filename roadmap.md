@@ -203,5 +203,13 @@
 - [ ] R2 catálogo (encerrar pacotes 2027) — não autorizado.
 - [ ] R3 — não autorizado.
 - [ ] Remover o código do fluxo antigo — não autorizado.
-- [ ] Pré-existente: `src/test/portalAgendaE5a.test.tsx` (menu inferior do portal) falha 4 testes, sem relação com a Nova Venda.
+- [x] `src/test/portalAgendaE5a.test.tsx`: listas esperadas atualizadas (Benefícios → Comunidade, mudança do LOTE 4); app inalterado.
 - [ ] R2 catálogo (encerrar pacotes 2027) — não autorizado.
+
+## Parcelamento no link /pagamento/<token>
+Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trava); sem juros; sem parcela mínima; serviços avulsos só 1x; venda recorrente sem parcelamento; mostrar valor de cada parcela.
+- [x] P0 leitura — contrato Corrida parcelado cita "em até %PARCELAS% parcelas"; parcelas legadas = `contratos.parcelas` + N `cobrancas` em `fn_criar_contrato_tradicional`; Rede tem sandbox via `REDE_AMBIENTE`.
+- [x] P1 banco — `links_pagamento.parcelas_max` (1–12, nulo) e `parcelas_fixas` (nulo); scripts `scripts/pagamento-link-parcelas-p1.*`; links existentes idênticos.
+- [ ] P2 funções criar/validar/cobrar-link-pagamento — não autorizado.
+- [ ] P3 telas — não autorizado.
+- [ ] P4 teste real — não autorizado.

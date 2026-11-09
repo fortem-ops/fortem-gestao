@@ -1737,6 +1737,13 @@
       "when": 1793978116956,
       "tag": "0247_estorno_pix_venda_credito_info",
       "breakpoints": true
+    },
+    {
+      "idx": 248,
+      "version": "7",
+      "when": 1794228878064,
+      "tag": "0248_pagamento_link_parcelas_p1",
+      "breakpoints": true
     }
   ]
 }

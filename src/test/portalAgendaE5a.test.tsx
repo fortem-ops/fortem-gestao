@@ -56,7 +56,7 @@ describe("E5a — menu inferior", () => {
   it("só Consultoria: 4 itens sem Agenda", () => {
     ctx.somenteOnline = true;
     const itens = renderLayout();
-    expect(itens).toEqual(["Início", "Treinos", "Benefícios", "Evolução"]);
+    expect(itens).toEqual(["Início", "Treinos", "Comunidade", "Evolução"]);
   });
   it.each([
     ["presencial (Start/Power/Pro)", false, false],
@@ -65,7 +65,7 @@ describe("E5a — menu inferior", () => {
   ])("%s: 5 itens com Agenda", (_n, v, loading) => {
     ctx.somenteOnline = v;
     ctx.somenteOnlineLoading = loading;
-    expect(renderLayout()).toEqual(["Início", "Treinos", "Agenda", "Benefícios", "Evolução"]);
+    expect(renderLayout()).toEqual(["Início", "Treinos", "Agenda", "Comunidade", "Evolução"]);
   });
 });
 
