@@ -1,52 +1,82 @@
-# Reformulação da Nova Venda — plano (somente planejamento)
+# (1) Leitura — falhas em `portalAgendaE5a.test.tsx`
 
-Nada é implementado sem aprovação de cada sub-etapa. Não foi possível abrir o mockup; o plano segue a descrição do dono.
+**Causa:** só o teste ficou desatualizado. O app continua certo.
 
-## A. O que existe hoje
+- O teste espera o menu inferior `Início, Treinos, Benefícios, …`. Em 02/11/2026, no LOTE 4 (Comunidade, alteração `7ba0e01c`), o item **Benefícios** saiu do menu inferior e foi para o menu do perfil. No lugar entrou **Comunidade** (`PortalLayout.tsx:17-21`). O teste foi alterado pela última vez antes disso (`bb12f5f9`, também em 02/11) e não acompanhou a mudança.
+- As 4 falhas comparam só a lista de nomes. Um item mudou de nome; a regra da Agenda continua igual.
+- O comportamento real foi conferido pelos próprios testes que passam no mesmo arquivo:
+  - aluno **só Consultoria**: o menu continua sem Agenda (são 4 itens: Início, Treinos, Comunidade, Evolução). A lista só difere do teste no nome Benefícios/Comunidade;
+  - `/portal/agenda` com aluno só Consultoria **redireciona para Treinos** (teste passa);
+  - presencial, carregando e erro: a Agenda aparece (só o nome do 4º item difere);
+  - o botão de agendar avaliação continua escondido para quem é só Consultoria (teste passa).
+- Correção sugerida (não feita): trocar "Benefícios" por "Comunidade" nas 4 listas esperadas do teste. Não precisa mexer no app.
 
-Telas (mesma janela aberta pelo Perfil do aluno, pela aba Plano & Financeiro e por Prospects):
-- `VendaDialog.tsx` (~1.200 linhas): seletor "Planos atuais / Planos 2027" (visível a admin, coordenador e professor). Em "Planos atuais", abas **Planos** (Frequência → Plano → Serviços inclusos → Resumo → Pagamento; inclui o card "Corrida — plano adicional" e a escolha substituir / renovação / adicional) e **Serviços** (venda avulsa de um serviço).
-- `Venda2027Steps.tsx`: famílias Start, Power, Pro, Consultoria Online e "Só serviços"; lista os pacotes 2027 dentro da venda do plano; usa o portão de teste (`sistema_config.vendas_2027_teste_aluno_ids`, 3 alunos) e as datas `vendavel_desde/ate`.
-- Apoio: `ServicosPlanoStep`, `PagamentoStep`, `PaymentFields`, `TipoCobrancaSection`, `src/lib/vendas2027.ts` (cálculo e regra de "vendável"), `corridaPlanoBase.ts`, `CorridaConfigurator.tsx`.
+Não abri o portal com um aluno real só Consultoria. A conclusão vem do código e dos testes.
 
-Catálogo (consultado agora, só leitura):
-- `planos_catalogo` ativos: 23 planos atuais de treino, **18 de Corrida (todos do tipo "atual", sem versão)**, Start 2027 (4), Power 2027 (8), Pro 2027 (8), Consultoria 2027 (3).
-- `servicos_catalogo` atuais (sem versão), todos ativos: Avaliação Funcional R$250, Inscrição em Prova Avulsa (Corrida) R$289, Nutrição R$350, Nutrição pacote 4 R$1.320, Reabilitação 01–12 sessões, e **"Recovery - 1 sessão" R$50 (atividade "Recovery (Bota de Compressão)", liberar só após pagamento)** — já existe, criado para a compra no portal.
-- Pacotes 2027 (versão 2027), ativos: Avaliação de Composição Corporal R$200, Nutrição 4 + 2 avaliações R$1.620, Nutrição 8 R$2.400, Reabilitação 4 e 8 sessões (2027).
+---
 
-Como um serviço atual é vendido: a tela grava direto em `vendas` (tipo "servico"). Rotinas automáticas da venda fazem o resto: `fn_processar_venda` (créditos), comissão ao pagar, cobrança/baixa, notificação, indicação e, para itens "liberar após pagamento" (Recovery), crédito só quando a venda fica paga. Agenda consome o crédito pela atividade. Planos 2027 gravam por `fn_venda_2027_criar`; "Só serviços" 2027 por `fn_venda_servicos_2027_criar`.
+# (2) Plano — parcelamento no link `/pagamento/<token>`
 
-## B. Pontos 1–5
+## A. Como funciona hoje (verificado)
 
-1. **Só Planos 2027, sem o nome** — TELA. Remover seletor e chips "2027"; Nova Venda abre direto com abas Planos e Serviços. NÃO muda: funções de venda 2027, cálculo, contratos.
-2. **Alunos atuais seguem até o fim** — NADA muda (contratos, planos, cobranças, renovação mensal legada, rescisão, carteira, agenda). Apenas deixam de aparecer para venda nova. Itens atuais NÃO serão desativados no catálogo (renovações e telas antigas leem por nome/id); o filtro é só na tela.
-3. **Aba Planos: Start, Power, Pro, Consultoria, Corrida** — TELA. Corrida reaproveita o trecho atual (mesmo cálculo, mesma gravação, contrato paralelo "adicional", sem créditos), com rótulo "Corrida". Remove "Só serviços". Escolha substituir/renovação para plano de treino atual vigente: hoje existe só no fluxo antigo; no 2027 vale a regra do dono (2 planos ativos até o fim do contrato antigo) — sem mudança.
-4. **Aba Serviços** — TELA reaproveitando a venda avulsa atual (mesma gravação e créditos). Bota Recovery R$50: já existe no catálogo; só aparece. BANCO só se o dono decidir ajustar (ver pergunta 3).
-5. **Pacotes 2027 fora** — TELA esconde a lista; BANCO opcional: marcar `vendavel_ate` (ou `ativo=false`) nos 5 itens, sem apagar. Histórico, créditos e cobranças já vendidos permanecem.
+- **Quem gera o link:** o componente `GerarLinkPagamento`, que aparece no Histórico de Vendas do aluno e em Inscrições da Corrida. Ele chama a função `criar-link-pagamento`, que grava em `links_pagamento` os campos `venda_id`, `token`, `criado_por` e `expira_em`. Se já existe um link válido para a venda, ele é reaproveitado. O link não guarda nenhuma informação de parcelas.
+- **O que a página lê:** `validar-link-pagamento` lê a venda, inclusive `vendas.parcelas`, e devolve esse número. A página `PagamentoLink.tsx` só mostra "em Nx" no resumo quando N é maior que 1. Não existe nenhum seletor de parcelas.
+- **Como cobra:** `cobrar-link-pagamento` usa o cartão tokenizado e chama `rede-cobrar-token` com `amount = venda.valor_final` e `installments = venda.parcelas`. A cobrança é feita pela Rede, numa transação parcelada pela própria Rede. Se aprovada, grava em `pagamentos_rede`, marca a venda como paga e as `pagamento_parcelas` pendentes como pagas, ativa o contrato e encerra o link.
+- **Conclusão:** o parcelamento já existe por baixo. O número vem da venda registrada. O link "Corrida - Pro" R$840 de hoje tem `parcelas = 1` porque a venda foi registrada com 1. Vendas anteriores pelo link saíram em 12x (Power) e 10x (Corrida anual).
 
-## C. Riscos
+## B. Regras atuais de parcelas
 
-- Corrida depende do fluxo "atual" (itens sem versão, gravação direta, contrato adicional). Precisa ser movida intacta, não reescrita.
-- Portão de teste 2027: se algum item 2027 ainda não está liberado, ao sumir "Planos atuais" a equipe fica sem plano de treino para vender. Conferir datas antes do R1.
-- Professor hoje vê "Planos atuais"? A janela libera os dois fluxos a consultores; comissão de venda interna segue igual.
-- Renovação/upgrade/mudança de plano de alunos atuais usam outras telas e o catálogo atual: por isso não desativar itens atuais no banco.
-- Recovery com "liberar após pagamento": vendido pela equipe como "pendente", o crédito só nasce quando der baixa (diferente dos outros serviços, que liberam na criação). Comissão: hoje sem comissão.
-- Consultoria: pacotes 4/6 meses não aceitam serviços na mesma venda — com os pacotes 2027 fora da venda, o aviso some; serviços passam a ser sempre venda separada.
-- Item legado "Consultoria Online - 6 meses 2026" ainda ativo: deixará de aparecer.
-- Prospects usa a mesma janela: Start/Power/Pro precisam funcionar para quem não tem plano.
+- **Planos 2027:** `maxParcelas2027(familia, duracao)`. Power/Pro anual vai até 12x. Consultoria de 4 ou 6 meses vai até 4x/6x. Start é recorrência, sem parcelamento. Os valores saem de `calcularVenda2027`, em centavos, com a sobra na última parcela.
+- **Corrida:** `maxParcelasPeriodo` (semestral até 6x, anual até 12x).
+- **Sem juros** em todos os casos: o valor total é o mesmo em qualquer número de parcelas. Hoje não existe parcela mínima no código.
+- **Agregadoras:** sempre 1x. **Serviços avulsos:** 1x hoje.
+- **Reuso:** criar uma função única, "máximo de parcelas da venda", baseada nessas regras existentes (família/duração ou período da Corrida), com um espelho no servidor.
 
-## D. Sub-etapas
+## C. Proposta recomendada
 
-- **R0 (só leitura)**: conferir datas/portão de teste dos itens 2027 e quem vendeu pelo fluxo atual nos últimos 30 dias.
-- **R1 — Tela**: nova estrutura (abas Planos/Serviços, Corrida movida, serviços atuais + Recovery, sem pacotes 2027, sem "Só serviços"). Fluxo antigo fica escondido no código por um tempo (rollback = reverter a tela). Testes de qual item aparece em cada aba.
-- **R2 — Catálogo (opcional)**: migração marcando `vendavel_ate` nos 5 pacotes 2027; ajustes da Recovery se decididos. Ensaio revertido antes; script de rollback em `scripts/`.
-- **R3 — Verificação**: ensaio com aluno de teste (sem venda real) em plano, Corrida e serviço; typecheck/build; remoção do código antigo só após aprovação.
+1. **Admin, ao gerar o link:** escolhe o máximo de parcelas (de 1 até o teto da regra do item). Opcionalmente marca "parcelas fixas", e aí o cliente só vê esse número, travado. O padrão é o número já registrado na venda.
+2. **Cliente, na página:** vê um seletor de 1x até o máximo, com o valor de cada parcela (centavos, com a sobra na última, sem juros). Com "fixas", vê só o texto "Nx de R$ …", travado.
+3. **Servidor valida tudo:** o número enviado pelo navegador é só um pedido. `cobrar-link-pagamento` relê o máximo gravado no link e o teto da regra do item, e recusa se `N < 1`, `N > máximo` ou, no modo fixo, `N ≠ fixo`. O valor sempre vem de `vendas.valor_final`, nunca da página.
+4. **Antes de cobrar:** o servidor grava `vendas.parcelas = N` e refaz as `pagamento_parcelas` (só se nenhuma estiver paga). Só então chama a Rede com `installments = N`. Se a cobrança for recusada, nada é baixado, como hoje.
+5. **Registro:** a baixa continua igual (`pagamentos_rede`, a venda paga, as parcelas pagas, o contrato ativado). O contrato da venda não muda de valor. Se o texto do contrato citar o número de parcelas, ele mostra o N final. Isso precisa ser conferido na R2.
 
-## E. Perguntas ao dono
+## D. Tela, banco e o que não muda
 
-1. Pacotes 2027: só esconder na tela ou também encerrar no catálogo? Recomendo encerrar com data final (reversível).
-2. Itens 2027 ainda presos ao portão de teste: liberar todos junto com o R1? Recomendo liberar antes, senão a equipe fica sem venda.
-3. Bota Recovery vendida pela equipe: manter crédito só após pagamento (como no portal) ou liberar na hora como os demais? Recomendo manter só após pagamento. Comissão: manter sem comissão?
-4. Serviços na mesma venda do plano: aceita que serviços sejam sempre venda separada (aba Serviços)? Recomendo sim.
-5. "Consultoria Online - 6 meses 2026" (antigo): pode sumir da venda? Recomendo sim.
-6. Desconto: hoje a venda 2027 permite desconto pela equipe; manter também em Corrida e Serviços como hoje? Recomendo manter.
+- **Só tela:** o campo de máximo/fixo no `GerarLinkPagamento` e o seletor com valores na `PagamentoLink.tsx`.
+- **Banco:** colunas novas, que podem ficar vazias, em `links_pagamento`: `parcelas_max` e `parcelas_fixas`. Sem RLS nova (a tabela já é só do servidor).
+- **Funções do servidor:** `criar-link-pagamento` passa a receber e validar o máximo, `validar-link-pagamento` passa a devolvê-lo e `cobrar-link-pagamento` passa a receber N, validar e ajustar a venda e as parcelas.
+- **Área sensível de cartão:** precisa de ensaio sem cobrança real e de rollback (retirar as colunas e voltar as 3 funções às versões atuais).
+- **Não muda:**
+  - **links já enviados:** com `parcelas_max` vazio, a página e a cobrança se comportam exatamente como hoje (`venda.parcelas`, sem seletor);
+  - `rede-cobrar-token`, recorrência, `/planos`, checkout da Corrida, PIX, Recovery avulso (sempre 1x) e agregadoras.
+
+## E. Riscos e testes
+
+- **Riscos:**
+  - cliente forçar um N fora do limite: o servidor recusa;
+  - cobrar com N diferente do que foi gravado na venda: o servidor grava antes e confere depois;
+  - parcelas duplicadas numa nova tentativa: refazer só se nenhuma estiver paga, numa operação única;
+  - contrato citando um número de parcelas errado;
+  - venda recorrente gerando link parcelado: bloquear o parcelamento quando `tipo_cobranca = recorrencia`.
+- **Testes sem cobrança real:**
+  - testes da regra: máximo por item e soma das parcelas igual ao total ao centavo;
+  - ensaios SQL com reversão no final: refazer as parcelas e recusar N inválido;
+  - função do servidor com cartão simulado ou com a Rede em modo de teste, se ele existir: confirmar o `installments` enviado sem passar cartão;
+  - link antigo sem `parcelas_max` idêntico ao de hoje.
+- **Cobrança real** só com autorização expressa (Bruna Meyer e estorno depois).
+
+## F. Sub-etapas (cada uma com aprovação separada)
+
+- **P0:** leitura do texto do contrato e das parcelas da venda Corrida (o que cita N) e confirmação de modo de teste da Rede.
+- **P1:** banco: colunas em `links_pagamento`, com ensaio e rollback.
+- **P2:** funções do servidor: criar, validar e cobrar com validação de N e ajuste das parcelas, com testes simulados.
+- **P3:** tela do admin (máximo/fixo) e da página (seletor e valores), mais os testes.
+- **P4:** teste real opcional de R$1,00 em 2x, só se autorizado.
+
+## G. Perguntas ao dono
+
+1. **Modo:** o cliente escolhe até um máximo, ou o admin fixa? *Recomendo:* o admin define o máximo, o cliente escolhe dentro dele, e há a opção "fixas" para travar.
+2. **Parcela mínima:** existe um valor mínimo por parcela (ex.: R$50)? *Recomendo:* não ter por ora, igual aos planos.
+3. **Juros:** sempre sem juros? *Recomendo:* sim, igual a hoje.
+4. **Serviços avulsos** (Avaliação, Nutrição pacote) podem ser parcelados pelo link? *Recomendo:* até 3x, ou deixar em 1x por ora.
+5. **O link "Corrida - Pro" R$840 de hoje:** basta registrar a venda de novo com o número de parcelas certo e gerar um novo link (já funciona hoje, sem código)? Pode ser a solução imediata enquanto o plano não é aprovado.
