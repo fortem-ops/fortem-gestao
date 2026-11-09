@@ -41,6 +41,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, Video, Printer, FileDown, Plus, X } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
 import { ExerciseSelector } from "./ExerciseSelector";
+import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -180,6 +182,22 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   const [data, setData] = useState<WorkoutData>(initialData);
   const [descricao, setDescricao] = useState(treino?.descricao || fase || "");
   const [saving, setSaving] = useState(false);
+  const { blocosAquecimento } = useExerciseCategories();
+  const subsDoBloco = (sigla: string, atual?: string) => {
+    const subs = blocosAquecimento.find(b => b.sigla === sigla)?.subcategorias ?? [];
+    return atual && !subs.includes(atual) ? [atual, ...subs] : subs;
+  };
+  const pickSubcategoria = (idx: number, sub: string) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const ex = next.aquecimento[idx] as WorkoutExercise & { exercicio_id?: string | null };
+      ex.subcategoria = sub;
+      ex.exercicio = "";
+      ex.video_url = null as unknown as WorkoutExercise["video_url"];
+      if ("exercicio_id" in ex) ex.exercicio_id = null;
+      return next;
+    });
+  };
   const [exportOpen, setExportOpen] = useState<null | "download" | "print">(null);
   const [weeks, setWeeks] = useState<number>(4);
   const [prescribeOpen, setPrescribeOpen] = useState(false);
@@ -454,19 +472,33 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                         <tr key={idx} className="border-b border-border/50">
                           <td className="py-1 px-2 text-muted-foreground">{localIdx + 1}</td>
                           <td className="py-1 px-2">
-                            <Input
-                              value={ex.subcategoria || ""}
-                              onChange={e => updateExercise("aquecimento", 0, idx, "subcategoria", e.target.value)}
-                              className="h-7 text-xs bg-transparent border-none px-1"
-                              placeholder="—"
-                              readOnly={readOnly}
-                            />
+                            {readOnly ? (
+                              <span className="text-xs">{ex.subcategoria || "—"}</span>
+                            ) : (
+                              <Select
+                                value={ex.subcategoria || ""}
+                                onValueChange={val => pickSubcategoria(idx, val)}
+                              >
+                                <SelectTrigger className="h-7 text-xs w-full min-w-[120px]">
+                                  <SelectValue placeholder="Subcategoria..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {subsDoBloco(bloco.key, ex.subcategoria).map(sub => (
+                                    <SelectItem key={sub} value={sub} className="text-xs">{sub}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </td>
                           <td className="py-1 px-2">
                             <div className="flex items-center gap-1">
                               <div className="flex-1 min-w-0">
                                 <ExerciseSelector
                                   categoria={ex.categoria}
+                                  grupoPreferido={GRUPO_AQUECIMENTO}
+                                  subcategoria={ex.subcategoria || undefined}
+                                  disabled={!ex.subcategoria}
+                                  placeholder={ex.subcategoria ? `Buscar em ${ex.subcategoria}...` : "Escolha a subcategoria"}
                                   value={ex.exercicio}
                                   onChange={(val, video) => pickExercise("aquecimento", 0, idx, val, video)}
                                   readOnly={readOnly}
