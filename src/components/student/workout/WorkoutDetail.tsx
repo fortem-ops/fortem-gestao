@@ -42,7 +42,6 @@ import { ArrowLeft, Save, Video, Printer, FileDown, Plus, X } from "lucide-react
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -193,7 +192,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
       const ex = next.aquecimento[idx] as WorkoutExercise & { exercicio_id?: string | null };
       ex.subcategoria = sub;
       ex.exercicio = "";
-      ex.video_url = null as unknown as WorkoutExercise["video_url"];
+      ex.video_url = null;
       if ("exercicio_id" in ex) ex.exercicio_id = null;
       return next;
     });
