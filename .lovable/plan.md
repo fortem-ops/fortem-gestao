@@ -1,97 +1,86 @@
-# 2C-1 — Inventário de lint (somente leitura)
+# Pix Automático para contratos atuais e 2027 (análise, sem alterações)
 
-Fonte: `bunx eslint . -f json -o /tmp/eslint.json`. Excluído: `WorkoutDetail.tsx` (onde estão os 7 `rules-of-hooks`). Nenhum arquivo, commit, banco ou função alterado.
+Nada foi alterado. Todas as leituras foram somente consulta.
 
-## src/ e raiz (32 itens; raiz sem erros — `tailwind.config.ts` só tem aviso)
+## A) O que existe hoje
 
-N | arquivo:linha | regra | trecho atual | correção proposta | classe
----|---|---|---|---|---
-1 | src/components/clube/PartnerScanner.tsx:52 | unused-disable | `// eslint-disable-next-line react-hooks/exhaustive-deps` | remover comentário | a
-2 | src/components/disparos/DisparosAvulsos.tsx:97 | no-unused-expressions | `const s = new Set(removidos); s.has(id) ? s.delete(id) : s.add(id); setSel(...)` | `if (s.has(id)) s.delete(id); else s.add(id);` — intencional (toggle) | a
-3 | src/components/financeiro/ConciliarSaidaSoma.tsx:80 | no-unused-expressions | `const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n` | if/else — intencional (toggle) | a
-4 | src/components/financeiro/EstornarCobrancaDialog.tsx:46 | unused-disable | `// eslint-disable-next-line react-hooks/exhaustive-deps` | remover comentário | a
-5 | src/components/notificar/NotificacaoDetail.tsx:6 | no-useless-escape | `txt.split(/(\/financeiro\/[\w\-/]+(?:\?[\w=&\-]+)?)/g)` | `[\w/-]` e `[\w=&-]` (mesmo conjunto) | a
-6 | src/components/pipeline/PipedriveImportSheet.tsx:174 | no-unused-expressions | `n.has(id) ? n.delete(id) : n.add(id);` | if/else — intencional | a
-7 | src/components/pipeline/PipelineLeadSummary.tsx:54 | prefer-const | `let nameMap: Record<string, string> = {};` | `const` | a
-8 | src/components/planos/CartaoPagamento2027.tsx:42 | unused-disable | `useEffect(() => { if (fase === "aprovado" && t) { ... /* eslint-disable ... */` | remover comentário | a
-9 | src/components/planos/CheckoutSite2027.tsx:112 | unused-disable | `useEffect(() => { carregarRevisao(); /* eslint-disable-next-line ... */ }, [` | remover comentário | a
-10 | src/components/planos/ConsultasPagamentoPrevia2027.tsx:37 | unused-disable | `useEffect(() => { void chamar('estado'); /* eslint-disable-next-line ... */` | remover comentário | a
-11 | src/components/planos/PagamentoReservado2027.tsx:51 | unused-disable | `useEffect(() => { if (t?.status === "aprovado") { ... /* eslint-disable ... */` | remover comentário | a
-12 | src/components/ponto/MeuRelatorioPonto.tsx:251 | prefer-const | `let statusFechamento = "aberto";` | `const` | a
-13 | src/components/ponto/MeusAcordosIntervalo.tsx:41 | no-empty | `} catch {}` | comentário `/* IP é opcional */` no bloco | a
-14 | src/components/student/StudentPicker.tsx:77 | unused-disable | `// eslint-disable-next-line no-constant-condition` | remover comentário | a
-15 | src/components/ui/command.tsx:24 | no-empty-object-type | `interface CommandDialogProps extends DialogProps {}` | `type CommandDialogProps = DialogProps;` | a
-16 | src/components/ui/textarea.tsx:5 | no-empty-object-type | `export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}` | `export type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;` | a
-17 | src/contexts/NotifChatContext.tsx:33 | no-empty | `} catch {}` | comentário explicando fallback | a
-18 | src/contexts/NotifChatContext.tsx:39 | no-empty | `} catch {}` | comentário explicando fallback | a
-19 | src/lib/despesasExport.ts:38 | no-useless-escape | `meta.periodo.replace(/[\/\s]/g, "-")` | `/[/\s]/g` | a
-20 | src/lib/logger.ts:35 | unused-disable | `// eslint-disable-next-line no-console` | remover comentário | a
-21 | src/lib/studentImport.ts:309 | prefer-const | `let val = value;` | `const` | a
-22 | src/pages/CarteiraAlunos.tsx:205 | no-unused-expressions | `next.has(id) ? next.delete(id) : next.add(id);` | if/else — intencional | a
-23 | src/pages/CarteiraAlunos.tsx:390 | no-unused-expressions | `onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}` | remover `e && e !== true;` (não faz nada hoje) — parece guarda esquecida/resto de edição | c
-24 | src/pages/CarteiraConsultor.tsx:206 | no-unused-expressions | `next.has(id) ? next.delete(id) : next.add(id);` | if/else — intencional | a
-25 | src/pages/Leads.tsx:44 | no-unused-expressions | `n.has(id) ? n.delete(id) : n.add(id);` | if/else — intencional | a
-26 | src/pages/Pipeline.tsx:35 | no-empty | `try { window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode); } catch {}` | comentário no bloco | a
-27 | src/pages/Prospects.tsx:63 | no-unused-expressions | `n.has(id) ? n.delete(id) : n.add(id);` | if/else — intencional | a
-28 | src/pages/StudentList.tsx:357 | prefer-const | `let droppedReasons: Record<string, number> = {};` | `const` | a
-29 | src/pages/financeiro/Contratos.tsx:177 | no-unused-expressions | `next.has(id) ? next.delete(id) : next.add(id);` | if/else — intencional | a
-30 | src/pages/portal/PortalAgenda.tsx:723 | unused-disable | `// eslint-disable-next-line no-console` | remover comentário | a
-31 | src/site/rastreamento.ts:91 | prefer-spread | `if (n.callMethod) n.callMethod.apply(n, args); else (n.queue as unknown[]).push(args);` | `n.callMethod(...args)` (mesmo `this`) | a
-32 | src/site/rastreamento.ts:109 | prefer-spread | `if (f.callMethod) f.callMethod.apply(f, args); else f(...args);` | `f.callMethod(...args)` | a
+Tela Meios de Pagamento > Pix Automático (`src/components/student/financeiro/PixAutomaticoSection.tsx`, `AtivarPixDialog.tsx`):
+- "Ativar": admin digita um "valor mínimo" e as datas. Chama `pix-criar-recorrencia` (POST `/pix/v2/rec`) e depois `pix-solicitar-confirmacao` (POST `/pix/v2/solicrec`). Fica salvo em `pix_recorrencias` como CRIADA, depois AGUARDANDO_AUTORIZACAO.
+- Lista a recorrência e as `pix_cobrancas` do aluno, e tem "Cancelar" (`pix-cancelar-recorrencia`).
+- Limites do código atual (`_shared/pix-rec.ts`):
+  - `vinculo.contrato` = id do **aluno** (linha 20), e não o do contrato. Hoje existe uma autorização por aluno e nada a liga a contratos.
+  - Envia `valorMinimoRecebedor` (linha 24) e `politicaRetentativa: PERMITE_3R_7D` (linha 25).
+  - `pix_recorrencias.contrato_id` existe, mas a tela não o preenche.
+- **Nenhum código envia a cobrança mensal ao Inter** (busca por `/pix/v2/cobr` em `supabase/functions` sem resultado). Ou seja, a autorização funciona, mas nada debita o aluno todo mês. Para planos atuais, o fluxo não cobra.
+- `pix-webhook` (`eventos.ts`): atualiza o status da recorrência (APROVADA→AUTORIZADA) e das cobranças (CONCLUIDA→LIQUIDADA) sem repetir a mesma atualização. A baixa de uma cobrança Pix Automático hoje só toca `pix_cobrancas`, vendas de Corrida e pedidos. Não dá baixa em `cobrancas` de contrato.
+- 2027: `fn_pix_automatico_2027_*` só funcionam com `proposta_id` / `origem='site_2027'` (por exemplo, `fn_pix_automatico_2027_aviso` filtra `origem = 'site_2027'` e atualiza `propostas_planos_2027.pix_aut_estado`). Estão desligadas por `planos_pix_automatico_ativo=false`, lista de planos vazia e `rotina_pausada=true`. Isso é decisão anterior sua (Pix Automático só Power/Pro, taxa R$ 24,90, ainda não liberado).
+- Na Nova Venda já existe a opção "Pix Automático" (`PagamentoStep.tsx:59`), mas sem cobrança automática por trás.
 
-### Contexto exigido
+Fluxo completo hoje: autorização (funciona) → cobrança mensal (**não existe**) → baixa (só no webhook, sem ligar a contrato) → falha e retentativa (só a política declarada no Inter) → cancelamento (funciona por admin e pelo webhook).
 
-- **no-unused-expressions (toggles, itens 2,3,6,22,24,25,27,29):** todos seguem o padrão `const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;` dentro de `setX(...)`. Intencional.
-- **Item 23 (CarteiraAlunos:388-392):**
-  ```
-  <Checkbox
-    checked={selected.has(aluno.id)}
-    onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}
-    onClick={(e) => e.stopPropagation()}
-  />
-  ```
-  A expressão não tem efeito; a caixa sempre alterna. Suspeita de condição esquecida, mas o comportamento atual parece correto.
-- **no-empty — o que é engolido:**
-  - 13 MeusAcordosIntervalo:41 — falha no `fetch("https://api.ipify.org")` para pegar o IP no aceite do acordo de intervalo; segue com `ip = null`. Não é pagamento nem banco: o erro do `insert` logo abaixo é tratado.
-  - 17 NotifChatContext:33 — erro de `sessionStorage.getItem`/`JSON.parse` ao restaurar os chats abertos.
-  - 18 NotifChatContext:39 — erro de `sessionStorage.setItem` (cota/modo privado).
-  - 26 Pipeline:35 — erro de `localStorage.setItem` da preferência de visualização.
-- **no-empty-object-type:** declarações estão nos itens 15 e 16 (componentes padrão da biblioteca de UI).
+## B) Regras do Inter/BCB
+Vieram do código: `valorMinimoRecebedor`, periodicidade MENSAL, `PERMITE_3R_7D` e código de autorização válido por 7 dias (`pix-rec.ts:58`).
+**Precisam ser confirmadas na documentação do Inter/BCB antes de implementar (não verifiquei agora):**
+- Valor fixo ou variável. Pelo que sei do regulamento: no valor variável o **pagador** pode definir um teto (`valorMaximo`), e o recebedor só define o mínimo. Se a cobrança passar do teto, o débito não acontece. Sua premissa ("autoriza um máximo e o mês varia até ele") está quase certa, mas o teto é escolha do aluno no app do banco, não nossa.
+- A cobrança precisa ser enviada entre 2 e 10 dias antes do vencimento.
+- `PERMITE_3R_7D`: até 3 novas tentativas em 7 dias, combinando com o seu D0/D+1/D+3.
+- O pagador pode cancelar a qualquer momento no app do banco, e o aviso chega pelo webhook.
 
-## supabase/functions/ (24 itens — só registro, não serão corrigidos agora)
+## C) Contratos atuais
+- As mensalidades ficam em `cobrancas`, **uma por contrato e ciclo** (`contrato_id`, `numero_ciclo`, `valor`, `data_vencimento`, `status`, `forma_pagamento`, `gateway`, `tid`). A baixa é manual ou pelo cartão. Os planos 2027 usam `planos_2027_mensalidades`, ligadas a `cobrancas.mensalidade_2027_id`.
+- Proposta de vínculo: tabela nova com 1 recorrência para N contratos (recorrência, contrato, ativo desde, ativo até). `vinculo.contrato` passa a ser o id da recorrência.
+- Cobrança do mês: soma as `cobrancas` pendentes dos contratos ligados que vencem no período, gera uma `pix_cobranca` com a composição e trava cada `cobranca` (marcada como reservada para o Pix).
+- Rateio: um débito total dá baixa em todas as `cobrancas` da composição. Débito falho mantém todas pendentes. O Pix Automático debita o valor inteiro ou nada, então não há débito parcial. Se houver valor diferente por alguma exceção, a cobrança fica para conferência manual, sem baixa automática.
+- Ao trocar: `contratos.forma_pagamento='pix_automatico'` só depois de AUTORIZADA. `cartao_token_id` é mantido, mas o contrato sai da cobrança no cartão.
+- Contra cobrança dupla:
+  - (1) a cobrança no cartão e a geração Pix olham a mesma marca da `cobranca`, com bloqueio de linha;
+  - (2) um contrato só pode ter um vínculo ativo;
+  - (3) a cobrança no cartão ignora contratos com `forma_pagamento='pix_automatico'`;
+  - (4) nenhuma `cobranca` com Pix em andamento pode ser cobrada no cartão de um clique.
+- O cartão automático dos planos atuais segue desligado: `cobrar-recorrencias-diario` fica inativo e não é tocado.
 
-N | arquivo:linha | regra | trecho atual | correção proposta | classe
----|---|---|---|---|---
-33 | _shared/avisar-recusa.ts:25 | ban-ts-comment | `// @ts-ignore — disponível no runtime das edge functions` | `@ts-expect-error` + motivo | a
-34 | _shared/avisar-recusa.ts:27 | ban-ts-comment | `// @ts-ignore` | `@ts-expect-error` + motivo | a
-35 | _shared/inter-cob.ts:44 | ban-ts-comment | `// @ts-ignore Deno.createHttpClient is unstable ...` | idem | a
-36 | _shared/inter-cob.ts:76 | ban-ts-comment | `// @ts-ignore unstable client option` | idem | a
-37 | _shared/inter-cob.ts:134 | ban-ts-comment | `// @ts-ignore unstable client option` | idem | a
-38 | _shared/inter-pagamento.ts:29 | ban-ts-comment | `// @ts-ignore unstable` | idem | a
-39 | _shared/inter-pagamento.ts:48 | ban-ts-comment | `// @ts-ignore` | idem | a
-40 | _shared/inter-pagamento.ts:77 | ban-ts-comment | `// @ts-ignore` | idem | a
-41 | _shared/inter-pagamento.ts:86 | ban-ts-comment | `// @ts-ignore` | idem | a
-42 | _shared/inter.ts:104 | ban-ts-comment | `// @ts-ignore Deno.createHttpClient is unstable ...` | idem | a
-43 | _shared/inter.ts:118 | ban-ts-comment | `// @ts-ignore unstable client option` | idem | a
-44 | _shared/inter.ts:187 | ban-ts-comment | `// @ts-ignore unstable client option` | idem | a
-45 | _shared/inter.ts:229 | ban-ts-comment | `// @ts-ignore unstable client option` | idem | a
-46 | agenda-ics/index.ts:156 | prefer-const | `let excecoesByAgenda = new Map<string, string[]>();` | `const` | a
-47 | conciliar-extrato-diario/index.ts:251 | no-unused-expressions | `confianca === "exata" ? resumo.exatas++ : resumo.aproximadas++;` | if/else — intencional (contador). Contexto: `registrosUsados.add(c.id); resumo.conciliados++; <linha>; }` | a
-48 | inter-extrato-sync/index.ts:183 | ban-ts-comment | `// @ts-ignore Deno.createHttpClient disponível no Edge Runtime` | `@ts-expect-error` + motivo | a
-49 | inter-extrato-sync/index.ts:187 | ban-ts-comment | `// @ts-ignore` | idem | a
-50 | inter-extrato-sync/index.ts:248 | ban-ts-comment | `// @ts-ignore unstable option` | idem | a
-51 | inter-extrato-sync/index.ts:269 | ban-ts-comment | `// @ts-ignore unstable option` | idem | a
-52 | mcp/index.ts:18 | no-var | `var list_alunos_default = defineTool({` | `const` (arquivo parece gerado por bundler) | a
-53 | mcp/index.ts:57 | no-var | `var get_aluno_default = defineTool2({` | `const` | a
-54 | mcp/index.ts:89 | no-var | `var agenda_do_dia_default = defineTool3({` | `const` | a
-55 | mcp/index.ts:121 | no-var | `var projectRef = "dmudgqedzeosfpehpgep";` | `const` | a
-56 | mcp/index.ts:122 | no-var | `var mcp_default = defineMcp({` | `const` | a
+## D) Tela em Plano & Financeiro
+Na aba Meios de Pagamento (`StudentPlanoFinanceiro.tsx`), substituir a seção atual por "Pix Automático":
+- marcar os contratos (com valor e soma), dia de débito, teto sugerido, botão "Gerar código/QR" e opção de copiar o link para WhatsApp;
+- estados: rascunho, aguardando autorização (com validade e "gerar novo código", até 3), ativa, falha no mês, cancelada (pelo aluno ou pela equipe);
+- "Voltar para cartão": só admin. Cancela no Inter, volta `forma_pagamento` e as pendências viram cobrança no cartão sem cobrança automática para os atuais.
+- Permissões: criar e cancelar só admin, conferido no servidor. Coordenador só vê.
 
-Observação: trocar `@ts-ignore` por `@ts-expect-error` não muda nada quando roda, mas acusa erro na checagem de tipos se a linha deixar de ter erro.
+## E) App do aluno
+- Existe: push (`send-push-notification`, `check-push-triggers`, `portal_push_subscriptions` com 1 aluno inscrito), `PortalHome`/`PortalNotificacoes`, aviso interno de inadimplência 2027 (`fn_recorrencia_2027_inadimplente_aviso`, só para a equipe), `send-whatsapp` e e-mails transacionais.
+- Falta:
+  - "Alterar forma de pagamento" no portal, para o aluno escolher os contratos, gerar o QR e ver o status;
+  - um aviso na tela inicial quando houver cobrança falha ou vencida, com o texto de encargos.
+- Envio dos avisos: primeiro o aviso na tela inicial (sempre aparece), depois e-mail e, por último, push se o aluno tiver ativado.
+- Hoje a regra 2027 é "sem WhatsApp nem e-mail ao aluno" na inadimplência. **Avisar o aluno muda essa regra e precisa da sua decisão.**
+- Encargos: `src/lib/encargosAtraso.ts`, linhas 7–8, com multa de 2% única e juros de 1% ao mês proporcional aos dias, corrigido pelo IPCA (linha 89). O aviso deve dizer "multa de 2%, juros de 1% ao mês e correção pelo IPCA".
 
-## Resumo
+## F) Riscos e testes
+- Riscos:
+  - cobrança dupla entre cartão e Pix (marca única com bloqueio de linha);
+  - valor acima do teto do aluno (avisar antes de enviar se a soma mudou);
+  - aluno cancela no banco (aviso aos admins e multa do contrato);
+  - aluno com duas autorizações (bloquear: um contrato só pode estar em um vínculo ativo);
+  - LGPD: CPF já sai só do servidor e o log já esconde o CPF;
+  - contrato que termina ou é rescindido dentro de um vínculo (sai da soma);
+  - o reajuste do contrato pode passar do teto.
+- Testes sem cobrança real: testes de rateio e trava, ensaios SQL desfeitos depois, webhooks simulados com os nomes reais do Inter e o modo simulação do envio da cobrança. Teste real de R$ 1,00 só com sua autorização (NICOLAS TESTE ou Bruna Meyer, com estorno depois).
 
-Pasta | (a) | (b) | (c) | total
----|---|---|---|---
-src/ + raiz | 31 | 0 | 1 | 32
-supabase/functions/ | 24 | 0 | 0 | 24
+## G) Etapas (do caso do Enio primeiro)
+1. P0 leitura: confirmar a documentação do Inter (teto, prazo de envio da cobrança, retentativa) e os contratos do Enio (**a busca por "Enio Frantz" não achou contratos dele; preciso confirmar o nome no cadastro**). Esforço: pequeno.
+2. P1 banco: vínculo de N contratos e marca de reserva na `cobranca`, com testes. Médio.
+3. P2 autorização feita pela equipe, ligando os contratos, na tela de Plano & Financeiro. Médio.
+4. P3 cobrança mensal: envio da cobrança ao Inter com 2 a 10 dias de antecedência, baixa e rateio pelo webhook, retentativa e falha. Grande e de maior risco. Primeiro em simulação, depois um teste real autorizado.
+5. P4 voltar para cartão e cancelamento pelo aluno, com aviso aos admins. Pequeno a médio.
+6. P5 aviso no app do aluno e e-mail. Médio.
+7. P6 o aluno autoriza sozinho no portal. Médio.
+8. P7 juntar com o fluxo 2027 (`fn_pix_automatico_2027_*`) ou manter separado. Médio.
+
+## Perguntas para você decidir
+1. Taxa de R$ 24,90 também nos planos atuais com Pix Automático? E nos contratos somados, uma taxa só ou uma por contrato?
+2. O Start entra? A decisão anterior era "nunca Start por ora", e o caso do Enio é Start + Corrida Start.
+3. Débito único somado num só dia: qual dia, se os contratos vencem em dias diferentes?
+4. Avisar o aluno por e-mail ou WhatsApp quando a cobrança falhar? Hoje a regra é só aviso interno.
+5. Sugerir ao aluno um teto (por exemplo, a soma mais 10%) ou deixar livre?
+6. Planos 2027 Power/Pro seguem pelo fluxo próprio do /planos ou passam a usar o mesmo vínculo?
+7. Quem pode criar a autorização: só admin, como no cartão de um clique?
