@@ -720,7 +720,6 @@ export default function PortalAgenda() {
       qc.invalidateQueries({ queryKey: ["portal-recovery-mensal"] });
     },
     onError: (e: any) => {
-      // eslint-disable-next-line no-console
       console.error("fn_agendar_servico erro:", e.message, e?.detalhe || "");
       const msgs: Record<string, string> = {
         sem_creditos: "Você não tem créditos disponíveis para este serviço.",

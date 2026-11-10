@@ -74,7 +74,6 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
       const all: any[] = [];
       // Paginação para contornar o limite padrão de 1000 linhas do PostgREST
       // + filtro server-side por status para evitar trazer leads/prospects/inativos.
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         let q = supabase
           .from("alunos")

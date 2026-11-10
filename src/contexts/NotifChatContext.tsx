@@ -30,13 +30,13 @@ export function NotifChatProvider({ children }: { children: ReactNode }) {
         setOpenChats(s.openChats ?? []);
         setMinimizedChats(s.minimizedChats ?? []);
       }
-    } catch {}
+    } catch { /* sessionStorage indisponível ou dado inválido: ignora restauração */ }
   }, []);
 
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ openChats, minimizedChats }));
-    } catch {}
+    } catch { /* sessionStorage cheio ou bloqueado: ignora gravação */ }
   }, [openChats, minimizedChats]);
 
   const openChat = useCallback((id: string) => {

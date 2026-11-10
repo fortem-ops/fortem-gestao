@@ -306,7 +306,7 @@ function mapRawRow(raw: Record<string, any>): Record<string, string> {
       if (key && !IGNORED_HEADERS_LOG.includes(key)) IGNORED_HEADERS_LOG.push(key);
       continue;
     }
-    let val = value;
+    const val = value;
     if (target === "data_nascimento" || target === "plano_data_inicio") {
       mapped[target] = normalizeDate(val);
       continue;

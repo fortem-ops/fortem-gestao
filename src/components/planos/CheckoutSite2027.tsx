@@ -109,7 +109,7 @@ export function CheckoutSite2027({ sessao, etapaInicial, nome, email, contratant
     } catch (e) { falhou(e); setEtapa("revisao"); }
     finally { setOcupado(false); }
   }
-  useEffect(() => { carregarRevisao(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { carregarRevisao(); }, []);
   useEffect(() => { titulo.current?.focus(); window.scrollTo({ top: 0 }); }, [etapa]);
 
   // Contrato curto que já cabe na caixa conta como lido.

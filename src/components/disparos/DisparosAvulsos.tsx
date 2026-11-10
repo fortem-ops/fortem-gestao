@@ -94,7 +94,7 @@ function Publico({ onEstado }: { onEstado: (e: EstadoPublico) => void }) {
   const elegiveisPagina = rows.filter((r) => !r.motivo);
   const marcado = (id: string) => (todos ? !removidos.has(id) : ids.has(id));
   const alternar = (id: string) => {
-    if (todos) { const s = new Set(removidos); s.has(id) ? s.delete(id) : s.add(id); setSel({ ...sel, removidos: s }); }
+    if (todos) { const s = new Set(removidos); if (s.has(id)) s.delete(id); else s.add(id); setSel({ ...sel, removidos: s }); }
     else { const r = rows.find((x) => x.id === id); setSel(marcarIds(sel, [{ id, nome: r?.nome ?? nomes.get(id) ?? "" }], !ids.has(id))); }
   };
   const paginaToda = elegiveisPagina.length > 0 && elegiveisPagina.every((r) => marcado(r.id));

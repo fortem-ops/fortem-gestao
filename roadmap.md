@@ -213,3 +213,4 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [ ] P2 funções criar/validar/cobrar-link-pagamento — não autorizado.
 - [ ] P3 telas — não autorizado.
 - [ ] P4 teste real — não autorizado.
+- [x] 2C-2: aplicar correções de lint 1–32 (src) + ignore mcp no eslint

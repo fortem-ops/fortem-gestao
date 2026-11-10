@@ -3,7 +3,7 @@ import { Link as RouterLink } from "react-router-dom";
 
 /** Torna clicáveis caminhos internos do sistema (ex.: /financeiro/despesas?mov=...) só na exibição. */
 function comLinksInternos(txt: string) {
-  const partes = txt.split(/(\/financeiro\/[\w\-/]+(?:\?[\w=&\-]+)?)/g);
+  const partes = txt.split(/(\/financeiro\/[\w/-]+(?:\?[\w=&-]+)?)/g);
   return partes.map((p, i) => i % 2 === 1
     ? <RouterLink key={i} to={p} className="text-primary underline">Abrir em Financeiro</RouterLink>
     : p);

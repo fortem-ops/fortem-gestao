@@ -88,7 +88,7 @@ export function iniciarPixel() {
   const win = w();
   if (!win.fbq) {
     const n = function fbq(...args: unknown[]) {
-      if (n.callMethod) n.callMethod.apply(n, args); else (n.queue as unknown[]).push(args);
+      if (n.callMethod) n.callMethod(...args); else (n.queue as unknown[]).push(args);
     } as Fn;
     n.push = n; n.loaded = true; n.version = "2.0"; n.queue = [];
     win.fbq = n;
@@ -106,7 +106,7 @@ export function iniciarPixel() {
 function chamarFbq(...args: unknown[]) {
   const f = w().fbq;
   if (!f) return;
-  if (f.callMethod) f.callMethod.apply(f, args); else f(...args);
+  if (f.callMethod) f.callMethod(...args); else f(...args);
 }
 
 export function aplicarConsentimento(escolha: Escolha) {

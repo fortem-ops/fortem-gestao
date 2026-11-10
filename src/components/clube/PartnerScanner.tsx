@@ -49,7 +49,6 @@ export function PartnerScanner({ parceiroId }: PartnerScannerProps) {
     return () => {
       stopScanner();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function startScanner() {

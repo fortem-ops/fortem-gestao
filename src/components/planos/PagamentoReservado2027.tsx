@@ -47,8 +47,8 @@ function PagamentoAtivo({ sessao, pix, onAprovado }: { sessao: SessaoCheckout; p
     catch (e) { setErro(e instanceof Error ? e.message : C.erroGenerico); }
     finally { setOcupado(false); }
   }
-  useEffect(() => { checkout<RespostaPagamento>("status_pagamento", sessao).then(aplicar).catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-  useEffect(() => { if (t?.status === "aprovado") { if (!t.simulado && t.valor_centavos === t.total_proposta_centavos) rastrearCompraPlano(t.id, t.valor_centavos); onAprovado(t.simulado); } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [t?.status]);
+  useEffect(() => { checkout<RespostaPagamento>("status_pagamento", sessao).then(aplicar).catch(() => {}); }, []);
+  useEffect(() => { if (t?.status === "aprovado") { if (!t.simulado && t.valor_centavos === t.total_proposta_centavos) rastrearCompraPlano(t.id, t.valor_centavos); onAprovado(t.simulado); } }, [t?.status]);
   const pendentePix = pix && t?.tipo === "pix" && t.status === "pendente";
   useEffect(() => {
     if (!pendentePix) return;

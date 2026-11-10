@@ -248,7 +248,7 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
     const saldoTotal = saldoJornadas + saldoBanco;
 
     // Buscar status de fechamento
-    let statusFechamento = "aberto";
+    const statusFechamento = "aberto";
     // fechamentos são buscados no useQuery abaixo
     return [
       {

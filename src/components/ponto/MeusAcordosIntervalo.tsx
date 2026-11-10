@@ -38,7 +38,7 @@ export function MeusAcordosIntervalo() {
       try {
         const r = await fetch("https://api.ipify.org?format=json");
         ip = (await r.json()).ip ?? null;
-      } catch {}
+      } catch { /* IP é opcional: falha ao consultar segue com null */ }
       const { error } = await supabase
         .from("ponto_acordos_intervalo")
         .update({ aceite_digital_em: new Date().toISOString(), aceite_ip: ip })

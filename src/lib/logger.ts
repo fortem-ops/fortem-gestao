@@ -32,7 +32,6 @@ function sanitizeCtx(ctx: Record<string, unknown>): Record<string, unknown> {
 
 function emit(level: Level, args: unknown[]) {
   if (!isDev && (level === "debug" || level === "info")) return;
-  // eslint-disable-next-line no-console
   console[level](...args);
 }
 

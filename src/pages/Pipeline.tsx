@@ -32,7 +32,7 @@ export default function Pipeline() {
   });
 
   useEffect(() => {
-    try { window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode); } catch {}
+    try { window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode); } catch { /* localStorage bloqueado: preferência não é salva */ }
   }, [viewMode]);
 
   const { data: funnels = [], isLoading: funnelsLoading } = usePipelineFunnels();

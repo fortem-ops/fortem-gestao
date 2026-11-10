@@ -77,7 +77,7 @@ export function ConciliarSaidaSoma({ movId, data, valorBanco, onDone, onClose }:
   const minimo = creditos.length ? 1 : 2;
   const visiveisTodos = lista.length > 0 && lista.every((r) => sel.has(r.id));
 
-  const toggle = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const toggleTodos = () => setSel((s) => {
     const n = new Set(s);
     lista.forEach((r) => (visiveisTodos ? n.delete(r.id) : n.add(r.id)));

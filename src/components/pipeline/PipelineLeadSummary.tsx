@@ -51,7 +51,7 @@ export function PipelineLeadSummary({ student }: Props) {
       const lastDone = null;
 
       const ids = [meta?.responsavel_comercial_id, student.responsavel_id].filter(Boolean) as string[];
-      let nameMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       if (ids.length) {
         const { data: profs } = await supabase
           .from("profiles")

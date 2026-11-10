@@ -34,7 +34,7 @@ export function ConsultasPagamentoPrevia2027({ sessao, revisao, onAlterar }: { s
     } catch (err) { setErro(err instanceof Error ? err.message : 'Simulação indisponível'); }
     finally { trava.current = false; setOcupado(false); }
   }
-  useEffect(() => { void chamar('estado'); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sessao.proposta_id]);
+  useEffect(() => { void chamar('estado'); }, [sessao.proposta_id]);
   const aceito = !!e?.obrigacao_id && !e.novo_aceite_exigido && !editando;
   const desconhecido = e?.plano === 'desconhecido' || e?.consultas === 'desconhecido';
   const completo = e?.plano === 'aprovado' && e?.consultas === 'aprovado';

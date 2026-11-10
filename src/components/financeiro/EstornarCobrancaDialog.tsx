@@ -43,7 +43,6 @@ export function EstornarCobrancaDialog({ open, onOpenChange, cobranca, alunoNome
   // Uma chave por abertura do diálogo: impede que duplo clique gere dois estornos.
   const idempotencyKey = useMemo(
     () => (open ? crypto.randomUUID() : ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [open],
   );
 
