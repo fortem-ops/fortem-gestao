@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import { capturarCampanha, ehRotaPublica, lerCampanha, lerConsentimento, linkComSufixo, rastrearCompraPlano, salvarConsentimento, sufixoCampanha, VALIDADE_CAMPANHA_MS, VALIDADE_CONSENTIMENTO_MS } from "@/site/rastreamento";
 

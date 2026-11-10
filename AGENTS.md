@@ -3,6 +3,9 @@
 ## Regras de trabalho
 
 - Toda correção de bug vem acompanhada de um teste de regressão que reproduz o bug (falha antes da correção e passa depois), entregue no mesmo commit. Por quê: o mesmo bug não pode voltar sem ser detectado.
+- Antes de concluir qualquer mudança de código, rodar `bunx vitest run` e informar no resumo quantos arquivos e testes rodaram e se todos passaram; se algum falhar, a tarefa não está concluída — corrigir ou reportar a falha. Testes `.test.ts` rodam em ambiente node; se um precisar de DOM, usar `// @vitest-environment jsdom` na primeira linha. Por quê: a suíte só protege o sistema se rodar sempre.
+
+## Decisões
 
 - Facial: checked RPCs, service-only queue/import, 120s photos, portal flag. Guardian links: staff-issued, hash-only, atomic service consumption, no public tracking. Desk shares app/guardian terms; team keeps its own. Why: protect minors and consistent consent.
 

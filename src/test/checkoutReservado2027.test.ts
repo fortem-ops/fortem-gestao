@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import { etapaReservada, guardarConfirmacao } from "@/lib/checkoutReservado2027";
 import { pagamentoReservado, parcelasReservadas } from "../../supabase/functions/_shared/checkout-pagamento-reservado";

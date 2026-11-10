@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { dividirCentavos, lerCodigo, lerSessao, limparSessao, mascararCpf, rolouAteOFim, salvarSessao } from "@/lib/checkoutSite2027";
 

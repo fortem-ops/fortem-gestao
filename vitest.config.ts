@@ -5,12 +5,32 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    environment: "node",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: [
-      "src/**/*.{test,spec}.{ts,tsx}",
-      "supabase/functions/**/*.{test,spec}.ts",
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [
+            "src/**/*.{test,spec}.ts",
+            "supabase/functions/**/*.{test,spec}.ts",
+          ],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "jsdom",
+          environment: "jsdom",
+          include: [
+            "src/**/*.{test,spec}.tsx",
+            "supabase/functions/**/*.{test,spec}.tsx",
+          ],
+        },
+      },
     ],
   },
   resolve: {

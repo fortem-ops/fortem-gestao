@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 import { iniciarCheckoutPublico, restaurarSessao, salvarSessao, lerSessao } from "@/lib/checkoutSite2027";

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import { lerReservaPendente, salvarReservaPendente, VALIDADE_RESERVA_MS } from "./recoveryReservaPendente";
 
