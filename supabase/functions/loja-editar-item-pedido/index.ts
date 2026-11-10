@@ -44,10 +44,11 @@ Deno.serve(async (req) => {
     // ---------- item atual ----------
     const { data: item } = await admin
       .from("pedido_itens")
-      .select("id, pedido_id, variante_id, quantidade, preco_unitario_snapshot")
+      .select("id, pedido_id, variante_id, quantidade, preco_unitario_snapshot, entregue_em")
       .eq("id", itemId)
       .maybeSingle();
     if (!item) return json(200, { ok: false, error: "item_nao_encontrado" });
+    if (item.entregue_em) return json(200, { ok: false, error: "item_ja_entregue" });
     if (item.variante_id === novaVarianteId) return json(200, { ok: false, error: "variante_igual_atual" });
 
     const { data: pedido } = await admin
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
     // ---------- estoque: como a variante antiga foi tratada ----------
     const { data: movs } = await admin
       .from("estoque_movimentos")
-      .select("id, tipo, quantidade, created_at")
+      .select("id, tipo, quantidade, motivo, created_at")
       .eq("pedido_id", item.pedido_id)
       .eq("variante_id", item.variante_id)
       .in("tipo", ["reserva", "encomenda"])
@@ -95,7 +96,20 @@ Deno.serve(async (req) => {
     const eraReserva = movOriginal?.tipo === "reserva";
 
     const estoqueNovo = Number(varNova.estoque_atual ?? 0);
-    const temEstoque = estoqueNovo >= qtd;
+    // Reserva: valida pelo DISPONÍVEL (físico − encomendas pendentes) da nova variante.
+    let disponivelNovo = estoqueNovo;
+    if (eraReserva) {
+      const { data: disp, error: dispErr } = await admin.rpc("fn_loja_estoque_disponivel", {
+        p_produto_ids: [varAtual.produto_id],
+      });
+      if (dispErr) {
+        console.error("[loja-editar-item-pedido] disponivel", dispErr);
+        return json(200, { ok: false, error: "erro_interno" });
+      }
+      const linha = (disp ?? []).find((d: any) => d.variante_id === varNova.id);
+      disponivelNovo = Number(linha?.disponivel ?? 0);
+    }
+    const temEstoque = disponivelNovo >= qtd;
     if (eraReserva && !temEstoque && !produto?.permite_encomenda) {
       return json(200, { ok: false, error: "sem_estoque_e_sem_encomenda" });
     }
@@ -151,6 +165,18 @@ Deno.serve(async (req) => {
         pedido_id: item.pedido_id,
         created_by: user.id,
       });
+    }
+
+    if (movOriginal?.tipo === "encomenda") {
+      // Encomenda: só move o registro para a nova variante; estoque baixa apenas na entrega.
+      const dataTxt = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+      const sufixo = ` (troca de variante ${varAtual.tamanho ?? "-"}/${varAtual.cor ?? "-"} → ${varNova.tamanho ?? "-"}/${varNova.cor ?? "-"} em ${dataTxt})`;
+      const { error: movErr } = await admin
+        .from("estoque_movimentos")
+        .update({ variante_id: varNova.id, motivo: `${movOriginal.motivo ?? ""}${sufixo}` })
+        .eq("id", movOriginal.id);
+      if (movErr) console.error("[loja-editar-item-pedido] update encomenda", movErr);
+      movimentoNovo = "encomenda";
     }
 
     // ---------- recalcula valor do pedido ----------

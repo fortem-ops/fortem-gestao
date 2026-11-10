@@ -39,6 +39,7 @@ const ERROS: Record<string, string> = {
   sem_estoque_e_sem_encomenda: "Sem estoque e o produto não permite encomenda.",
   falha_atualizar_item: "Não foi possível atualizar o item.",
   erro_interno: "Erro interno. Tente novamente.",
+  item_ja_entregue: "Item já entregue; desfaça a entrega antes de trocar",
 };
 
 export function EditarItemPedidoDialog({
