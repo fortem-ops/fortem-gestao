@@ -1,5 +1,9 @@
 # Decisões técnicas
 
+## Regras de trabalho
+
+- Toda correção de bug vem acompanhada de um teste de regressão que reproduz o bug (falha antes da correção e passa depois), entregue no mesmo commit. Por quê: o mesmo bug não pode voltar sem ser detectado.
+
 - Facial: checked RPCs, service-only queue/import, 120s photos, portal flag. Guardian links: staff-issued, hash-only, atomic service consumption, no public tracking. Desk shares app/guardian terms; team keeps its own. Why: protect minors and consistent consent.
 
 - Portal payments reuse contract callbacks; Home/Clube challenges share their cache. Why: preserve data flow.
