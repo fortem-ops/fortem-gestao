@@ -37,8 +37,8 @@ export function CartaoPagamento2027({ sessao, simulacao, parcelas, parcelasEscol
   const travado = faseTravada(fase);
   const testeAtivo = !simulacao && typeof testeReal === "number" && testeReal > 0;
 
-  useEffect(() => { chamar<Resposta>("status_cartao", sessao).then(aplicar).catch(() => {}); }, []);
-  useEffect(() => { onTravado(travado); }, [travado]);
+  useEffect(() => { chamar<Resposta>("status_cartao", sessao).then(aplicar).catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { onTravado(travado); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [travado]);
   useEffect(() => { if (fase === "aprovado" && t) { if (!t.simulado && t.valor_centavos === t.total_proposta_centavos) rastrearCompraPlano(t.id, t.valor_centavos); onAprovado(t.simulado); } }, [fase]);
   useEffect(() => { if (fase !== "formulario") aviso.current?.focus(); }, [fase]);
   useEffect(() => {
