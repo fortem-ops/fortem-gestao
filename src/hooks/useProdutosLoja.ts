@@ -13,6 +13,18 @@ const VARIANTE_COLS =
   "id,produto_id,tamanho,cor,cor_hex,preco,estoque_atual,imagem_url,ativo,sku";
 const IMAGEM_COLS = "id,produto_id,cor,imagem_url,legenda,ordem,principal";
 
+// Loja pública: estoque exibido = disponível (físico − encomendas pagas não entregues).
+const aplicarDisponivel = async (variantes: ProdutoVariante[], produtoIds: string[]) => {
+  const { data, error } = await (supabase as any).rpc("fn_loja_estoque_disponivel", {
+    p_produto_ids: produtoIds,
+  });
+  if (error) throw error;
+  const mapa = new Map<string, number>(
+    ((data ?? []) as { variante_id: string; disponivel: number }[]).map((d) => [d.variante_id, Number(d.disponivel ?? 0)])
+  );
+  return variantes.map((v) => ({ ...v, estoque_atual: mapa.get(v.id) ?? 0 }));
+};
+
 const carregarImagens = async (produtoIds: string[]) => {
   const { data, error } = await (supabase as any)
     .from("produtos_imagens")
@@ -50,7 +62,7 @@ export const useProdutosLoja = () =>
       if (errVar) throw errVar;
 
       const porProduto = new Map<string, ProdutoVariante[]>();
-      ((variantes ?? []) as ProdutoVariante[]).forEach((v) => {
+      (await aplicarDisponivel((variantes ?? []) as ProdutoVariante[], ids)).forEach((v) => {
         const arr = porProduto.get(v.produto_id) ?? [];
         arr.push(v);
         porProduto.set(v.produto_id, arr);
@@ -91,7 +103,7 @@ export const useProdutoLoja = (produtoId?: string) =>
 
       return {
         ...(produto as ProdutoCatalogo),
-        variantes: (variantes ?? []) as ProdutoVariante[],
+        variantes: await aplicarDisponivel((variantes ?? []) as ProdutoVariante[], [produtoId]),
         imagens,
       };
     },

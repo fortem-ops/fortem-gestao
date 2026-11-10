@@ -7263,26 +7263,35 @@ export type Database = {
       pedido_itens: {
         Row: {
           created_at: string
+          entregue_em: string | null
+          entregue_por: string | null
           id: string
           pedido_id: string
           preco_unitario_snapshot: number
           quantidade: number
+          variante_entregue_id: string | null
           variante_id: string
         }
         Insert: {
           created_at?: string
+          entregue_em?: string | null
+          entregue_por?: string | null
           id?: string
           pedido_id: string
           preco_unitario_snapshot: number
           quantidade: number
+          variante_entregue_id?: string | null
           variante_id: string
         }
         Update: {
           created_at?: string
+          entregue_em?: string | null
+          entregue_por?: string | null
           id?: string
           pedido_id?: string
           preco_unitario_snapshot?: number
           quantidade?: number
+          variante_entregue_id?: string | null
           variante_id?: string
         }
         Relationships: [
@@ -7299,6 +7308,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_produtos"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_variante_entregue_id_fkey"
+            columns: ["variante_entregue_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_variantes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedido_itens_variante_id_fkey"
@@ -13877,7 +13893,30 @@ export type Database = {
         }[]
       }
       fn_loja_criar_pedido: { Args: { p_payload: Json }; Returns: Json }
+      fn_loja_desfazer_entrega: { Args: { p_item_id: string }; Returns: Json }
+      fn_loja_encomendado_pendente: {
+        Args: { p_variante_id: string }
+        Returns: number
+      }
+      fn_loja_entregar_item: {
+        Args: { p_item_id: string; p_variante_entregue_id?: string }
+        Returns: Json
+      }
+      fn_loja_estoque_disponivel: {
+        Args: { p_produto_ids?: string[] }
+        Returns: {
+          disponivel: number
+          encomendado_pendente: number
+          estoque_fisico: number
+          produto_id: string
+          variante_id: string
+        }[]
+      }
       fn_loja_excluir_pedido: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_loja_item_eh_encomenda: {
+        Args: { p_pedido_id: string; p_variante_id: string }
+        Returns: boolean
+      }
       fn_loja_reverter_reserva: {
         Args: { p_pedido_id: string }
         Returns: undefined

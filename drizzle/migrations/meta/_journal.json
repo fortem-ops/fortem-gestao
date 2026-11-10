@@ -1744,6 +1744,13 @@
       "when": 1794228878064,
       "tag": "0248_pagamento_link_parcelas_p1",
       "breakpoints": true
+    },
+    {
+      "idx": 249,
+      "version": "7",
+      "when": 1794324757673,
+      "tag": "0249_loja_entrega_encomendas_disponivel",
+      "breakpoints": true
     }
   ]
 }
