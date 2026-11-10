@@ -66,7 +66,13 @@ export function EntregarEncomendaDialog({
     () =>
       variantes
         .filter((v) => (v.cor ?? "") === (item?.corRaw ?? ""))
-        .map((v) => ({ ...v, fisico: estoqueDe(estoque, v.id, v.estoque_atual).fisico })),
+        .map((v) => {
+          const e = estoqueDe(estoque, v.id, v.estoque_atual);
+          const proprio = v.id === item?.varianteId;
+          // Tamanho do pedido: valida pelo físico. Outro tamanho: pelo disponível (não pega peça de outra encomenda).
+          const limite = proprio ? e.fisico : e.disponivel;
+          return { ...v, fisico: e.fisico, disponivel: e.disponivel, proprio, limite };
+        }),
     [variantes, item, estoque],
   );
   const escolhida = opcoes.find((o) => o.id === sel);
@@ -113,10 +119,11 @@ export function EntregarEncomendaDialog({
                 <SelectTrigger><SelectValue placeholder="Escolha o tamanho" /></SelectTrigger>
                 <SelectContent>
                   {opcoes.map((o) => {
-                    const sem = o.fisico < item.quantidade;
+                    const sem = o.limite < item.quantidade;
                     return (
                       <SelectItem key={o.id} value={o.id} disabled={sem}>
-                        {o.tamanho || "—"} — físico {o.fisico}{sem ? " (sem estoque)" : ""}
+                        {o.tamanho || "—"} — físico {o.fisico} · disp. {o.disponivel}
+                        {sem ? (o.proprio ? " (sem estoque)" : " (sem disponível)") : ""}
                       </SelectItem>
                     );
                   })}
@@ -132,7 +139,7 @@ export function EntregarEncomendaDialog({
         )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={salvando}>Cancelar</Button>
-          <Button onClick={confirmar} disabled={salvando || !escolhida || (!!item && escolhida.fisico < item.quantidade)}>
+          <Button onClick={confirmar} disabled={salvando || !escolhida || (!!item && escolhida.limite < item.quantidade)}>
             {salvando ? "Salvando..." : "Confirmar entrega"}
           </Button>
         </DialogFooter>
