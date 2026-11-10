@@ -41,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, Video, Printer, FileDown, Plus, X } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
 import { ExerciseSelector } from "./ExerciseSelector";
+import { opcoesCategoriaTreino } from "@/lib/categoriasTreino";
 import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -185,6 +186,18 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   const subsDoBloco = (sigla: string, atual?: string) => {
     const subs = blocosAquecimento.find(b => b.sigla === sigla)?.subcategorias ?? [];
     return atual && !subs.includes(atual) ? [atual, ...subs] : subs;
+  };
+  const pickCategoria = (tIdx: number, idx: number, cat: string) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const ex = next.treinos[tIdx].exercicios[idx] as WorkoutExercise & { exercicio_id?: string | null };
+      if (ex.categoria === cat) return prev;
+      ex.categoria = cat;
+      ex.exercicio = "";
+      ex.video_url = null;
+      if ("exercicio_id" in ex) ex.exercicio_id = null;
+      return next;
+    });
   };
   const pickSubcategoria = (idx: number, sub: string) => {
     setData(prev => {
@@ -617,13 +630,23 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                     <tr key={idx} className="border-b border-border/50">
                       <td className="py-1 px-2 text-muted-foreground">{num}</td>
                       <td className="py-1 px-2">
-                        <Input
-                          value={ex.categoria || ""}
-                          onChange={e => updateExercise("treino", tIdx, idx, "categoria", e.target.value.toUpperCase())}
-                          className="h-7 text-xs bg-transparent border-none px-1 w-16 font-semibold"
-                          placeholder="—"
-                          readOnly={readOnly}
-                        />
+                        {readOnly ? (
+                          <span className="text-xs font-semibold">{ex.categoria || "—"}</span>
+                        ) : (
+                          <Select value={ex.categoria || ""} onValueChange={val => pickCategoria(tIdx, idx, val)}>
+                            <SelectTrigger className="h-7 text-xs w-20 px-1 font-semibold">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {opcoesCategoriaTreino(ex.categoria).map(o => (
+                                <SelectItem key={o.codigo} value={o.codigo} className="text-xs">
+                                  <span className="font-semibold">{o.codigo}</span>
+                                  {o.nome !== o.codigo && <span className="text-muted-foreground"> · {o.nome}</span>}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </td>
                       <td className="py-1 px-2">
                         <div className="flex items-center gap-1">
