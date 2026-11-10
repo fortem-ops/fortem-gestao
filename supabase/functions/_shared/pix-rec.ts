@@ -6,6 +6,8 @@ type R = { ok: boolean; httpStatus: number; erro?: string; status?: number; deta
 
 export async function criarRecorrencia(sup: any, p: {
   aluno_id: string; valor: number; data_inicio: string; data_fim?: string | null; objeto?: string | null; teste?: boolean; loc?: number | null;
+  /** Identificador do vínculo enviado ao Inter (padrão: id do aluno, como nas autorizações antigas). */
+  vinculo_ref?: string | null;
 }): Promise<R> {
   const { data: aluno, error: alunoErr } = await sup.from("alunos").select("id, nome").eq("id", p.aluno_id).maybeSingle();
   if (alunoErr || !aluno) return { ok: false, httpStatus: 404, erro: "Aluno não encontrado" };
@@ -17,7 +19,7 @@ export async function criarRecorrencia(sup: any, p: {
   const payload: any = {
     vinculo: {
       objeto: typeof p.objeto === "string" && p.objeto.trim() ? p.objeto.trim().slice(0, 140) : "Plano mensal FORTEM",
-      contrato: p.aluno_id.replace(/-/g, "").substring(0, 35),
+      contrato: (p.vinculo_ref?.trim() || p.aluno_id.replace(/-/g, "")).substring(0, 35),
       devedor: { cpf, nome: aluno.nome },
     },
     calendario: { dataInicial: p.data_inicio, ...(p.data_fim ? { dataFinal: p.data_fim } : {}), periodicidade: "MENSAL" },

@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
       .from("pix_recorrencias")
       .update({ status: "CANCELADA", motivo_cancelamento: motivo ?? null })
       .eq("id_rec", idRec);
+    // Mantém o grupo de itens (se houver) coerente: libera itens / devolve forma de pagamento.
+    await admin().rpc("fn_pix_aut_rec_status", { p_id_rec: idRec, p_status: "CANCELADA" });
 
     return jsonResponse({ ok: true });
   } catch (e) {

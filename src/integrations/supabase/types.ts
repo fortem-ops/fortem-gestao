@@ -2610,6 +2610,7 @@ export type Database = {
           motivo_recusa: string | null
           numero_ciclo: number
           origem: string | null
+          pix_aut_grupo_id: string | null
           proxima_tentativa_em: string | null
           registrado_por: string | null
           status: string
@@ -2635,6 +2636,7 @@ export type Database = {
           motivo_recusa?: string | null
           numero_ciclo: number
           origem?: string | null
+          pix_aut_grupo_id?: string | null
           proxima_tentativa_em?: string | null
           registrado_por?: string | null
           status?: string
@@ -2660,6 +2662,7 @@ export type Database = {
           motivo_recusa?: string | null
           numero_ciclo?: number
           origem?: string | null
+          pix_aut_grupo_id?: string | null
           proxima_tentativa_em?: string | null
           registrado_por?: string | null
           status?: string
@@ -2696,6 +2699,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_contratos_vencendo"
             referencedColumns: ["contrato_id"]
+          },
+          {
+            foreignKeyName: "cobrancas_pix_aut_grupo_id_fkey"
+            columns: ["pix_aut_grupo_id"]
+            isOneToOne: false
+            referencedRelation: "pix_aut_grupos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -7677,6 +7687,177 @@ export type Database = {
           },
         ]
       }
+      pix_aut_grupos: {
+        Row: {
+          aluno_id: string
+          autorizado_em: string | null
+          cancelado_em: string | null
+          codigo_expira_em: string | null
+          codigos_gerados: number
+          created_at: string
+          criado_por: string | null
+          dia_debito: string | null
+          id: string
+          motivo: string | null
+          recorrencia_id: string | null
+          status: string
+          updated_at: string
+          valor_soma: number
+          valor_teto: number
+        }
+        Insert: {
+          aluno_id: string
+          autorizado_em?: string | null
+          cancelado_em?: string | null
+          codigo_expira_em?: string | null
+          codigos_gerados?: number
+          created_at?: string
+          criado_por?: string | null
+          dia_debito?: string | null
+          id?: string
+          motivo?: string | null
+          recorrencia_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_soma: number
+          valor_teto: number
+        }
+        Update: {
+          aluno_id?: string
+          autorizado_em?: string | null
+          cancelado_em?: string | null
+          codigo_expira_em?: string | null
+          codigos_gerados?: number
+          created_at?: string
+          criado_por?: string | null
+          dia_debito?: string | null
+          id?: string
+          motivo?: string | null
+          recorrencia_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_soma?: number
+          valor_teto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_aut_grupos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_grupos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_grupos_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "pix_recorrencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pix_aut_itens: {
+        Row: {
+          aluno_id: string
+          ativo_ate: string | null
+          ativo_desde: string
+          contrato_id: string | null
+          created_at: string
+          descricao: string | null
+          forma_anterior: string | null
+          grupo_id: string
+          id: string
+          item_tipo: string
+          plano_id: string | null
+          valor: number
+        }
+        Insert: {
+          aluno_id: string
+          ativo_ate?: string | null
+          ativo_desde?: string
+          contrato_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          forma_anterior?: string | null
+          grupo_id: string
+          id?: string
+          item_tipo: string
+          plano_id?: string | null
+          valor: number
+        }
+        Update: {
+          aluno_id?: string
+          ativo_ate?: string | null
+          ativo_desde?: string
+          contrato_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          forma_anterior?: string | null
+          grupo_id?: string
+          id?: string
+          item_tipo?: string
+          plano_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_aut_itens_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_itens_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_itens_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_itens_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_itens_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "pix_aut_grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_itens_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_itens_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+        ]
+      }
       pix_cobrancas: {
         Row: {
           aluno_id: string | null
@@ -11424,6 +11605,7 @@ export type Database = {
           observacoes: string | null
           origem: string
           parcelas: number
+          pix_aut_grupo_id: string | null
           plano_id: string | null
           status_pagamento: Database["public"]["Enums"]["venda_status"]
           taxa_mensal: number
@@ -11453,6 +11635,7 @@ export type Database = {
           observacoes?: string | null
           origem?: string
           parcelas?: number
+          pix_aut_grupo_id?: string | null
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
           taxa_mensal?: number
@@ -11482,6 +11665,7 @@ export type Database = {
           observacoes?: string | null
           origem?: string
           parcelas?: number
+          pix_aut_grupo_id?: string | null
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
           taxa_mensal?: number
@@ -11533,6 +11717,13 @@ export type Database = {
             columns: ["motivo_cancelamento_id"]
             isOneToOne: false
             referencedRelation: "cancelamento_motivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_pix_aut_grupo_id_fkey"
+            columns: ["pix_aut_grupo_id"]
+            isOneToOne: false
+            referencedRelation: "pix_aut_grupos"
             referencedColumns: ["id"]
           },
           {
@@ -14102,6 +14293,41 @@ export type Database = {
       fn_pascoa: { Args: { p_ano: number }; Returns: string }
       fn_pipeline_relatorio: {
         Args: { p_ate: string; p_desde: string; p_funnel_id: string }
+        Returns: Json
+      }
+      fn_pix_aut_eh_service: { Args: never; Returns: boolean }
+      fn_pix_aut_grupo_cancelar: {
+        Args: { p_grupo: string; p_motivo: string }
+        Returns: Json
+      }
+      fn_pix_aut_grupo_criar: {
+        Args: { p_aluno: string; p_itens: Json; p_teto: number }
+        Returns: Json
+      }
+      fn_pix_aut_grupo_encerrar_interno: {
+        Args: { p_grupo: string; p_motivo: string; p_status: string }
+        Returns: undefined
+      }
+      fn_pix_aut_grupo_registrar_rec: {
+        Args: {
+          p_codigo: number
+          p_expira: string
+          p_grupo: string
+          p_rec: string
+        }
+        Returns: Json
+      }
+      fn_pix_aut_grupo_reservar_codigo: {
+        Args: { p_grupo: string }
+        Returns: Json
+      }
+      fn_pix_aut_item_vencimento: {
+        Args: { p_id: string; p_tipo: string }
+        Returns: string
+      }
+      fn_pix_aut_itens_disponiveis: { Args: { p_aluno: string }; Returns: Json }
+      fn_pix_aut_rec_status: {
+        Args: { p_id_rec: string; p_status: string }
         Returns: Json
       }
       fn_pix_automatico_2027_aviso: {

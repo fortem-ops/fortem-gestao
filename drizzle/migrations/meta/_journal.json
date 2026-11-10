@@ -1758,6 +1758,20 @@
       "when": 1794350574002,
       "tag": "0250_portal_primeiro_vinculo_restrito",
       "breakpoints": true
+    },
+    {
+      "idx": 251,
+      "version": "7",
+      "when": 1794353389198,
+      "tag": "0251_pix_automatico_grupos_etapa1",
+      "breakpoints": true
+    },
+    {
+      "idx": 252,
+      "version": "7",
+      "when": 1794353410039,
+      "tag": "0252_pix_automatico_service_check_fix",
+      "breakpoints": true
     }
   ]
 }

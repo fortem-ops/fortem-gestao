@@ -192,6 +192,9 @@ Deno.serve(async (req) => {
         if (podeAtualizarRec(rec.status, novo)) {
           await sup.from("pix_recorrencias").update({ status: novo }).eq("id_rec", idRec);
           await sup.from("system_logs").insert({ modulo: "pix-webhook", acao: "recorrencia_status", mensagem: `${idRec}: ${rec.status} -> ${novo}`, payload: { idRec, antes: rec.status, depois: novo, statusInter: ev?.status ?? null } });
+          // Grupos de itens (Etapa 1): só aqui o contrato passa a Pix Automático, após AUTORIZADA. Sem grupo, nada muda.
+          const { error: gErr } = await sup.rpc("fn_pix_aut_rec_status", { p_id_rec: idRec, p_status: novo });
+          if (gErr) await sup.from("system_logs").insert({ modulo: "pix-webhook", acao: "grupo_status_erro", mensagem: `${idRec}: ${gErr.message}`, payload: { idRec, novo } });
         }
         continue;
       }
