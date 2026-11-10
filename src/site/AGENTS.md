@@ -1,0 +1,7 @@
+# Site público e Festa
+
+- Public website lives only in `src/site/` under the `.site-publico` wrapper; its tokens/fonts are scoped there and it never imports or edits system layouts/shared UI. Site lives at the root; staff dashboard is `/equipe` (legacy `/site/*` redirects). Internal site links use `sitePath()` from `src/site/config.ts`. Public /corrida and /store render inside `src/site/ComercioPublico.tsx` (scoped overrides in `comercio.css`); the portal store reuses the same pages without that shell. Why: keep the production system's dark theme and flows untouched.
+- Google tag/Meta Pixel load only on public routes via `src/site/RastreamentoPublico.tsx` (route list, consent, events in `src/site/rastreamento.ts`), never in index.html. Why: no ad tags in staff/student areas and LGPD consent first.
+- Public website photos use CDN pointers in `src/assets/fotos` and a scoped photo registry with intrinsic dimensions; photo frames reserve their ratio and retain red corners. Why: reuse uploaded media without layout shifts or leaking styles into the system.
+- Festa: config holds editorial; insert trigger computes new totals; settlement and edits keep historical totals. Why: consistent pricing.
+- Festa deadline is shared by frontend config and confirmation/PIX code through the pure `_shared/festa-prazo.ts` module; no deadline gate on settlement. Why: keep opening and PIX expiry consistent without rejecting existing payments.
