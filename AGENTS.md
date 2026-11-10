@@ -4,6 +4,7 @@
 
 - Toda correção de bug vem acompanhada de um teste de regressão que reproduz o bug (falha antes da correção e passa depois), entregue no mesmo commit. Por quê: o mesmo bug não pode voltar sem ser detectado.
 - Antes de concluir qualquer mudança de código, rodar `bunx vitest run` e informar no resumo quantos arquivos e testes rodaram e se todos passaram; se algum falhar, a tarefa não está concluída — corrigir ou reportar a falha. Testes `.test.ts` rodam em ambiente node; se um precisar de DOM, usar `// @vitest-environment jsdom` na primeira linha. Por quê: a suíte só protege o sistema se rodar sempre.
+- Código novo ou alterado não usa `any` (usar tipos de `src/integrations/supabase/types.ts`, `unknown` + validação, ou tipos próprios) e não pode deixar erro de lint: rodar `bunx eslint <arquivos alterados>` antes de concluir. Os `any` antigos saem aos poucos, quando o arquivo for mexido. Por quê: tipos corretos pegam erros de dado nulo ou campo errado antes de chegarem à equipe ou aos alunos.
 
 ## Decisões
 
