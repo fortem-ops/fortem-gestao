@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     const { data: itens } = await supabase
       .from("pedido_itens")
       .select(
-        "quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome))",
+        "quantidade, preco_unitario_snapshot, produtos_variantes!pedido_itens_variante_id_fkey(tamanho, cor, sku, produtos_catalogo(nome))",
       )
       .eq("pedido_id", pedidoId);
 

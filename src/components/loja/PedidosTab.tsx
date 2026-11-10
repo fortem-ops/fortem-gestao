@@ -194,7 +194,7 @@ export function PedidosTab() {
       let q = (supabase as any)
         .from("pedidos")
         .select(
-          "id, nome, cpf, email, telefone, status, valor_final, forma_pagamento, eh_encomenda, brinde_escolhido, created_at, pedido_itens(id, variante_id, quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, cpf, email, telefone, status, valor_final, forma_pagamento, eh_encomenda, brinde_escolhido, created_at, pedido_itens(id, variante_id, quantidade, preco_unitario_snapshot, produtos_variantes!pedido_itens_variante_id_fkey(tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .order("created_at", { ascending: false })
         .limit(500);

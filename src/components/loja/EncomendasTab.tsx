@@ -17,7 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BadgeCheck, FileSpreadsheet, Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
+import { BadgeCheck, FileSpreadsheet, Gift, PackageCheck, PackageOpen, RotateCcw, Trash2, Undo2, X } from "lucide-react";
+import { EntregarEncomendaDialog, traduzirErroEntrega, type ItemEntrega } from "./EntregarEncomendaDialog";
+import { ESTOQUE_DISPONIVEL_KEY } from "@/hooks/useEstoqueDisponivelAdmin";
 import { DarBaixaPedidoDialog, type PedidoBaixa } from "./DarBaixaPedidoDialog";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
@@ -25,10 +27,16 @@ import { estornarPedido } from "@/lib/lojaEstorno";
 import { exportarEncomendasXLSX } from "@/lib/encomendasExport";
 
 type ItemRow = {
+  id: string;
+  entregue_em: string | null;
+  entregue_por: string | null;
+  variante_entregue_id: string | null;
+  variante_entregue: { tamanho: string | null } | null;
   quantidade: number;
   preco_unitario_snapshot: number;
   produtos_variantes: {
     id: string;
+    produto_id: string;
     tamanho: string | null;
     cor: string | null;
     sku: string | null;
@@ -52,6 +60,13 @@ type PedidoRow = {
 type Linha = {
   key: string;
   pedidoId: string;
+  itemId: string;
+  varianteId: string;
+  produtoId: string;
+  corRaw: string | null;
+  entregueEm: string | null;
+  tamanhoEntregue: string | null;
+  trocado: boolean;
   cliente: string;
   produto: string;
   cor: string;
@@ -82,6 +97,10 @@ export function EncomendasTab() {
   const [excluindo, setExcluindo] = useState(false);
   const [estornar, setEstornar] = useState<Linha | null>(null);
   const [estornando, setEstornando] = useState(false);
+  const [entrega, setEntrega] = useState("todas");
+  const [entregar, setEntregar] = useState<ItemEntrega | null>(null);
+  const [desfazer, setDesfazer] = useState<Linha | null>(null);
+  const [desfazendo, setDesfazendo] = useState(false);
   const [baixa, setBaixa] = useState<PedidoBaixa | null>(null);
 
   const { data: pedidos = [], isLoading } = useQuery({
@@ -90,7 +109,7 @@ export function EncomendasTab() {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(
-          "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, status, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, status, promocoes(codigo), pedido_itens(id, entregue_em, entregue_por, variante_entregue_id, quantidade, preco_unitario_snapshot, variante_entregue:produtos_variantes!pedido_itens_variante_entregue_id_fkey(tamanho), produtos_variantes!pedido_itens_variante_id_fkey(id, produto_id, tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("eh_encomenda", true)
         .in("status", ["pago", "estornado", "aguardando_pagamento"])
@@ -124,6 +143,13 @@ export function EncomendasTab() {
         out.push({
           key: `${p.id}-${v.id}-${idx}`,
           pedidoId: p.id,
+          itemId: it.id,
+          varianteId: v.id,
+          produtoId: v.produto_id,
+          corRaw: v.cor,
+          entregueEm: it.entregue_em,
+          tamanhoEntregue: it.entregue_em ? (it.variante_entregue?.tamanho ?? v.tamanho ?? "—") : null,
+          trocado: !!it.variante_entregue_id && it.variante_entregue_id !== v.id,
           cliente: p.nome || "Cliente não informado",
           produto: v.produtos_catalogo?.nome || "Produto removido",
           cor: v.cor || "—",
@@ -168,9 +194,11 @@ export function EncomendasTab() {
       if (tamanho !== TODOS && l.tamanho !== tamanho) return false;
       if (recebimento === "pagos" && l.valorRecebido <= 0) return false;
       if (recebimento === "gratuitos" && l.valorRecebido > 0) return false;
+      if (entrega === "pendentes" && !(l.status === "pago" && !l.entregueEm)) return false;
+      if (entrega === "entregues" && !l.entregueEm) return false;
       return true;
     });
-  }, [linhas, busca, de, ate, modelo, cor, tamanho, recebimento]);
+  }, [linhas, busca, de, ate, modelo, cor, tamanho, recebimento, entrega]);
 
   const grupos = useMemo(() => {
     const map = new Map<string, Linha[]>();
@@ -185,7 +213,8 @@ export function EncomendasTab() {
   const totalQtd = filtradas.reduce((s, l) => s + l.quantidade, 0);
   const totalRecebido = filtradas.reduce((s, l) => s + l.valorRecebido, 0);
   const temFiltro =
-    !!busca || !!de || !!ate || modelo !== TODOS || cor !== TODOS || tamanho !== TODOS || recebimento !== "todos";
+    !!busca || !!de || !!ate || modelo !== TODOS || cor !== TODOS || tamanho !== TODOS || recebimento !== "todos" || entrega !== "todas";
+  const pendentesEntrega = filtradas.filter((l) => l.status === "pago" && !l.entregueEm).length;
 
   const limpar = () => {
     setBusca("");
@@ -195,6 +224,35 @@ export function EncomendasTab() {
     setCor(TODOS);
     setTamanho(TODOS);
     setRecebimento("todos");
+    setEntrega("todas");
+  };
+
+  const invalidarEntrega = () => {
+    qc.invalidateQueries({ queryKey: ["loja-encomendas"] });
+    qc.invalidateQueries({ queryKey: ["loja-pedidos"] });
+    qc.invalidateQueries({ queryKey: ["compras-loja-aluno"] });
+    qc.invalidateQueries({ queryKey: ESTOQUE_DISPONIVEL_KEY });
+    qc.invalidateQueries({ queryKey: ["loja-variantes-resumo"] });
+    qc.invalidateQueries({ queryKey: ["loja-variantes"] });
+    qc.invalidateQueries({ queryKey: ["loja-movimentos"] });
+    qc.invalidateQueries({ queryKey: ["loja-entrega-variantes"] });
+    qc.invalidateQueries({ queryKey: ["loja", "produtos"] });
+  };
+
+  const confirmarDesfazer = async () => {
+    if (!desfazer) return;
+    setDesfazendo(true);
+    try {
+      const { error } = await (supabase as any).rpc("fn_loja_desfazer_entrega", { p_item_id: desfazer.itemId });
+      if (error) throw error;
+      toast.success("Entrega desfeita");
+      invalidarEntrega();
+      setDesfazer(null);
+    } catch (e: any) {
+      toast.error("Não foi possível desfazer", { description: traduzirErroEntrega(e.message) });
+    } finally {
+      setDesfazendo(false);
+    }
   };
 
   const confirmarExclusao = async () => {
@@ -298,10 +356,21 @@ export function EncomendasTab() {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <Label className="text-xs">Entrega</Label>
+          <Select value={entrega} onValueChange={setEntrega}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas</SelectItem>
+              <SelectItem value="pendentes">Pendentes</SelectItem>
+              <SelectItem value="entregues">Entregues</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex items-end justify-between gap-2 sm:col-span-2 lg:col-span-4">
           <p className="text-xs text-muted-foreground">
             {filtradas.length} {filtradas.length === 1 ? "item" : "itens"} — {totalQtd} peça(s) — recebido{" "}
-            {formatBRL(totalRecebido)}
+            {formatBRL(totalRecebido)} — {pendentesEntrega} pendente(s) de entrega
           </p>
           <div className="flex items-center gap-2">
             {temFiltro && (
@@ -347,7 +416,8 @@ export function EncomendasTab() {
                 <TableHead className="text-right">Qtd.</TableHead>
                 <TableHead className="text-right">Valor dos itens</TableHead>
                 <TableHead className="text-right">Valor recebido</TableHead>
-                <TableHead className="w-24" />
+                <TableHead>Entrega</TableHead>
+                <TableHead className="w-32" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -392,7 +462,50 @@ export function EncomendasTab() {
                         <TableCell className="text-right">{l.quantidade}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{formatBRL(l.valorItens)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatBRL(l.valorRecebido)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {l.entregueEm ? (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className="status-success text-[10px] w-fit">
+                                Entregue {new Date(l.entregueEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                              </Badge>
+                              {l.trocado && (
+                                <span className="text-[10px] text-muted-foreground">trocado {l.tamanho} → {l.tamanhoEntregue}</span>
+                              )}
+                            </div>
+                          ) : l.status === "pago" ? (
+                            <Badge variant="outline" className="status-warning text-[10px]">Pendente</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
+                          {l.status === "pago" && !l.entregueEm && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Entregar"
+                              onClick={() =>
+                                setEntregar({
+                                  itemId: l.itemId,
+                                  varianteId: l.varianteId,
+                                  produtoId: l.produtoId,
+                                  cliente: l.cliente,
+                                  produto: l.produto,
+                                  cor: l.cor,
+                                  corRaw: l.corRaw,
+                                  tamanho: l.tamanho,
+                                  quantidade: l.quantidade,
+                                })
+                              }
+                            >
+                              <PackageCheck className="w-4 h-4 text-primary" />
+                            </Button>
+                          )}
+                          {l.entregueEm && (
+                            <Button size="icon" variant="ghost" title="Desfazer entrega" onClick={() => setDesfazer(l)}>
+                              <Undo2 className="w-4 h-4" />
+                            </Button>
+                          )}
                           {l.status === "aguardando_pagamento" && (
                             <Button
                               size="icon"
@@ -436,6 +549,7 @@ export function EncomendasTab() {
                       </TableCell>
                       <TableCell className="text-right text-xs font-semibold">{formatBRL(subRecebido)}</TableCell>
                       <TableCell />
+                      <TableCell />
                     </TableRow>
                   </Fragment>
                 );
@@ -445,6 +559,7 @@ export function EncomendasTab() {
                 <TableCell className="text-right text-xs font-bold">{totalQtd}</TableCell>
                 <TableCell />
                 <TableCell className="text-right text-xs font-bold">{formatBRL(totalRecebido)}</TableCell>
+                <TableCell />
                 <TableCell />
               </TableRow>
             </TableBody>
@@ -500,6 +615,32 @@ export function EncomendasTab() {
               disabled={estornando}
             >
               {estornando ? "Estornando..." : "Estornar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <EntregarEncomendaDialog item={entregar} onClose={() => setEntregar(null)} onDone={invalidarEntrega} />
+
+      <AlertDialog open={!!desfazer} onOpenChange={(o) => !o && setDesfazer(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer entrega?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {desfazer && <>{desfazer.cliente} — {desfazer.produto} ({desfazer.cor} / {desfazer.tamanhoEntregue}). </>}
+              A peça volta para o estoque.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={desfazendo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarDesfazer();
+              }}
+              disabled={desfazendo}
+            >
+              {desfazendo ? "Desfazendo..." : "Desfazer entrega"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

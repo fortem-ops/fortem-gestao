@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
+import { useEstoqueDisponivelAdmin, estoqueDe } from "@/hooks/useEstoqueDisponivelAdmin";
+import { EstoqueTriplo } from "./EstoqueTriplo";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -69,16 +71,21 @@ export function ProdutosTab() {
     },
   });
 
+  const { data: estoqueMap } = useEstoqueDisponivelAdmin();
+
   const resumo = useMemo(() => {
-    const map = new Map<string, { qtd: number; estoque: number }>();
+    const map = new Map<string, { qtd: number; estoque: number; encomendado: number; disponivel: number }>();
     for (const v of variantes) {
-      const cur = map.get(v.produto_id) || { qtd: 0, estoque: 0 };
+      const cur = map.get(v.produto_id) || { qtd: 0, estoque: 0, encomendado: 0, disponivel: 0 };
+      const e = estoqueDe(estoqueMap, v.id, v.estoque_atual);
       cur.qtd += 1;
       cur.estoque += v.estoque_atual;
+      cur.encomendado += e.encomendado;
+      cur.disponivel += e.disponivel;
       map.set(v.produto_id, cur);
     }
     return map;
-  }, [variantes]);
+  }, [variantes, estoqueMap]);
 
   const categorias = useMemo(
     () => Array.from(new Set(produtos.map((p) => p.categoria).filter(Boolean))) as string[],
@@ -181,6 +188,7 @@ export function ProdutosTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loja-produtos"] });
       qc.invalidateQueries({ queryKey: ["loja-variantes-resumo"] });
+      qc.invalidateQueries({ queryKey: ["loja-estoque-disponivel"] });
       toast.success("Produto excluído");
     },
     onError: (e: any) => toast.error(e.message),
@@ -278,7 +286,7 @@ export function ProdutosTab() {
           </TableHeader>
           <TableBody>
             {filtered.map((p) => {
-              const r = resumo.get(p.id) || { qtd: 0, estoque: 0 };
+              const r = resumo.get(p.id) || { qtd: 0, estoque: 0, encomendado: 0, disponivel: 0 };
               const idx = produtos.findIndex((x) => x.id === p.id);
               return (
                 <TableRow
@@ -309,7 +317,7 @@ export function ProdutosTab() {
                   <TableCell>{p.categoria || "—"}</TableCell>
                   <TableCell>{formatBRL(Number(p.preco_base))}</TableCell>
                   <TableCell>{r.qtd}</TableCell>
-                  <TableCell>{r.estoque}</TableCell>
+                  <TableCell><EstoqueTriplo e={{ fisico: r.estoque, encomendado: r.encomendado, disponivel: r.disponivel }} /></TableCell>
                   <TableCell>
                     <Badge variant={p.ativo ? "default" : "secondary"} className={p.ativo ? "bg-primary/20 text-primary" : ""}>
                       {p.ativo ? "Ativo" : "Inativo"}

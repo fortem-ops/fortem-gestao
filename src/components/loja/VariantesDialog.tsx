@@ -15,6 +15,8 @@ import { formatBRL } from "@/lib/vendas";
 import type { Produto } from "./ProdutosTab";
 import { ProductImageUpload } from "./ProductImageUpload";
 import { ProductGalleryManager } from "./ProductGalleryManager";
+import { useEstoqueDisponivelAdmin, estoqueDe } from "@/hooks/useEstoqueDisponivelAdmin";
+import { EstoqueTriplo } from "./EstoqueTriplo";
 
 type Variante = {
   id: string;
@@ -66,6 +68,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
   const [historico, setHistorico] = useState<Variante | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const { data: estoqueMap } = useEstoqueDisponivelAdmin();
   const { data: variantes = [] } = useQuery({
     queryKey: ["loja-variantes", produto.id],
     queryFn: async () => {
@@ -82,6 +85,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ["loja-variantes", produto.id] });
     qc.invalidateQueries({ queryKey: ["loja-variantes-resumo"] });
+    qc.invalidateQueries({ queryKey: ["loja-estoque-disponivel"] });
   }
 
   const payloadFromForm = () => ({
@@ -211,7 +215,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                   <TableHead>Cor</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead>Preço</TableHead>
-                  <TableHead>Estoque</TableHead>
+                  <TableHead>Físico · Encomendado · Disponível</TableHead>
                   <TableHead>Ativo</TableHead>
                   <TableHead className="w-[130px]">Ações</TableHead>
                 </TableRow>
@@ -242,7 +246,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{v.estoque_atual}</Badge>
+                      <EstoqueTriplo e={estoqueDe(estoqueMap, v.id, v.estoque_atual)} />
                     </TableCell>
                     <TableCell>
                       <Switch checked={v.ativo} onCheckedChange={(a) => toggleAtivo.mutate({ id: v.id, ativo: a })} />
@@ -312,7 +316,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Estoque inicial</Label>
+                <Label className="text-xs">Estoque físico inicial</Label>
                 <Input
                   type="number"
                   min={0}
@@ -432,12 +436,12 @@ function AjusteEstoqueDialog({
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Ajuste de estoque</DialogTitle>
+          <DialogTitle>Ajuste de estoque físico</DialogTitle>
           <DialogDescription>Registre a movimentação e informe o motivo do ajuste.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Estoque atual: <strong className="text-foreground">{variante.estoque_atual}</strong>
+            Estoque físico atual: <strong className="text-foreground">{variante.estoque_atual}</strong>
           </p>
           <div className="space-y-2">
             <Label>Tipo</Label>

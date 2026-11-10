@@ -52,7 +52,7 @@ export function ComprasLoja({ alunoId }: { alunoId: string }) {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(
-          "id, status, valor_final, forma_pagamento, created_at, pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, status, valor_final, forma_pagamento, created_at, pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes!pedido_itens_variante_id_fkey(tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("aluno_id", alunoId)
         .in("status", ["pago", "estornado"])

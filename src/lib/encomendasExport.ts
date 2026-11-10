@@ -14,6 +14,8 @@ export interface EncomendaExport {
   data: string;
   status: string;
   resumoPedido: string;
+  entregueEm?: string | null;
+  tamanhoEntregue?: string | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -56,6 +58,12 @@ export function exportarEncomendasXLSX(linhas: EncomendaExport[], periodo: { de?
         Cupom: l.cupom ?? "",
         Brinde: l.brinde ?? "",
         Status: STATUS_LABEL[l.status] ?? l.status,
+        Entrega: l.entregueEm
+          ? `Entregue em ${new Date(l.entregueEm).toLocaleDateString("pt-BR")}`
+          : l.status === "pago"
+            ? "Pendente"
+            : "—",
+        "Tamanho entregue": l.tamanhoEntregue ?? "",
       })),
     ),
     "Encomendas",
