@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AtivarPixDialog } from "./AtivarPixDialog";
 import { GerarCobrancaDialog } from "./GerarCobrancaDialog";
+import { PixGruposList, usePixGrupos } from "./PixGruposList";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface Props { student: { id: string; nome: string } }
 
@@ -78,7 +80,11 @@ export function PixAutomaticoSection({ student }: Props) {
     return () => { supabase.removeChannel(ch); };
   }, [student.id, qc]);
 
-  const rec = recQuery.data;
+  const isAdmin = !!useUserRoles().data?.isAdmin;
+  const gruposQ = usePixGrupos(student.id);
+  const recsDeGrupos = new Set((gruposQ.data ?? []).map((g) => g.recorrencia_id).filter(Boolean));
+  // Bloco antigo só para autorizações criadas antes dos grupos (por aluno).
+  const rec = recQuery.data && !recsDeGrupos.has(recQuery.data.id) ? recQuery.data : null;
   const recAtiva = rec && ["AGUARDANDO_AUTORIZACAO", "AUTORIZADA"].includes(rec.status);
 
   async function handleCancelar() {
@@ -110,12 +116,18 @@ export function PixAutomaticoSection({ student }: Props) {
         {rec && <StatusBadge status={rec.status} />}
       </CardHeader>
       <CardContent className="space-y-6">
-        {!recAtiva && (
+        <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs">
+          A cobrança mensal automática pelo Pix ainda não está ativa (próxima etapa). Hoje só a autorização do aluno é criada.
+        </div>
+
+        <PixGruposList alunoId={student.id} isAdmin={isAdmin} />
+
+        {isAdmin && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-md border border-dashed p-4">
             <p className="text-sm text-muted-foreground">
-              {rec ? "A recorrência anterior está encerrada." : "Nenhuma recorrência ativa para este aluno."}
+              Escolha um ou mais contratos/planos do aluno para pagar por Pix Automático numa única autorização.
             </p>
-            <Button onClick={() => setOpenAtivar(true)}>Ativar Pix Automático</Button>
+            <Button onClick={() => setOpenAtivar(true)}>Novo Pix Automático</Button>
           </div>
         )}
 
@@ -126,7 +138,7 @@ export function PixAutomaticoSection({ student }: Props) {
           </div>
         )}
 
-        {rec?.status === "AUTORIZADA" && (
+        {rec?.status === "AUTORIZADA" && isAdmin && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-md border p-4">
             <div className="text-sm">
               <div>Valor mínimo: <strong>{brl(rec.valor_minimo)}</strong></div>
@@ -163,7 +175,7 @@ export function PixAutomaticoSection({ student }: Props) {
           )}
         </div>
 
-        {recAtiva && (
+        {recAtiva && isAdmin && (
           <div className="pt-2 border-t">
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -191,7 +203,10 @@ export function PixAutomaticoSection({ student }: Props) {
       <AtivarPixDialog
         open={openAtivar} onOpenChange={setOpenAtivar}
         alunoId={student.id}
-        onDone={() => qc.invalidateQueries({ queryKey: ["pix_rec", student.id] })}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: ["pix_rec", student.id] });
+          qc.invalidateQueries({ queryKey: ["pix_aut_grupos", student.id] });
+        }}
       />
       {rec?.id_rec && (
         <GerarCobrancaDialog

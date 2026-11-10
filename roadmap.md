@@ -215,3 +215,12 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [ ] P3 telas — não autorizado.
 - [ ] P4 teste real — não autorizado.
 - [x] 2C-2: aplicar correções de lint 1–32 (src) + ignore mcp no eslint
+
+## Pix Automático contratos atuais + 2027 — Etapa 1
+- [x] Passo 1: regras do BCB conferidas (envio 2–10 dias antes, máximo do pagador, 3 retentativas em 7 dias, cancelamento) e Corrida adicional sem contrato investigada.
+- [x] Passo 2: grupos e itens de Pix Automático com trava de item único, reserva na cobrança/venda e permissões (admin cria/cancela, coordenador lê, aluno vê o seu).
+- [x] Passo 3: tela da equipe para escolher itens, soma, dia do débito, valor máximo +15%, código/QR (até 3) e mensagem para WhatsApp.
+- [x] Passo 4: nenhuma cobrança Pix criada nesta etapa.
+- [ ] Etapa 2: cobrança mensal no Inter, baixa e divisão entre itens, cartão respeitando a reserva.
+- [ ] Etapa 3: voltar ao cartão.
+- [ ] Etapa 4: app do aluno (alterar forma de pagamento, aviso na tela inicial, push).
