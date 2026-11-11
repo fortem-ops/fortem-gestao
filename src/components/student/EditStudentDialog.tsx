@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil } from "lucide-react";
@@ -24,6 +25,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
   const [loading, setLoading] = useState(false);
   const [professors, setProfessors] = useState<{ user_id: string; full_name: string }[]>([]);
 
+  const [nome, setNome] = useState(student.nome || "");
   const [frequencia, setFrequencia] = useState(String(student.frequencia_semanal || 3));
   const [professorId, setProfessorId] = useState(student.responsavel_id || NONE);
   const [consultorId, setConsultorId] = useState((student as any).consultor_id || NONE);
@@ -31,6 +33,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
 
   useEffect(() => {
     if (!open) return;
+    setNome(student.nome || "");
     setFrequencia(String(student.frequencia_semanal || 3));
     setProfessorId(student.responsavel_id || NONE);
     setConsultorId((student as any).consultor_id || NONE);
@@ -54,11 +57,16 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
   }, []);
 
   async function handleSave() {
+    if (!nome.trim()) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase
         .from("alunos")
         .update({
+          nome: nome.trim(),
           frequencia_semanal: Number(frequencia),
           responsavel_id: professorId === NONE ? null : professorId,
           consultor_id: consultorId === NONE ? null : consultorId,
@@ -94,6 +102,16 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
+          <div className="space-y-2">
+            <Label>Nome completo</Label>
+            <Input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Nome completo do aluno"
+              maxLength={200}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label>Frequência Semanal</Label>
             <Select value={frequencia} onValueChange={setFrequencia}>
