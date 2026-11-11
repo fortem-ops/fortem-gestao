@@ -209,6 +209,21 @@ Deno.serve(async (req) => {
         .eq("txid", txid)
         .maybeSingle();
       if (!cob) { await naoReconhecido("txid não encontrado", origem, ev); continue; }
+      // Grupos (Etapa 2): baixa dividida por item, idempotente, no banco. Sem ciclo de grupo, segue o caminho antigo.
+      {
+        const bruto = ev?.valor?.original ?? ev?.valor;
+        const valorPago = typeof bruto === "string" || typeof bruto === "number" ? Number(bruto) : NaN;
+        const { data: g, error: gErr } = await sup.rpc("fn_pix_aut_ciclo_evento", {
+          p_txid: txid, p_status: st, p_valor: Number.isFinite(valorPago) ? valorPago : null,
+          p_motivo: ev?.motivo ?? ev?.descricaoMotivo ?? null,
+        });
+        if (gErr) {
+          await sup.from("system_logs").insert({ modulo: "pix-webhook", acao: "grupo_ciclo_erro", mensagem: `${txid}: ${gErr.message}`, payload: { txid, st } });
+          if (cob.id_rec) continue; // não cai no caminho antigo se a baixa do grupo falhar
+        } else if ((g as { grupo?: boolean } | null)?.grupo) {
+          continue;
+        }
+      }
       if (cob.status === st) continue; // idempotente
       if (cob.status === "LIQUIDADA") { await naoReconhecido(`já LIQUIDADA, recebido ${st}`, origem, ev); continue; }
 

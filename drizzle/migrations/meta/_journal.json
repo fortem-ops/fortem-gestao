@@ -1779,6 +1779,20 @@
       "when": 1794353827693,
       "tag": "0253_pix_automatico_grupos_revoke_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 254,
+      "version": "7",
+      "when": 1794356684583,
+      "tag": "0254_pix_automatico_etapa2_cobranca_mensal",
+      "breakpoints": true
+    },
+    {
+      "idx": 255,
+      "version": "7",
+      "when": 1794356761309,
+      "tag": "0255_pix_automatico_etapa2_devidos_ciclo",
+      "breakpoints": true
     }
   ]
 }

@@ -7687,6 +7687,82 @@ export type Database = {
           },
         ]
       }
+      pix_aut_ciclos: {
+        Row: {
+          aluno_id: string
+          composicao: Json
+          created_at: string
+          enviado_em: string | null
+          grupo_id: string
+          id: string
+          liquidado_em: string | null
+          modo: string
+          status: string
+          tentativas: number
+          txid: string | null
+          ultimo_erro: string | null
+          updated_at: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          aluno_id: string
+          composicao?: Json
+          created_at?: string
+          enviado_em?: string | null
+          grupo_id: string
+          id?: string
+          liquidado_em?: string | null
+          modo: string
+          status: string
+          tentativas?: number
+          txid?: string | null
+          ultimo_erro?: string | null
+          updated_at?: string
+          valor: number
+          vencimento: string
+        }
+        Update: {
+          aluno_id?: string
+          composicao?: Json
+          created_at?: string
+          enviado_em?: string | null
+          grupo_id?: string
+          id?: string
+          liquidado_em?: string | null
+          modo?: string
+          status?: string
+          tentativas?: number
+          txid?: string | null
+          ultimo_erro?: string | null
+          updated_at?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_aut_ciclos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_ciclos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_ciclos_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "pix_aut_grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pix_aut_grupos: {
         Row: {
           aluno_id: string
@@ -14295,6 +14371,59 @@ export type Database = {
         Args: { p_ate: string; p_desde: string; p_funnel_id: string }
         Returns: Json
       }
+      fn_pix_aut_avisar_equipe: {
+        Args: {
+          p_aluno: string
+          p_descricao: string
+          p_prioridade: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
+      fn_pix_aut_ciclo_enviado: {
+        Args: { p_ciclo: string; p_raw: Json; p_status_inter: string }
+        Returns: Json
+      }
+      fn_pix_aut_ciclo_evento: {
+        Args: {
+          p_motivo: string
+          p_status: string
+          p_txid: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      fn_pix_aut_ciclo_falha: {
+        Args: { p_ciclo: string; p_erro: string }
+        Returns: Json
+      }
+      fn_pix_aut_ciclo_incerto: {
+        Args: { p_ciclo: string; p_erro: string }
+        Returns: undefined
+      }
+      fn_pix_aut_ciclo_janela_perdida: {
+        Args: { p_grupo: string; p_motivo: string; p_venc: string }
+        Returns: Json
+      }
+      fn_pix_aut_ciclo_reservar: {
+        Args: {
+          p_grupo: string
+          p_hoje: string
+          p_txid: string
+          p_venc: string
+        }
+        Returns: Json
+      }
+      fn_pix_aut_ciclo_simular: {
+        Args: { p_grupo: string; p_venc: string }
+        Returns: Json
+      }
+      fn_pix_aut_ciclo_soltar: { Args: { p_ciclo: string }; Returns: undefined }
+      fn_pix_aut_ciclos_devidos: { Args: { p_hoje: string }; Returns: Json }
+      fn_pix_aut_composicao: {
+        Args: { p_grupo: string; p_venc: string }
+        Returns: Json
+      }
       fn_pix_aut_eh_service: { Args: never; Returns: boolean }
       fn_pix_aut_grupo_cancelar: {
         Args: { p_grupo: string; p_motivo: string }
@@ -14321,14 +14450,30 @@ export type Database = {
         Args: { p_grupo: string }
         Returns: Json
       }
+      fn_pix_aut_hoje: { Args: never; Returns: string }
       fn_pix_aut_item_vencimento: {
         Args: { p_id: string; p_tipo: string }
         Returns: string
       }
       fn_pix_aut_itens_disponiveis: { Args: { p_aluno: string }; Returns: Json }
+      fn_pix_aut_liberar_reserva: {
+        Args: { p_id: string; p_motivo: string; p_tabela: string }
+        Returns: Json
+      }
+      fn_pix_aut_migrar_itens: { Args: never; Returns: Json }
+      fn_pix_aut_modo_grupo: {
+        Args: { p_grupo: string; p_hoje: string }
+        Returns: string
+      }
+      fn_pix_aut_planos_antecipar: { Args: { p_hoje: string }; Returns: Json }
+      fn_pix_aut_proximo_venc: { Args: { p_grupo: string }; Returns: string }
       fn_pix_aut_rec_status: {
         Args: { p_id_rec: string; p_status: string }
         Returns: Json
+      }
+      fn_pix_aut_venda_reservada: {
+        Args: { p_venda: string }
+        Returns: boolean
       }
       fn_pix_automatico_2027_aviso: {
         Args: { p_id_rec: string; p_status: string }
