@@ -237,5 +237,5 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [ ] Semestral Etapa 5: 2ª Avaliação no 6º ciclo.
 - [ ] Semestral Etapa 6: upgrade Start→Pro Semestral.
 - [ ] Semestral: licença por atestado.
-- [ ] Semestral: texto jurídico dos 2 modelos de contrato (aguarda o dono).
-- [ ] Semestral: ligar a venda (itens e modelos) — só com ordem do dono.
+- [x] Semestral: texto jurídico dos 2 modelos gravado pelo dono (versão 2).
+- [x] Semestral Etapa 7 (11/11/2026): venda ligada — 4 itens e 2 modelos ativos.
