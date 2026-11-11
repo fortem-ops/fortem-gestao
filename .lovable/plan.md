@@ -1,73 +1,36 @@
-# Plano Semestral para alunos de agregadoras (Wellhub / TotalPass)
+# Plano do teste real de R$ 1,00 — Plano Semestral (Pro Semestral) com Bruna Meyer
 
-Somente plano. Nada será gravado até a sua aprovação, uma etapa por vez.
+Nada disto é executado sem a sua aprovação expressa. Aluna: BRUNA MEYER (`b7f99527-9f4a-448b-9cca-78017bbc0cb2`), sem plano de agregadora.
 
-## O que já foi conferido no banco (11/11/2026)
-- `planos_catalogo` já tem as colunas necessárias: `codigo`, `familia`, `versao`, `modalidade_cobranca`, `liberacao_creditos`, `taxa_recorrencia`, `fidelidade_meses`, `licenca_dias`, `avaliacoes_funcionais_meses`, `permite_fixar_horario`, `bota_compressao_mes`, `nivel_clube`, `reposicao_saldo_pct`, `brindes`, `vendavel_desde/ate`. Não existe coluna de agregadora nem de "período de preço fixo".
-- Start 2027 usa `liberacao_creditos = 'mensal'`, taxa 0. Pro 2027 usa `avaliacoes_funcionais_meses = {1,6}` com `total_na_compra` (libera tudo na venda).
-- A cobrança diária (`fn_recorrencia_2027_devidas`) não filtra por `versao`: lê só `planos_2027_mensalidades`. Um item entra na cobrança somente se uma venda gerar linhas nessa tabela.
-- `contrato_templates` (36 modelos) já tem tipos `wellhub`, `gympass` e `totalpass` ativos para os planos de agregadora atuais. A regra de modelo único vale por `plano_tipo + forma_pagamento`.
+## Como contornar elegibilidade e preço (seguro e reversível)
+- Não ligar os 4 itens nem os 2 modelos para ninguém. Nada de plano Wellhub "falso" no cadastro dela (isso mexeria em check-ins, Clube e relatórios).
+- Uma chave temporária `semestral_teste_real` em `sistema_config`: `{ "aluno_id": "<Bruna>", "codigo": "pro_semestral_wellhub_3x", "valor_centavos": 100, "valido_ate": "<hoje 23:59>" }`.
+- Pequena alteração (migração, com aprovação) lida só quando a chave existe e o aluno é exatamente a Bruna:
+  - `fn_semestral_elegivel`: dispensa a exigência de agregadora (CPF e prazo continuam valendo).
+  - `fn_semestral_itens_elegiveis`: mostra só esse item a ela, mesmo desligado.
+  - `fn_venda_semestral_criar`: grava a venda, a nº 1 e o contrato com R$ 1,00 e origem `teste_2027` (fora de relatórios, sem comissão e sem aviso de venda paga). A Bruna entra temporariamente em `vendas_2027_teste_aluno_ids`.
+- Para desfazer, basta apagar a chave e tirar a Bruna da lista. A alteração fica sem efeito para qualquer outro aluno, e um teste automático garante isso.
 
-## Etapas
+## Passos (cada um com a consulta de conferência)
+1. **Antes:** foto do estado da Bruna (planos, créditos, contratos, vendas, cartões, `pagamentos_rede`). Também confirmar que os itens e modelos estão desligados e que nenhum outro aluno é elegível pela chave.
+2. **Cartão:** a equipe cadastra o cartão real dela pela tokenização Rede (Cadastrar cartão). Conferir `cartoes_salvos` e `rede_tokenizacoes` com status `active`.
+3. **Venda:** Nova Venda > Plano Semestral > Pro Semestral (R$ 1,00) e depois "Cobrar R$ 1,00 agora". Conferir:
+   - venda e nº 1 pagas, com 1 `pagamentos_rede` approved (tid, nsu)
+   - plano ativo, com 12 Treinos, 4 sessões de Bota e 1 Avaliação
+   - nº 2 criada uma vez só, com vencimento em +30 dias
+   - nenhum plano de agregadora encerrado (ela não tem)
+4. **Parar o próximo ciclo na hora:** cancelar pelo botão de admin (sem multa). Conferir que a nº 2 ficou cancelada e que `fn_recorrencia_2027_devidas` não traz a venda. A 08:00 do dia seguinte não cobra nada.
+5. **Estorno:** pelo fluxo existente de estorno de mensalidade/venda (`estornar-cobranca`; o `rede-cancelar` marca a venda como estornada e o pagamento como `refunded`). Conferir na resposta da Rede e em `pagamentos_rede` o status `refunded` e o comprovante de estorno.
+6. **Limpeza:** plano e créditos inativos e zerados (os créditos não saem sozinhos no estorno, por regra), contrato cancelado, cartão de teste desativado se a Bruna quiser. Depois, apagar a chave `semestral_teste_real` e tirar a Bruna da lista de teste.
+7. **Depois:** a mesma foto do passo 1. Só podem ter mudado os registros do teste, todos inativos, cancelados ou estornados.
 
-### Etapa 1: Catálogo e contratos (só banco, tudo desligado)
-- Migração: adicionar a `planos_catalogo` as colunas `agregadora_requerida` (texto: `wellhub` / `totalpass`, nulo nos demais) e `preco_fixo_ciclos` (inteiro, nulo nos demais). Mudança apenas aditiva.
-- Inserir os 4 itens com `ativo = false`: `versao 2027`, família nova `semestral_2027`, `recorrencia_mensal`, `liberacao_creditos 'mensal'`, 12 créditos, frequência 3x, `taxa_recorrencia 0`, `fidelidade_meses 0`, `licenca_dias 0`, `reposicao_saldo_pct 0`, brindes vazio, `nivel_clube` igual ao do Start 2027, `avaliacoes_funcionais_meses {1,6}`, `vendavel_ate 2026-12-31`, `preco_fixo_ciclos 6`. Somente nos itens Pro: fixar horário ativado e bota com 4 sessões.
-- Inserir 2 modelos novos inativos com `plano_tipo` próprio (`semestral_wellhub` e `semestral_totalpass`, cartão recorrente) e texto provisório. Assim não há choque com os modelos de agregadora atuais.
-- Verificação: os 4 itens com seus valores e flags, `ativo = false`, e os 2 modelos inativos. A contagem dos demais itens e modelos não muda.
+## O que fica registrado
+- `pagamentos_rede`: 1 linha approved, depois refunded (tid, nsu, R$ 1,00), mais o comprovante de estorno.
+- Venda estornada, contrato cancelado, nº 1 paga e estornada, nº 2 cancelada e logs em `system_logs` (`planos-semestral`).
+- A trilha financeira não é apagada.
 
-### Etapa 2: Elegibilidade no servidor
-- Nova função `fn_semestral_elegivel(aluno, codigo)`. Ela lê o plano de agregadora ativo do aluno pela função canônica e mapeia `planos.tipo` ("Gympass/Wellhub" → wellhub, "Total Pass" → totalpass). Recusa nos casos: agregadora diferente, sem agregadora, CPF que já contratou (busca por CPF em contratos e vendas semestrais, inclusive cancelados) ou fora de `vendavel_ate`.
-- A RPC que lista os planos da Nova Venda e a RPC que grava a venda chamam essa função. Itens com `agregadora_requerida` nunca são devolvidos a quem não tem a agregadora.
-- Verificação: chamada direta da função para um aluno Wellhub, um TotalPass e um sem agregadora (ensaio revertido), mais a contagem de itens que cada um recebe.
-
-### Etapa 3: Nova Venda (tela) e ativação
-- Aba Planos: o grupo "Plano Semestral" aparece só quando o servidor devolve itens. A tela não faz filtro próprio.
-- A venda segue o caminho das vendas manuais 2027 recorrentes: `planos_2027_mensalidades` ligada por `venda_origem_id`, 1º ciclo cobrado na hora, ciclo de 30 dias a partir da venda.
-- Na ativação, o plano da agregadora é encerrado (`ativo=false`, `data_fim` = data da ativação). Os registros de check-in da agregadora em `contratos` ficam como estão.
-- Verificação: venda de ensaio revertida. Contrato, mensalidade nº 1, 12 créditos só após o pagamento e plano da agregadora encerrado.
-
-### Etapa 4: Renovação mensal e cobrança no cartão
-- Renovação por ciclo igual à do Start (`fn_renovar_start_2027` estendida à família `semestral_2027`, ou uma cópia dedicada). Créditos não usados expiram no fim do ciclo. Ciclos 1 a 6 usam o preço da venda; do 7º em diante, usam o valor vigente no contrato (ajuste manual).
-- Cancelamento: as próximas mensalidades são canceladas e o acesso vai até o fim do ciclo pago.
-- Pix Automático: o item fica marcado como elegível, mas desligado (sem botão) até a conclusão das etapas do grupo Pix.
-- Verificação: ensaio revertido de D0 do ciclo 2, com mensalidade gerada uma única vez e créditos bloqueados até o pagamento.
-
-### Etapa 5: 2ª Avaliação Funcional condicional
-- Na venda, cria-se só o crédito da 1ª avaliação.
-- Uma rotina diária (dentro da renovação do ciclo) libera a 2ª avaliação quando todas estas condições valem: o ciclo que começa é o 6º, o contrato está ativo, não há mensalidade vencida em aberto e o crédito ainda não foi dado. Uma marca no contrato impede liberar duas vezes.
-- Se o aluno estiver em atraso no início do 6º ciclo, a liberação acontece quando a pendência for paga, ainda dentro do 6º ciclo. Se o ciclo 6 terminar com atraso, a avaliação não é liberada. Confirmar se é essa a regra desejada.
-- Verificação: três ensaios revertidos (em dia → libera; em atraso → não libera; segunda execução → não duplica).
-
-### Etapa 6: Upgrade Start → Pro Semestral
-- Cobra a diferença proporcional dos dias restantes do ciclo, troca o item do contrato e mantém a data de início, a contagem de ciclos e o período de preço fixo. Fixar horário e bota passam a valer a partir do upgrade. Downgrade é bloqueado no servidor.
-- Verificação: ensaio com o valor da diferença conferido à mão, sem nova mensalidade nº 1 e contagem de ciclos mantida.
-
-### Etapa 7: Ligar a venda
-- `ativo = true` nos 4 itens. Os modelos de contrato só são ativados depois que o texto jurídico chegar.
-
-## Cobrança diária sem afetar os planos atuais
-- O cron cobra apenas linhas de `planos_2027_mensalidades`, e essas linhas só nascem de vendas 2027. Planos atuais nunca geram linhas ali, e `cobranca_recorrente_ativa` / `cobrar-recorrencias-diario` não são tocados.
-- Verificação: `select count(*) from planos_2027_mensalidades m join contratos c ... where plano não é 2027` deve dar sempre 0.
-
-## Riscos na Nova Venda
-- A lista de planos por família pode mostrar "Start" duplicado (Start 2027 e Start Semestral). Por isso o nome de exibição recebe o grupo "Semestral".
-- `planos.tipo` está em formato de exibição. Comparar texto sem mapeamento faria aluno Wellhub não ser reconhecido.
-- Regra do Start ("Start sem pagamento até D+3 não libera crédito") e regra do Clube: é preciso conferir que funções escritas para `start_2027` também cobrem a família nova, para evitar créditos não liberados ou multiplicador errado.
-- Fiscais de auditoria e o resolvedor de plano principal precisam reconhecer a família nova como plano principal.
-- Teste existente `src/test/novaVendaAbas.test.ts` pode precisar de ajuste.
-
-## Verificação geral
-A cada etapa: ensaios SQL revertidos, consultas de contagem antes e depois, `bunx vitest run`, tipos e lint. Nada é ativado ao vivo sem o seu OK.
-
-## Pontos para você confirmar
-1. Regra da 2ª avaliação com atraso no 6º ciclo (proposta acima).
-2. "Uma contratação por CPF" inclui quem cancelou? Proposta: sim, nunca pode recontratar.
-3. Se o aluno tiver Wellhub e TotalPass ativos ao mesmo tempo: bloquear e pedir para a equipe resolver?
-
-## Decisões do dono (11/11/2026)
-1. 2ª avaliação: se em atraso no início do 6º ciclo, libera ao pagar dentro do 6º ciclo; se o ciclo 6 terminar em atraso, não libera.
-2. Uma contratação por CPF inclui cancelados: nunca recontrata.
-3. Wellhub e TotalPass ativos juntos: venda bloqueada; equipe corrige o cadastro.
-
-Etapas 1, 2 e 3 aplicadas em 11/11/2026 (itens seguem desligados).
+## Decisão pendente
+- Pela regra de uma contratação por CPF, a venda paga deixa o CPF da Bruna bloqueado para o Semestral. Opções:
+  - **(a)** manter (ela é só cadastro de teste);
+  - **(b)** apagar a venda e o contrato de teste no fim, mantendo `pagamentos_rede` e o estorno.
+- Recomendação: (a).
