@@ -14,6 +14,7 @@ import { cobrarComToken } from "../_shared/rede-recorrencia-core.ts";
 import { executarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
 import { cobrarTokenManual } from "../_shared/manual-primeiro-ciclo-rede.ts";
 import { vendaReservadaPix, MSG_RESERVA_PIX } from "../_shared/pix-aut-reserva.ts";
+import { escolherCaminhoCobranca, genericoRecusa, type VendaCaminho } from "../_shared/caminho-cobranca-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,8 +37,24 @@ serve(async (req) => {
   }
 
   if (await vendaReservadaPix(supabase, venda_id)) return new Response(JSON.stringify({ error: MSG_RESERVA_PIX, codigo: "reservado_pix_automatico" }), { status: 409, headers });
-  const { data: vendaManual } = await supabase.from("vendas").select("origem,tipo_cobranca").eq("id", venda_id).maybeSingle();
-  if (vendaManual?.origem === "manual" && vendaManual.tipo_cobranca === "recorrencia") {
+  const { data: vendaManual } = await supabase.from("vendas").select("origem,tipo_cobranca,plano_id,catalogo_id").eq("id", venda_id).maybeSingle();
+  const { data: cat } = vendaManual?.catalogo_id
+    ? await supabase.from("planos_catalogo").select("familia,versao").eq("id", vendaManual.catalogo_id).maybeSingle()
+    : { data: null };
+  let temCiclo1 = false;
+  if (vendaManual?.plano_id) {
+    const { data: ks } = await supabase.from("contratos").select("id").eq("plano_id", vendaManual.plano_id);
+    const ids = (ks ?? []).map((k: { id: string }) => k.id);
+    if (ids.length) {
+      const { count } = await supabase.from("cobrancas").select("id", { count: "exact", head: true }).in("contrato_id", ids).eq("numero_ciclo", 1);
+      temCiclo1 = (count ?? 0) > 0;
+    }
+  }
+  const caminhoVenda: VendaCaminho = {
+    origem: vendaManual?.origem ?? null, tipo_cobranca: vendaManual?.tipo_cobranca ?? null,
+    familia: cat?.familia ?? null, versao_2027: cat?.versao != null, tem_cobranca_ciclo1: temCiclo1,
+  };
+  if (escolherCaminhoCobranca(caminhoVenda) === "primeiro_ciclo") {
     const bearer = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
     if (bearer !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
       const { data: { user } } = await supabase.auth.getUser(bearer);
@@ -52,6 +69,10 @@ serve(async (req) => {
     } catch (e) {
       return new Response(JSON.stringify({ success: false, error: String(e), incerto: true }), { status: 409, headers });
     }
+  }
+
+  if (genericoRecusa(caminhoVenda)) {
+    return new Response(JSON.stringify({ success: false, error: "Venda de plano 2027 em recorrência: a 1ª mensalidade só é cobrada pelo caminho do contrato. Nada foi cobrado." }), { status: 409, headers });
   }
 
   const { data: existing } = await supabase

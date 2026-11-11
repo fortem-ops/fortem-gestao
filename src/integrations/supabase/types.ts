@@ -15414,6 +15414,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_venda_balcao_recorrente: {
+        Args: { p_catalogo: string; p_origem: string }
+        Returns: boolean
+      }
       fn_venda_plano_fortem: { Args: { p_venda_id: string }; Returns: boolean }
       fn_venda_semestral_criar: { Args: { p: Json }; Returns: Json }
       fn_venda_servicos_2027_criar: { Args: { p: Json }; Returns: Json }

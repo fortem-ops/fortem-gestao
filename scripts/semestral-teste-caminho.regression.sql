@@ -1,0 +1,6 @@
+-- Regressão do teste real de 11/11/2026: venda Pro Semestral com origem teste_2027 deve seguir o caminho
+-- da 1ª mensalidade (reserva -> liquidação -> ativação -> créditos -> nº 2). Ensaio revertido; executado com
+-- ENSAIO_OK em 11/11/2026 (bloco completo no histórico da correção). Rede simulada.
+-- Checagens: fn_semestral_elegivel ignora vendas teste_2027 no CPF; fn_manual_primeiro_ciclo_reservar devolve
+-- handled=true e 100 centavos; liquidar ativa o plano, 12 Treinos + 4 Bota + 1 Avaliação; uma nº 2 cobrável
+-- (fn_mensalidade_manual_cobravel); nova reserva é idempotente.

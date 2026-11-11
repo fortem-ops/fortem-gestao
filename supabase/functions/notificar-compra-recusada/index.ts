@@ -82,6 +82,8 @@ async function sendGmailEmail(to: string, subject: string, html: string) {
   await client.close();
 }
 
+import { rotuloRecusa } from "../_shared/rotulo-recusa.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
@@ -136,7 +138,7 @@ Deno.serve(async (req) => {
       ]);
       const tP = p?.created_at ? new Date(p.created_at).getTime() : 0;
       const tV = v?.created_at ? new Date(v.created_at).getTime() : 0;
-      if (tV > tP && v?.id) { vendaRef = v.id; fluxoFinal = "corrida"; }
+      if (tV > tP && v?.id) { vendaRef = v.id; }
       else if (p?.id) { pedidoRef = p.id; fluxoFinal = "loja"; }
     }
 
@@ -189,7 +191,6 @@ Deno.serve(async (req) => {
         parcelas = Math.max(1, Number(venda.parcelas ?? 1));
         quando = venda.created_at ?? null;
         alunoId = alunoId || (venda.aluno_id ?? "");
-        referencia = `Inscrição da Corrida (venda ${venda.id})`;
       }
       const { data: inscricao } = await supabase
         .from("corrida_inscricoes_prova")
@@ -223,14 +224,29 @@ Deno.serve(async (req) => {
     }
 
     if (!nome) nome = "Comprador não identificado";
-    if (!referencia) referencia = fluxoFinal === "corrida" ? "Inscrição da Corrida" : "Compra na Loja";
+    // Rótulo: Corrida só quando há inscrição da Corrida ligada à venda; senão, o item vendido.
+    let temInscricao = false;
+    let itemVenda: { familia?: string | null; nome?: string | null } | null = null;
+    if (vendaRef && !pedidoRef) {
+      const { count } = await supabase.from("corrida_inscricoes_prova").select("id", { count: "exact", head: true }).eq("venda_id", vendaRef);
+      temInscricao = (count ?? 0) > 0;
+      if (!temInscricao) {
+        const { data: vv } = await supabase.from("vendas").select("catalogo_id, nome_snapshot").eq("id", vendaRef).maybeSingle();
+        const { data: cc } = vv?.catalogo_id
+          ? await supabase.from("planos_catalogo").select("familia, nome_exibicao").eq("id", vv.catalogo_id).maybeSingle()
+          : { data: null };
+        itemVenda = { familia: cc?.familia ?? null, nome: cc?.nome_exibicao ?? vv?.nome_snapshot ?? null };
+      }
+    }
+    const rotulo = rotuloRecusa({ fluxo: fluxoFinal, venda_id: vendaRef || null, pedido_id: pedidoRef || null, tem_inscricao_corrida: temInscricao, item_venda: itemVenda });
+    if (!pedidoRef || !referencia) referencia = rotulo.referencia;
 
     const motivo = motivoComCodigo({ returnCode, returnMessage, erro });
     const motivoCurto = motivoAmigavel({ returnCode, returnMessage, erro });
     const etapaLabel = etapa === "tokenizacao"
       ? "Recusa na validação do cartão (tokenização)"
       : "Recusa na cobrança";
-    const fluxoLabel = fluxoFinal === "corrida" ? "Corrida" : "Loja";
+    const fluxoLabel = rotulo.fluxoLabel;
 
     const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
 <div style="max-width:620px;margin:0 auto;padding:24px">
