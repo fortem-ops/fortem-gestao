@@ -1,86 +1,66 @@
-# Pix Automático para contratos atuais e 2027 (análise, sem alterações)
+# Plano Semestral para alunos de agregadoras (Wellhub / TotalPass)
 
-Nada foi alterado. Todas as leituras foram somente consulta.
+Somente plano. Nada será gravado até a sua aprovação, uma etapa por vez.
 
-## A) O que existe hoje
+## O que já foi conferido no banco (11/11/2026)
+- `planos_catalogo` já tem as colunas necessárias: `codigo`, `familia`, `versao`, `modalidade_cobranca`, `liberacao_creditos`, `taxa_recorrencia`, `fidelidade_meses`, `licenca_dias`, `avaliacoes_funcionais_meses`, `permite_fixar_horario`, `bota_compressao_mes`, `nivel_clube`, `reposicao_saldo_pct`, `brindes`, `vendavel_desde/ate`. Não existe coluna de agregadora nem de "período de preço fixo".
+- Start 2027 usa `liberacao_creditos = 'mensal'`, taxa 0. Pro 2027 usa `avaliacoes_funcionais_meses = {1,6}` com `total_na_compra` (libera tudo na venda).
+- A cobrança diária (`fn_recorrencia_2027_devidas`) não filtra por `versao`: lê só `planos_2027_mensalidades`. Um item entra na cobrança somente se uma venda gerar linhas nessa tabela.
+- `contrato_templates` (36 modelos) já tem tipos `wellhub`, `gympass` e `totalpass` ativos para os planos de agregadora atuais. A regra de modelo único vale por `plano_tipo + forma_pagamento`.
 
-Tela Meios de Pagamento > Pix Automático (`src/components/student/financeiro/PixAutomaticoSection.tsx`, `AtivarPixDialog.tsx`):
-- "Ativar": admin digita um "valor mínimo" e as datas. Chama `pix-criar-recorrencia` (POST `/pix/v2/rec`) e depois `pix-solicitar-confirmacao` (POST `/pix/v2/solicrec`). Fica salvo em `pix_recorrencias` como CRIADA, depois AGUARDANDO_AUTORIZACAO.
-- Lista a recorrência e as `pix_cobrancas` do aluno, e tem "Cancelar" (`pix-cancelar-recorrencia`).
-- Limites do código atual (`_shared/pix-rec.ts`):
-  - `vinculo.contrato` = id do **aluno** (linha 20), e não o do contrato. Hoje existe uma autorização por aluno e nada a liga a contratos.
-  - Envia `valorMinimoRecebedor` (linha 24) e `politicaRetentativa: PERMITE_3R_7D` (linha 25).
-  - `pix_recorrencias.contrato_id` existe, mas a tela não o preenche.
-- **Nenhum código envia a cobrança mensal ao Inter** (busca por `/pix/v2/cobr` em `supabase/functions` sem resultado). Ou seja, a autorização funciona, mas nada debita o aluno todo mês. Para planos atuais, o fluxo não cobra.
-- `pix-webhook` (`eventos.ts`): atualiza o status da recorrência (APROVADA→AUTORIZADA) e das cobranças (CONCLUIDA→LIQUIDADA) sem repetir a mesma atualização. A baixa de uma cobrança Pix Automático hoje só toca `pix_cobrancas`, vendas de Corrida e pedidos. Não dá baixa em `cobrancas` de contrato.
-- 2027: `fn_pix_automatico_2027_*` só funcionam com `proposta_id` / `origem='site_2027'` (por exemplo, `fn_pix_automatico_2027_aviso` filtra `origem = 'site_2027'` e atualiza `propostas_planos_2027.pix_aut_estado`). Estão desligadas por `planos_pix_automatico_ativo=false`, lista de planos vazia e `rotina_pausada=true`. Isso é decisão anterior sua (Pix Automático só Power/Pro, taxa R$ 24,90, ainda não liberado).
-- Na Nova Venda já existe a opção "Pix Automático" (`PagamentoStep.tsx:59`), mas sem cobrança automática por trás.
+## Etapas
 
-Fluxo completo hoje: autorização (funciona) → cobrança mensal (**não existe**) → baixa (só no webhook, sem ligar a contrato) → falha e retentativa (só a política declarada no Inter) → cancelamento (funciona por admin e pelo webhook).
+### Etapa 1: Catálogo e contratos (só banco, tudo desligado)
+- Migração: adicionar a `planos_catalogo` as colunas `agregadora_requerida` (texto: `wellhub` / `totalpass`, nulo nos demais) e `preco_fixo_ciclos` (inteiro, nulo nos demais). Mudança apenas aditiva.
+- Inserir os 4 itens com `ativo = false`: `versao 2027`, família nova `semestral_2027`, `recorrencia_mensal`, `liberacao_creditos 'mensal'`, 12 créditos, frequência 3x, `taxa_recorrencia 0`, `fidelidade_meses 0`, `licenca_dias 0`, `reposicao_saldo_pct 0`, brindes vazio, `nivel_clube` igual ao do Start 2027, `avaliacoes_funcionais_meses {1,6}`, `vendavel_ate 2026-12-31`, `preco_fixo_ciclos 6`. Somente nos itens Pro: fixar horário ativado e bota com 4 sessões.
+- Inserir 2 modelos novos inativos com `plano_tipo` próprio (`semestral_wellhub` e `semestral_totalpass`, cartão recorrente) e texto provisório. Assim não há choque com os modelos de agregadora atuais.
+- Verificação: os 4 itens com seus valores e flags, `ativo = false`, e os 2 modelos inativos. A contagem dos demais itens e modelos não muda.
 
-## B) Regras do Inter/BCB
-Vieram do código: `valorMinimoRecebedor`, periodicidade MENSAL, `PERMITE_3R_7D` e código de autorização válido por 7 dias (`pix-rec.ts:58`).
-**Precisam ser confirmadas na documentação do Inter/BCB antes de implementar (não verifiquei agora):**
-- Valor fixo ou variável. Pelo que sei do regulamento: no valor variável o **pagador** pode definir um teto (`valorMaximo`), e o recebedor só define o mínimo. Se a cobrança passar do teto, o débito não acontece. Sua premissa ("autoriza um máximo e o mês varia até ele") está quase certa, mas o teto é escolha do aluno no app do banco, não nossa.
-- A cobrança precisa ser enviada entre 2 e 10 dias antes do vencimento.
-- `PERMITE_3R_7D`: até 3 novas tentativas em 7 dias, combinando com o seu D0/D+1/D+3.
-- O pagador pode cancelar a qualquer momento no app do banco, e o aviso chega pelo webhook.
+### Etapa 2: Elegibilidade no servidor
+- Nova função `fn_semestral_elegivel(aluno, codigo)`. Ela lê o plano de agregadora ativo do aluno pela função canônica e mapeia `planos.tipo` ("Gympass/Wellhub" → wellhub, "Total Pass" → totalpass). Recusa nos casos: agregadora diferente, sem agregadora, CPF que já contratou (busca por CPF em contratos e vendas semestrais, inclusive cancelados) ou fora de `vendavel_ate`.
+- A RPC que lista os planos da Nova Venda e a RPC que grava a venda chamam essa função. Itens com `agregadora_requerida` nunca são devolvidos a quem não tem a agregadora.
+- Verificação: chamada direta da função para um aluno Wellhub, um TotalPass e um sem agregadora (ensaio revertido), mais a contagem de itens que cada um recebe.
 
-## C) Contratos atuais
-- As mensalidades ficam em `cobrancas`, **uma por contrato e ciclo** (`contrato_id`, `numero_ciclo`, `valor`, `data_vencimento`, `status`, `forma_pagamento`, `gateway`, `tid`). A baixa é manual ou pelo cartão. Os planos 2027 usam `planos_2027_mensalidades`, ligadas a `cobrancas.mensalidade_2027_id`.
-- Proposta de vínculo: tabela nova com 1 recorrência para N contratos (recorrência, contrato, ativo desde, ativo até). `vinculo.contrato` passa a ser o id da recorrência.
-- Cobrança do mês: soma as `cobrancas` pendentes dos contratos ligados que vencem no período, gera uma `pix_cobranca` com a composição e trava cada `cobranca` (marcada como reservada para o Pix).
-- Rateio: um débito total dá baixa em todas as `cobrancas` da composição. Débito falho mantém todas pendentes. O Pix Automático debita o valor inteiro ou nada, então não há débito parcial. Se houver valor diferente por alguma exceção, a cobrança fica para conferência manual, sem baixa automática.
-- Ao trocar: `contratos.forma_pagamento='pix_automatico'` só depois de AUTORIZADA. `cartao_token_id` é mantido, mas o contrato sai da cobrança no cartão.
-- Contra cobrança dupla:
-  - (1) a cobrança no cartão e a geração Pix olham a mesma marca da `cobranca`, com bloqueio de linha;
-  - (2) um contrato só pode ter um vínculo ativo;
-  - (3) a cobrança no cartão ignora contratos com `forma_pagamento='pix_automatico'`;
-  - (4) nenhuma `cobranca` com Pix em andamento pode ser cobrada no cartão de um clique.
-- O cartão automático dos planos atuais segue desligado: `cobrar-recorrencias-diario` fica inativo e não é tocado.
+### Etapa 3: Nova Venda (tela) e ativação
+- Aba Planos: o grupo "Plano Semestral" aparece só quando o servidor devolve itens. A tela não faz filtro próprio.
+- A venda segue o caminho das vendas manuais 2027 recorrentes: `planos_2027_mensalidades` ligada por `venda_origem_id`, 1º ciclo cobrado na hora, ciclo de 30 dias a partir da venda.
+- Na ativação, o plano da agregadora é encerrado (`ativo=false`, `data_fim` = data da ativação). Os registros de check-in da agregadora em `contratos` ficam como estão.
+- Verificação: venda de ensaio revertida. Contrato, mensalidade nº 1, 12 créditos só após o pagamento e plano da agregadora encerrado.
 
-## D) Tela em Plano & Financeiro
-Na aba Meios de Pagamento (`StudentPlanoFinanceiro.tsx`), substituir a seção atual por "Pix Automático":
-- marcar os contratos (com valor e soma), dia de débito, teto sugerido, botão "Gerar código/QR" e opção de copiar o link para WhatsApp;
-- estados: rascunho, aguardando autorização (com validade e "gerar novo código", até 3), ativa, falha no mês, cancelada (pelo aluno ou pela equipe);
-- "Voltar para cartão": só admin. Cancela no Inter, volta `forma_pagamento` e as pendências viram cobrança no cartão sem cobrança automática para os atuais.
-- Permissões: criar e cancelar só admin, conferido no servidor. Coordenador só vê.
+### Etapa 4: Renovação mensal e cobrança no cartão
+- Renovação por ciclo igual à do Start (`fn_renovar_start_2027` estendida à família `semestral_2027`, ou uma cópia dedicada). Créditos não usados expiram no fim do ciclo. Ciclos 1 a 6 usam o preço da venda; do 7º em diante, usam o valor vigente no contrato (ajuste manual).
+- Cancelamento: as próximas mensalidades são canceladas e o acesso vai até o fim do ciclo pago.
+- Pix Automático: o item fica marcado como elegível, mas desligado (sem botão) até a conclusão das etapas do grupo Pix.
+- Verificação: ensaio revertido de D0 do ciclo 2, com mensalidade gerada uma única vez e créditos bloqueados até o pagamento.
 
-## E) App do aluno
-- Existe: push (`send-push-notification`, `check-push-triggers`, `portal_push_subscriptions` com 1 aluno inscrito), `PortalHome`/`PortalNotificacoes`, aviso interno de inadimplência 2027 (`fn_recorrencia_2027_inadimplente_aviso`, só para a equipe), `send-whatsapp` e e-mails transacionais.
-- Falta:
-  - "Alterar forma de pagamento" no portal, para o aluno escolher os contratos, gerar o QR e ver o status;
-  - um aviso na tela inicial quando houver cobrança falha ou vencida, com o texto de encargos.
-- Envio dos avisos: primeiro o aviso na tela inicial (sempre aparece), depois e-mail e, por último, push se o aluno tiver ativado.
-- Hoje a regra 2027 é "sem WhatsApp nem e-mail ao aluno" na inadimplência. **Avisar o aluno muda essa regra e precisa da sua decisão.**
-- Encargos: `src/lib/encargosAtraso.ts`, linhas 7–8, com multa de 2% única e juros de 1% ao mês proporcional aos dias, corrigido pelo IPCA (linha 89). O aviso deve dizer "multa de 2%, juros de 1% ao mês e correção pelo IPCA".
+### Etapa 5: 2ª Avaliação Funcional condicional
+- Na venda, cria-se só o crédito da 1ª avaliação.
+- Uma rotina diária (dentro da renovação do ciclo) libera a 2ª avaliação quando todas estas condições valem: o ciclo que começa é o 6º, o contrato está ativo, não há mensalidade vencida em aberto e o crédito ainda não foi dado. Uma marca no contrato impede liberar duas vezes.
+- Se o aluno estiver em atraso no início do 6º ciclo, a liberação acontece quando a pendência for paga, ainda dentro do 6º ciclo. Se o ciclo 6 terminar com atraso, a avaliação não é liberada. Confirmar se é essa a regra desejada.
+- Verificação: três ensaios revertidos (em dia → libera; em atraso → não libera; segunda execução → não duplica).
 
-## F) Riscos e testes
-- Riscos:
-  - cobrança dupla entre cartão e Pix (marca única com bloqueio de linha);
-  - valor acima do teto do aluno (avisar antes de enviar se a soma mudou);
-  - aluno cancela no banco (aviso aos admins e multa do contrato);
-  - aluno com duas autorizações (bloquear: um contrato só pode estar em um vínculo ativo);
-  - LGPD: CPF já sai só do servidor e o log já esconde o CPF;
-  - contrato que termina ou é rescindido dentro de um vínculo (sai da soma);
-  - o reajuste do contrato pode passar do teto.
-- Testes sem cobrança real: testes de rateio e trava, ensaios SQL desfeitos depois, webhooks simulados com os nomes reais do Inter e o modo simulação do envio da cobrança. Teste real de R$ 1,00 só com sua autorização (NICOLAS TESTE ou Bruna Meyer, com estorno depois).
+### Etapa 6: Upgrade Start → Pro Semestral
+- Cobra a diferença proporcional dos dias restantes do ciclo, troca o item do contrato e mantém a data de início, a contagem de ciclos e o período de preço fixo. Fixar horário e bota passam a valer a partir do upgrade. Downgrade é bloqueado no servidor.
+- Verificação: ensaio com o valor da diferença conferido à mão, sem nova mensalidade nº 1 e contagem de ciclos mantida.
 
-## G) Etapas (do caso do Enio primeiro)
-1. P0 leitura: confirmar a documentação do Inter (teto, prazo de envio da cobrança, retentativa) e os contratos do Enio (**a busca por "Enio Frantz" não achou contratos dele; preciso confirmar o nome no cadastro**). Esforço: pequeno.
-2. P1 banco: vínculo de N contratos e marca de reserva na `cobranca`, com testes. Médio.
-3. P2 autorização feita pela equipe, ligando os contratos, na tela de Plano & Financeiro. Médio.
-4. P3 cobrança mensal: envio da cobrança ao Inter com 2 a 10 dias de antecedência, baixa e rateio pelo webhook, retentativa e falha. Grande e de maior risco. Primeiro em simulação, depois um teste real autorizado.
-5. P4 voltar para cartão e cancelamento pelo aluno, com aviso aos admins. Pequeno a médio.
-6. P5 aviso no app do aluno e e-mail. Médio.
-7. P6 o aluno autoriza sozinho no portal. Médio.
-8. P7 juntar com o fluxo 2027 (`fn_pix_automatico_2027_*`) ou manter separado. Médio.
+### Etapa 7: Ligar a venda
+- `ativo = true` nos 4 itens. Os modelos de contrato só são ativados depois que o texto jurídico chegar.
 
-## Perguntas para você decidir
-1. Taxa de R$ 24,90 também nos planos atuais com Pix Automático? E nos contratos somados, uma taxa só ou uma por contrato?
-2. O Start entra? A decisão anterior era "nunca Start por ora", e o caso do Enio é Start + Corrida Start.
-3. Débito único somado num só dia: qual dia, se os contratos vencem em dias diferentes?
-4. Avisar o aluno por e-mail ou WhatsApp quando a cobrança falhar? Hoje a regra é só aviso interno.
-5. Sugerir ao aluno um teto (por exemplo, a soma mais 10%) ou deixar livre?
-6. Planos 2027 Power/Pro seguem pelo fluxo próprio do /planos ou passam a usar o mesmo vínculo?
-7. Quem pode criar a autorização: só admin, como no cartão de um clique?
+## Cobrança diária sem afetar os planos atuais
+- O cron cobra apenas linhas de `planos_2027_mensalidades`, e essas linhas só nascem de vendas 2027. Planos atuais nunca geram linhas ali, e `cobranca_recorrente_ativa` / `cobrar-recorrencias-diario` não são tocados.
+- Verificação: `select count(*) from planos_2027_mensalidades m join contratos c ... where plano não é 2027` deve dar sempre 0.
+
+## Riscos na Nova Venda
+- A lista de planos por família pode mostrar "Start" duplicado (Start 2027 e Start Semestral). Por isso o nome de exibição recebe o grupo "Semestral".
+- `planos.tipo` está em formato de exibição. Comparar texto sem mapeamento faria aluno Wellhub não ser reconhecido.
+- Regra do Start ("Start sem pagamento até D+3 não libera crédito") e regra do Clube: é preciso conferir que funções escritas para `start_2027` também cobrem a família nova, para evitar créditos não liberados ou multiplicador errado.
+- Fiscais de auditoria e o resolvedor de plano principal precisam reconhecer a família nova como plano principal.
+- Teste existente `src/test/novaVendaAbas.test.ts` pode precisar de ajuste.
+
+## Verificação geral
+A cada etapa: ensaios SQL revertidos, consultas de contagem antes e depois, `bunx vitest run`, tipos e lint. Nada é ativado ao vivo sem o seu OK.
+
+## Pontos para você confirmar
+1. Regra da 2ª avaliação com atraso no 6º ciclo (proposta acima).
+2. "Uma contratação por CPF" inclui quem cancelou? Proposta: sim, nunca pode recontratar.
+3. Se o aluno tiver Wellhub e TotalPass ativos ao mesmo tempo: bloquear e pedir para a equipe resolver?
