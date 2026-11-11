@@ -54,3 +54,7 @@ Passos:
 Atenção:
 - Como a venda foi paga, a regra do CPF bloqueia a Bruna para o Semestral. Para o novo teste depois da correção, será preciso liberar só a venda deste teste na conferência do CPF. Fica para a sua decisão.
 - O estorno chama a Rede de verdade, então só roda com a sua aprovação deste plano.
+
+
+## Situação em 11/11/2026
+Teste real de R$ 1,00 aprovado e limpo. Pendentes: Etapa 5 (2ª Avaliação no 6º ciclo), Etapa 6 (upgrade Start→Pro), licença por atestado, texto jurídico dos 2 contratos, ligar a venda.
