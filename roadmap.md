@@ -228,3 +228,4 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [x] Plano Semestral Etapa 2: elegibilidade no servidor (agregadora, CPF único, prazo, duas agregadoras); itens seguem desligados.
 - [ ] Etapa 3: voltar ao cartão.
 - [ ] Etapa 4: app do aluno (alterar forma de pagamento, aviso na tela inicial, push).
+- Plano Semestral Etapa 3 (11/11/2026): grupo na Nova Venda, venda por recorrência no cartão, créditos só após pagamento, agregadora encerrada após gravar; itens seguem desligados.

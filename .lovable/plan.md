@@ -70,4 +70,4 @@ A cada etapa: ensaios SQL revertidos, consultas de contagem antes e depois, `bun
 2. Uma contratação por CPF inclui cancelados: nunca recontrata.
 3. Wellhub e TotalPass ativos juntos: venda bloqueada; equipe corrige o cadastro.
 
-Etapas 1 e 2 aplicadas em 11/11/2026.
+Etapas 1, 2 e 3 aplicadas em 11/11/2026 (itens seguem desligados).

@@ -29,7 +29,7 @@ import { TipoCobrancaSection } from "./TipoCobrancaSection";
 import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
 import { ServicosPlanoStep } from "./ServicosPlanoStep";
 import { Venda2027Steps } from "./Venda2027Steps";
-import { VendaSemestral, useItensSemestral } from "./VendaSemestral";
+import { VendaSemestral, useItensSemestral, CHAVE_SEMESTRAL } from "./VendaSemestral";
 import { semItensAgregadora } from "@/lib/semestral";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
