@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { MAX_CODIGOS, podeGerarCodigo, type GrupoPixStatus } from "@/lib/pixAutomaticoGrupo";
+import { PrimeiraMensalidadePix } from "./PrimeiraMensalidadePix";
 import { CodigoPixAutorizacao, gerarCodigoGrupo, mensagemErroPix, type CodigoGerado } from "./pixAutomaticoGrupoUi";
 
 type Grupo = Tables<"pix_aut_grupos"> & {
@@ -118,6 +119,7 @@ export function PixGruposList({ alunoId, isAdmin }: { alunoId: string; isAdmin: 
             {g.status === "aguardando_autorizacao" && g.codigo_expira_em && (
               <p className="text-xs text-muted-foreground">Código válido até {new Date(g.codigo_expira_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}.</p>
             )}
+            {(g.status === "aguardando_autorizacao" || g.status === "ativa") && <PrimeiraMensalidadePix grupoId={g.id} isAdmin={isAdmin} />}
             {g.motivo && g.status !== "ativa" && <p className="text-xs text-muted-foreground">Motivo: {g.motivo}</p>}
             {g.status === "ativa" && (
               <p className="text-xs text-muted-foreground">

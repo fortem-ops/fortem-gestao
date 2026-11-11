@@ -7839,6 +7839,94 @@ export type Database = {
           },
         ]
       }
+      pix_aut_imediatas: {
+        Row: {
+          aluno_id: string
+          composicao: Json
+          created_at: string
+          criado_por: string | null
+          data_pagamento: string | null
+          e2e_id: string | null
+          expira_em: string
+          finalidade: string
+          grupo_id: string
+          id: string
+          liquidado_em: string | null
+          mes: string
+          pix_copia_cola: string | null
+          status: string
+          txid: string
+          ultimo_erro: string | null
+          updated_at: string
+          valor: number
+          valor_pago: number | null
+        }
+        Insert: {
+          aluno_id: string
+          composicao?: Json
+          created_at?: string
+          criado_por?: string | null
+          data_pagamento?: string | null
+          e2e_id?: string | null
+          expira_em: string
+          finalidade?: string
+          grupo_id: string
+          id?: string
+          liquidado_em?: string | null
+          mes: string
+          pix_copia_cola?: string | null
+          status: string
+          txid: string
+          ultimo_erro?: string | null
+          updated_at?: string
+          valor: number
+          valor_pago?: number | null
+        }
+        Update: {
+          aluno_id?: string
+          composicao?: Json
+          created_at?: string
+          criado_por?: string | null
+          data_pagamento?: string | null
+          e2e_id?: string | null
+          expira_em?: string
+          finalidade?: string
+          grupo_id?: string
+          id?: string
+          liquidado_em?: string | null
+          mes?: string
+          pix_copia_cola?: string | null
+          status?: string
+          txid?: string
+          ultimo_erro?: string | null
+          updated_at?: string
+          valor?: number
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_aut_imediatas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_imediatas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_imediatas_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "pix_aut_grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pix_aut_itens: {
         Row: {
           aluno_id: string
@@ -8061,6 +8149,7 @@ export type Database = {
           motivo_rejeicao: string | null
           pagamento_id: string | null
           pedido_id: string | null
+          pix_aut_imediata_id: string | null
           proposta_id: string | null
           raw_response: Json | null
           status: string
@@ -8080,6 +8169,7 @@ export type Database = {
           motivo_rejeicao?: string | null
           pagamento_id?: string | null
           pedido_id?: string | null
+          pix_aut_imediata_id?: string | null
           proposta_id?: string | null
           raw_response?: Json | null
           status?: string
@@ -8099,6 +8189,7 @@ export type Database = {
           motivo_rejeicao?: string | null
           pagamento_id?: string | null
           pedido_id?: string | null
+          pix_aut_imediata_id?: string | null
           proposta_id?: string | null
           raw_response?: Json | null
           status?: string
@@ -8176,6 +8267,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebiveis_previstos_produtos"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_pix_aut_imediata_id_fkey"
+            columns: ["pix_aut_imediata_id"]
+            isOneToOne: false
+            referencedRelation: "pix_aut_imediatas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -14584,6 +14682,34 @@ export type Database = {
         Args: { p_hoje: string; p_plano: string }
         Returns: Json
       }
+      fn_pix_aut_primeira_ativar: {
+        Args: { p_copia: string; p_expira: string; p_id: string; p_raw: Json }
+        Returns: Json
+      }
+      fn_pix_aut_primeira_composicao: {
+        Args: { p_grupo: string; p_hoje: string }
+        Returns: Json
+      }
+      fn_pix_aut_primeira_evento: {
+        Args: {
+          p_e2e: string
+          p_horario: string
+          p_txid: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      fn_pix_aut_primeira_expirar: { Args: never; Returns: Json }
+      fn_pix_aut_primeira_falha: {
+        Args: { p_erro: string; p_id: string }
+        Returns: Json
+      }
+      fn_pix_aut_primeira_previa: { Args: { p_grupo: string }; Returns: Json }
+      fn_pix_aut_primeira_reservar: {
+        Args: { p_grupo: string; p_txid: string; p_usuario: string }
+        Returns: Json
+      }
+      fn_pix_aut_primeira_soltar: { Args: { p_id: string }; Returns: undefined }
       fn_pix_aut_proximo_venc: { Args: { p_grupo: string }; Returns: string }
       fn_pix_aut_rec_status: {
         Args: { p_id_rec: string; p_status: string }

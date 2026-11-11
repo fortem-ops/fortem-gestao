@@ -1807,6 +1807,20 @@
       "when": 1794360025471,
       "tag": "0257_pix_renovacao_programada_sem_lacuna",
       "breakpoints": true
+    },
+    {
+      "idx": 258,
+      "version": "7",
+      "when": 1794392543481,
+      "tag": "0258_pix_aut_primeira_mensalidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 259,
+      "version": "7",
+      "when": 1794392765469,
+      "tag": "0259_pix_aut_primeira_origem",
+      "breakpoints": true
     }
   ]
 }

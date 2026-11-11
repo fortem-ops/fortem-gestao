@@ -3,6 +3,7 @@ import { extrairEventos, statusRec, statusCobr, podeAtualizarRec, mascararCpf, m
 import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
 import { ehCobrancaPlanos, baixarPixProposta } from "./planos-baixa.ts";
 import { ehTxidFesta, baixarPixFesta } from "../_shared/festa-pix.ts";
+import { valorPix } from "../_shared/pix-aut-primeira.ts";
 
 
 async function notifyAdmins(params: {
@@ -96,6 +97,19 @@ Deno.serve(async (req) => {
         await baixarPixFesta(sup, txid, ev?.valor, "webhook");
         pixTratados.add(txid);
         continue;
+      }
+      // --- 1ª mensalidade de grupo Pix Automático (Pix imediato): baixa dividida e idempotente no banco ---
+      {
+        const { data: im, error: imErr } = await sup.rpc("fn_pix_aut_primeira_evento", {
+          p_txid: txid, p_valor: valorPix(ev?.valor), p_e2e: ev?.endToEndId ?? null,
+          p_horario: typeof ev?.horario === "string" ? ev.horario : null,
+        });
+        if (imErr) {
+          await sup.from("system_logs").insert({ modulo: "pix-webhook", acao: "primeira_mensalidade_erro", mensagem: `${txid}: ${imErr.message}`, payload: { txid } });
+        } else if ((im as { imediata?: boolean } | null)?.imediata) {
+          pixTratados.add(txid);
+          continue;
+        }
       }
       const { data: cob } = await sup
         .from("pix_cobrancas")
