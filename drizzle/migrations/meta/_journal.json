@@ -1800,6 +1800,13 @@
       "when": 1794357895241,
       "tag": "0256_pix_automatico_etapa2_aviso_equipe",
       "breakpoints": true
+    },
+    {
+      "idx": 257,
+      "version": "7",
+      "when": 1794360025471,
+      "tag": "0257_pix_renovacao_programada_sem_lacuna",
+      "breakpoints": true
     }
   ]
 }

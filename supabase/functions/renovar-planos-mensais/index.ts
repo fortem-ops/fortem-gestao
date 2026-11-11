@@ -5,8 +5,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-secret",
 };
 
+function requiredEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`Missing environment variable: ${name}`);
+  return value;
+}
+
 let _cachedSecret: string | null = null;
-async function authorize(req: Request, admin: any, opts: { requireAdmin?: boolean } = {}) {
+type AuthAdmin = { rpc: (name: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown }> };
+async function authorize(req: Request, admin: AuthAdmin, opts: { requireAdmin?: boolean } = {}) {
   const provided = req.headers.get("x-webhook-secret");
   if (provided) {
     if (!_cachedSecret) {
@@ -17,7 +24,7 @@ async function authorize(req: Request, admin: any, opts: { requireAdmin?: boolea
   }
   const authHeader = req.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
-    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+    const userClient = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_ANON_KEY"),
       { global: { headers: { Authorization: authHeader } } });
     const { data: u, error } = await userClient.auth.getUser();
     if (!error && u?.user) {
@@ -35,8 +42,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY")
   );
 
   const auth = await authorize(req, supabase, { requireAdmin: true });
@@ -57,20 +64,9 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    // Pix Automático (Etapa 2, opção 1): só planos/contratos em grupo Pix ATIVO renovam 8 dias antes do vencimento.
-    // A lista vem do banco (fn_pix_aut_planos_antecipar); os demais alunos seguem exatamente como antes.
-    type Antecipar = { plano_id: string; proxima_renovacao: string; eh_2027: boolean };
-    const { data: antecData, error: antecErr } = await supabase.rpc("fn_pix_aut_planos_antecipar", { p_hoje: today });
-    const antecipar: Antecipar[] = antecErr ? [] : ((antecData as Antecipar[] | null) ?? []);
-    if (antecErr) console.error("fn_pix_aut_planos_antecipar:", antecErr.message);
-    const antecLegado = antecipar.filter((a) => !a.eh_2027).map((a) => a.plano_id);
-    if (antecLegado.length) {
-      const { data: extra } = await supabase
-        .from("planos")
-        .select("id, aluno_id, tipo, valor, proxima_renovacao, desconto_recorrente, forma_pagamento_padrao, parcelas_padrao, atividade, created_at, data_inicio")
-        .in("id", antecLegado).eq("ativo", true).is("catalogo_id", null);
-      for (const e of extra ?? []) if (!(planos ?? []).some((x) => x.id === e.id)) (planos as typeof extra)?.push(e);
-    }
+    // Prepara o financeiro D-8 e ativa a vigência só no início; nunca usa a renovação normal com data futura.
+    const { data: pixRenovacoes, error: pixRenErr } = await supabase.rpc("fn_pix_aut_renovacoes_diario", { p_hoje: today });
+    if (pixRenErr) throw pixRenErr;
 
     // Cache de catálogo (por nome em minúsculas)
     const { data: catalogo, error: catErr } = await supabase
@@ -80,11 +76,12 @@ Deno.serve(async (req) => {
     if (catErr) throw catErr;
 
     const byName = new Map<string, typeof catalogo>();
-    const byId = new Map<string, any>();
+    type Catalogo = NonNullable<typeof catalogo>[number];
+    const byId = new Map<string, Catalogo>();
     for (const c of catalogo || []) {
       const k = (c.nome || "").toLowerCase().trim();
-      if (!byName.has(k)) byName.set(k, [] as any);
-      (byName.get(k) as any).push(c);
+      if (!byName.has(k)) byName.set(k, []);
+      byName.get(k)?.push(c);
       byId.set(c.id, c);
     }
 
@@ -98,9 +95,11 @@ Deno.serve(async (req) => {
     };
 
     let geradas = 0;
-    const erros: any[] = [];
+    const erros: { plano_id: string; motivo: string }[] = [];
 
     for (const p of planos || []) {
+      const { data: programado } = await supabase.from("pix_aut_renovacoes").select("id").eq("plano_anterior_id", p.id).limit(1);
+      if (programado?.length) continue;
       // Plano antigo esquecido ativo: se o aluno já tem um plano mais novo ativo
       // da mesma atividade, este não é renovado (evita plano/venda duplicados e
       // o encerramento do contrato vigente). Apenas é desativado.
@@ -109,9 +108,9 @@ Deno.serve(async (req) => {
         .select("id")
         .eq("aluno_id", p.aluno_id)
         .eq("ativo", true)
-        .eq("atividade", (p as any).atividade)
+        .eq("atividade", p.atividade)
         .neq("id", p.id)
-        .gt("created_at", (p as any).created_at)
+        .gt("created_at", p.created_at)
         .limit(1);
       if (mnErr) {
         erros.push({ plano_id: p.id, motivo: `Falha ao verificar plano mais novo: ${mnErr.message}` });
@@ -123,13 +122,13 @@ Deno.serve(async (req) => {
         continue;
       }
       // Nunca renovar antes do fim do primeiro ciclo.
-      if ((p as any).data_inicio && (p as any).data_inicio >= today) {
+      if (p.data_inicio && p.data_inicio >= today) {
         erros.push({ plano_id: p.id, motivo: "Plano ainda não completou o primeiro ciclo — sem renovação" });
         continue;
       }
       // Próxima renovação gravada igual/antes do início: corrige para início + 1 mês e não renova.
-      if ((p as any).data_inicio && p.proxima_renovacao && (p.proxima_renovacao as string) <= (p as any).data_inicio) {
-        const d = new Date(`${(p as any).data_inicio}T00:00:00Z`);
+      if (p.data_inicio && p.proxima_renovacao && (p.proxima_renovacao as string) <= p.data_inicio) {
+        const d = new Date(`${p.data_inicio}T00:00:00Z`);
         d.setUTCMonth(d.getUTCMonth() + 1);
         await supabase.from("planos").update({ proxima_renovacao: d.toISOString().split("T")[0] }).eq("id", p.id);
         erros.push({ plano_id: p.id, motivo: "Próxima renovação igual ao início — data corrigida, sem renovação" });
@@ -147,7 +146,7 @@ Deno.serve(async (req) => {
       // 1) mesmo catalogo_id da última venda de plano do aluno;
       // 2) variante do mesmo plano com a frequência do cadastro do aluno;
       // 3) sem correspondência segura -> não renova e registra o motivo.
-      let escolhido: any = null;
+      let escolhido: Catalogo | null = null;
 
       const { data: ultimaVenda, error: uvErr } = await supabase
         .from("vendas")
@@ -181,7 +180,7 @@ Deno.serve(async (req) => {
         const alvo = freqLabel(alunoRow?.frequencia_semanal);
         if (alvo) {
           escolhido = variantes.find(
-            (v: any) => Number(v.periodo_meses) === 1 && (v.frequencia || "") === alvo,
+            (v) => Number(v.periodo_meses) === 1 && (v.frequencia || "") === alvo,
           ) || null;
         }
       }
@@ -196,7 +195,7 @@ Deno.serve(async (req) => {
 
       const dataVenda = p.proxima_renovacao as string; // data em que a renovação venceu
       const valor = Number(p.valor ?? 0);
-      const desconto = Number((p as any).desconto_recorrente ?? 0);
+      const desconto = Number(p.desconto_recorrente ?? 0);
       const valorFinal = Math.max(0, valor - desconto);
 
       // Trava de idempotência: já houve renovação automática para este aluno nas últimas 20h?
@@ -244,8 +243,8 @@ Deno.serve(async (req) => {
         valor,
         desconto,
         valor_final: valorFinal,
-        forma_pagamento: (p as any).forma_pagamento_padrao ?? null,
-        parcelas: (p as any).parcelas_padrao ?? 1,
+        forma_pagamento: p.forma_pagamento_padrao ?? null,
+        parcelas: p.parcelas_padrao ?? 1,
         status_pagamento: "pendente",
         data_venda: dataVenda,
         origem: "renovacao_automatica",
@@ -259,7 +258,7 @@ Deno.serve(async (req) => {
 
       // Correção isolada p/ atividade='corrida': o gatilho fn_processar_venda cria o novo
       // plano sem proxima_renovacao e fn_planos_autorenew_defaults não cobre 'corrida'.
-      if ((p as any).atividade === "corrida" && vendaCriada?.plano_id) {
+      if (p.atividade === "corrida" && vendaCriada?.plano_id) {
         const base = new Date(`${dataVenda}T00:00:00Z`);
         const hoje = new Date(`${today}T00:00:00Z`);
         const prox = new Date(base);
@@ -287,7 +286,7 @@ Deno.serve(async (req) => {
     // ===== Planos 2027 (caminho separado; o bloco legado acima não muda) =====
     // Start 2027: renova ciclo a ciclo via fn_renovar_start_2027.
     // Depois: fn_creditos_mensais_2027 libera créditos do ciclo (Start) e a Bota do Pro.
-    const planos2027: any = { renovados: [], pulados: [], erros: [], creditos: null };
+    const planos2027: { renovados: unknown[]; pulados: unknown[]; erros: unknown[]; creditos: unknown } = { renovados: [], pulados: [], erros: [], creditos: null };
     try {
       const { data: start2027, error: s27Err } = await supabase
         .from("planos")
@@ -298,13 +297,10 @@ Deno.serve(async (req) => {
         .lte("proxima_renovacao", today);
       if (s27Err) planos2027.erros.push({ etapa: "listar_start_2027", motivo: s27Err.message });
       const lista2027: { id: string; data: string }[] = (start2027 || []).map((p: { id: string }) => ({ id: p.id, data: today }));
-      for (const a of antecipar.filter((x) => x.eh_2027)) {
-        if (!lista2027.some((x) => x.id === a.plano_id)) lista2027.push({ id: a.plano_id, data: a.proxima_renovacao });
-      }
       for (const p of lista2027) {
         const { data: r, error: rErr } = await supabase.rpc("fn_renovar_start_2027", { p_plano: p.id, p_data: p.data });
         if (rErr) planos2027.erros.push({ plano_id: p.id, motivo: rErr.message });
-        else if ((r as any)?.pulado) planos2027.pulados.push(r);
+        else if ((r && typeof r === "object" && "pulado" in r)) planos2027.pulados.push(r);
         else planos2027.renovados.push(r);
       }
       const { data: cr, error: crErr } = await supabase.rpc("fn_creditos_mensais_2027", { p_data: today });
@@ -325,7 +321,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        pix_automatico: { antecipados: antecipar.length, itens: pixItens },
+        pix_automatico: { renovacoes: pixRenovacoes, itens: pixItens },
         planos_processados: planos?.length ?? 0,
         vendas_geradas: geradas,
         erros,

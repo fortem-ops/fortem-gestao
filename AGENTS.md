@@ -20,3 +20,4 @@
 - Read scoped AGENTS.md before editing (also src/lib/AGENTS.md, which holds the despesas/Pix payout rules). Consultation F2: `supabase/functions/planos-consultas-previa/AGENTS.md`; monthly card cron: `supabase/functions/planos-recorrencia-diario/AGENTS.md`.
 - Checkout /planos rules live in `supabase/functions/planos-checkout/AGENTS.md`.
 - Recorrência automática só em planos 2027 (cron `planos-recorrencia-diario`); legado nunca, e `cobrar-recorrencias-diario` fica active=false sem enxergar vendas 2027. Por quê: regra permanente do dono.
+- Pix group renewal uses `pix_aut_renovacoes`: prepare inactive plans/suspended cycles eight days early and activate them atomically on their start date through `fn_pix_aut_renovacoes_diario` before normal renewal; never pass a future date to normal renewal. Why: financial preparation must not interrupt current access or release next-cycle benefits early.

@@ -7934,6 +7934,120 @@ export type Database = {
           },
         ]
       }
+      pix_aut_renovacoes: {
+        Row: {
+          ativada_em: string | null
+          contrato_novo_id: string | null
+          created_at: string
+          grupo_id: string
+          id: string
+          inicio: string
+          plano_anterior_id: string
+          plano_novo_id: string
+          venda_id: string
+        }
+        Insert: {
+          ativada_em?: string | null
+          contrato_novo_id?: string | null
+          created_at?: string
+          grupo_id: string
+          id?: string
+          inicio: string
+          plano_anterior_id: string
+          plano_novo_id: string
+          venda_id: string
+        }
+        Update: {
+          ativada_em?: string | null
+          contrato_novo_id?: string | null
+          created_at?: string
+          grupo_id?: string
+          id?: string
+          inicio?: string
+          plano_anterior_id?: string
+          plano_novo_id?: string
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_aut_renovacoes_contrato_novo_id_fkey"
+            columns: ["contrato_novo_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_contrato_novo_id_fkey"
+            columns: ["contrato_novo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contratos_vencendo"
+            referencedColumns: ["contrato_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "pix_aut_grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_plano_anterior_id_fkey"
+            columns: ["plano_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_plano_anterior_id_fkey"
+            columns: ["plano_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_plano_novo_id_fkey"
+            columns: ["plano_novo_id"]
+            isOneToOne: true
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_plano_novo_id_fkey"
+            columns: ["plano_novo_id"]
+            isOneToOne: true
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_aut_renovacoes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebiveis_previstos_servicos"
+            referencedColumns: ["venda_id"]
+          },
+        ]
+      }
       pix_cobrancas: {
         Row: {
           aluno_id: string | null
@@ -14466,11 +14580,16 @@ export type Database = {
         Returns: string
       }
       fn_pix_aut_planos_antecipar: { Args: { p_hoje: string }; Returns: Json }
+      fn_pix_aut_preparar_renovacao: {
+        Args: { p_hoje: string; p_plano: string }
+        Returns: Json
+      }
       fn_pix_aut_proximo_venc: { Args: { p_grupo: string }; Returns: string }
       fn_pix_aut_rec_status: {
         Args: { p_id_rec: string; p_status: string }
         Returns: Json
       }
+      fn_pix_aut_renovacoes_diario: { Args: { p_hoje: string }; Returns: Json }
       fn_pix_aut_venda_reservada: {
         Args: { p_venda: string }
         Returns: boolean

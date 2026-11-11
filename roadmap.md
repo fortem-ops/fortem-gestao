@@ -222,5 +222,6 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [x] Passo 3: tela da equipe para escolher itens, soma, dia do débito, valor máximo +15%, código/QR (até 3) e mensagem para WhatsApp.
 - [x] Passo 4: nenhuma cobrança Pix criada nesta etapa.
 - [x] Etapa 2: cobrança mensal D-7 (tentativas até D-3), baixa dividida, reserva contra cartão/baixa manual, renovação 8 dias antes e troca de itens; real só Enio a partir de 05/12 (migrações 0254–0256).
+- [x] Correção Pix D-8 aplicada (0257): ciclo programado sem encerrar o atual, ativação no início; ensaios revertidos 04/08/12 de dezembro e treinos aprovados, 1.212 testes; Recovery já sem créditos no Enio (preservado); primeira mensalidade só análise.
 - [ ] Etapa 3: voltar ao cartão.
 - [ ] Etapa 4: app do aluno (alterar forma de pagamento, aviso na tela inicial, push).
