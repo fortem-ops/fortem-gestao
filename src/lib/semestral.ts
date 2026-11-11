@@ -58,3 +58,21 @@ export function podeCancelarSemestral(
 ): boolean {
   return isAdmin && contrato?.plano_tipo === "semestral_2027" && contrato.status === "ativo" && !contrato.data_cancelamento;
 }
+
+/** "Desistir da venda": admin ou coordenador, só sem pagamento em processamento/aprovado. */
+export function podeDesistirSemestral(isCoordAdmin: boolean, estado: EstadoCobranca | null | undefined): boolean {
+  return isCoordAdmin && estado?.estado !== "aprovado" && estado?.estado !== "processando";
+}
+
+/** Espelho da regra do servidor (fn_semestral_expirar): mais de 7 dias sem pagamento e nada em andamento. */
+export const SEMESTRAL_DIAS_EXPIRAR = 7;
+export function acaoExpiracaoSemestral(criadaEm: string, hoje: string, pagamentoEmAndamento: boolean): "manter" | "expirar" | "avisar" {
+  const dias = Math.round((Date.parse(`${hoje}T00:00:00Z`) - Date.parse(`${criadaEm}T00:00:00Z`)) / 86_400_000);
+  if (dias <= SEMESTRAL_DIAS_EXPIRAR) return "manter";
+  return pagamentoEmAndamento ? "avisar" : "expirar";
+}
+
+/** Espelho da regra do servidor (fn_semestral_venda_paga): só venda paga e ativada conta para o CPF. */
+export function vendaContaParaCpf(v: { status_pagamento: string; primeira_paga: boolean }): boolean {
+  return v.primeira_paga || v.status_pagamento === "pago" || v.status_pagamento === "estornado";
+}

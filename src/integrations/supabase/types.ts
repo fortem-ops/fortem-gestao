@@ -15255,6 +15255,10 @@ export type Database = {
         Args: { p_cartao: string; p_venda: string }
         Returns: Json
       }
+      fn_semestral_desistir: {
+        Args: { p_motivo?: string; p_venda: string }
+        Returns: Json
+      }
       fn_semestral_diario: { Args: { p_data?: string }; Returns: Json }
       fn_semestral_elegivel: {
         Args: {
@@ -15265,6 +15269,16 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_semestral_encerrar_sem_pagamento: {
+        Args: {
+          p_acao: string
+          p_motivo: string
+          p_por: string
+          p_venda: string
+        }
+        Returns: Json
+      }
+      fn_semestral_expirar: { Args: { p_data: string }; Returns: Json }
       fn_semestral_gerar_mensalidade: {
         Args: { p_n: number; p_token: string; p_venda: string }
         Returns: string
@@ -15316,6 +15330,7 @@ export type Database = {
         Args: { p_contrato: string; p_n: number }
         Returns: number
       }
+      fn_semestral_venda_paga: { Args: { p_venda: string }; Returns: boolean }
       fn_service_set_cpf: {
         Args: { p_aluno_id: string; p_cpf: string }
         Returns: undefined

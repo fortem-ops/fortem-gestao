@@ -9,8 +9,12 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/vendas";
 import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
-import { beneficiosSemestral, interpretarCobrancaSemestral, type EstadoCobranca, type ItemSemestral, type RespostaCobranca } from "@/lib/semestral";
+import { beneficiosSemestral, interpretarCobrancaSemestral, podeDesistirSemestral, type EstadoCobranca, type ItemSemestral, type RespostaCobranca } from "@/lib/semestral";
 import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const CHAVE_SEMESTRAL = "semestral";
 
@@ -79,6 +83,12 @@ export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; it
         alunoId={alunoId}
         vendaId={venda.venda_id}
         valorCentavos={venda.valor_centavos ?? Math.round(Number(item?.valor ?? 0) * 100)}
+        onDesistiu={() => {
+          ["vendas-aluno", "contratos", "semestral-itens"].forEach((k) => qc.invalidateQueries({ queryKey: [k, alunoId] }));
+          qc.invalidateQueries({ queryKey: ["cobrancas"] });
+          invalidatePlanoCaches(qc, alunoId);
+          onDone();
+        }}
         onAprovado={() => {
           ["vendas-aluno", "creditos-aluno", "creditos_resumo", "creditos_aluno_lista", "contratos", "plano-vigente-venda", "contratos-ativos-venda", "semestral-itens"].forEach(
             (k) => qc.invalidateQueries({ queryKey: [k, alunoId] }),
@@ -133,9 +143,10 @@ export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; it
 
 type CartaoSalvo = { id: string; last4: string | null; brand: string | null; confirmado: boolean };
 
-function PagamentoSemestral({ alunoId, vendaId, valorCentavos, onAprovado }: {
-  alunoId: string; vendaId: string; valorCentavos: number; onAprovado: () => void;
+function PagamentoSemestral({ alunoId, vendaId, valorCentavos, onAprovado, onDesistiu }: {
+  alunoId: string; vendaId: string; valorCentavos: number; onAprovado: () => void; onDesistiu: () => void;
 }) {
+  const { data: roles } = useUserRoles();
   const [cartaoId, setCartaoId] = useState("");
   const [novoCartao, setNovoCartao] = useState(false);
   const [estado, setEstado] = useState<EstadoCobranca | null>(null);
@@ -174,6 +185,15 @@ function PagamentoSemestral({ alunoId, vendaId, valorCentavos, onAprovado }: {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const desistir = useMutation({
+    mutationFn: async () => {
+      const { error } = await db.rpc("fn_semestral_desistir", { p_venda: vendaId, p_motivo: "Desistência da venda (sem pagamento)" });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => { toast.success("Venda cancelada. Nada foi ligado e a agregadora continua ativa."); onDesistiu(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const bloqueado = estado != null && !estado.podeTentarDeNovo;
   const lista = cartoes.data ?? [];
 
@@ -205,6 +225,25 @@ function PagamentoSemestral({ alunoId, vendaId, valorCentavos, onAprovado }: {
       <Button className="w-full" disabled={!cartaoId || cobrar.isPending || bloqueado} onClick={() => cobrar.mutate()}>
         {cobrar.isPending ? "Cobrando..." : estado?.estado === "recusado" ? "Tentar de novo" : `Cobrar ${formatBRL(valorCentavos / 100)} agora`}
       </Button>
+      {podeDesistirSemestral(!!roles?.isCoordAdmin, estado) && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button type="button" variant="ghost" className="w-full" disabled={cobrar.isPending || desistir.isPending}>Desistir da venda</Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Desistir da venda do Plano Semestral?</AlertDialogTitle>
+              <AlertDialogDescription>
+                A venda fica cancelada, nenhum plano ou crédito é liberado e o plano da agregadora continua ativo. Nada é cobrado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Voltar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => desistir.mutate()}>Desistir da venda</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
       <CadastrarCartaoDialog open={novoCartao} onOpenChange={setNovoCartao} alunoId={alunoId} origem="recepcao"
         onSuccess={() => { setNovoCartao(false); setEstado(null); cartoes.refetch(); }} />
     </div>

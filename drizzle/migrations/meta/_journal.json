@@ -1884,6 +1884,13 @@
       "when": 1794408926934,
       "tag": "0268_semestral_primeira_mensalidade_ativacao",
       "breakpoints": true
+    },
+    {
+      "idx": 269,
+      "version": "7",
+      "when": 1794423668353,
+      "tag": "0269_semestral_desistencia_expiracao",
+      "breakpoints": true
     }
   ]
 }

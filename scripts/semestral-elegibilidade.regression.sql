@@ -21,6 +21,10 @@ BEGIN
     SELECT w, 'plano', id, 'ensaio', 439, 439 FROM planos_catalogo WHERE codigo='start_semestral_wellhub_3x' RETURNING id INTO tmp;
   UPDATE vendas SET status_pagamento='cancelado', observacao_cancelamento='ensaio', data_cancelamento=current_date,
     motivo_cancelamento_id=(SELECT id FROM cancelamento_motivos LIMIT 1) WHERE id = tmp;
+  -- Etapa 4C: venda desistida/expirada nunca paga não conta como contratação.
+  IF NOT (fn_semestral_elegivel(w,'pro_semestral_wellhub_3x')->>'elegivel')::boolean THEN RAISE EXCEPTION 'FALHA CPF: venda nunca paga contou'; END IF;
+  -- Paga e depois estornada/cancelada: conta para sempre.
+  UPDATE vendas SET status_pagamento='estornado' WHERE id = tmp;
   IF (fn_semestral_elegivel(w,'pro_semestral_wellhub_3x')->>'elegivel')::boolean THEN RAISE EXCEPTION 'FALHA CPF'; END IF;
   BEGIN
     INSERT INTO vendas (aluno_id, tipo, catalogo_id, nome_snapshot, valor, valor_final)
