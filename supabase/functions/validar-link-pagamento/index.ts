@@ -4,6 +4,7 @@
 // quanto para vendas internas genéricas (planos, VIP, etc).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
+import { avaliarTurnstile } from "../_shared/planos-turnstile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
 
     const { data: link } = await admin
       .from("links_pagamento")
-      .select("id, venda_id, expira_em")
+      .select("id, venda_id, expira_em, humano_em")
       .eq("token", token)
       .maybeSingle();
 
@@ -55,6 +56,27 @@ Deno.serve(async (req) => {
 
     if (!venda) return json(200, { ok: false, estado: "invalido" });
     if (venda.status_pagamento === "pago") return json(200, { ok: false, estado: "ja_pago" });
+    // venda desistida/expirada/estornada: o link deixa de valer
+    if (["cancelado", "estornado", "falha"].includes(String(venda.status_pagamento))) {
+      return json(200, { ok: false, estado: "expirado" });
+    }
+
+    // Plano Semestral: verificação Turnstile ligada ao link (exigida de novo na cobrança)
+    const { data: cat } = venda.catalogo_id
+      ? await admin.from("planos_catalogo").select("familia, nome, nome_exibicao").eq("id", venda.catalogo_id).maybeSingle()
+      : { data: null };
+    const semestral = cat?.familia === "semestral_2027";
+    const cfg = async (chave: string) =>
+      (await admin.from("sistema_config").select("valor").eq("chave", chave).maybeSingle()).data?.valor ?? null;
+    const turnstileAtivo = semestral && (await cfg("planos_turnstile_ativo")) === true;
+    if (body?.acao === "turnstile") {
+      if (!semestral) return json(200, { ok: false, error: "nao_se_aplica" });
+      const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+      const r = await avaliarTurnstile(turnstileAtivo, Deno.env.get("TURNSTILE_SECRET_KEY"), body?.turnstile_token, ip);
+      if (r === "recusado") return json(200, { ok: false, error: "captcha" });
+      await admin.from("links_pagamento").update({ humano_em: new Date().toISOString() }).eq("id", link.id);
+      return json(200, { ok: true });
+    }
 
     // origem da venda: Corrida (tem inscrição de prova) ou venda interna genérica
     const { data: inscricao } = await admin
@@ -121,7 +143,10 @@ Deno.serve(async (req) => {
     let pixDisponivel = false;
     let servicoPortal = false;
 
-    if (origem === "corrida") {
+    if (semestral) {
+      linhas = [{ label: `${cat?.nome_exibicao ?? cat?.nome ?? "Plano Semestral"} · 1ª mensalidade`, valor: Number(venda.valor_final ?? 0) }];
+      pixDisponivel = false;
+    } else if (origem === "corrida") {
       let resumo: any = null;
       let rota = "";
       try {
@@ -170,11 +195,22 @@ Deno.serve(async (req) => {
       resumo_linhas: linhas,
       pix_disponivel: pixDisponivel,
       servico_portal: servicoPortal,
-      aluno: {
-        nome: aluno?.nome ?? "",
-        email: aluno?.email ?? "",
-        telefone: aluno?.telefone ?? "",
-      },
+      // Semestral: só o primeiro nome (o link não expõe e-mail nem telefone).
+      aluno: semestral
+        ? { nome: String(aluno?.nome ?? "").trim().split(/\s+/)[0] ?? "", email: "", telefone: "" }
+        : {
+          nome: aluno?.nome ?? "",
+          email: aluno?.email ?? "",
+          telefone: aluno?.telefone ?? "",
+        },
+      semestral: semestral
+        ? {
+          plano: cat?.nome_exibicao ?? cat?.nome ?? "Plano Semestral",
+          link_expira_em: link.expira_em,
+          turnstile_ativo: turnstileAtivo,
+          site_key: turnstileAtivo ? await cfg("planos_turnstile_site_key") : null,
+        }
+        : null,
       pedido: {
         aluno_id: venda.aluno_id,
         contrato_id: contratoId,

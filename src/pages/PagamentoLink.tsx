@@ -7,6 +7,7 @@ import PagamentoStep, {
   type DadosPessoaisPagamento,
   type PedidoCriado,
 } from "@/components/corrida/PagamentoStep";
+import { TurnstileLink } from "@/components/pagamentos/TurnstileLink";
 
 type Estado = "carregando" | "pendente" | "invalido" | "expirado" | "ja_pago";
 
@@ -19,6 +20,8 @@ type Validacao = {
   servico_portal?: boolean;
   aluno: { nome: string; email: string; telefone: string };
   pedido: PedidoCriado;
+  /** 1ª mensalidade do Plano Semestral (aceite + cartão + verificação de segurança). */
+  semestral?: { plano: string; link_expira_em: string; turnstile_ativo: boolean; site_key: string | null } | null;
 };
 
 const Moldura = ({ children, subtitulo }: { children: React.ReactNode; subtitulo: string }) => (
@@ -55,13 +58,16 @@ export default function PagamentoLink() {
   const [dados, setDados] = useState<Validacao | null>(null);
   const [pedido, setPedido] = useState<PedidoCriado | null>(null);
   const [pagoPortal, setPagoPortal] = useState(false);
+  const [humano, setHumano] = useState(false);
   useEffect(() => {
     if (!pagoPortal) return;
     const t = setTimeout(() => window.location.assign("/portal/agenda"), 2500);
     return () => clearTimeout(t);
   }, [pagoPortal]);
   const corrida = dados?.origem !== "generica";
-  const subtitulo = corrida
+  const subtitulo = dados?.semestral
+    ? "1ª mensalidade do seu Plano Semestral"
+    : corrida
     ? "Pagamento da sua inscrição"
     : dados?.servico_portal
       ? "Pagamento do seu serviço"
@@ -190,8 +196,24 @@ export default function PagamentoLink() {
             {dados.venda.parcelas > 1 ? ` em ${dados.venda.parcelas}x` : ""}
           </span>
         </div>
+        {dados.semestral && (
+          <ul className="mt-3 space-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
+            <li>Recorrência mensal no cartão, a cada 30 dias, sem fidelidade.</li>
+            <li>O cartão cadastrado fica salvo para as próximas mensalidades.</li>
+            <li>Antes de pagar, você lê e aceita o contrato do {dados.semestral.plano}.</li>
+            <li>Link válido até {new Date(dados.semestral.link_expira_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}.</li>
+          </ul>
+        )}
       </div>
 
+      {dados.semestral?.turnstile_ativo && !humano ? (
+        <div className="bg-card border border-border rounded-2xl p-5 space-y-3 text-center">
+          <p className="text-sm text-muted-foreground">Confirme a verificação de segurança para continuar.</p>
+          {dados.semestral.site_key && token && (
+            <TurnstileLink token={token} siteKey={dados.semestral.site_key} onOk={() => setHumano(true)} />
+          )}
+        </div>
+      ) : (
       <PagamentoStep
         payloadPedido={{}}
         dadosIniciais={dadosPessoais}
@@ -205,8 +227,10 @@ export default function PagamentoLink() {
           pixDisponivel: dados.pix_disponivel,
           origem: dados.origem ?? "corrida",
           token: token,
+          formatoAceite: dados.semestral ? "link_pagamento_semestral" : undefined,
         }}
       />
+      )}
 
       {dados.servico_portal && (
         <a

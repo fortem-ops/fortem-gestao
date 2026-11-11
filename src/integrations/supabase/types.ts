@@ -6118,6 +6118,7 @@ export type Database = {
           criado_em: string
           criado_por: string | null
           expira_em: string
+          humano_em: string | null
           id: string
           parcelas_fixas: boolean | null
           parcelas_max: number | null
@@ -6129,6 +6130,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           expira_em?: string
+          humano_em?: string | null
           id?: string
           parcelas_fixas?: boolean | null
           parcelas_max?: number | null
@@ -6140,6 +6142,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           expira_em?: string
+          humano_em?: string | null
           id?: string
           parcelas_fixas?: boolean | null
           parcelas_max?: number | null
@@ -15255,6 +15258,10 @@ export type Database = {
         Args: { p_cartao: string; p_venda: string }
         Returns: Json
       }
+      fn_semestral_definir_cartao_core: {
+        Args: { p_cartao: string; p_venda: string }
+        Returns: Json
+      }
       fn_semestral_desistir: {
         Args: { p_motivo?: string; p_venda: string }
         Returns: Json
@@ -15325,6 +15332,11 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      fn_semestral_link_criar: { Args: { p_venda: string }; Returns: Json }
+      fn_semestral_link_validade: {
+        Args: { p_agora: string; p_venda_criada: string }
+        Returns: string
       }
       fn_semestral_teste_real: {
         Args: { p_aluno: string; p_codigo: string }

@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
 import { reservarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
 import { vendaReservadaPix, MSG_RESERVA_PIX } from "../_shared/pix-aut-reserva.ts";
+import { humanoValido, vendaEncerrada } from "../_shared/semestral-link.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
 
     const { data: link } = await admin
       .from("links_pagamento")
-      .select("id, venda_id, expira_em")
+      .select("id, venda_id, expira_em, humano_em")
       .eq("token", token)
       .maybeSingle();
 
@@ -55,16 +56,17 @@ Deno.serve(async (req) => {
 
     const { data: venda } = await admin
       .from("vendas")
-      .select("id, aluno_id, plano_id, valor_final, parcelas, status_pagamento")
+      .select("id, aluno_id, plano_id, valor_final, parcelas, status_pagamento, origem, tipo_cobranca, catalogo_id")
       .eq("id", link.venda_id)
       .maybeSingle();
 
     if (!venda) return json(404, { success: false, error: "venda_nao_encontrada" });
+    if (vendaEncerrada(venda.status_pagamento)) return json(410, { success: false, error: "token_expirado" });
     if (venda.status_pagamento !== "pago" && await vendaReservadaPix(admin, venda.id)) return json(409, { success: false, error: "reservado_pix_automatico", mensagem: MSG_RESERVA_PIX });
     if (venda.status_pagamento === "pago") {
       // Concilia um pagamento aprovado já existente; nunca chama a Rede nesta retomada.
-      const { data: origem } = await admin.from("vendas").select("origem,tipo_cobranca").eq("id", venda.id).single();
-      if (origem?.origem === "manual" && origem.tipo_cobranca === "recorrencia") {
+      const { data: balcao } = await admin.rpc("fn_venda_balcao_recorrente", { p_origem: venda.origem, p_catalogo: venda.catalogo_id });
+      if (balcao === true && venda.tipo_cobranca === "recorrencia") {
         const manual = await reservarPrimeiroCiclo(admin, venda.id, crypto.randomUUID(), "token", cartaoSalvoId);
         if (manual.handled) return json(200, manual);
       }
@@ -80,6 +82,31 @@ Deno.serve(async (req) => {
 
     if (!cartao || cartao.aluno_id !== venda.aluno_id || !cartao.ativo) {
       return json(400, { success: false, error: "cartao_inativo_ou_invalido" });
+    }
+
+    // Plano Semestral: verificação Turnstile no link, elegibilidade conferida de novo e cartão do ciclo
+    const { data: cat } = venda.catalogo_id
+      ? await admin.from("planos_catalogo").select("familia, codigo").eq("id", venda.catalogo_id).maybeSingle()
+      : { data: null };
+    if (cat?.familia === "semestral_2027") {
+      const { data: ts } = await admin.from("sistema_config").select("valor").eq("chave", "planos_turnstile_ativo").maybeSingle();
+      if (!humanoValido(link.humano_em, ts?.valor === true)) {
+        return json(200, { success: false, error: "verificacao_necessaria" });
+      }
+      const { data: eleg, error: elegErr } = await admin.rpc("fn_semestral_elegivel", {
+        p_aluno: venda.aluno_id, p_codigo: cat.codigo, p_hoje: null, p_ignorar_cpf: false,
+      });
+      if (elegErr) throw elegErr;
+      const e = (eleg ?? {}) as { elegivel?: boolean; motivo?: string | null };
+      if (!e.elegivel) {
+        await admin.from("system_logs").insert({
+          modulo: "planos-semestral", acao: "link_nao_elegivel",
+          mensagem: "Link de pagamento recusado: aluno deixou de ser elegível", payload: { venda_id: venda.id, motivo: e.motivo ?? null },
+        });
+        return json(200, { success: false, error: "nao_elegivel", return_message: "Não foi possível concluir pelo link. A equipe da Fortem vai entrar em contato." });
+      }
+      const { error: defErr } = await admin.rpc("fn_semestral_definir_cartao_core", { p_venda: venda.id, p_cartao: cartaoSalvoId });
+      if (defErr) return json(200, { success: false, error: "cartao_nao_definido", return_message: defErr.message });
     }
 
     // documentos do contrato precisam estar aceitos antes de cobrar

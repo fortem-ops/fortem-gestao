@@ -239,3 +239,4 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [ ] Semestral: licença por atestado.
 - [x] Semestral: texto jurídico dos 2 modelos gravado pelo dono (versão 2).
 - [x] Semestral Etapa 7 (11/11/2026): venda ligada — 4 itens e 2 modelos ativos.
+- [x] Semestral: link de pagamento ao aluno (72 h, aceite obrigatório, Turnstile, WhatsApp/copiar) — etapas A, B, C, E. E-mail (Etapa D) fica para depois.

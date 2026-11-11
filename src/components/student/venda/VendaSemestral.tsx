@@ -12,6 +12,7 @@ import { invalidatePlanoCaches } from "@/lib/planoCache";
 import { beneficiosSemestral, interpretarCobrancaSemestral, podeDesistirSemestral, type EstadoCobranca, type ItemSemestral, type RespostaCobranca } from "@/lib/semestral";
 import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { mensagemLinkSemestral, telefoneWhatsApp, urlWhatsAppSemestral } from "@/lib/semestralLink";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
@@ -225,6 +226,7 @@ function PagamentoSemestral({ alunoId, vendaId, valorCentavos, onAprovado, onDes
       <Button className="w-full" disabled={!cartaoId || cobrar.isPending || bloqueado} onClick={() => cobrar.mutate()}>
         {cobrar.isPending ? "Cobrando..." : estado?.estado === "recusado" ? "Tentar de novo" : `Cobrar ${formatBRL(valorCentavos / 100)} agora`}
       </Button>
+      {roles?.isCoordAdmin && estado?.estado !== "aprovado" && <LinkPagamentoSemestral vendaId={vendaId} />}
       {podeDesistirSemestral(!!roles?.isCoordAdmin, estado) && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -246,6 +248,54 @@ function PagamentoSemestral({ alunoId, vendaId, valorCentavos, onAprovado, onDes
       )}
       <CadastrarCartaoDialog open={novoCartao} onOpenChange={setNovoCartao} alunoId={alunoId} origem="recepcao"
         onSuccess={() => { setNovoCartao(false); setEstado(null); cartoes.refetch(); }} />
+    </div>
+  );
+}
+
+type LinkGerado = { token: string; expira_em: string; primeiro_nome: string; telefone: string; plano: string; valor: number };
+const BASE_LINK = "https://soufortem.com.br/pagamento/";
+
+/** Link para o próprio aluno aceitar o contrato, cadastrar o cartão e pagar a 1ª mensalidade (só admin/coordenador). */
+function LinkPagamentoSemestral({ vendaId }: { vendaId: string }) {
+  const [link, setLink] = useState<LinkGerado | null>(null);
+  const gerar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await db.rpc("fn_semestral_link_criar", { p_venda: vendaId });
+      if (error) throw new Error(error.message);
+      return data as LinkGerado;
+    },
+    onSuccess: setLink,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const url = link ? `${BASE_LINK}${link.token}` : "";
+  const tel = telefoneWhatsApp(link?.telefone);
+  const whats = link && tel
+    ? urlWhatsAppSemestral(tel, mensagemLinkSemestral({ primeiroNome: link.primeiro_nome, plano: link.plano, valor: Number(link.valor), link: url }))
+    : null;
+  return (
+    <div className="space-y-2 rounded-lg border p-3">
+      {!link ? (
+        <Button type="button" variant="outline" className="w-full" disabled={gerar.isPending} onClick={() => gerar.mutate()}>
+          {gerar.isPending ? "Gerando link..." : "Enviar link de pagamento ao aluno"}
+        </Button>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            Link válido até {new Date(link.expira_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}.
+            O aluno aceita o contrato, cadastra o cartão e paga a 1ª mensalidade.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {whats && (
+              <Button asChild className="flex-1"><a href={whats} target="_blank" rel="noopener noreferrer">Enviar pelo WhatsApp</a></Button>
+            )}
+            <Button type="button" variant="outline" className="flex-1"
+              onClick={() => navigator.clipboard.writeText(url).then(() => toast.success("Link copiado"), () => toast.error("Não foi possível copiar"))}>
+              Copiar link
+            </Button>
+          </div>
+          {!tel && <p className="text-xs text-muted-foreground">Aluno sem telefone no cadastro: copie o link e envie.</p>}
+        </>
+      )}
     </div>
   );
 }

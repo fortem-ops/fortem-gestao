@@ -52,7 +52,7 @@ interface Props {
    * já existem — nenhum pedido novo é criado e o parcelamento já está definido.
    * `origem` define a cadeia de cobrança: Corrida (própria) ou venda genérica.
    */
-  modoLink?: { pixDisponivel: boolean; origem?: "corrida" | "generica"; token?: string } | null;
+  modoLink?: { pixDisponivel: boolean; origem?: "corrida" | "generica"; token?: string; formatoAceite?: string } | null;
 }
 
 type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "pix" | "sucesso" | "erro";
@@ -106,6 +106,8 @@ const MENSAGENS_ERRO: Record<string, string> = {
   cartao_ainda_nao_confirmado: "O cartão ainda não foi confirmado pela operadora. Tente novamente.",
   contrato_nao_aceito: "É preciso aceitar os documentos antes de pagar.",
   cartao_inativo_ou_invalido: "Cartão inválido ou inativo. Tente outro cartão.",
+  verificacao_necessaria: "Refaça a verificação de segurança: recarregue a página e tente de novo.",
+  nao_elegivel: "Não foi possível concluir pelo link. A equipe da Fortem vai entrar em contato.",
   falha_criptograma: "A operadora não autorizou o uso deste cartão. Tente outro cartão.",
 };
 
@@ -343,7 +345,7 @@ const PagamentoStep = ({
       const { data, error } = await supabase.functions.invoke("corrida-aceitar-contrato", {
         body: {
           contratos_documentos_ids: pedido.contratos_documentos_ids,
-          formato_aceite: modoLink ? "link_pagamento_corrida" : "checkout_corrida",
+          formato_aceite: modoLink ? (modoLink.formatoAceite ?? "link_pagamento_corrida") : "checkout_corrida",
         },
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
@@ -787,9 +789,16 @@ const PagamentoStep = ({
             </button>
           ) : (
             <button
-              onClick={() => {
+              onClick={async () => {
                 setResultado(null);
                 setCartao({ holder: "", numero: "", validade: "", cvv: "" });
+                setTokenizationId(null);
+                // No link público o cadastro de cartão é de uso único: pede um novo para a nova tentativa.
+                if (modoLink?.token && pedido) {
+                  const { data } = await supabase.functions.invoke("validar-link-pagamento", { body: { token: modoLink.token } });
+                  const novo = data?.ok ? data?.pedido?.cartao_token : null;
+                  if (typeof novo === "string") setPedido({ ...pedido, cartao_token: novo });
+                }
                 setFase("cartao");
               }}
               className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold"
