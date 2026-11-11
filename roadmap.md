@@ -229,3 +229,4 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [ ] Etapa 3: voltar ao cartão.
 - [ ] Etapa 4: app do aluno (alterar forma de pagamento, aviso na tela inicial, push).
 - Plano Semestral Etapa 3 (11/11/2026): grupo na Nova Venda, venda por recorrência no cartão, créditos só após pagamento, agregadora encerrada após gravar; itens seguem desligados.
+- Plano Semestral Etapa 4 (11/11/2026): renovação a cada 30 dias no cartão, preço fixo 6 ciclos, cancelamento sem multa, Pix desligado; licença por atestado adiada; itens seguem desligados.
