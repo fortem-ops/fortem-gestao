@@ -8841,6 +8841,7 @@ export type Database = {
       }
       planos_catalogo: {
         Row: {
+          agregadora_requerida: string | null
           atividade: string
           ativo: boolean
           avaliacoes_funcionais_meses: number[] | null
@@ -8863,6 +8864,7 @@ export type Database = {
           periodo_meses: number
           permite_fixar_horario: boolean
           plano_base_requerido: string | null
+          preco_fixo_ciclos: number | null
           quantidade_creditos: number | null
           reposicao_saldo_pct: number
           taxa_recorrencia: number
@@ -8873,6 +8875,7 @@ export type Database = {
           versao: number | null
         }
         Insert: {
+          agregadora_requerida?: string | null
           atividade?: string
           ativo?: boolean
           avaliacoes_funcionais_meses?: number[] | null
@@ -8895,6 +8898,7 @@ export type Database = {
           periodo_meses?: number
           permite_fixar_horario?: boolean
           plano_base_requerido?: string | null
+          preco_fixo_ciclos?: number | null
           quantidade_creditos?: number | null
           reposicao_saldo_pct?: number
           taxa_recorrencia?: number
@@ -8905,6 +8909,7 @@ export type Database = {
           versao?: number | null
         }
         Update: {
+          agregadora_requerida?: string | null
           atividade?: string
           ativo?: boolean
           avaliacoes_funcionais_meses?: number[] | null
@@ -8927,6 +8932,7 @@ export type Database = {
           periodo_meses?: number
           permite_fixar_horario?: boolean
           plano_base_requerido?: string | null
+          preco_fixo_ciclos?: number | null
           quantidade_creditos?: number | null
           reposicao_saldo_pct?: number
           taxa_recorrencia?: number

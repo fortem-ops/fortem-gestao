@@ -224,5 +224,6 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [x] Etapa 2: cobrança mensal D-7 (tentativas até D-3), baixa dividida, reserva contra cartão/baixa manual, renovação 8 dias antes e troca de itens; real só Enio a partir de 05/12 (migrações 0254–0256).
 - [x] Correção Pix D-8 aplicada (0257): ciclo programado sem encerrar o atual, ativação no início; ensaios revertidos 04/08/12 de dezembro e treinos aprovados, 1.212 testes; Recovery já sem créditos no Enio (preservado); primeira mensalidade só análise.
 - [x] 1ª mensalidade por Pix imediato (0258–0259): QR por grupo+mês, reserva, baixa dividida no webhook, expiração horária; QR de R$ 320 do Enio gerado em 11/11, aguardando pagamento.
+- [x] Plano Semestral Etapa 1: 4 itens e 2 modelos de contrato criados desligados; etapas 2–7 aguardam aprovação.
 - [ ] Etapa 3: voltar ao cartão.
 - [ ] Etapa 4: app do aluno (alterar forma de pagamento, aviso na tela inicial, push).

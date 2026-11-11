@@ -1821,6 +1821,13 @@
       "when": 1794392765469,
       "tag": "0259_pix_aut_primeira_origem",
       "breakpoints": true
+    },
+    {
+      "idx": 260,
+      "version": "7",
+      "when": 1794403299206,
+      "tag": "0260_planos_catalogo_semestral_colunas",
+      "breakpoints": true
     }
   ]
 }

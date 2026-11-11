@@ -64,3 +64,10 @@ A cada etapa: ensaios SQL revertidos, consultas de contagem antes e depois, `bun
 1. Regra da 2ª avaliação com atraso no 6º ciclo (proposta acima).
 2. "Uma contratação por CPF" inclui quem cancelou? Proposta: sim, nunca pode recontratar.
 3. Se o aluno tiver Wellhub e TotalPass ativos ao mesmo tempo: bloquear e pedir para a equipe resolver?
+
+## Decisões do dono (11/11/2026)
+1. 2ª avaliação: se em atraso no início do 6º ciclo, libera ao pagar dentro do 6º ciclo; se o ciclo 6 terminar em atraso, não libera.
+2. Uma contratação por CPF inclui cancelados: nunca recontrata.
+3. Wellhub e TotalPass ativos juntos: venda bloqueada; equipe corrige o cadastro.
+
+Etapa 1 aplicada em 11/11/2026.
