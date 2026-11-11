@@ -15326,6 +15326,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      fn_semestral_teste_real: {
+        Args: { p_aluno: string; p_codigo: string }
+        Returns: number
+      }
       fn_semestral_valor_ciclo: {
         Args: { p_contrato: string; p_n: number }
         Returns: number

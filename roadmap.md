@@ -232,3 +232,4 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - Plano Semestral Etapa 4 (11/11/2026): renovação a cada 30 dias no cartão, preço fixo 6 ciclos, cancelamento sem multa, Pix desligado; licença por atestado adiada; itens seguem desligados.
 - Plano Semestral Etapa 4B (11/11/2026): 1ª mensalidade cobrada no cartão salvo na venda; plano, créditos e encerramento da agregadora só com pagamento aprovado; botão de cancelamento só admin; itens seguem desligados.
 - Plano Semestral Etapa 4C (11/11/2026): desistir da venda (admin/coordenador), expiração em 7 dias sem pagamento, CPF conta só venda paga; itens seguem desligados; teste real de R$ 1,00 aguarda aprovação.
+- [ ] Teste real R$ 1,00 Semestral (Bruna): preparação (chave temporária semestral_teste_real) feita; aguardando o dono cadastrar cartão e cobrar na tela; depois estorno e limpeza.
