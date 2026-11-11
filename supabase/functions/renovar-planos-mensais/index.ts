@@ -306,6 +306,10 @@ Deno.serve(async (req) => {
       const { data: cr, error: crErr } = await supabase.rpc("fn_creditos_mensais_2027", { p_data: today });
       if (crErr) planos2027.erros.push({ etapa: "creditos_mensais_2027", motivo: crErr.message });
       else planos2027.creditos = cr;
+      // Plano Semestral: encerra cancelados no fim do ciclo pago e garante a próxima mensalidade (idempotente).
+      const { data: sem, error: semErr } = await supabase.rpc("fn_semestral_diario", { p_data: today });
+      if (semErr) planos2027.erros.push({ etapa: "semestral_diario", motivo: semErr.message });
+      else planos2027.renovados.push({ semestral: sem });
     } catch (e27) {
       console.error("planos 2027 erro:", e27);
       planos2027.erros.push({ etapa: "planos_2027", motivo: String(e27) });

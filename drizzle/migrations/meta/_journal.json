@@ -1849,6 +1849,27 @@
       "when": 1794405750753,
       "tag": "0263_semestral_contrato_tipo",
       "breakpoints": true
+    },
+    {
+      "idx": 264,
+      "version": "7",
+      "when": 1794407569170,
+      "tag": "0264_semestral_renovacao_cartao",
+      "breakpoints": true
+    },
+    {
+      "idx": 265,
+      "version": "7",
+      "when": 1794407747037,
+      "tag": "0265_semestral_creditos_sem_acumulo",
+      "breakpoints": true
+    },
+    {
+      "idx": 266,
+      "version": "7",
+      "when": 1794407861952,
+      "tag": "0266_semestral_cancelar_contagem",
+      "breakpoints": true
     }
   ]
 }

@@ -15243,6 +15243,11 @@ export type Database = {
       }
       fn_reveal_profile_cpf: { Args: { p_user_id: string }; Returns: string }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
+      fn_semestral_cancelar: {
+        Args: { p_contrato: string; p_motivo?: string }
+        Returns: Json
+      }
+      fn_semestral_diario: { Args: { p_data?: string }; Returns: Json }
       fn_semestral_elegivel: {
         Args: {
           p_aluno: string
@@ -15251,6 +15256,10 @@ export type Database = {
           p_ignorar_cpf?: boolean
         }
         Returns: Json
+      }
+      fn_semestral_gerar_mensalidade: {
+        Args: { p_n: number; p_token: string; p_venda: string }
+        Returns: string
       }
       fn_semestral_itens_elegiveis: {
         Args: { p_aluno: string; p_hoje?: string }
@@ -15294,6 +15303,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      fn_semestral_valor_ciclo: {
+        Args: { p_contrato: string; p_n: number }
+        Returns: number
       }
       fn_service_set_cpf: {
         Args: { p_aluno_id: string; p_cpf: string }
