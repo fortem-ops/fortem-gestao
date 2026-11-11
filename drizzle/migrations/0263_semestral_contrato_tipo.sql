@@ -1,0 +1,2 @@
+ALTER TABLE public.contratos DROP CONSTRAINT contratos_plano_tipo_check;
+ALTER TABLE public.contratos ADD CONSTRAINT contratos_plano_tipo_check CHECK (plano_tipo = ANY (ARRAY['start'::text, 'start_plus'::text, 'power'::text, 'pro'::text, 'max'::text, 'corrida'::text, 'gympass'::text, 'wellhub'::text, 'totalpass'::text, 'outro'::text, 'start_2027'::text, 'power_2027'::text, 'pro_2027'::text, 'consultoria_2027'::text, 'semestral_2027'::text]));

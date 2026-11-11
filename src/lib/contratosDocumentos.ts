@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ehPlanoVersionado, formaTemplate, montarVariaveis2027 } from "./contratos2027";
+import { planoTipoTemplate } from "./semestral";
 
 const TEMPLATE_MAP: Record<string, Record<string, string>> = {
   'start': {
@@ -126,7 +127,7 @@ export async function gerarDocumentoContrato(params: {
       const { data, error } = await (supabase as any)
         .from('contrato_templates')
         .select('id, conteudo, versao, nome')
-        .eq('plano_tipo', item.familia)
+        .eq('plano_tipo', planoTipoTemplate(item))
         .eq('forma_pagamento', formaTemplate(params.tipoCobranca))
         .eq('ativo', true)
         .maybeSingle();

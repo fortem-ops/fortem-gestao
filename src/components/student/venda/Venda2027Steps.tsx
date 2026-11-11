@@ -22,6 +22,7 @@ import {
 } from "@/lib/vendas2027";
 import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import { semItensAgregadora } from "@/lib/semestral";
 import {
   DURACOES_CONSULTORIA,
   FAMILIA_CONSULTORIA,
@@ -105,7 +106,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
   const { data: catalogo = [] } = useQuery({
     queryKey: ["planos-catalogo-2027"],
     queryFn: async () => {
-      const { data, error } = await db.from("planos_catalogo").select("*").eq("versao", 2027);
+      const { data, error } = await semItensAgregadora(db.from("planos_catalogo").select("*").eq("versao", 2027));
       if (error) throw error;
       return data ?? [];
     },

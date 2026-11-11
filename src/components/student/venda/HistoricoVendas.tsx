@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
+import { semItensAgregadora } from "@/lib/semestral";
 import { GerarLinkPagamento } from "@/components/pagamentos/GerarLinkPagamento";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
 import { DevolverPixVenda } from "./DevolverPixVenda";
@@ -221,7 +222,8 @@ export function HistoricoVendas({ alunoId }: Props) {
     enabled: !!editing,
     queryFn: async () => {
       const tabela = editing?.tipo === "plano" ? "planos_catalogo" : "servicos_catalogo";
-      const { data, error } = await (supabase as any).from(tabela).select("id, nome, valor").order("nome");
+      const base = (supabase as any).from(tabela).select("id, nome, valor");
+      const { data, error } = await (tabela === "planos_catalogo" ? semItensAgregadora(base) : base).order("nome");
       if (error) throw error;
       return (data ?? []) as { id: string; nome: string; valor: number }[];
     },

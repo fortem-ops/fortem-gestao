@@ -1835,6 +1835,20 @@
       "when": 1794404014205,
       "tag": "0261_semestral_elegibilidade",
       "breakpoints": true
+    },
+    {
+      "idx": 262,
+      "version": "7",
+      "when": 1794405614278,
+      "tag": "0262_semestral_venda_ativacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 263,
+      "version": "7",
+      "when": 1794405750753,
+      "tag": "0263_semestral_contrato_tipo",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,8 @@ import { TipoCobrancaSection } from "./TipoCobrancaSection";
 import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
 import { ServicosPlanoStep } from "./ServicosPlanoStep";
 import { Venda2027Steps } from "./Venda2027Steps";
+import { VendaSemestral, useItensSemestral } from "./VendaSemestral";
+import { semItensAgregadora } from "@/lib/semestral";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
@@ -142,6 +144,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   useEffect(() => { if (!open) setOpcaoPlano(""); }, [open]);
   useEffect(() => { setOpcaoPlano(""); }, [tab]);
   const opcaoR1 = OPCOES_PLANOS_R1.find((o) => o.chave === opcaoPlano);
+  // Plano Semestral: o grupo só aparece quando o servidor devolve itens para este aluno.
+  const { data: itensSemestral = [] } = useItensSemestral(alunoId, open && podeVender2027);
 
   // Plano wizard
   const [pStep, setPStep] = useState(1);
@@ -269,7 +273,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const { data: planos = [], isLoading: lp } = useQuery({
     queryKey: ["planos-catalogo-ativos"],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("planos_catalogo").select("*").eq("ativo", true).order("valor");
+      const { data } = await semItensAgregadora((supabase as any).from("planos_catalogo").select("*").eq("ativo", true)).order("valor");
       // Aba de planos atuais: só itens legados vendáveis hoje; os 2027 vendem em "Planos 2027".
       return filtrarLegadoVendavel<any>(data || [], format(new Date(), "yyyy-MM-dd"));
     },
@@ -753,8 +757,25 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       {o.label}
                     </button>
                   ))}
+                  {itensSemestral.length > 0 && (
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={opcaoPlano === CHAVE_SEMESTRAL}
+                      onClick={() => { reset(); setOpcaoPlano(CHAVE_SEMESTRAL); }}
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-sm transition-all",
+                        opcaoPlano === CHAVE_SEMESTRAL ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/20" : "border-border hover:border-primary/40",
+                      )}
+                    >
+                      Plano Semestral
+                    </button>
+                  )}
                 </div>
-                {!opcaoR1 && <p className="text-sm text-muted-foreground">Escolha o plano.</p>}
+                {!opcaoR1 && opcaoPlano !== CHAVE_SEMESTRAL && <p className="text-sm text-muted-foreground">Escolha o plano.</p>}
+                {opcaoPlano === CHAVE_SEMESTRAL && itensSemestral.length > 0 && (
+                  <VendaSemestral alunoId={alunoId} itens={itensSemestral} onDone={() => onOpenChange(false)} />
+                )}
                 {opcaoR1?.tipo === "2027" && (
                   <Venda2027Steps
                     key={opcaoR1.familia}

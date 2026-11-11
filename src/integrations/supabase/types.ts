@@ -15375,6 +15375,7 @@ export type Database = {
         Returns: Json
       }
       fn_venda_plano_fortem: { Args: { p_venda_id: string }; Returns: boolean }
+      fn_venda_semestral_criar: { Args: { p: Json }; Returns: Json }
       fn_venda_servicos_2027_criar: { Args: { p: Json }; Returns: Json }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       get_webhook_secret: { Args: never; Returns: string }
