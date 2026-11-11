@@ -15243,6 +15243,58 @@ export type Database = {
       }
       fn_reveal_profile_cpf: { Args: { p_user_id: string }; Returns: string }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
+      fn_semestral_elegivel: {
+        Args: {
+          p_aluno: string
+          p_codigo: string
+          p_hoje?: string
+          p_ignorar_cpf?: boolean
+        }
+        Returns: Json
+      }
+      fn_semestral_itens_elegiveis: {
+        Args: { p_aluno: string; p_hoje?: string }
+        Returns: {
+          agregadora_requerida: string | null
+          atividade: string
+          ativo: boolean
+          avaliacoes_funcionais_meses: number[] | null
+          bota_compressao_mes: number
+          brindes: Json | null
+          codigo: string | null
+          cor: string | null
+          created_at: string
+          familia: string | null
+          fidelidade_meses: number
+          frequencia: Database["public"]["Enums"]["plano_frequencia"]
+          id: string
+          ilimitado: boolean
+          liberacao_creditos: string | null
+          licenca_dias: number | null
+          modalidade_cobranca: string | null
+          nivel_clube: string | null
+          nome: string
+          nome_exibicao: string | null
+          periodo_meses: number
+          permite_fixar_horario: boolean
+          plano_base_requerido: string | null
+          preco_fixo_ciclos: number | null
+          quantidade_creditos: number | null
+          reposicao_saldo_pct: number
+          taxa_recorrencia: number
+          updated_at: string
+          valor: number
+          vendavel_ate: string | null
+          vendavel_desde: string | null
+          versao: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "planos_catalogo"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       fn_service_set_cpf: {
         Args: { p_aluno_id: string; p_cpf: string }
         Returns: undefined

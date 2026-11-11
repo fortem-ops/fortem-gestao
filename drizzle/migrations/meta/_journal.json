@@ -1828,6 +1828,13 @@
       "when": 1794403299206,
       "tag": "0260_planos_catalogo_semestral_colunas",
       "breakpoints": true
+    },
+    {
+      "idx": 261,
+      "version": "7",
+      "when": 1794404014205,
+      "tag": "0261_semestral_elegibilidade",
+      "breakpoints": true
     }
   ]
 }
