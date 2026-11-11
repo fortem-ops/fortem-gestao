@@ -221,6 +221,6 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [x] Passo 2: grupos e itens de Pix Automático com trava de item único, reserva na cobrança/venda e permissões (admin cria/cancela, coordenador lê, aluno vê o seu).
 - [x] Passo 3: tela da equipe para escolher itens, soma, dia do débito, valor máximo +15%, código/QR (até 3) e mensagem para WhatsApp.
 - [x] Passo 4: nenhuma cobrança Pix criada nesta etapa.
-- [ ] Etapa 2: cobrança mensal no Inter, baixa e divisão entre itens, cartão respeitando a reserva.
+- [x] Etapa 2: cobrança mensal D-7 (tentativas até D-3), baixa dividida, reserva contra cartão/baixa manual, renovação 8 dias antes e troca de itens; real só Enio a partir de 05/12 (migrações 0254–0256).
 - [ ] Etapa 3: voltar ao cartão.
 - [ ] Etapa 4: app do aluno (alterar forma de pagamento, aviso na tela inicial, push).

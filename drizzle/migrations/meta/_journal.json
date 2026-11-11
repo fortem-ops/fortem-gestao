@@ -1793,6 +1793,13 @@
       "when": 1794356761309,
       "tag": "0255_pix_automatico_etapa2_devidos_ciclo",
       "breakpoints": true
+    },
+    {
+      "idx": 256,
+      "version": "7",
+      "when": 1794357895241,
+      "tag": "0256_pix_automatico_etapa2_aviso_equipe",
+      "breakpoints": true
     }
   ]
 }

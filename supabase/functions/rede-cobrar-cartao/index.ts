@@ -18,6 +18,7 @@ import {
   formatExpirationYear,
   mapReturnCode,
 } from "../_shared/rede-payload.ts";
+import { vendaReservadaPix, MSG_RESERVA_PIX } from "../_shared/pix-aut-reserva.ts";
 
 const MAX_TENTATIVAS = 5;
 
@@ -190,6 +191,7 @@ serve(async (req) => {
 
   // Idempotência
   try {
+    if (await vendaReservadaPix(supabase, venda_id)) return new Response(JSON.stringify({ error: MSG_RESERVA_PIX, codigo: "reservado_pix_automatico" }), { status: 409, headers });
     const manual = await executarPrimeiroCiclo(supabase, venda_id, crypto.randomUUID(), "credit", null, aluno_id, async (centavos) => {
       if (Number(installments) !== 1 || capture_override === false) throw new Error("Primeiro ciclo recorrente exige captura em uma parcela");
       const s = await loadSecrets(supabase);

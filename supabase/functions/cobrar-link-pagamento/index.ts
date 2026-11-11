@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
 import { reservarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
+import { vendaReservadaPix, MSG_RESERVA_PIX } from "../_shared/pix-aut-reserva.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,6 +60,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!venda) return json(404, { success: false, error: "venda_nao_encontrada" });
+    if (venda.status_pagamento !== "pago" && await vendaReservadaPix(admin, venda.id)) return json(409, { success: false, error: "reservado_pix_automatico", mensagem: MSG_RESERVA_PIX });
     if (venda.status_pagamento === "pago") {
       // Concilia um pagamento aprovado já existente; nunca chama a Rede nesta retomada.
       const { data: origem } = await admin.from("vendas").select("origem,tipo_cobranca").eq("id", venda.id).single();

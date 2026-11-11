@@ -4,6 +4,7 @@ import type { Contrato, Cobranca, CicloCredito, Inadimplencia, ResultadoRescisao
 import { toast } from 'sonner';
 import { getFormaRecebimento } from '@/lib/formasRecebimento';
 import { propagarBaixaParaVenda, propagarBaixaEmLote } from '@/lib/baixaVenda';
+import { confirmarBaixaReservadaPix } from '@/lib/pixAutReserva';
 
 
 
@@ -284,6 +285,7 @@ export function useRegistrarPagamento() {
     }) => {
       const forma = getFormaRecebimento(formaRecebimento);
       if (!forma) throw new Error('Forma de recebimento inválida');
+      if (!(await confirmarBaixaReservadaPix([cobrancaId]))) throw new Error('Baixa cancelada: mensalidade reservada ao Pix Automático');
       const { error } = await db
         .from('cobrancas')
         .update({
@@ -325,6 +327,7 @@ export function useDarBaixaLote() {
     }) => {
       if (!cobrancaIds.length) return 0;
       const forma = formaRecebimento ? getFormaRecebimento(formaRecebimento) : undefined;
+      if (!(await confirmarBaixaReservadaPix(cobrancaIds))) throw new Error('Baixa cancelada: mensalidade reservada ao Pix Automático');
       const { error } = await db
         .from('cobrancas')
         .update({

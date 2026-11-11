@@ -69,6 +69,7 @@ import {
   labelFormaPagamento,
 } from "@/lib/formasRecebimento";
 import { propagarBaixaParaVenda } from "@/lib/baixaVenda";
+import { confirmarBaixaReservadaPix } from "@/lib/pixAutReserva";
 import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
 import { EstornarCobrancaDialog } from "@/components/financeiro/EstornarCobrancaDialog";
 import { ComprovanteEstornoDialog } from "@/components/financeiro/ComprovanteEstornoDialog";
@@ -356,6 +357,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     if (!forma) return;
     setBaixaLoading(true);
     try {
+      if (!(await confirmarBaixaReservadaPix([baixaCobranca.id]))) return;
       const { error } = await supabase
         .from("cobrancas")
         .update({

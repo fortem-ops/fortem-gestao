@@ -34,6 +34,7 @@ import {
   isUniqueViolation,
   respostaIdempotente,
 } from "../_shared/cobrar-salvo-reserva.ts";
+import { vendaReservadaPix, MSG_RESERVA_PIX } from "../_shared/pix-aut-reserva.ts";
 
 const MAX_TENTATIVAS = 5;
 const MOTIVO_EM_PROCESSAMENTO =
@@ -107,6 +108,7 @@ serve(async (req) => {
 
   // ── 3. Idempotência por chave — devolve o resultado da primeira ──
   try {
+    if (await vendaReservadaPix(supabase, venda_id)) return json({ error: MSG_RESERVA_PIX, codigo: "reservado_pix_automatico" }, 409);
     const manual = await executarPrimeiroCiclo(supabase, venda_id, idempotency_key, "token", cartao_id, null,
       (centavos) => cobrarTokenManual(supabase, venda_id, cartao_id, centavos));
     if (manual.handled) return json(manual);

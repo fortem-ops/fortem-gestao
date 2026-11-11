@@ -57,6 +57,21 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
+    // Pix Automático (Etapa 2, opção 1): só planos/contratos em grupo Pix ATIVO renovam 8 dias antes do vencimento.
+    // A lista vem do banco (fn_pix_aut_planos_antecipar); os demais alunos seguem exatamente como antes.
+    type Antecipar = { plano_id: string; proxima_renovacao: string; eh_2027: boolean };
+    const { data: antecData, error: antecErr } = await supabase.rpc("fn_pix_aut_planos_antecipar", { p_hoje: today });
+    const antecipar: Antecipar[] = antecErr ? [] : ((antecData as Antecipar[] | null) ?? []);
+    if (antecErr) console.error("fn_pix_aut_planos_antecipar:", antecErr.message);
+    const antecLegado = antecipar.filter((a) => !a.eh_2027).map((a) => a.plano_id);
+    if (antecLegado.length) {
+      const { data: extra } = await supabase
+        .from("planos")
+        .select("id, aluno_id, tipo, valor, proxima_renovacao, desconto_recorrente, forma_pagamento_padrao, parcelas_padrao, atividade, created_at, data_inicio")
+        .in("id", antecLegado).eq("ativo", true).is("catalogo_id", null);
+      for (const e of extra ?? []) if (!(planos ?? []).some((x) => x.id === e.id)) (planos as typeof extra)?.push(e);
+    }
+
     // Cache de catálogo (por nome em minúsculas)
     const { data: catalogo, error: catErr } = await supabase
       .from("planos_catalogo")
@@ -282,8 +297,12 @@ Deno.serve(async (req) => {
         .in("planos_catalogo.familia", ["start_2027", "consultoria_2027"])
         .lte("proxima_renovacao", today);
       if (s27Err) planos2027.erros.push({ etapa: "listar_start_2027", motivo: s27Err.message });
-      for (const p of start2027 || []) {
-        const { data: r, error: rErr } = await supabase.rpc("fn_renovar_start_2027", { p_plano: p.id, p_data: today });
+      const lista2027: { id: string; data: string }[] = (start2027 || []).map((p: { id: string }) => ({ id: p.id, data: today }));
+      for (const a of antecipar.filter((x) => x.eh_2027)) {
+        if (!lista2027.some((x) => x.id === a.plano_id)) lista2027.push({ id: a.plano_id, data: a.proxima_renovacao });
+      }
+      for (const p of lista2027) {
+        const { data: r, error: rErr } = await supabase.rpc("fn_renovar_start_2027", { p_plano: p.id, p_data: p.data });
         if (rErr) planos2027.erros.push({ plano_id: p.id, motivo: rErr.message });
         else if ((r as any)?.pulado) planos2027.pulados.push(r);
         else planos2027.renovados.push(r);
@@ -296,9 +315,17 @@ Deno.serve(async (req) => {
       planos2027.erros.push({ etapa: "planos_2027", motivo: String(e27) });
     }
 
+    // Pix Automático (opção 2): itens do grupo seguem a renovação (idempotente, registrado no banco).
+    let pixItens: unknown = null;
+    try {
+      const { data: mi, error: miErr } = await supabase.rpc("fn_pix_aut_migrar_itens");
+      pixItens = miErr ? { erro: miErr.message } : mi;
+    } catch (eMi) { pixItens = { erro: String(eMi) }; }
+
     return new Response(
       JSON.stringify({
         ok: true,
+        pix_automatico: { antecipados: antecipar.length, itens: pixItens },
         planos_processados: planos?.length ?? 0,
         vendas_geradas: geradas,
         erros,

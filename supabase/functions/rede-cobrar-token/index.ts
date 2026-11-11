@@ -13,6 +13,7 @@ import {
 import { cobrarComToken } from "../_shared/rede-recorrencia-core.ts";
 import { executarPrimeiroCiclo } from "../_shared/manual-primeiro-ciclo.ts";
 import { cobrarTokenManual } from "../_shared/manual-primeiro-ciclo-rede.ts";
+import { vendaReservadaPix, MSG_RESERVA_PIX } from "../_shared/pix-aut-reserva.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +35,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes" }), { status: 400, headers });
   }
 
+  if (await vendaReservadaPix(supabase, venda_id)) return new Response(JSON.stringify({ error: MSG_RESERVA_PIX, codigo: "reservado_pix_automatico" }), { status: 409, headers });
   const { data: vendaManual } = await supabase.from("vendas").select("origem,tipo_cobranca").eq("id", venda_id).maybeSingle();
   if (vendaManual?.origem === "manual" && vendaManual.tipo_cobranca === "recorrencia") {
     const bearer = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
