@@ -15243,8 +15243,16 @@ export type Database = {
       }
       fn_reveal_profile_cpf: { Args: { p_user_id: string }; Returns: string }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
+      fn_semestral_ativar_venda: {
+        Args: { p_contrato: string; p_venda: string }
+        Returns: undefined
+      }
       fn_semestral_cancelar: {
         Args: { p_contrato: string; p_motivo?: string }
+        Returns: Json
+      }
+      fn_semestral_definir_cartao: {
+        Args: { p_cartao: string; p_venda: string }
         Returns: Json
       }
       fn_semestral_diario: { Args: { p_data?: string }; Returns: Json }

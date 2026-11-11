@@ -35,3 +35,19 @@ describe("primeiro ciclo manual recorrente", () => {
     expect(cobrar).not.toHaveBeenCalled();
   });
 });
+describe("primeiro ciclo — recusa da Rede (Plano Semestral 4B)", () => {
+  it("recusa marca o pagamento como negado, devolve o motivo e não concilia", async () => {
+    const update = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
+    const insert = vi.fn().mockResolvedValue({});
+    const rpc = vi.fn().mockResolvedValueOnce({ data: { handled: true, nova: true, pagamento_id: "p1", valor_centavos: 46900 } });
+    const db = { rpc, from: vi.fn((t: string) => (t === "pagamentos_rede" ? { update } : { insert })) };
+    const cobrar = vi.fn().mockResolvedValue({ stage: "transaction", approved: false, httpStatus: 200, returnCode: "05", returnMessage: "Não autorizada" });
+    const res = await executarPrimeiroCiclo(db, "v", "k", "token", "c", null, cobrar);
+    expect(cobrar).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledTimes(1); // nunca chama a liquidação
+    expect(update.mock.calls[0][0].status).toBe("denied");
+    expect(res.recusado).toBe(true);
+    expect(res.return_message).toBe("Não autorizada");
+    expect(res.success).toBe(false);
+  });
+});

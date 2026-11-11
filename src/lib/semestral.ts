@@ -34,3 +34,27 @@ export function beneficiosSemestral(item: ItemSemestral): string[] {
   if ((item.bota_compressao_mes ?? 0) > 0) out.push(`Bota de compressão ${item.bota_compressao_mes}/ciclo`);
   return out;
 }
+
+/** Resposta de `rede-cobrar-token` para a 1ª mensalidade do Semestral, traduzida para a tela. */
+export type RespostaCobranca = {
+  success?: boolean; idempotente?: boolean; em_processamento?: boolean; recusado?: boolean;
+  return_message?: string | null; error?: string; incerto?: boolean;
+};
+export type EstadoCobranca = { estado: "aprovado" | "recusado" | "processando" | "erro"; mensagem: string; podeTentarDeNovo: boolean };
+
+export function interpretarCobrancaSemestral(r: RespostaCobranca | null | undefined): EstadoCobranca {
+  if (r?.success) return { estado: "aprovado", mensagem: "1ª mensalidade aprovada. Plano Semestral ativado.", podeTentarDeNovo: false };
+  if (r?.em_processamento || r?.incerto)
+    return { estado: "processando", mensagem: "Há um pagamento em processamento para esta venda. Não cobre de novo; a equipe confere o resultado.", podeTentarDeNovo: false };
+  if (r?.recusado)
+    return { estado: "recusado", mensagem: `Cartão recusado: ${r.return_message ?? "sem motivo informado"}. Tente de novo ou use outro cartão.`, podeTentarDeNovo: true };
+  return { estado: "erro", mensagem: r?.error ?? "Pagamento não confirmado.", podeTentarDeNovo: false };
+}
+
+/** Botão de cancelamento do Semestral: só administrador e só contrato Semestral ativo sem cancelamento. */
+export function podeCancelarSemestral(
+  isAdmin: boolean,
+  contrato: { plano_tipo?: string | null; status?: string | null; data_cancelamento?: string | null } | null | undefined,
+): boolean {
+  return isAdmin && contrato?.plano_tipo === "semestral_2027" && contrato.status === "ativo" && !contrato.data_cancelamento;
+}

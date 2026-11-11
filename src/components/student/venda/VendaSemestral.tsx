@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/vendas";
 import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
-import { beneficiosSemestral, type ItemSemestral } from "@/lib/semestral";
+import { beneficiosSemestral, interpretarCobrancaSemestral, type EstadoCobranca, type ItemSemestral, type RespostaCobranca } from "@/lib/semestral";
+import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 
 export const CHAVE_SEMESTRAL = "semestral";
 
@@ -31,7 +32,7 @@ export function useItensSemestral(alunoId: string, enabled: boolean) {
   });
 }
 
-type Resultado = { venda_id?: string; contrato_id?: string; repetida?: boolean };
+type Resultado = { venda_id?: string; contrato_id?: string; repetida?: boolean; retomada?: boolean; valor_centavos?: number };
 
 export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; itens: ItemSemestral[]; onDone: () => void }) {
   const qc = useQueryClient();
@@ -39,6 +40,7 @@ export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; it
   const [observacoes, setObservacoes] = useState("");
   const [idem] = useState(() => crypto.randomUUID());
   const item = itens.find((i) => i.id === sel);
+  const [venda, setVenda] = useState<Resultado | null>(null);
 
   const vender = useMutation({
     mutationFn: async () => {
@@ -56,20 +58,38 @@ export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; it
         });
         contratoOk = g.success;
       }
-      return contratoOk;
+      return { r, contratoOk };
     },
-    onSuccess: (contratoOk) => {
+    onSuccess: ({ r, contratoOk }) => {
       ["vendas-aluno", "creditos-aluno", "creditos_resumo", "creditos_aluno_lista", "contratos", "plano-vigente-venda", "contratos-ativos-venda", "semestral-itens"].forEach(
         (k) => qc.invalidateQueries({ queryKey: [k, alunoId] }),
       );
       qc.invalidateQueries({ queryKey: ["cobrancas"] });
       invalidatePlanoCaches(qc, alunoId);
-      toast.success("Plano Semestral registrado. Cobre a 1ª mensalidade no cartão em Pagamentos.");
+      if (r.retomada) toast.info("Venda já registrada aguardando a 1ª mensalidade: continue o pagamento.");
       if (!contratoOk) toast.warning("Modelo de contrato do Semestral ainda desligado: o documento não foi gerado.");
-      onDone();
+      setVenda(r);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (venda?.venda_id) {
+    return (
+      <PagamentoSemestral
+        alunoId={alunoId}
+        vendaId={venda.venda_id}
+        valorCentavos={venda.valor_centavos ?? Math.round(Number(item?.valor ?? 0) * 100)}
+        onAprovado={() => {
+          ["vendas-aluno", "creditos-aluno", "creditos_resumo", "creditos_aluno_lista", "contratos", "plano-vigente-venda", "contratos-ativos-venda", "semestral-itens"].forEach(
+            (k) => qc.invalidateQueries({ queryKey: [k, alunoId] }),
+          );
+          qc.invalidateQueries({ queryKey: ["cobrancas"] });
+          invalidatePlanoCaches(qc, alunoId);
+          onDone();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -97,16 +117,96 @@ export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; it
         ))}
       </div>
       <p className="text-sm text-muted-foreground">
-        Recorrência mensal no cartão. Ciclo de 30 dias a partir de hoje; créditos do ciclo liberados após o pagamento.
-        O plano da agregadora é encerrado na venda.
+        Recorrência mensal no cartão. A 1ª mensalidade é cobrada agora; o plano, os créditos do ciclo e o encerramento
+        da agregadora só valem com o pagamento aprovado.
       </p>
       <div className="space-y-1">
         <Label>Observações</Label>
         <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2} />
       </div>
       <Button className="w-full" disabled={!item || vender.isPending} onClick={() => vender.mutate()}>
-        {vender.isPending ? "Registrando..." : "Registrar Plano Semestral"}
+        {vender.isPending ? "Registrando..." : "Continuar para o pagamento"}
       </Button>
+    </div>
+  );
+}
+
+type CartaoSalvo = { id: string; last4: string | null; brand: string | null; confirmado: boolean };
+
+function PagamentoSemestral({ alunoId, vendaId, valorCentavos, onAprovado }: {
+  alunoId: string; vendaId: string; valorCentavos: number; onAprovado: () => void;
+}) {
+  const [cartaoId, setCartaoId] = useState("");
+  const [novoCartao, setNovoCartao] = useState(false);
+  const [estado, setEstado] = useState<EstadoCobranca | null>(null);
+
+  const cartoes = useQuery({
+    queryKey: ["semestral-cartoes", alunoId],
+    queryFn: async (): Promise<CartaoSalvo[]> => {
+      const { data: cs, error } = await supabase.from("cartoes_salvos").select("id,last4,brand").eq("aluno_id", alunoId).eq("ativo", true);
+      if (error) throw new Error(error.message);
+      const ids = (cs ?? []).map((c) => c.id);
+      const { data: tk } = ids.length
+        ? await supabase.from("rede_tokenizacoes").select("cartao_salvo_id,status").in("cartao_salvo_id", ids).is("proposta_id", null)
+        : { data: [] as { cartao_salvo_id: string | null; status: string | null }[] };
+      const ok = new Set((tk ?? []).filter((t) => t.status === "active").map((t) => t.cartao_salvo_id));
+      return (cs ?? []).map((c) => ({ id: c.id, last4: c.last4, brand: c.brand, confirmado: ok.has(c.id) }));
+    },
+  });
+
+  const cobrar = useMutation({
+    mutationFn: async (): Promise<EstadoCobranca> => {
+      const { error: e1 } = await db.rpc("fn_semestral_definir_cartao", { p_venda: vendaId, p_cartao: cartaoId });
+      if (e1) throw new Error(e1.message);
+      const { data, error } = await supabase.functions.invoke("rede-cobrar-token", {
+        body: { venda_id: vendaId, cartao_id: cartaoId, amount: valorCentavos / 100 },
+      });
+      // Resposta 409 (resultado incerto) chega como erro: nunca tentar de novo automaticamente.
+      if (error && !data) return interpretarCobrancaSemestral({ incerto: true, error: error.message });
+      return interpretarCobrancaSemestral(data as RespostaCobranca);
+    },
+    onSuccess: (e) => {
+      setEstado(e);
+      if (e.estado === "aprovado") { toast.success(e.mensagem); onAprovado(); }
+      else if (e.estado === "recusado") toast.error(e.mensagem);
+      else toast.warning(e.mensagem);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bloqueado = estado != null && !estado.podeTentarDeNovo;
+  const lista = cartoes.data ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border p-3 text-sm">
+        <div className="flex justify-between font-semibold"><span>1ª mensalidade</span><span>{formatBRL(valorCentavos / 100)}</span></div>
+        <p className="mt-1 text-xs text-muted-foreground">Cobrada agora, em 1x. O cartão fica salvo para os ciclos seguintes.</p>
+      </div>
+      <div className="space-y-2" role="radiogroup" aria-label="Cartão do aluno">
+        <Label>Cartão</Label>
+        {lista.length === 0 && !cartoes.isLoading && <p className="text-sm text-muted-foreground">Nenhum cartão salvo.</p>}
+        {lista.map((c) => (
+          <button key={c.id} type="button" role="radio" aria-checked={cartaoId === c.id} disabled={!c.confirmado}
+            onClick={() => setCartaoId(c.id)}
+            className={cn("w-full rounded-lg border p-2 text-left text-sm", cartaoId === c.id ? "border-primary bg-primary/10" : "border-border",
+              !c.confirmado && "opacity-60")}>
+            {(c.brand ?? "Cartão").toUpperCase()} •••• {c.last4 ?? "----"}
+            {!c.confirmado && <span className="ml-2 text-xs text-muted-foreground">aguardando confirmação da Rede</span>}
+          </button>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={() => setNovoCartao(true)} disabled={cobrar.isPending}>
+          Cadastrar outro cartão
+        </Button>
+      </div>
+      {estado && estado.estado !== "aprovado" && (
+        <p className={cn("text-sm", estado.estado === "recusado" ? "text-destructive" : "text-muted-foreground")}>{estado.mensagem}</p>
+      )}
+      <Button className="w-full" disabled={!cartaoId || cobrar.isPending || bloqueado} onClick={() => cobrar.mutate()}>
+        {cobrar.isPending ? "Cobrando..." : estado?.estado === "recusado" ? "Tentar de novo" : `Cobrar ${formatBRL(valorCentavos / 100)} agora`}
+      </Button>
+      <CadastrarCartaoDialog open={novoCartao} onOpenChange={setNovoCartao} alunoId={alunoId} origem="recepcao"
+        onSuccess={() => { setNovoCartao(false); setEstado(null); cartoes.refetch(); }} />
     </div>
   );
 }

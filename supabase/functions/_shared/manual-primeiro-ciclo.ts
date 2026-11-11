@@ -9,6 +9,10 @@ export interface ReservaManual {
   cobranca_id?: string;
   valor_centavos?: number;
   tid?: string;
+  recusado?: boolean;
+  return_code?: string | null;
+  return_message?: string | null;
+  error?: string;
 }
 
 export async function reservarPrimeiroCiclo(db: any, vendaId: string, chave: string, kind: string, cartaoId: string | null = null, alunoId: string | null = null): Promise<ReservaManual> {
@@ -60,5 +64,7 @@ export async function executarPrimeiroCiclo(db: any, vendaId: string, chave: str
     mensagem: "Primeiro ciclo sem confirmação de pagamento; nenhuma repetição automática",
     payload: { venda_id: vendaId, pagamento_id: reserva.pagamento_id, cobranca_id: reserva.cobranca_id,
       etapa: resultado.stage, http_status: resultado.httpStatus, return_code: resultado.returnCode } });
-  return { ...reserva, nova: false, success: false, error: "Pagamento não confirmado; confira o resultado antes de tentar novamente." };
+  const recusado = resultado.stage !== "cryptogram" && !resultado.errorKind && resultado.httpStatus < 500 && !!resultado.returnCode;
+  return { ...reserva, nova: false, success: false, recusado, return_code: resultado.returnCode ?? null, return_message: resultado.returnMessage ?? null,
+    error: recusado ? `Pagamento recusado: ${resultado.returnMessage ?? resultado.returnCode}` : "Pagamento não confirmado; confira o resultado antes de tentar novamente." };
 }

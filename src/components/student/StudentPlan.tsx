@@ -26,6 +26,7 @@ import { AgendarServicoDialog } from "./AgendarServicoDialog";
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import { CancelarSemestral } from "@/components/student/CancelarSemestral";
 import { useCancelamentoMotivos, useCancelamentoMotivoMutations } from "@/hooks/useCancelamentoMotivos";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
@@ -505,6 +506,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                 <span>R$ {Number(data.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
               </div>
             )}
+            {isAdmin && (data as any).catalogo_id && <CancelarSemestral planoId={data.id} alunoId={student.id} isAdmin={isAdmin} />}
             {isAdmin && !(data as any).catalogo_id && (data as any).renovacao_automatica && data.duracao_meses === 1 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

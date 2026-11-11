@@ -53,12 +53,10 @@ BEGIN
   IF n <> 0 THEN RAISE EXCEPTION 'FALHOU: Treino antes do pagamento'; END IF;
   SELECT count(*) INTO n FROM public.creditos_aluno WHERE origem_id IN ((r->>'venda_id')::uuid, (r->>'plano_id')::uuid) AND atividade = 'Avaliação Funcional';
   IF n <> 1 THEN RAISE EXCEPTION 'FALHOU: % créditos de Avaliação Funcional', n; END IF;
+  -- Etapa 4B: até a 1ª mensalidade ser paga, o Wellhub segue ativo.
   SELECT count(*) INTO n FROM public.planos WHERE aluno_id = v_aluno AND tipo = 'Gympass/Wellhub' AND ativo;
-  IF n <> 0 THEN RAISE EXCEPTION 'FALHOU: Wellhub segue ativo'; END IF;
-  SELECT count(*) INTO n FROM public.planos WHERE aluno_id = v_aluno AND tipo = 'Gympass/Wellhub' AND NOT ativo AND data_fim = (now() AT TIME ZONE 'America/Sao_Paulo')::date;
-  IF n < 1 THEN RAISE EXCEPTION 'FALHOU: Wellhub sem data_fim de hoje'; END IF;
-  IF (public.fn_plano_principal_ativo(v_aluno)).catalogo_id IS DISTINCT FROM v_cat THEN RAISE EXCEPTION 'FALHOU: plano principal não é o Semestral'; END IF;
-  v_res := v_res || '3 contrato semestral_wellhub 30 dias, mensalidade nº1 R$439 pendente, 0 Treino, 1 Avaliação, Wellhub encerrado, principal=Semestral; ';
+  IF n = 0 THEN RAISE EXCEPTION 'FALHOU: Wellhub encerrado antes do pagamento'; END IF;
+  v_res := v_res || '3 contrato semestral_wellhub 30 dias, mensalidade nº1 R$439 pendente, 0 Treino, 1 Avaliação (inativa), Wellhub ativo até pagar; ';
 
   -- Pagamento simulado do ciclo 1 (sem provedor): libera 12, uma vez.
   UPDATE public.cobrancas SET status = 'pago', data_pagamento = CURRENT_DATE WHERE id = v_cob;
@@ -66,7 +64,12 @@ BEGIN
   UPDATE public.cobrancas SET status = 'pago' WHERE id = v_cob;
   SELECT COALESCE(sum(quantidade_inicial), 0) INTO n FROM public.creditos_aluno WHERE origem_id = (r->>'venda_id')::uuid AND atividade = 'Treino';
   IF n <> 12 THEN RAISE EXCEPTION 'FALHOU: Treino após pagamento = %', n; END IF;
-  v_res := v_res || '4 pago => 12 Treino (sem duplicar); ';
+  SELECT count(*) INTO n FROM public.planos WHERE aluno_id = v_aluno AND tipo = 'Gympass/Wellhub' AND ativo;
+  IF n <> 0 THEN RAISE EXCEPTION 'FALHOU: Wellhub segue ativo após pagar'; END IF;
+  SELECT count(*) INTO n FROM public.planos WHERE aluno_id = v_aluno AND tipo = 'Gympass/Wellhub' AND NOT ativo AND data_fim = (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  IF n < 1 THEN RAISE EXCEPTION 'FALHOU: Wellhub sem data_fim de hoje'; END IF;
+  IF (public.fn_plano_principal_ativo(v_aluno)).catalogo_id IS DISTINCT FROM v_cat THEN RAISE EXCEPTION 'FALHOU: plano principal não é o Semestral'; END IF;
+  v_res := v_res || '4 pago => 12 Treino (sem duplicar), Wellhub encerrado, principal=Semestral; ';
 
   -- Recontratação pelo mesmo CPF é recusada.
   BEGIN

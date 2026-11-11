@@ -1870,6 +1870,20 @@
       "when": 1794407861952,
       "tag": "0266_semestral_cancelar_contagem",
       "breakpoints": true
+    },
+    {
+      "idx": 267,
+      "version": "7",
+      "when": 1794408871199,
+      "tag": "0267_semestral_primeira_mensalidade_cartao",
+      "breakpoints": true
+    },
+    {
+      "idx": 268,
+      "version": "7",
+      "when": 1794408926934,
+      "tag": "0268_semestral_primeira_mensalidade_ativacao",
+      "breakpoints": true
     }
   ]
 }
