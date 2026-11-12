@@ -53,8 +53,9 @@ export default function Moderacao({ eventoId, podeGerir }: { eventoId: string; p
     if (!lista.length) return;
     setOcupado(true);
     try {
-      const { moderadas } = await fotosAdmin<{ moderadas: number }>("moderar", { foto_ids: lista, decisao });
+      const { moderadas, indexacao } = await fotosAdmin<{ moderadas: number; indexacao?: { indexada: number; sem_rosto: number; erro: number } }>("moderar", { foto_ids: lista, decisao });
       toast.success(`${moderadas} foto(s) ${decisao === "aprovar" ? "aprovada(s)" : "rejeitada(s)"}.`);
+      if (indexacao?.erro) toast.error(`${indexacao.erro} foto(s) aprovada(s) não foram indexadas. Veja os erros no painel do evento.`);
       setSel((s) => { const n = new Set(s); lista.forEach((i) => n.delete(i)); return n; });
       await qc.invalidateQueries({ queryKey: ["fotos-evento", eventoId] });
     } catch (e) { toast.error(`Não foi possível moderar: ${e instanceof Error ? e.message : "erro"}`); }

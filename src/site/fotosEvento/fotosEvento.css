@@ -56,16 +56,17 @@
 .fotos-evento .fe-miniaturas img { width: 100%; height: 100%; object-fit: cover; }
 .fotos-evento .fe-miniaturas button { position: absolute; top: 2px; right: 2px; background: var(--fe-preto); color: var(--fe-branco); padding: 3px; }
 /* Selfie */
-.fotos-evento .fe-selfie { display: flex; flex-direction: column; min-height: 100vh; background: var(--fe-preto); }
-.fotos-evento .fe-selfie-topo { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 12px; font-weight: 700; letter-spacing: .1em; }
-.fotos-evento .fe-selfie-camera { position: relative; flex: 1; min-height: 420px; overflow: hidden; background: #111; }
+.fotos-evento .fe-selfie { position: fixed; inset: 0; z-index: 50; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden; background: var(--fe-preto); padding-top: env(safe-area-inset-top); }
+.fotos-evento .fe-selfie-topo { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 12px; font-weight: 700; letter-spacing: .1em; }
+.fotos-evento .fe-selfie-camera { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #111; }
 .fotos-evento .fe-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-.fotos-evento .fe-oval { position: absolute; left: 50%; top: 45%; width: 62%; aspect-ratio: 3 / 4; transform: translate(-50%, -50%); border: 2px dashed var(--fe-branco); border-radius: 50% !important; }
-.fotos-evento .fe-selfie-legenda { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; }
+.fotos-evento .fe-oval { position: absolute; left: 50%; top: 46%; height: 68%; max-width: 72%; aspect-ratio: 3 / 4; transform: translate(-50%, -50%); border: 2px dashed var(--fe-branco); border-radius: 50% !important; }
+.fotos-evento .fe-selfie-legenda { position: absolute; bottom: 0; left: 0; right: 0; padding: 18px 12px 10px; text-align: center; font-size: 12px; line-height: 1.35; font-weight: 700; background: linear-gradient(transparent, rgba(0,0,0,.75)); }
+.fotos-evento .fe-selfie-legenda span { display: block; font-weight: 400; color: var(--fe-cinza); font-size: 11px; }
 .fotos-evento .fe-selfie-aviso { position: absolute; inset: 0; display: flex; align-items: center; padding: 32px; text-align: center; color: var(--fe-cinza); font-size: 14px; z-index: 1; }
-.fotos-evento .fe-selfie-base { padding: 16px 20px 28px; display: flex; flex-direction: column; gap: 16px; font-size: 12px; color: var(--fe-cinza); }
+.fotos-evento .fe-selfie-base { flex: none; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); font-size: 12px; color: var(--fe-cinza); }
 .fotos-evento .fe-selfie-acoes { display: flex; align-items: center; justify-content: space-between; }
-.fotos-evento .fe-captura { width: 64px; height: 64px; border-radius: 50% !important; background: var(--fe-acao); border: 4px solid var(--fe-branco); }
+.fotos-evento .fe-captura { flex: none; width: 64px; height: 64px; border-radius: 50% !important; background: var(--fe-acao); border: 4px solid var(--fe-branco); }
 .fotos-evento .fe-captura:disabled { opacity: .4; }
 /* Foto aberta */
 .fotos-evento .fe-aberta-foto { position: relative; background: var(--fe-preto); display: flex; justify-content: center; }

@@ -49,6 +49,15 @@ export default function PainelEvento({ evento }: { evento: EventoFotos }) {
     },
   });
   const t = totais(fotos);
+  const { data: erros = [] } = useQuery({
+    queryKey: ["fotos-evento", evento.id, "erros", t.erro],
+    enabled: t.erro > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fotos_evento").select("id, origem, erro_indexacao").eq("evento_id", evento.id).eq("status_indexacao", "erro").order("criado_em").limit(100);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   async function indexar(acao: "indexar" | "reprocessar_erros") {
     parar.current = false; setIndexando(true);
@@ -101,6 +110,12 @@ export default function PainelEvento({ evento }: { evento: EventoFotos }) {
 
       <Card className="p-5 space-y-3">
         <h3 className="font-semibold">Indexação de rostos</h3>
+        {aIndexar > 0 && !indexando && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border border-warning/50 bg-warning/10 p-3">
+            <p className="text-sm"><b>{aIndexar}</b> foto(s) aprovada(s) ainda não estão na busca por selfie.</p>
+            <Button size="sm" onClick={() => void indexar("indexar")}><Play className="h-4 w-4 mr-2" />Indexar todas agora</Button>
+          </div>
+        )}
         <div className="flex flex-wrap gap-4 text-sm">
           <span>Indexadas: <b>{t.indexadas}</b></span><span>Sem rosto: <b>{t.sem_rosto}</b></span>
           <span>A indexar: <b>{aIndexar}</b></span><span className={t.erro ? "text-destructive" : ""}>Com erro: <b>{t.erro}</b></span>
@@ -113,7 +128,15 @@ export default function PainelEvento({ evento }: { evento: EventoFotos }) {
           <Button variant="outline" onClick={() => void indexar("reprocessar_erros")} disabled={indexando || !t.erro}><RotateCcw className="h-4 w-4 mr-2" />Reprocessar com erro</Button>
           {t.incompletas > 0 && <Button variant="ghost" onClick={() => void limpar()} disabled={indexando}><Trash2 className="h-4 w-4 mr-2" />Limpar {t.incompletas} envio(s) incompleto(s)</Button>}
         </div>
-        <p className="text-xs text-muted-foreground">Processa 5 fotos por vez. Se fechar a aba, é só voltar e clicar em continuar. Envios incompletos com mais de 2 horas podem ser limpos.</p>
+        {erros.length > 0 && (
+          <div className="border border-destructive/50 bg-destructive/10 p-3 space-y-1">
+            <p className="text-sm font-semibold text-destructive">Fotos com erro na indexação</p>
+            <ul className="text-xs space-y-0.5 max-h-40 overflow-auto">
+              {erros.map((e) => <li key={e.id}><span className="text-muted-foreground">{e.origem === "convidado" ? "Convidado" : "Fotógrafo"} · {e.id.slice(0, 8)}:</span> {e.erro_indexacao ?? "erro sem mensagem"}</li>)}
+            </ul>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">Fotos aprovadas e envios da equipe são indexados automaticamente. Processa 5 fotos por vez. Se fechar a aba, é só voltar e clicar em continuar. Envios incompletos com mais de 2 horas podem ser limpos.</p>
       </Card>
 
       <Card className="p-5 space-y-3">

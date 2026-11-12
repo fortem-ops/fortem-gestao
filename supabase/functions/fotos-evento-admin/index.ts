@@ -4,9 +4,11 @@ import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
 import { BUCKET, papelEquipe } from "../_shared/fotos-evento-srv.ts";
 import { rekognition, ErroAws, base64 } from "../_shared/rekognition.ts";
 import {
-  arquivoValido, colecaoValida, orientacao, resultadoIndexacao, LOTE_INDEXACAO, MAX_BYTES_REKOGNITION,
-  type FaceRecord,
+  arquivoValido, colecaoValida, orientacao, LOTE_INDEXACAO, type FaceRecord,
 } from "../_shared/fotos-evento.ts";
+import { indexarFila, indexarFoto as indexarFotoComDeps, type DepsIndexacao } from "../_shared/fotos-evento-indexacao.ts";
+
+const MAX_INDEXAR_NA_HORA = 60;
 
 type Sb = ReturnType<typeof admin>;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -36,27 +38,45 @@ async function apagarRostos(sb: Sb, colecao: string, fotoId: string) {
   await sb.from("rostos_foto").delete().eq("foto_id", fotoId);
 }
 
-type FotoIdx = { id: string; storage_path: string; storage_path_preview: string | null };
-async function indexarFoto(sb: Sb, colecao: string, f: FotoIdx) {
-  try {
-    const caminho = f.storage_path_preview ?? f.storage_path;
-    const { data: blob, error } = await sb.storage.from(BUCKET).download(caminho);
-    if (error || !blob) throw new Error("arquivo_nao_encontrado");
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    if (bytes.length > MAX_BYTES_REKOGNITION) throw new Error("previa_maior_que_5mb");
-    await apagarRostos(sb, colecao, f.id);
-    const r = await rekognition<{ FaceRecords?: FaceRecord[] }>("IndexFaces", {
-      CollectionId: colecao, Image: { Bytes: base64(bytes) }, ExternalImageId: f.id,
+function deps(sb: Sb): DepsIndexacao {
+  return {
+    baixar: async (caminho) => {
+      const { data: blob, error } = await sb.storage.from(BUCKET).download(caminho);
+      if (error || !blob) throw new Error("arquivo_nao_encontrado");
+      return new Uint8Array(await blob.arrayBuffer());
+    },
+    indexFaces: (colecao, bytes, fotoId) => rekognition<{ FaceRecords?: FaceRecord[] }>("IndexFaces", {
+      CollectionId: colecao, Image: { Bytes: base64(bytes) }, ExternalImageId: fotoId,
       MaxFaces: 100, QualityFilter: "AUTO", DetectionAttributes: [],
-    });
-    const { status, faceIds } = resultadoIndexacao(r.FaceRecords);
-    if (faceIds.length) await sb.from("rostos_foto").insert(faceIds.map((face_id_rekognition) => ({ foto_id: f.id, face_id_rekognition })));
-    await sb.from("fotos_evento").update({ status_indexacao: status, qtd_rostos: faceIds.length, erro_indexacao: null }).eq("id", f.id);
-    return status;
+    }),
+    apagarRostos: (colecao, fotoId) => apagarRostos(sb, colecao, fotoId),
+    inserirRostos: async (fotoId, faceIds) => {
+      const { error } = await sb.from("rostos_foto").insert(faceIds.map((face_id_rekognition) => ({ foto_id: fotoId, face_id_rekognition })));
+      if (error) throw new Error(`falha_gravar_rostos: ${error.message}`);
+    },
+    atualizarFoto: async (fotoId, patch) => { await sb.from("fotos_evento").update(patch).eq("id", fotoId); },
+    pendentes: async (eventoId, limite, ids) => {
+      let q = sb.from("fotos_evento").select("id, storage_path, storage_path_preview")
+        .eq("evento_id", eventoId).eq("upload_concluido", true).eq("status_moderacao", "aprovada").eq("status_indexacao", "pendente");
+      if (ids) q = q.in("id", ids);
+      const { data } = await q.order("criado_em").limit(limite);
+      return data ?? [];
+    },
+  };
+}
+
+/** Indexa na hora as fotos recém-aprovadas/enviadas; o que sobrar fica pendente e o painel mostra. */
+async function indexarAgora(sb: Sb, eventoId: string, ids: string[]) {
+  if (!ids.length) return null;
+  const ev = await evento(sb, eventoId);
+  if (!ev) return null;
+  try {
+    await garantirColecao(sb, ev);
+    return await indexarFila(deps(sb), ev, { ids, maximo: MAX_INDEXAR_NA_HORA, lote: LOTE_INDEXACAO });
   } catch (e) {
     const msg = e instanceof Error ? e.message.slice(0, 300) : "erro";
-    await sb.from("fotos_evento").update({ status_indexacao: "erro", erro_indexacao: msg }).eq("id", f.id);
-    return "erro";
+    await sb.from("fotos_evento").update({ status_indexacao: "erro", erro_indexacao: msg }).in("id", ids).eq("status_indexacao", "pendente");
+    return { processadas: 0, resultado: { indexada: 0, sem_rosto: 0, erro: ids.length } };
   }
 }
 
@@ -118,7 +138,9 @@ Deno.serve(async (req) => {
         const { data: lista } = await sb.storage.from(BUCKET).list(pasta, { search: nome, limit: 1 });
         if (lista?.some((o) => o.name === nome)) { await sb.from("fotos_evento").update({ upload_concluido: true }).eq("id", f.id); ok.push(f.id); }
       }
-      return jsonResponse({ concluidas: ok });
+      const evId = fotos?.[0] ? (await sb.from("fotos_evento").select("evento_id").eq("id", fotos[0].id).maybeSingle()).data?.evento_id : null;
+      const indexacao = evId ? await indexarAgora(sb, evId, ok) : null;
+      return jsonResponse({ concluidas: ok, indexacao });
     }
 
     if (acao === "indexar" || acao === "reprocessar_erros") {
@@ -132,7 +154,8 @@ Deno.serve(async (req) => {
         .eq("evento_id", ev.id).eq("upload_concluido", true).eq("status_moderacao", "aprovada").eq("status_indexacao", "pendente")
         .order("criado_em").limit(LOTE_INDEXACAO);
       const resultado: Record<string, number> = { indexada: 0, sem_rosto: 0, erro: 0 };
-      for (const f of lote ?? []) resultado[await indexarFoto(sb, ev.collection_id, f)]++;
+      const d = deps(sb);
+      for (const f of lote ?? []) resultado[await indexarFotoComDeps(d, ev.collection_id, f)]++;
       const { count } = await sb.from("fotos_evento").select("id", { count: "exact", head: true })
         .eq("evento_id", ev.id).eq("upload_concluido", true).eq("status_moderacao", "aprovada").eq("status_indexacao", "pendente");
       return jsonResponse({ processadas: lote?.length ?? 0, resultado, restantes: count ?? 0 });
@@ -145,9 +168,11 @@ Deno.serve(async (req) => {
       const { data: fotos } = await sb.from("fotos_evento").select("id, evento_id, storage_path, storage_path_preview, origem, status_moderacao")
         .in("id", ids).eq("origem", "convidado").eq("status_moderacao", "pendente");
       const agora = new Date().toISOString();
+      const aprovadas = new Map<string, string[]>();
       for (const f of fotos ?? []) {
         if (decisao === "aprovar") {
           await sb.from("fotos_evento").update({ status_moderacao: "aprovada", status_indexacao: "pendente", moderado_por: papel.userId, moderado_em: agora }).eq("id", f.id).eq("status_moderacao", "pendente");
+          aprovadas.set(f.evento_id, [...(aprovadas.get(f.evento_id) ?? []), f.id]);
         } else {
           const ev = await evento(sb, f.evento_id);
           if (ev && colecaoValida(ev.collection_id) && ev.colecao_criada_em) await apagarRostos(sb, ev.collection_id, f.id);
@@ -156,7 +181,19 @@ Deno.serve(async (req) => {
           await sb.from("eventos_fotos").update({ capa_foto_id: null }).eq("capa_foto_id", f.id);
         }
       }
-      return jsonResponse({ moderadas: fotos?.length ?? 0 });
+      const indexacao = { indexada: 0, sem_rosto: 0, erro: 0 };
+      for (const [evId, ids] of aprovadas) {
+        const r = await indexarAgora(sb, evId, ids);
+        if (r) for (const k of Object.keys(indexacao) as (keyof typeof indexacao)[]) indexacao[k] += r.resultado[k];
+      }
+      return jsonResponse({ moderadas: fotos?.length ?? 0, indexacao });
+    }
+
+    if (acao === "erros_indexacao") {
+      if (!ehUuid(body.evento_id)) return jsonResponse({ error: "evento_invalido" }, 400);
+      const { data } = await sb.from("fotos_evento").select("id, origem, erro_indexacao, criado_em")
+        .eq("evento_id", body.evento_id).eq("status_indexacao", "erro").order("criado_em").limit(100);
+      return jsonResponse({ erros: data ?? [] });
     }
 
     if (acao === "previas") {

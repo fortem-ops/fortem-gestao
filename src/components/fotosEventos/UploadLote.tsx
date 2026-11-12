@@ -57,7 +57,7 @@ export default function UploadLote({ eventoId }: { eventoId: string }) {
         setFeito((n) => n + (parte.length - ok.length));
         if (concluidas.length) await fotosAdmin("concluir_upload", { foto_ids: concluidas });
       }
-      toast.success("Envio concluído. Agora é só indexar no painel.");
+      toast.success("Envio concluído. As fotos foram indexadas automaticamente; confira o painel.");
     } catch (e) {
       toast.error(`Envio interrompido: ${e instanceof Error ? e.message : "erro"}`);
     } finally {

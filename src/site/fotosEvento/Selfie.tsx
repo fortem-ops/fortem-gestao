@@ -51,10 +51,9 @@ export default function Selfie({ onVoltar, onSelfie }: { onVoltar: () => void; o
           : <video ref={video} playsInline muted className="fe-video" />}
         <div className="fe-oval" aria-hidden />
         <span className="fe-cant fe-cant-sd" aria-hidden /><span className="fe-cant fe-cant-ie" aria-hidden />
-        <p className="fe-selfie-legenda">Encaixe o rosto no contorno</p>
+        <p className="fe-selfie-legenda">Encaixe o rosto no contorno<span>De frente e com luz. Sem óculos escuros, boné ou máscara.</span></p>
       </div>
       <div className="fe-selfie-base">
-        <p>Rosto de frente e bem iluminado.<br />Sem óculos escuros, boné ou máscara.</p>
         <div className="fe-selfie-acoes">
           <button className="fe-link" onClick={() => arquivo.current?.click()}>Enviar da galeria</button>
           <button className="fe-captura" onClick={capturar} disabled={semCamera} aria-label="Tirar selfie" />
