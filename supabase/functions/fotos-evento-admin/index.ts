@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const acao = body?.acao;
     const sb = admin();
-    const precisaGerir = acao !== "moderar";
+    const precisaGerir = acao !== "moderar" && acao !== "previas";
     if (precisaGerir ? !papel.gerir : !papel.moderar) return jsonResponse({ error: "sem_permissao" }, 403);
 
     if (acao === "criar_colecao") {
@@ -156,6 +156,27 @@ Deno.serve(async (req) => {
         }
       }
       return jsonResponse({ moderadas: fotos?.length ?? 0 });
+    }
+
+    if (acao === "previas") {
+      const ids = (Array.isArray(body.foto_ids) ? body.foto_ids : []).filter(ehUuid).slice(0, 200);
+      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview").in("id", ids).neq("status_moderacao", "rejeitada");
+      const caminhos = (fotos ?? []).map((f) => f.storage_path_preview ?? f.storage_path);
+      const { data: urls } = caminhos.length ? await sb.storage.from(BUCKET).createSignedUrls(caminhos, 600) : { data: [] };
+      const mapa = new Map((urls ?? []).map((u) => [u.path, u.signedUrl]));
+      return jsonResponse({ previas: Object.fromEntries((fotos ?? []).map((f) => [f.id, mapa.get(f.storage_path_preview ?? f.storage_path) ?? null])) });
+    }
+
+    if (acao === "limpar_incompletos") {
+      if (!ehUuid(body.evento_id)) return jsonResponse({ error: "evento_invalido" }, 400);
+      const limite = new Date(Date.now() - 2 * 3600_000).toISOString();
+      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview")
+        .eq("evento_id", body.evento_id).eq("upload_concluido", false).lt("criado_em", limite).limit(500);
+      if (fotos?.length) {
+        await sb.storage.from(BUCKET).remove(fotos.flatMap((f) => [f.storage_path, f.storage_path_preview]).filter((x): x is string => !!x));
+        await sb.from("fotos_evento").delete().in("id", fotos.map((f) => f.id));
+      }
+      return jsonResponse({ removidas: fotos?.length ?? 0 });
     }
 
     if (acao === "leads_csv") {

@@ -40,8 +40,9 @@ export class ErroAws extends Error { constructor(public tipo: string, msg: strin
 
 export function credenciaisDoAmbiente(): Credenciais {
   const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID"), secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
-  if (!accessKeyId || !secretAccessKey) throw new Error("aws_nao_configurada");
-  return { accessKeyId, secretAccessKey, region: Deno.env.get("AWS_REGION") || "us-east-1" };
+  const region = Deno.env.get("AWS_REGION");
+  if (!accessKeyId || !secretAccessKey || !region) throw new Error("aws_nao_configurada");
+  return { accessKeyId, secretAccessKey, region };
 }
 
 export async function rekognition<T = Record<string, unknown>>(acao: string, params: Record<string, unknown>, cred = credenciaisDoAmbiente()): Promise<T> {

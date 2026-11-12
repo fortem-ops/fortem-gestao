@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert, TrendingUp, Receipt, HandCoins, PartyPopper } from "lucide-react";
+import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert, TrendingUp, Receipt, HandCoins, PartyPopper, Camera } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
@@ -355,6 +355,9 @@ export function AppSidebar() {
               {tecnicoVisiveis.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
+              {(isCoordAdmin || roles?.isModeradorFotos) && (
+                <SidebarItem item={{ title: "Fotos de Eventos", url: "/fotos-eventos", icon: Camera }} isActive={isActive} />
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

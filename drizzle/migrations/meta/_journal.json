@@ -1919,6 +1919,13 @@
       "when": 1794487460518,
       "tag": "0273_fotos_eventos_fase1",
       "breakpoints": true
+    },
+    {
+      "idx": 274,
+      "version": "7",
+      "when": 1794488211232,
+      "tag": "0274_fotos_evento_professor_colunas",
+      "breakpoints": true
     }
   ]
 }

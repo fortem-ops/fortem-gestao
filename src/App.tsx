@@ -104,6 +104,7 @@ const SiteNutricao = lazyWithReload(() => import("./site/pages/SitePaginas").the
 const SiteReabilitacao = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteReabilitacao })));
 const SiteAvaliacao = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteAvaliacao })));
 const SiteExperimental = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteExperimental })));
+const FotosEventos = lazyWithReload(() => import("./pages/FotosEventos"));
 const FestaConfirmacoes = lazyWithReload(() => import("./pages/FestaConfirmacoes"));
 
 // Portal do Aluno
@@ -663,6 +664,7 @@ const App = () => (
                   </Suspense>
                 }
               />
+               <Route path="/fotos-eventos" element={<Suspense fallback={<RouteFallback />}><FotosEventos /></Suspense>} />
                <Route
                  path="/festa-10-anos/confirmacoes"
                  element={
