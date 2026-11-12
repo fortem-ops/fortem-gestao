@@ -4,7 +4,7 @@ export const NOTA_GOOGLE = { nota: "5,0", avaliacoes: 156, url: "https://maps.ap
 export const SERVICOS_HOME = [
   { rotulo: "Treinamento", titulo: "Treino funcional personalizado", texto: "Progressão lógica de movimento e de força, com acompanhamento de perto.", path: "/treinamento" },
   { rotulo: "Nutrição", titulo: "Acompanhamento nutricional", texto: "Aliado ao treino de força, para emagrecimento e hipertrofia com mais rapidez.", path: "/nutricao" },
-  { rotulo: "Reabilitação", titulo: "Sessões individuais de fisioterapia", texto: "Foco em mobilidade e força, com informações que orientam o seu treino.", path: "/reabilitacao" },
+  { rotulo: "Reabilitação", titulo: "Sessões individuais de fisioterapia", texto: "Foco em liberação miofascial e mobilidade, com informações que orientam o seu treino.", path: "/reabilitacao" },
   { rotulo: "Avaliação", titulo: "Avaliação funcional e de força", texto: "Análise quantitativa de mobilidade articular, flexibilidade e saúde muscular.", path: "/avaliacao" },
 ];
 

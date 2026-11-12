@@ -116,7 +116,7 @@ export function SiteHome() {
       {/* 4 Equipe */}
       <section id="equipe" className="scroll-mt-20 sp-fundo-preto py-16 md:py-24">
         <div className="sp-container">
-          <Cabecalho claro rotulo="Equipe" titulo="Quem acompanha o seu treino." texto="Profissionais formados e especializados em treinamento funcional, com nutrição e fisioterapia dentro do mesmo espaço." />
+          <Cabecalho claro rotulo="Equipe" titulo="Quem acompanha o seu treino." texto="Profissionais especializados em treinamento funcional, nutrição e fisioterapia dentro do mesmo espaço." />
           <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-5">
             {EQUIPE.map((p) => (
               <li key={p.nome}>
