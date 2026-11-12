@@ -1,15 +1,44 @@
-# Adicionar chaves da AWS
+# Fotos da festa 10 anos com reconhecimento facial (/10anos/fotos)
 
-## O que será feito
-1. Conferir se já existem chaves AWS salvas no projeto (para não duplicar).
-2. Abrir o formulário seguro para você colar os valores (eles não passam pelo chat):
-   - `AWS_ACCESS_KEY_ID` (começa com `AKIA` ou `ASIA`)
-   - `AWS_SECRET_ACCESS_KEY` (par obrigatório da chave acima)
-   - `AWS_REGION` (ex.: `sa-east-1`), se ainda não houver
-3. Nenhum código é alterado nesta etapa; as chaves só ficam guardadas para uso futuro nas funções do servidor.
+Já existe no projeto: página /10anos, tabelas festa_fotos / festa_fotos_comentarios / festa_fotos_curtidas e funções festa-fotos-publico / festa-fotos-interagir (galeria atual com curtidas). O novo módulo é separado (genérico por evento) e não altera esses itens; na Fase 2 decidimos se a galeria antiga é migrada ou mantida.
 
-## Onde obter
-No console da AWS: IAM → Usuários → seu usuário → Credenciais de segurança → Criar chave de acesso. Dê ao usuário só as permissões necessárias.
+## Fase 1 — Banco, storage, funções e Rekognition
+Tabelas (todas com RLS: leitura is_staff(), escrita is_admin/coordenador; público sem acesso direto, só via funções; GRANTs explícitos):
+- eventos_fotos, fotos_evento, rostos_foto, leads_fotos — com os campos pedidos. Lead reaproveitado por (evento_id, whatsapp normalizado), índice único.
+- fotos_buscas_log (só contadores: lead, ip_hash, qtd encontradas, data) — sem imagem.
+- rate_limit_fotos_publico (ip_hash, acao, janela) — 10 buscas e 3 envios por IP/hora.
+- Validações por trigger (status, orientação, 30 fotos por envio).
+Bucket privado fotos-eventos: `{evento}/fotografo/original|preview/`, `{evento}/convidados/original|preview/`. URLs assinadas de 10 min.
+Módulo `_shared/rekognition.ts` (assinatura AWS SigV4 própria, sem SDK pesado) + funções puras testáveis (nome de coleção com prefixo "fortem-", deduplicação de fotos por ExternalImageId).
+Funções:
+- fotos-evento-admin (staff): criar coleção, gerar URLs de upload, indexar lote (IndexFaces, ExternalImageId = foto_id; 0 rostos = sem_rosto), reprocessar erros, aprovar/rejeitar (rejeitada apaga do storage; aprovada de convidado é indexada), CSV de leads, URL do original.
+- fotos-evento-publico: buscar por selfie (SearchFacesByImage, limiar 90, 100 rostos; selfie só em memória, nunca em storage/banco/log), galeria paginada (só aprovadas e indexadas/sem_rosto), URLs assinadas.
+- fotos-evento-envio: upload de convidados (até 30, JPEG/PNG/HEIC, 15 MB), DetectModerationLabels (70) só para sinalizar.
+- fotos-evento-retencao (cron diário): após retencao_dias apaga coleção, rostos, fotos e arquivos.
 
-## Dúvida
-Para qual serviço da AWS será usada (S3, SES, Rekognition...)? Isso define as permissões mínimas e o próximo passo.
+## Fase 2 — Área da equipe (tema escuro)
+Menu "Fotos de Eventos": lista/criação/edição de eventos; painel com totais por status e origem, buscas e leads (CSV); upload em lote com barra de progresso, HEIC→JPEG e prévia 1200px no navegador; fila de indexação em lotes de 5, retomável (estado no banco), botão "Reprocessar com erro"; moderação com alertas primeiro (borda vermelha + rótulos), seleção em lote, tela cheia com A/R/←/→, agrupamento de quase idênticas (hash perceptual da prévia, mesmo remetente); baixar original sem moldura.
+
+## Fase 3 — Página pública /10anos/fotos
+Celular primeiro, tema escuro, Archivo, cantos retos, sem sombras, textos sem exclamação. Abas "Encontrar minhas fotos" e "Enviar fotos", com todas as telas descritas (formulário + aceite desmarcado, selfie com contorno oval e "Enviar da galeria", busca com aviso de descarte, resultado, nenhuma foto, galeria paginada, envio com contador X de 30 e confirmação). Turnstile reaproveitado do /planos. Logo só depois dos SVG enviados.
+
+## Fase 4 — Molduras e downloads
+Módulo puro de layout (cálculo de posições para Foto e Stories horizontal/vertical, nas cores colorida/P&B, exatamente nas medidas pedidas) + desenho em canvas, P&B por pixels, Archivo carregada antes, JPEG 90. Prévia usa o mesmo arquivo. ZIP no navegador; Web Share API com arquivo quando houver. Depende dos SVG e mockups.
+
+## Fase 5 — Testes e ajustes
+Testes vitest (node e jsdom) e Deno:
+- foto sem rosto => sem_rosto; vários rostos => N linhas em rostos_foto
+- busca sem correspondência => lista vazia; resultado sem fotos repetidas
+- rate limit 11ª busca e 4º envio bloqueados
+- selfie não persistida (nenhuma escrita em storage/banco; log sem bytes)
+- pendente fora da busca e da galeria; rejeitada removida; 31 fotos recusadas
+- molduras: horizontal, vertical e muito clara × 4 combinações, logo com proporção preservada e textos dentro das áreas seguras
+Ensaio no banco com AWS real em coleção de teste "fortem-teste-…", apagada ao fim.
+
+## Dúvidas para decidir
+1. Galeria antiga da festa (curtidas/comentários): manter, migrar ou substituir?
+2. Link da política de privacidade: já existe página ou crio uma para o evento?
+3. Quem modera: admin e coordenador (padrão) ou também professores?
+
+## Observação
+Em modo de planejamento não consigo registrar esta tarefa na lista de tarefas; registro na Fase 1, ao começar.
