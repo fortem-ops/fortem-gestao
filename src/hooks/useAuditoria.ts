@@ -97,12 +97,12 @@ export function useAuditoriaResumo(enabled = true) {
 
 export function useResolverAuditoria() {
   return useSupabaseMutation<
-    void,
-    { id: string; status: Exclude<AuditoriaStatus, "aberto">; nota?: string }
+    number,
+    { ids: string[]; status: Exclude<AuditoriaStatus, "aberto">; nota?: string }
   >({
-    mutationFn: async ({ id, status, nota }) => {
+    mutationFn: async ({ ids, status, nota }) => {
       const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("auditoria_inconsistencias")
         .update({
           status,
@@ -110,10 +110,12 @@ export function useResolverAuditoria() {
           resolvido_por: userData?.user?.id ?? null,
           resolvido_em: new Date().toISOString(),
         })
-        .eq("id", id);
+        .in("id", ids)
+        .eq("status", "aberto")
+        .select("id");
       if (error) throw error;
+      return data?.length ?? 0;
     },
-    successMessage: "Item de auditoria atualizado",
     invalidates: [["auditoria-itens"], ["auditoria-resumo"]],
   });
 }

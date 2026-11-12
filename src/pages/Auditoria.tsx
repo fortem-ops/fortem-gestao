@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShieldAlert, ExternalLink, RefreshCw, Check, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -30,6 +31,7 @@ import {
   useResolverAuditoria,
   type AuditoriaItem,
 } from "@/hooks/useAuditoria";
+import { alternarSelecao, idsAbertos, loteValido } from "@/lib/auditoriaSelecao";
 
 const SEVERIDADE_LABEL: Record<string, string> = {
   critico: "Crítico",
@@ -66,12 +68,27 @@ export default function Auditoria() {
   const [severidade, setSeveridade] = useState("todas");
   const [status, setStatus] = useState("aberto");
   const [rodando, setRodando] = useState(false);
-  const [alvo, setAlvo] = useState<{ item: AuditoriaItem; acao: "resolvido" | "ignorado" } | null>(null);
+  const [alvo, setAlvo] = useState<{ itens: AuditoriaItem[]; acao: "resolvido" | "ignorado" } | null>(null);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [nota, setNota] = useState("");
 
   const { data: itens = [], isLoading, refetch } = useAuditoriaItens({ categoria, severidade, status });
   const { data: resumo } = useAuditoriaResumo();
   const resolver = useResolverAuditoria();
+
+  useEffect(() => {
+    setSelecionados(new Set());
+  }, [categoria, severidade, status]);
+
+  const abertosVisiveis = idsAbertos(itens);
+  const lote = loteValido(selecionados, itens);
+  const todosMarcados = abertosVisiveis.size > 0 && lote.length === abertosVisiveis.size;
+
+  const abrirLote = (acao: "resolvido" | "ignorado") => {
+    const ids = new Set(lote);
+    setAlvo({ itens: itens.filter((i) => ids.has(i.id)), acao });
+    setNota("");
+  };
 
   const rodarAgora = async () => {
     setRodando(true);
@@ -95,9 +112,11 @@ export default function Auditoria() {
   const confirmar = () => {
     if (!alvo) return;
     resolver.mutate(
-      { id: alvo.item.id, status: alvo.acao, nota },
+      { ids: alvo.itens.map((i) => i.id), status: alvo.acao, nota },
       {
-        onSuccess: () => {
+        onSuccess: (n) => {
+          toast.success(n === 1 ? "1 item atualizado" : `${n} itens atualizados`);
+          setSelecionados(new Set());
           setAlvo(null);
           setNota("");
         },
@@ -182,11 +201,45 @@ export default function Auditoria() {
         </div>
       ) : (
         <div className="space-y-2">
+          {isAdmin && abertosVisiveis.size > 0 && (
+            <div className="glass-card rounded-lg p-3 flex items-center gap-3 flex-wrap">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={todosMarcados}
+                  onCheckedChange={(v) => setSelecionados(v ? idsAbertos(itens) : new Set())}
+                />
+                Selecionar todos os visíveis
+              </label>
+              <span className="text-xs text-muted-foreground">{lote.length} selecionado(s)</span>
+              {lote.length > 0 && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <Button size="sm" variant="outline" onClick={() => abrirLote("resolvido")}>
+                    <Check className="w-4 h-4 mr-1" /> Resolver selecionados
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => abrirLote("ignorado")}>
+                    <EyeOff className="w-4 h-4 mr-1" /> Ignorar selecionados
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelecionados(new Set())}>
+                    Limpar seleção
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
           {itens.map((item) => {
             const link = linkDoItem(item);
             return (
               <div key={item.id} className="glass-card rounded-lg p-4 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3 min-w-0">
+                  {isAdmin && item.status === "aberto" && (
+                    <Checkbox
+                      className="mt-1"
+                      aria-label="Selecionar item"
+                      checked={selecionados.has(item.id)}
+                      onCheckedChange={() => setSelecionados((s) => alternarSelecao(s, item))}
+                    />
+                  )}
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className={severidadeClass(item.severidade)}>
@@ -208,6 +261,7 @@ export default function Auditoria() {
                       <p className="text-xs text-muted-foreground">Nota: {item.nota_resolucao}</p>
                     )}
                   </div>
+                  </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     {link && (
@@ -219,10 +273,10 @@ export default function Auditoria() {
                     )}
                     {isAdmin && item.status === "aberto" && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => { setAlvo({ item, acao: "resolvido" }); setNota(""); }}>
+                        <Button size="sm" variant="outline" onClick={() => { setAlvo({ itens: [item], acao: "resolvido" }); setNota(""); }}>
                           <Check className="w-4 h-4 mr-1" /> Resolvido
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setAlvo({ item, acao: "ignorado" }); setNota(""); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { setAlvo({ itens: [item], acao: "ignorado" }); setNota(""); }}>
                           <EyeOff className="w-4 h-4 mr-1" /> Ignorar
                         </Button>
                       </>
@@ -239,9 +293,20 @@ export default function Auditoria() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {alvo?.acao === "resolvido" ? "Marcar como resolvido" : "Ignorar item"}
+              {(() => {
+                const n = alvo?.itens.length ?? 0;
+                if (alvo?.acao === "resolvido") return n > 1 ? `Marcar ${n} itens como resolvidos` : "Marcar como resolvido";
+                return n > 1 ? `Ignorar ${n} itens` : "Ignorar item";
+              })()}
             </DialogTitle>
-            <DialogDescription>{alvo?.item.descricao}</DialogDescription>
+            <DialogDescription asChild>
+              <div className="space-y-1">
+                {alvo?.itens.slice(0, 5).map((i) => (
+                  <p key={i.id} className="line-clamp-2">• {i.descricao}</p>
+                ))}
+                {alvo && alvo.itens.length > 5 && <p>e mais {alvo.itens.length - 5}</p>}
+              </div>
+            </DialogDescription>
           </DialogHeader>
           <Input
             placeholder="Nota (opcional)"
