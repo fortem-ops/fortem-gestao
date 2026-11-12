@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
           if (ev && colecaoValida(ev.collection_id) && ev.colecao_criada_em) await apagarRostos(sb, ev.collection_id, f.id);
           await sb.storage.from(BUCKET).remove([f.storage_path, f.storage_path_preview].filter((x): x is string => !!x));
           await sb.from("fotos_evento").update({ status_moderacao: "rejeitada", moderado_por: papel.userId, moderado_em: agora }).eq("id", f.id);
+          await sb.from("eventos_fotos").update({ capa_foto_id: null }).eq("capa_foto_id", f.id);
         }
       }
       return jsonResponse({ moderadas: fotos?.length ?? 0 });
@@ -185,6 +186,20 @@ Deno.serve(async (req) => {
       const cab = ["nome", "whatsapp", "email", "aceite_biometria_em", "aceite_publicacao_em", "qtd_buscas", "qtd_fotos_encontradas", "qtd_fotos_enviadas", "criado_em"];
       const linhas = (data ?? []).map((l) => cab.map((c) => csv((l as Record<string, unknown>)[c])).join(";"));
       return jsonResponse({ csv: [cab.join(";"), ...linhas].join("\n") });
+    }
+
+    if (acao === "definir_capa") {
+      if (!ehUuid(body.evento_id)) return jsonResponse({ error: "evento_invalido" }, 400);
+      if (body.foto_id === null) {
+        await sb.from("eventos_fotos").update({ capa_foto_id: null }).eq("id", body.evento_id);
+        return jsonResponse({ ok: true });
+      }
+      if (!ehUuid(body.foto_id)) return jsonResponse({ error: "foto_invalida" }, 400);
+      const { data: f } = await sb.from("fotos_evento").select("id").eq("id", body.foto_id).eq("evento_id", body.evento_id)
+        .eq("status_moderacao", "aprovada").eq("upload_concluido", true).maybeSingle();
+      if (!f) return jsonResponse({ error: "foto_nao_aprovada" }, 400);
+      await sb.from("eventos_fotos").update({ capa_foto_id: f.id }).eq("id", body.evento_id);
+      return jsonResponse({ ok: true });
     }
 
     if (acao === "url_original") {

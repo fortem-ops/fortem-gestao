@@ -4488,6 +4488,7 @@ export type Database = {
       eventos_fotos: {
         Row: {
           ativo: boolean
+          capa_foto_id: string | null
           colecao_criada_em: string | null
           collection_id: string
           criado_em: string
@@ -4502,6 +4503,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          capa_foto_id?: string | null
           colecao_criada_em?: string | null
           collection_id: string
           criado_em?: string
@@ -4516,6 +4518,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          capa_foto_id?: string | null
           colecao_criada_em?: string | null
           collection_id?: string
           criado_em?: string
@@ -4528,7 +4531,15 @@ export type Database = {
           slug?: string
           texto_assinatura?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "eventos_fotos_capa_foto_id_fkey"
+            columns: ["capa_foto_id"]
+            isOneToOne: false
+            referencedRelation: "fotos_evento"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exercicio_articulacoes: {
         Row: {

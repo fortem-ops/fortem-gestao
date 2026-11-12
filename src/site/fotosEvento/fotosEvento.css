@@ -1,0 +1,76 @@
+/* Página pública /10anos/fotos — tokens e estilos escopados em .fotos-evento (manual FORTEM). */
+.fotos-evento {
+  --fe-vermelho: #E73C3E; --fe-acao: #C8282A; --fe-preto: #000; --fe-fundo: #0E0E0E; --fe-cartao: #1A1A1A;
+  --fe-linha: #4A4B4B; --fe-cinza: #B1B3B3; --fe-texto2: #5C5E5E; --fe-branco: #FFF;
+  font-family: "Archivo", system-ui, sans-serif; background: var(--fe-preto); color: var(--fe-branco); min-height: 100vh;
+}
+.fotos-evento *, .fotos-evento *::before, .fotos-evento *::after { border-radius: 0 !important; box-shadow: none !important; }
+.fotos-evento .fe-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--fe-fundo); display: flex; flex-direction: column; }
+.fotos-evento .fe-topo { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--fe-cartao); }
+.fotos-evento .fe-logo { height: 16px; width: auto; display: block; }
+.fotos-evento .fe-10anos { color: var(--fe-vermelho); font-weight: 700; font-size: 12px; letter-spacing: .12em; }
+.fotos-evento .fe-capa { position: relative; aspect-ratio: 4 / 3; background: var(--fe-preto); overflow: hidden; }
+.fotos-evento .fe-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fotos-evento .fe-cant { position: absolute; width: 28px; height: 28px; border-color: var(--fe-vermelho); border-style: solid; pointer-events: none; }
+.fotos-evento .fe-cant-sd { top: 16px; right: 16px; border-width: 4px 4px 0 0; }
+.fotos-evento .fe-cant-ie { bottom: 16px; left: 16px; border-width: 0 0 4px 4px; }
+.fotos-evento .fe-corpo { padding: 24px 20px 40px; display: flex; flex-direction: column; gap: 12px; }
+.fotos-evento .fe-rotulo { color: var(--fe-vermelho); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+.fotos-evento .fe-h1 { font-size: 26px; line-height: 1.1; font-weight: 700; letter-spacing: .01em; }
+.fotos-evento .fe-texto { color: var(--fe-cinza); font-size: 14px; line-height: 1.5; }
+.fotos-evento .fe-nota { color: var(--fe-cinza); font-size: 12px; text-align: center; }
+.fotos-evento .fe-cinza { color: var(--fe-cinza); font-weight: 400; }
+.fotos-evento .fe-abas { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--fe-linha); margin: 8px 0; }
+.fotos-evento .fe-abas button { padding: 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--fe-cinza); border-bottom: 2px solid transparent; text-align: left; }
+.fotos-evento .fe-abas button.ativo { color: var(--fe-branco); border-bottom-color: var(--fe-vermelho); }
+.fotos-evento .fe-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; margin-top: 4px; }
+.fotos-evento .fe-input { background: var(--fe-cartao); border: 1px solid var(--fe-linha); color: var(--fe-branco); padding: 12px; font-size: 16px; width: 100%; }
+.fotos-evento .fe-input:focus { outline: none; border-color: var(--fe-branco); }
+.fotos-evento .fe-aceite { display: flex; gap: 10px; align-items: flex-start; background: var(--fe-cartao); border: 1px solid var(--fe-linha); padding: 12px; font-size: 12px; line-height: 1.5; color: var(--fe-cinza); }
+.fotos-evento .fe-aceite input { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--fe-acao); flex-shrink: 0; }
+.fotos-evento .fe-botao { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 15px; background: var(--fe-acao); color: var(--fe-branco); font-weight: 700; font-size: 13px; letter-spacing: .1em; }
+.fotos-evento .fe-botao:disabled { opacity: .45; cursor: not-allowed; }
+.fotos-evento .fe-botao-borda { background: transparent; border: 1px solid var(--fe-branco); }
+.fotos-evento .fe-link { color: var(--fe-acao); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; text-align: left; }
+.fotos-evento .fe-link-inline { color: var(--fe-vermelho); text-decoration: underline; }
+.fotos-evento .fe-centro-txt { text-align: center; align-self: center; }
+.fotos-evento .fe-erro { color: var(--fe-vermelho); font-size: 13px; border-left: 3px solid var(--fe-vermelho); padding-left: 10px; }
+.fotos-evento .fe-seletor { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--fe-linha); }
+.fotos-evento .fe-seletor button { padding: 10px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--fe-cinza); }
+.fotos-evento .fe-seletor button.ativo { background: var(--fe-branco); color: var(--fe-preto); }
+.fotos-evento .fe-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.fotos-evento .fe-grade button { aspect-ratio: 1; background: var(--fe-cartao); overflow: hidden; }
+.fotos-evento .fe-grade img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fotos-evento .fe-pb { filter: grayscale(1); }
+.fotos-evento .fe-barra { height: 4px; background: var(--fe-linha); width: 100%; }
+.fotos-evento .fe-barra > div { height: 100%; background: var(--fe-vermelho); transition: width .3s; }
+.fotos-evento .fe-centro { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 28px; text-align: center; }
+.fotos-evento .fe-icone-cant { width: 32px; height: 32px; position: relative; border-top: 4px solid var(--fe-branco); border-right: 4px solid var(--fe-branco); }
+.fotos-evento .fe-vazio { flex: 1; justify-content: center; }
+.fotos-evento .fe-ok { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #1F8A4C; }
+.fotos-evento .fe-paginas { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; font-size: 12px; color: var(--fe-cinza); }
+.fotos-evento .fe-selecionar { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px; border: 1px dashed var(--fe-linha); cursor: pointer; font-size: 12px; color: var(--fe-cinza); }
+.fotos-evento .fe-selecionar b { color: var(--fe-branco); letter-spacing: .08em; }
+.fotos-evento .fe-miniaturas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.fotos-evento .fe-miniaturas div { position: relative; aspect-ratio: 1; background: var(--fe-cartao); }
+.fotos-evento .fe-miniaturas img { width: 100%; height: 100%; object-fit: cover; }
+.fotos-evento .fe-miniaturas button { position: absolute; top: 2px; right: 2px; background: var(--fe-preto); color: var(--fe-branco); padding: 3px; }
+/* Selfie */
+.fotos-evento .fe-selfie { display: flex; flex-direction: column; min-height: 100vh; background: var(--fe-preto); }
+.fotos-evento .fe-selfie-topo { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 12px; font-weight: 700; letter-spacing: .1em; }
+.fotos-evento .fe-selfie-camera { position: relative; flex: 1; min-height: 420px; overflow: hidden; background: #111; }
+.fotos-evento .fe-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.fotos-evento .fe-oval { position: absolute; left: 50%; top: 45%; width: 62%; aspect-ratio: 3 / 4; transform: translate(-50%, -50%); border: 2px dashed var(--fe-branco); border-radius: 50% !important; }
+.fotos-evento .fe-selfie-legenda { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; }
+.fotos-evento .fe-selfie-aviso { position: absolute; inset: 0; display: flex; align-items: center; padding: 32px; text-align: center; color: var(--fe-cinza); font-size: 14px; z-index: 1; }
+.fotos-evento .fe-selfie-base { padding: 16px 20px 28px; display: flex; flex-direction: column; gap: 16px; font-size: 12px; color: var(--fe-cinza); }
+.fotos-evento .fe-selfie-acoes { display: flex; align-items: center; justify-content: space-between; }
+.fotos-evento .fe-captura { width: 64px; height: 64px; border-radius: 50% !important; background: var(--fe-acao); border: 4px solid var(--fe-branco); }
+.fotos-evento .fe-captura:disabled { opacity: .4; }
+/* Foto aberta */
+.fotos-evento .fe-aberta-foto { position: relative; background: var(--fe-preto); display: flex; justify-content: center; }
+.fotos-evento .fe-aberta-foto img { max-height: 60vh; width: 100%; object-fit: contain; }
+.fotos-evento .fe-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgb(0 0 0 / .6); padding: 8px; }
+.fotos-evento .fe-nav-e { left: 0; } .fotos-evento .fe-nav-d { right: 0; }
+.fotos-evento .fe-privacidade h2 { font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-top: 12px; }
+.fotos-evento .fe-privacidade p { color: var(--fe-cinza); font-size: 14px; line-height: 1.6; }

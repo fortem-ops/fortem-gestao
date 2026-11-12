@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "arquivo_invalido", nome: a?.nome ?? null }, 400);
         }
       }
-      const { data: cfg } = await sb.from("sistema_config").select("valor").eq("chave", "fotos_eventos_turnstile").maybeSingle();
+      const { data: cfg } = await sb.from("sistema_config").select("valor").eq("chave", "planos_turnstile_ativo").maybeSingle();
       const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
       if (await avaliarTurnstile(cfg?.valor, Deno.env.get("TURNSTILE_SECRET_KEY"), body.turnstile, ip) === "recusado") return jsonResponse({ error: "verificacao_necessaria" }, 403);
       const { data: liberado } = await sb.rpc("fn_fotos_rate_limit", { p_ip_hash: await ipHash(req), p_acao: "envio", p_limite: LIMITE_ENVIOS_HORA });

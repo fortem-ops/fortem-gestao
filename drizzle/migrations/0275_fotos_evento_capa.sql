@@ -1,0 +1,2 @@
+ALTER TABLE public.eventos_fotos ADD COLUMN IF NOT EXISTS capa_foto_id uuid REFERENCES public.fotos_evento(id) ON DELETE SET NULL;
+COMMENT ON COLUMN public.eventos_fotos.capa_foto_id IS 'Foto de capa da página pública, escolhida pela equipe entre as aprovadas. Nulo = só fundo preto com cantoneiras.';

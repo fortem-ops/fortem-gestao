@@ -14,7 +14,7 @@ const POR_PAGINA = 30;
 
 async function eventoPublico(sb: Sb, slug: unknown) {
   if (typeof slug !== "string" || !/^[a-z0-9-]{2,60}$/.test(slug)) return null;
-  const { data } = await sb.from("eventos_fotos").select("id, slug, nome, data, texto_assinatura, local, collection_id, colecao_criada_em, ativo").eq("slug", slug).maybeSingle();
+  const { data } = await sb.from("eventos_fotos").select("id, slug, nome, data, texto_assinatura, local, collection_id, colecao_criada_em, ativo, capa_foto_id").eq("slug", slug).maybeSingle();
   return data && data.ativo ? data : null;
 }
 
@@ -40,7 +40,20 @@ Deno.serve(async (req) => {
     if (!ev) return jsonResponse({ error: "evento_nao_encontrado" }, 404);
 
     if (body.acao === "evento") {
-      return jsonResponse({ evento: { slug: ev.slug, nome: ev.nome, data: ev.data, texto_assinatura: ev.texto_assinatura, local: ev.local } });
+      // Capa: só se a equipe escolheu e a foto continua aprovada; senão a página mostra fundo preto.
+      let capa = null;
+      if (ev.capa_foto_id) {
+        const { data } = await filtroPublico(sb.from("fotos_evento").select("id, storage_path, storage_path_preview, largura, altura, orientacao").eq("evento_id", ev.id).eq("id", ev.capa_foto_id));
+        if (data?.length) capa = (await comUrls(sb, data as FotoRow[]))[0];
+      }
+      const { data: cfg } = await sb.from("sistema_config").select("chave, valor").in("chave", ["planos_turnstile_ativo", "planos_turnstile_site_key"]);
+      const valor = (k: string) => cfg?.find((c) => c.chave === k)?.valor;
+      const tsAtivo = valor("planos_turnstile_ativo") === true;
+      return jsonResponse({
+        evento: { slug: ev.slug, nome: ev.nome, data: ev.data, texto_assinatura: ev.texto_assinatura, local: ev.local },
+        capa: capa ? { url: capa.url_previa, largura: capa.largura, altura: capa.altura } : null,
+        turnstile: { ativo: tsAtivo, site_key: tsAtivo ? (valor("planos_turnstile_site_key") ?? null) : null },
+      });
     }
 
     if (body.acao === "galeria") {
@@ -58,7 +71,7 @@ Deno.serve(async (req) => {
       if (body.aceite_biometria !== true) return jsonResponse({ error: "aceite_obrigatorio" }, 400);
       const selfie = decodificarSelfie(body.selfie);
       if (!selfie) return jsonResponse({ error: "selfie_invalida" }, 400);
-      const { data: cfg } = await sb.from("sistema_config").select("valor").eq("chave", "fotos_eventos_turnstile").maybeSingle();
+      const { data: cfg } = await sb.from("sistema_config").select("valor").eq("chave", "planos_turnstile_ativo").maybeSingle();
       const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
       if (await avaliarTurnstile(cfg?.valor, Deno.env.get("TURNSTILE_SECRET_KEY"), body.turnstile, ip) === "recusado") return jsonResponse({ error: "verificacao_necessaria" }, 403);
       const { data: liberado } = await sb.rpc("fn_fotos_rate_limit", { p_ip_hash: await ipHash(req), p_acao: "busca", p_limite: LIMITE_BUSCAS_HORA });

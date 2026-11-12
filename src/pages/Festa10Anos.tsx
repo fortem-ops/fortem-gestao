@@ -163,6 +163,7 @@ export default function Festa10Anos() {
           <img src={fortemWordmark} alt="FORTEM" className="h-5 w-auto self-start invert" />
           <p className="text-xs font-bold uppercase tracking-[0.2em]">FORTEM · 10 ANOS · {cfg.dataCurta}</p>
           <p className="text-sm text-muted-foreground">{cfg.local.endereco} · {cfg.local.cidade}</p>
+          <a href="/10anos/fotos" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Fotos da festa</a>
         </div>
       </footer>
     </main>
