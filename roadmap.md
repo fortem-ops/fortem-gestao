@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Fotos de Eventos Fase 2: área da equipe (eventos, upload em lote, indexação, painel, moderação) publicada; ensaio AWS real em us-east-2 aprovado e apagado (coleção, rostos). Tela vista como admin; professor só simulado. Aguarda validação do dono antes da Fase 3.
 - [x] Primeiro acesso: migração 0250 aplicada, vínculo restrito e erro_vinculo com log; 20 ensaios revertidos aprovados, três alunos manuais intactos; primeiro cadastro real ainda não confirmado.
 
 - [x] /10anos: prazo único em festa-prazo.ts até 12/11/2026 às 23:59:59 Brasília; festa-confirmar atualizada no servidor e teste sem dados confirmou remoção do bloqueio. 26 testes passaram e formulário conferido, 103 pessoas preservadas. Site não publicado; nenhuma confirmação ou PIX de teste gerado.

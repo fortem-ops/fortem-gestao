@@ -36,12 +36,13 @@ function makeQc() {
   });
 }
 
-function mockRoles({ admin = false, coord = false, nutri = false, fisio = false } = {}) {
+function mockRoles({ admin = false, coord = false, nutri = false, fisio = false, mod = coord } = {}) {
   mockRpc.mockImplementation((fn: string, args: any) => {
     if (fn === "is_admin") return Promise.resolve({ data: admin, error: null });
     if (fn === "is_coordinator_or_admin") return Promise.resolve({ data: coord, error: null });
     if (fn === "has_role" && args?._role === "nutricionista") return Promise.resolve({ data: nutri, error: null });
     if (fn === "has_role" && args?._role === "fisioterapeuta") return Promise.resolve({ data: fisio, error: null });
+    if (fn === "fn_fotos_pode_moderar") return Promise.resolve({ data: mod, error: null });
     return Promise.resolve({ data: false, error: null });
   });
 }
@@ -93,6 +94,7 @@ describe("useUserRoles", () => {
       isNutriFisio: false,
       isNutri: false,
       isFisio: false,
+      isModeradorFotos: true,
       isNutriFisioOnly: false,
     });
   });
@@ -116,6 +118,7 @@ describe("useUserRoles", () => {
       isNutriFisio: false,
       isNutri: false,
       isFisio: false,
+      isModeradorFotos: true,
       isNutriFisioOnly: false,
     });
   });
@@ -139,6 +142,7 @@ describe("useUserRoles", () => {
       isNutriFisio: false,
       isNutri: false,
       isFisio: false,
+      isModeradorFotos: false,
       isNutriFisioOnly: false,
     });
   });
@@ -162,6 +166,7 @@ describe("useUserRoles", () => {
       isNutriFisio: false,
       isNutri: false,
       isFisio: false,
+      isModeradorFotos: false,
       isNutriFisioOnly: false,
     });
   });
@@ -183,7 +188,8 @@ describe("useUserRoles", () => {
     expect(mockRpc).toHaveBeenCalledWith("is_coordinator_or_admin", { _user_id: uid });
     expect(mockRpc).toHaveBeenCalledWith("has_role", { _user_id: uid, _role: "nutricionista" });
     expect(mockRpc).toHaveBeenCalledWith("has_role", { _user_id: uid, _role: "fisioterapeuta" });
-    expect(mockRpc).toHaveBeenCalledTimes(4);
+    expect(mockRpc).toHaveBeenCalledWith("fn_fotos_pode_moderar", { _uid: uid });
+    expect(mockRpc).toHaveBeenCalledTimes(5);
 
     expect(mockFrom).toHaveBeenCalledWith("parceiros");
   });
