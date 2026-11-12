@@ -248,3 +248,4 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [x] Fase 3 (12/11/2026): página pública /10anos/fotos, privacidade, Turnstile do /planos na busca e no envio, capa escolhida pela equipe, link discreto no /10anos — aguarda validação.
 - [ ] Fase 4: molduras e downloads — aguarda os SVG da logo e os mockups.
 - [ ] Fase 5: testes e ajustes; agendar a rotina diária de retenção.
+- [x] Corrida: plano adicional de Corrida libera agendamento (fn_tem_plano_corrida usada no servidor e no portal)

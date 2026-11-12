@@ -143,23 +143,17 @@ export default function PortalAgenda() {
   const slotsTreino = useMemo(() => slots.filter((s) => (s.modalidade ?? "treino") !== "corrida"), [slots]);
   const slotsCorrida = useMemo(() => slots.filter((s) => s.modalidade === "corrida"), [slots]);
 
-  // Contrato de Corrida ativo (libera agendamento sem crédito)
+  // Plano de Corrida vigente (contrato ou plano adicional) — mesma regra do servidor
   const { data: temPlanoCorrida = false } = useQuery({
-    queryKey: ["portal-contrato-corrida", student?.id],
+    queryKey: ["portal-plano-corrida", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const hoje = format(new Date(), "yyyy-MM-dd");
-      const { data } = await supabase
-        .from("contratos")
-        .select("id, data_fim")
-        .eq("aluno_id", student!.id)
-        .eq("status", "ativo")
-        .eq("plano_tipo", "corrida");
-      return (data || []).some((c: any) => !c.data_fim || c.data_fim >= hoje);
+      const { data, error } = await supabase.rpc("fn_tem_plano_corrida", { p_aluno_id: student!.id, p_data: hoje });
+      if (error) throw error;
+      return data === true;
     },
   });
-
-
 
   // Instrutores (nomes)
   const instrutorIds = useMemo(() => [...new Set(slots.map((s) => s.instrutor_id).filter(Boolean))] as string[], [slots]);

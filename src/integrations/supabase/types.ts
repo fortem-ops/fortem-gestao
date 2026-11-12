@@ -15684,6 +15684,10 @@ export type Database = {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
         Returns: Json
       }
+      fn_tem_plano_corrida: {
+        Args: { p_aluno_id: string; p_data?: string }
+        Returns: boolean
+      }
       fn_tentar_comissao_experimental: {
         Args: { _agenda: string; _aluno: string; _profissional: string }
         Returns: undefined
