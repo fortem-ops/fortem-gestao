@@ -62,7 +62,7 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
       { tipo: "faq", itens: [
         { pergunta: "Quantos alunos treinam juntos?", resposta: "Até 4 alunos por professor. A sala comporta no máximo 12 alunos, com 3 professores." },
         { pergunta: "Nunca treinei. Posso começar?", resposta: "Sim. O treino experimental tem com objetivo central tu conheceres o nosso atendimento e a metodologia que respeita os seus limites." },
-        { pergunta: "Tenho uma lesão ou restrição. Posso treinar?", resposta: "A avaliação funcional e de força identifica suas limitações, e o plano é montado a partir delas, com apoio da reabilitação." },
+        { pergunta: "Tenho uma lesão ou restrição. Posso treinar?", resposta: "A avaliação funcional e de força identifica suas limitações, sedo o plano montado a partir dos resultados, e quando necessário indicamos o apoio da reabilitação." },
         { pergunta: "Quanto custa?", resposta: "Os valores dependem da frequência semanal e do plano. Monte o seu em poucos passos na página de planos.", link: { texto: "Ir para a página de planos →", href: "/planos" } },
         { pergunta: "O treino experimental tem custo?", resposta: "Os detalhes do treino experimental, como valor e melhor horário, a gente combina com você no WhatsApp." },
       ] },
