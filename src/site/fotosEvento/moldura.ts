@@ -45,7 +45,8 @@ export async function carregarFoto(url: string): Promise<HTMLImageElement> {
 function medirCom(ctx: Ctx) {
   return (texto: string, f: Fonte) => {
     ctx.font = fonteCss(f);
-    if ("letterSpacing" in ctx) { ctx.letterSpacing = `${f.espaco ?? 0}px`; return ctx.measureText(texto).width; }
+    const temEspaco = typeof (ctx as { letterSpacing?: unknown }).letterSpacing === "string";
+    if (temEspaco) { ctx.letterSpacing = `${f.espaco ?? 0}px`; return ctx.measureText(texto).width; }
     return ctx.measureText(texto).width + (f.espaco ?? 0) * texto.length;
   };
 }
@@ -85,7 +86,7 @@ export async function gerarMoldura(img: HTMLImageElement, formato: Formato, cor:
     } else if (e.tipo === "logo") ctx.drawImage(e.variante === "branco" ? lb : lp, e.x, e.y, e.w, e.h);
     else {
       ctx.font = fonteCss(e.fonte);
-      if ("letterSpacing" in ctx) ctx.letterSpacing = `${e.fonte.espaco ?? 0}px`;
+      if (typeof ctx.letterSpacing === "string") ctx.letterSpacing = `${e.fonte.espaco ?? 0}px`;
       ctx.fillStyle = e.cor; ctx.textBaseline = "alphabetic";
       // Alinha pela esquerda calculada, para o espaçamento de letras não deslocar a borda direita.
       const x = e.alinhar === "right" ? e.x - medir(e.texto, e.fonte) : e.x;
