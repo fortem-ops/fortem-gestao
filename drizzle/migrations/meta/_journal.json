@@ -1912,6 +1912,13 @@
       "when": 1794428599257,
       "tag": "0272_semestral_link_pagamento",
       "breakpoints": true
+    },
+    {
+      "idx": 273,
+      "version": "7",
+      "when": 1794487460518,
+      "tag": "0273_fotos_eventos_fase1",
+      "breakpoints": true
     }
   ]
 }

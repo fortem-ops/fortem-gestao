@@ -4485,6 +4485,51 @@ export type Database = {
           },
         ]
       }
+      eventos_fotos: {
+        Row: {
+          ativo: boolean
+          colecao_criada_em: string | null
+          collection_id: string
+          criado_em: string
+          data: string
+          id: string
+          local: string
+          nome: string
+          retencao_dias: number
+          retencao_executada_em: string | null
+          slug: string
+          texto_assinatura: string
+        }
+        Insert: {
+          ativo?: boolean
+          colecao_criada_em?: string | null
+          collection_id: string
+          criado_em?: string
+          data: string
+          id?: string
+          local?: string
+          nome: string
+          retencao_dias?: number
+          retencao_executada_em?: string | null
+          slug: string
+          texto_assinatura?: string
+        }
+        Update: {
+          ativo?: boolean
+          colecao_criada_em?: string | null
+          collection_id?: string
+          criado_em?: string
+          data?: string
+          id?: string
+          local?: string
+          nome?: string
+          retencao_dias?: number
+          retencao_executada_em?: string | null
+          slug?: string
+          texto_assinatura?: string
+        }
+        Relationships: []
+      }
       exercicio_articulacoes: {
         Row: {
           articulacao_key: string
@@ -5393,6 +5438,129 @@ export type Database = {
           },
         ]
       }
+      fotos_buscas_log: {
+        Row: {
+          criado_em: string
+          evento_id: string
+          id: string
+          lead_id: string | null
+          qtd_encontradas: number
+        }
+        Insert: {
+          criado_em?: string
+          evento_id: string
+          id?: string
+          lead_id?: string | null
+          qtd_encontradas?: number
+        }
+        Update: {
+          criado_em?: string
+          evento_id?: string
+          id?: string
+          lead_id?: string | null
+          qtd_encontradas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fotos_buscas_log_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos_fotos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fotos_buscas_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_fotos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fotos_evento: {
+        Row: {
+          alerta_moderacao: boolean
+          altura: number | null
+          criado_em: string
+          enviado_por: string | null
+          envio_id: string | null
+          erro_indexacao: string | null
+          evento_id: string
+          id: string
+          largura: number | null
+          moderado_em: string | null
+          moderado_por: string | null
+          orientacao: string | null
+          origem: string
+          qtd_rostos: number
+          rotulos_moderacao: Json
+          status_indexacao: string
+          status_moderacao: string
+          storage_path: string
+          storage_path_preview: string | null
+          upload_concluido: boolean
+        }
+        Insert: {
+          alerta_moderacao?: boolean
+          altura?: number | null
+          criado_em?: string
+          enviado_por?: string | null
+          envio_id?: string | null
+          erro_indexacao?: string | null
+          evento_id: string
+          id?: string
+          largura?: number | null
+          moderado_em?: string | null
+          moderado_por?: string | null
+          orientacao?: string | null
+          origem: string
+          qtd_rostos?: number
+          rotulos_moderacao?: Json
+          status_indexacao?: string
+          status_moderacao?: string
+          storage_path: string
+          storage_path_preview?: string | null
+          upload_concluido?: boolean
+        }
+        Update: {
+          alerta_moderacao?: boolean
+          altura?: number | null
+          criado_em?: string
+          enviado_por?: string | null
+          envio_id?: string | null
+          erro_indexacao?: string | null
+          evento_id?: string
+          id?: string
+          largura?: number | null
+          moderado_em?: string | null
+          moderado_por?: string | null
+          orientacao?: string | null
+          origem?: string
+          qtd_rostos?: number
+          rotulos_moderacao?: Json
+          status_indexacao?: string
+          status_moderacao?: string
+          storage_path?: string
+          storage_path_preview?: string | null
+          upload_concluido?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fotos_evento_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "leads_fotos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fotos_evento_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos_fotos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historico_pagamentos_clientes: {
         Row: {
           aluno_id: string | null
@@ -5903,6 +6071,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      leads_fotos: {
+        Row: {
+          aceite_biometria: boolean
+          aceite_biometria_em: string | null
+          aceite_publicacao: boolean
+          aceite_publicacao_em: string | null
+          criado_em: string
+          email: string | null
+          evento_id: string
+          id: string
+          nome: string
+          qtd_buscas: number
+          qtd_fotos_encontradas: number
+          qtd_fotos_enviadas: number
+          whatsapp: string
+        }
+        Insert: {
+          aceite_biometria?: boolean
+          aceite_biometria_em?: string | null
+          aceite_publicacao?: boolean
+          aceite_publicacao_em?: string | null
+          criado_em?: string
+          email?: string | null
+          evento_id: string
+          id?: string
+          nome: string
+          qtd_buscas?: number
+          qtd_fotos_encontradas?: number
+          qtd_fotos_enviadas?: number
+          whatsapp: string
+        }
+        Update: {
+          aceite_biometria?: boolean
+          aceite_biometria_em?: string | null
+          aceite_publicacao?: boolean
+          aceite_publicacao_em?: string | null
+          criado_em?: string
+          email?: string | null
+          evento_id?: string
+          id?: string
+          nome?: string
+          qtd_buscas?: number
+          qtd_fotos_encontradas?: number
+          qtd_fotos_enviadas?: number
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_fotos_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos_fotos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       legal_annexes: {
         Row: {
@@ -10589,6 +10813,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_fotos_publico: {
+        Row: {
+          acao: string
+          criado_em: string
+          id: number
+          ip_hash: string
+        }
+        Insert: {
+          acao: string
+          criado_em?: string
+          id?: number
+          ip_hash: string
+        }
+        Update: {
+          acao?: string
+          criado_em?: string
+          id?: number
+          ip_hash?: string
+        }
+        Relationships: []
+      }
       rate_limit_loja_publico: {
         Row: {
           contagem: number
@@ -11049,6 +11294,32 @@ export type Database = {
           titulo?: string
         }
         Relationships: []
+      }
+      rostos_foto: {
+        Row: {
+          face_id_rekognition: string
+          foto_id: string
+          id: string
+        }
+        Insert: {
+          face_id_rekognition: string
+          foto_id: string
+          id?: string
+        }
+        Update: {
+          face_id_rekognition?: string
+          foto_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rostos_foto_foto_id_fkey"
+            columns: ["foto_id"]
+            isOneToOne: false
+            referencedRelation: "fotos_evento"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       servicos_catalogo: {
         Row: {
@@ -14204,6 +14475,32 @@ export type Database = {
           kinology_media_kgf: number
           kinology_pct: number
         }[]
+      }
+      fn_fotos_lead_contar: {
+        Args: {
+          p_buscas: number
+          p_encontradas: number
+          p_enviadas: number
+          p_lead: string
+        }
+        Returns: undefined
+      }
+      fn_fotos_lead_registrar: {
+        Args: {
+          p_biometria: boolean
+          p_email: string
+          p_evento: string
+          p_nome: string
+          p_publicacao: boolean
+          p_whatsapp: string
+        }
+        Returns: string
+      }
+      fn_fotos_pode_gerir: { Args: { _uid?: string }; Returns: boolean }
+      fn_fotos_pode_moderar: { Args: { _uid?: string }; Returns: boolean }
+      fn_fotos_rate_limit: {
+        Args: { p_acao: string; p_ip_hash: string; p_limite: number }
+        Returns: boolean
       }
       fn_gerar_comissao: {
         Args: {
