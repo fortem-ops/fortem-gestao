@@ -36,7 +36,7 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
     blocos: [
       { tipo: "secao", rotulo: "Método", titulo: "O treino parte do seu objetivo.", texto: "Cada pessoa tem um foco e uma evolução individuais. Se você precisa desenvolver mobilidade, força e resistência, o treino precisa de uma estrutura com progressão lógica na execução dos movimentos e no ganho de força.",
         numeros: [
-          { valor: "Até 4 alunos", texto: "por professor em cada turma" },
+          { valor: "Até 4 alunos", texto: "por professor" },
           { valor: "12 alunos", texto: "no máximo na sala, com 3 professores" },
           { valor: "Desde 2017", texto: "na Avenida Independência, em Porto Alegre" },
         ] },
