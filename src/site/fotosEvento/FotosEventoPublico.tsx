@@ -13,10 +13,13 @@ import logoBranco from "@/assets/fotos-evento/logo-fortem-branco.svg.asset.json"
 import { chamar, type EventoPublico, type FotoPublica } from "./api";
 import Selfie from "./Selfie";
 import TurnstileFotos from "./TurnstileFotos";
+import { carregarFoto, entregar, gerarMoldura, montarZip, type Gerada } from "./moldura";
+import type { Formato } from "@/lib/molduraFotos";
 import "./fotosEvento.css";
 
 type Tela = "inicio" | "selfie" | "buscando" | "resultado" | "vazio" | "galeria" | "enviado";
 type Cor = "colorida" | "pb";
+type Evento = EventoPublico["evento"];
 const PRIVACIDADE = "/10anos/fotos/privacidade";
 
 function Topo() {
@@ -45,10 +48,21 @@ function Grade({ fotos, cor, onAbrir }: { fotos: FotoPublica[]; cor: Cor; onAbri
   );
 }
 
-/** Foto aberta. Formato e cor já ficam escolhidos; a moldura e o download chegam na próxima fase. */
-function FotoAberta({ fotos, indice, cor, setCor, onFechar, onIndice }: { fotos: FotoPublica[]; indice: number; cor: Cor; setCor: (c: Cor) => void; onFechar: () => void; onIndice: (i: number) => void }) {
-  const [formato, setFormato] = useState<"foto" | "stories">("foto");
+/** Foto aberta: a prévia é exatamente o arquivo que será salvo. */
+function FotoAberta({ fotos, indice, cor, setCor, formato, setFormato, evento, onFechar, onIndice }: { fotos: FotoPublica[]; indice: number; cor: Cor; setCor: (c: Cor) => void; formato: Formato; setFormato: (f: Formato) => void; evento: Evento | null; onFechar: () => void; onIndice: (i: number) => void }) {
   const f = fotos[indice];
+  const [gerada, setGerada] = useState<{ g: Gerada; url: string } | null>(null);
+  const [falha, setFalha] = useState(false);
+  useEffect(() => {
+    let vivo = true; let url = "";
+    setGerada(null); setFalha(false);
+    if (!f?.url_original || !evento) { setFalha(true); return; }
+    carregarFoto(f.url_original)
+      .then((img) => gerarMoldura(img, formato, cor, evento, indice + 1))
+      .then((g) => { if (!vivo) return; url = URL.createObjectURL(g.blob); setGerada({ g, url }); })
+      .catch(() => vivo && setFalha(true));
+    return () => { vivo = false; if (url) URL.revokeObjectURL(url); };
+  }, [f?.url_original, formato, cor, evento, indice]);
   return (
     <div className="fe-tela fe-aberta">
       <div className="fe-selfie-topo">
@@ -56,20 +70,53 @@ function FotoAberta({ fotos, indice, cor, setCor, onFechar, onIndice }: { fotos:
         <span>SUAS FOTOS</span><span className="fe-cinza">{indice + 1} de {fotos.length}</span>
       </div>
       <div className="fe-aberta-foto">
-        {f?.url_previa && <img src={f.url_previa} alt="" className={cor === "pb" ? "fe-pb" : ""} />}
+        {gerada ? <img src={gerada.url} alt="Prévia da foto com a moldura FORTEM" /> : f?.url_previa && <img src={f.url_previa} alt="" className={`fe-carregando ${cor === "pb" ? "fe-pb" : ""}`} />}
         {indice > 0 && <button className="fe-nav fe-nav-e" onClick={() => onIndice(indice - 1)} aria-label="Anterior"><ChevronLeft /></button>}
         {indice < fotos.length - 1 && <button className="fe-nav fe-nav-d" onClick={() => onIndice(indice + 1)} aria-label="Próxima"><ChevronRight /></button>}
       </div>
       <div className="fe-corpo">
         <p className="fe-label">FORMATO</p>
-        <Seletor<"foto" | "stories"> opcoes={[["foto", "FOTO"], ["stories", "STORIES"]]} valor={formato} onChange={setFormato} />
+        <Seletor<Formato> opcoes={[["foto", "FOTO"], ["stories", "STORIES"]]} valor={formato} onChange={setFormato} />
         <p className="fe-label">COR</p>
         <Seletor<Cor> opcoes={[["colorida", "COLORIDA"], ["pb", "PRETO E BRANCO"]]} valor={cor} onChange={setCor} />
-        <button className="fe-botao" disabled><Download className="h-4 w-4" />{formato === "foto" ? "BAIXAR FOTO" : "BAIXAR PARA STORIES"}</button>
-        <p className="fe-nota">O download com a moldura da FORTEM fica disponível em breve.</p>
+        <button className="fe-botao" disabled={!gerada} onClick={() => gerada && void entregar([gerada.g])}>
+          <Download className="h-4 w-4" />{!gerada && !falha ? "PREPARANDO..." : formato === "foto" ? "BAIXAR FOTO" : "BAIXAR PARA STORIES"}
+        </button>
+        {falha && <p className="fe-erro" role="alert">Não foi possível preparar esta foto. Tente de novo em instantes.</p>}
         {formato === "stories" && <p className="fe-nota">Marque a FORTEM quando postar.</p>}
       </div>
     </div>
+  );
+}
+
+/** "Baixar todas": gera tudo antes; o toque final só entrega (exigência do iPhone). */
+function BaixarTodas({ fotos, formato, cor, evento }: { fotos: FotoPublica[]; formato: Formato; cor: Cor; evento: Evento | null }) {
+  const [estado, setEstado] = useState<{ feitas: number; prontas?: Gerada[]; zip?: Blob } | null>(null);
+  const [erro, setErro] = useState(false);
+  useEffect(() => { setEstado(null); setErro(false); }, [fotos, formato, cor]);
+  async function preparar() {
+    if (!evento) return;
+    setErro(false); setEstado({ feitas: 0 });
+    try {
+      const gs: Gerada[] = [];
+      for (let i = 0; i < fotos.length; i++) {
+        if (!fotos[i].url_original) continue;
+        gs.push(await gerarMoldura(await carregarFoto(fotos[i].url_original!), formato, cor, evento, i + 1));
+        setEstado({ feitas: i + 1 });
+      }
+      setEstado({ feitas: gs.length, prontas: gs, zip: await montarZip(gs) });
+    } catch { setErro(true); setEstado(null); }
+  }
+  const n = fotos.length;
+  if (estado?.prontas) return <button className="fe-botao" onClick={() => void entregar(estado.prontas!, estado.zip)}><Download className="h-4 w-4" />SALVAR TODAS ({estado.prontas.length})</button>;
+  return (
+    <>
+      <button className="fe-botao" disabled={!!estado || !evento} onClick={() => void preparar()}>
+        <Download className="h-4 w-4" />{estado ? `PREPARANDO ${estado.feitas} DE ${n}...` : `BAIXAR TODAS (${n})`}
+      </button>
+      {estado && <div className="fe-barra"><div style={{ width: `${Math.round((estado.feitas / n) * 100)}%` }} /></div>}
+      {erro && <p className="fe-erro" role="alert">Não foi possível preparar as fotos. Tente de novo.</p>}
+    </>
   );
 }
 
@@ -85,6 +132,7 @@ export default function FotosEventoPublico() {
   const [progresso, setProgresso] = useState(0);
   const [encontradas, setEncontradas] = useState<FotoPublica[]>([]);
   const [cor, setCor] = useState<Cor>("colorida");
+  const [formato, setFormato] = useState<Formato>("foto");
   const [aberta, setAberta] = useState<{ lista: FotoPublica[]; i: number } | null>(null);
   const [galeria, setGaleria] = useState<{ fotos: FotoPublica[]; total: number; pagina: number; por: number } | null>(null);
   const [arquivos, setArquivos] = useState<{ file: File; url: string }[]>([]);
@@ -172,7 +220,7 @@ export default function FotosEventoPublico() {
 
   let conteudo: React.ReactNode;
   if (aberta) {
-    conteudo = <FotoAberta fotos={aberta.lista} indice={aberta.i} cor={cor} setCor={setCor} onFechar={() => setAberta(null)} onIndice={(i) => setAberta({ ...aberta, i })} />;
+    conteudo = <FotoAberta fotos={aberta.lista} indice={aberta.i} cor={cor} setCor={setCor} formato={formato} setFormato={setFormato} evento={ev?.evento ?? null} onFechar={() => setAberta(null)} onIndice={(i) => setAberta({ ...aberta, i })} />;
   } else if (tela === "selfie") {
     conteudo = <Selfie onVoltar={voltarInicio} onSelfie={(b) => void buscar(b)} />;
   } else if (tela === "buscando") {
@@ -193,8 +241,9 @@ export default function FotosEventoPublico() {
         <p className="fe-texto">Toque numa foto para escolher o formato e baixar.</p>
         <Seletor<Cor> opcoes={[["colorida", "COLORIDAS"], ["pb", "PRETO E BRANCO"]]} valor={cor} onChange={setCor} />
         <Grade fotos={encontradas} cor={cor} onAbrir={(i) => setAberta({ lista: encontradas, i })} />
-        <button className="fe-botao" disabled><Download className="h-4 w-4" />BAIXAR TODAS ({encontradas.length})</button>
-        <p className="fe-nota">O download com a moldura da FORTEM fica disponível em breve.</p>
+        <p className="fe-label">FORMATO DO DOWNLOAD</p>
+        <Seletor<Formato> opcoes={[["foto", "FOTO"], ["stories", "STORIES"]]} valor={formato} onChange={setFormato} />
+        <BaixarTodas fotos={encontradas} formato={formato} cor={cor} evento={ev?.evento ?? null} />
         <button className="fe-link fe-centro-txt" onClick={() => setTela("selfie")}>Faltou alguma? Tente outra selfie</button>
       </div></>
     );
