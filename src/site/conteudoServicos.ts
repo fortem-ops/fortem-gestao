@@ -64,7 +64,7 @@ export const PAGINAS_SERVICO: Record<"treinamento" | "nutricao" | "reabilitacao"
         { pergunta: "Nunca treinei. Posso começar?", resposta: "Sim. O treino experimental tem com objetivo central tu conheceres o nosso atendimento e a metodologia que respeita os seus limites." },
         { pergunta: "Tenho uma lesão ou restrição. Posso treinar?", resposta: "A avaliação funcional e de força identifica suas limitações, sedo o plano montado a partir dos resultados, e quando necessário indicamos o apoio da reabilitação." },
         { pergunta: "Quanto custa?", resposta: "Os valores dependem da frequência semanal e do plano. Monte o seu em poucos passos na página de planos.", link: { texto: "Ir para a página de planos →", href: "/planos" } },
-        { pergunta: "O treino experimental tem custo?", resposta: "Os detalhes do treino experimental, como valor e melhor horário, a gente combina com você no WhatsApp." },
+        { pergunta: "O treino experimental tem custo?", resposta: "Sim. Os detalhes do treino experimental, como valor e melhor horário, a gente combina com você no WhatsApp." },
       ] },
     ],
     cta: "Vamos combinar o seu primeiro treino?",
