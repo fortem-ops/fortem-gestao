@@ -37,7 +37,7 @@ function makeQc() {
 }
 
 function mockRoles({ admin = false, coord = false, nutri = false, fisio = false, mod = coord } = {}) {
-  mockRpc.mockImplementation((fn: string, args: any) => {
+  mockRpc.mockImplementation((fn: string, args?: { _role?: string }) => {
     if (fn === "is_admin") return Promise.resolve({ data: admin, error: null });
     if (fn === "is_coordinator_or_admin") return Promise.resolve({ data: coord, error: null });
     if (fn === "has_role" && args?._role === "nutricionista") return Promise.resolve({ data: nutri, error: null });
