@@ -33,7 +33,9 @@ export function dataEvento(iso: string): string {
   return `${d}.${m}.${a}`;
 }
 export const assinatura = (ev: DadosEvento) => (ev.texto_assinatura?.trim() || "10 ANOS").toUpperCase();
-export const altaFaixa = (alturaFoto: number) => Math.max(60, Math.round(alturaFoto * 0.07));
+export const altaFaixa = (alturaFoto: number) => Math.max(72, Math.round(alturaFoto * 0.09));
+/** Fração da largura livre de cada lado na faixa (corte do Instagram e de outras redes). */
+export const MARGEM_FAIXA = 0.15;
 export const modeloStories = (w: number, h: number) => (w >= h ? "papel-branco" : "tela-cheia");
 
 /** Reduz a fonte até o texto caber na largura (nunca abaixo de 60% do tamanho pedido). */
@@ -43,28 +45,40 @@ export function caber(texto: string, fonte: Fonte, largura: number, medir: Medir
   return { ...fonte, tamanho: t };
 }
 
-/** Formato FOTO: a imagem inteira, sem corte, com faixa preta embaixo (7% da altura, mínimo 60px). */
+/** Formato FOTO: a imagem inteira, sem corte, com faixa preta embaixo (9% da altura, mínimo 72px).
+ * Logo + assinatura + data formam um bloco centralizado que cabe nos 70% centrais; se não couber, tudo encolhe junto. */
 export function layoutFoto(w: number, h: number, ev: DadosEvento, medir: Medir): Layout {
   const f = altaFaixa(h);
-  const pad = Math.round(f * 0.5);
-  const logoH = Math.round(f * 0.34);
-  const logoW = Math.round(logoH * LOGO_PROPORCAO);
-  const base = h + Math.round(f / 2 + f * 0.11);
   const data = dataEvento(ev.data);
-  let fonte: Fonte = { peso: 700, tamanho: Math.round(f * 0.3), espaco: Math.round(f * 0.03) };
-  const livre = w - pad * 3 - logoW;
-  const larg = (fn: Fonte) => medir(assinatura(ev), fn) + fn.tamanho * 0.6 + medir(data, { ...fn, peso: 400 });
-  while (fonte.tamanho > 8 && larg(fonte) > livre) fonte = { ...fonte, tamanho: fonte.tamanho - 1 };
-  const dataX = w - pad;
-  const assX = dataX - medir(data, { ...fonte, peso: 400 }) - fonte.tamanho * 0.6;
+  const ass = assinatura(ev);
+  const medidas = (s: number) => {
+    const logoH = f * 0.34 * s;
+    const fonte: Fonte = { peso: 700, tamanho: f * 0.3 * s, espaco: f * 0.03 * s };
+    const fData: Fonte = { ...fonte, peso: 400 };
+    const gap = logoH * 1.5, gapTxt = fonte.tamanho * 0.6;
+    const logoW = logoH * LOGO_PROPORCAO;
+    const wa = medir(ass, fonte), wd = medir(data, fData);
+    return { logoH, logoW, fonte, fData, gap, gapTxt, wa, total: logoW + gap + wa + gapTxt + wd };
+  };
+  const util = w * (1 - 2 * MARGEM_FAIXA);
+  let m = medidas(1);
+  if (m.total > util) m = medidas(util / m.total);
+  // Arredonda para baixo e confere de novo, para nunca passar dos 70% centrais.
+  while (m.total > util) m = medidas((util / m.total) * 0.99 * (m.logoH / (f * 0.34)));
+  const logoH = Math.floor(m.logoH);
+  const logoW = Math.floor(logoH * LOGO_PROPORCAO);
+  const x0 = (w - m.total) / 2;
+  const base = h + f / 2 + m.fonte.tamanho * 0.36;
+  const assX = x0 + m.logoW + m.gap;
+  const dataX = assX + m.wa + m.gapTxt;
   return {
     largura: w, altura: h + f, modelo: "faixa",
     elementos: [
       { tipo: "fundo", cor: PRETO, x: 0, y: 0, w, h: h + f },
       { tipo: "foto", recorte: { x: 0, y: 0, w, h }, x: 0, y: 0, w, h },
-      { tipo: "logo", variante: "branco", x: pad, y: h + Math.round((f - logoH) / 2), w: logoW, h: logoH },
-      { tipo: "texto", texto: assinatura(ev), x: assX, y: base, fonte, cor: VERMELHO, alinhar: "right" },
-      { tipo: "texto", texto: data, x: dataX, y: base, fonte: { ...fonte, peso: 400 }, cor: CINZA, alinhar: "right" },
+      { tipo: "logo", variante: "branco", x: Math.ceil(x0), y: h + Math.round((f - logoH) / 2), w: logoW, h: logoH },
+      { tipo: "texto", texto: ass, x: assX, y: base, fonte: m.fonte, cor: VERMELHO, alinhar: "left" },
+      { tipo: "texto", texto: data, x: dataX, y: base, fonte: m.fData, cor: CINZA, alinhar: "left" },
     ],
   };
 }

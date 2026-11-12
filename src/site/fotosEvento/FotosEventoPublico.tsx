@@ -83,6 +83,7 @@ function FotoAberta({ fotos, indice, cor, setCor, formato, setFormato, evento, o
           <Download className="h-4 w-4" />{!gerada && !falha ? "PREPARANDO..." : formato === "foto" ? "BAIXAR FOTO" : "BAIXAR PARA STORIES"}
         </button>
         {falha && <p className="fe-erro" role="alert">Não foi possível preparar esta foto. Tente de novo em instantes.</p>}
+        {formato === "foto" && ehCelular() && <p className="fe-nota">Para postar no Stories, escolha o formato Stories.</p>}
         {formato === "stories" && <p className="fe-nota">Marque a FORTEM quando postar.</p>}
       </div>
     </div>
@@ -355,4 +356,9 @@ export default function FotosEventoPublico() {
       <div className="fe-app">{conteudo}</div>
     </main>
   );
+}
+
+/** Celular = tela de toque principal (iPhone/Android). */
+function ehCelular(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
 }

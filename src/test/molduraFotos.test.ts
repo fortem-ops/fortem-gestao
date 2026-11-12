@@ -13,20 +13,27 @@ const textos = (l: Layout) => l.elementos.filter((e): e is Extract<Elemento, { t
 const logos = (l: Layout) => l.elementos.filter((e): e is Extract<Elemento, { tipo: "logo" }> => e.tipo === "logo");
 
 describe("formato FOTO", () => {
-  it.each(Object.entries(casos))("%s: imagem inteira + faixa preta de 7%%", (_n, [w, h]) => {
+  const fotoCasos = { ...casos, quadrada: [3000, 3000], estreita: [400, 1600] } as const;
+  it.each(Object.entries(fotoCasos))("%s: imagem inteira + faixa de 9%% com bloco nos 70%% centrais", (_n, [w, h]) => {
     const l = layoutFoto(w, h, ev, medir);
-    expect(l.altura).toBe(h + Math.round(h * 0.07));
+    expect(l.altura).toBe(h + Math.max(72, Math.round(h * 0.09)));
     const foto = l.elementos.find((e) => e.tipo === "foto")!;
     expect(foto).toMatchObject({ x: 0, y: 0, w, h, recorte: { x: 0, y: 0, w, h } });
     const [logo] = logos(l);
     expect(logo.variante).toBe("branco");
-    expect(logo.x).toBeLessThan(w / 2);
+    expect(Math.abs(logo.w / logo.h - LOGO_PROPORCAO)).toBeLessThan(LOGO_PROPORCAO / logo.h + 0.01);
     const [ass, data] = textos(l);
     expect(ass).toMatchObject({ texto: "10 ANOS", cor: VERMELHO });
     expect(data).toMatchObject({ texto: "14.11.2026", cor: CINZA });
-    for (const t of textos(l)) { const c = caixaTexto(t, medir); expect(c.x).toBeGreaterThan(logo.x + logo.w); expect(c.x + c.w).toBeLessThanOrEqual(w); expect(c.y).toBeGreaterThanOrEqual(h); }
+    const caixas = [logo, ...textos(l).map((t) => caixaTexto(t, medir))];
+    const min = w * 0.15, max = w * 0.85;
+    for (const c of caixas) { expect(c.x).toBeGreaterThanOrEqual(min); expect(c.x + c.w).toBeLessThanOrEqual(max); expect(c.y).toBeGreaterThanOrEqual(h); expect(c.y + c.h).toBeLessThanOrEqual(l.altura); }
+    // Bloco centralizado e espaço logo→texto ≈ 1,5× a altura da logo.
+    const esq = Math.min(...caixas.map((c) => c.x)), dir = Math.max(...caixas.map((c) => c.x + c.w));
+    expect(Math.abs((esq - 0) - (w - dir))).toBeLessThan(w * 0.02);
+    expect(caixaTexto(ass, medir).x - (logo.x + logo.w)).toBeGreaterThan(logo.h * 1.3);
   });
-  it("faixa tem no mínimo 60px", () => { expect(altaFaixa(400)).toBe(60); expect(layoutFoto(600, 400, ev, medir).altura).toBe(460); });
+  it("faixa tem no mínimo 72px", () => { expect(altaFaixa(400)).toBe(72); expect(layoutFoto(600, 400, ev, medir).altura).toBe(472); });
 });
 
 describe("STORIES 1080×1920", () => {
