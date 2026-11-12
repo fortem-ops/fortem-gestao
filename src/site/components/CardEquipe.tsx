@@ -1,5 +1,5 @@
 import { PlaceholderFoto } from "./PlaceholderFoto";
-import { FOTOS_EQUIPE } from "../fotos";
+import { fotoEquipe } from "../fotos";
 
 export interface PessoaEquipe {
   nome: string;
@@ -17,7 +17,7 @@ interface Props {
 
 /** Card de profissional da equipe (foto, nome, função, formação e registro). */
 export function CardEquipe({ pessoa, compacto = false }: Props) {
-  const foto = FOTOS_EQUIPE[pessoa.nome as keyof typeof FOTOS_EQUIPE];
+  const foto = fotoEquipe(pessoa.nome);
   return (
     <>
       <PlaceholderFoto descricao={foto?.descricao ?? pessoa.nome} src={foto?.src ?? pessoa.foto}

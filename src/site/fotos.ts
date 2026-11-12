@@ -41,6 +41,11 @@ export const FOTOS_EQUIPE = {
   "Bruno Funari": FOTOS_SITE["equipe-bruno"],
 };
 
+/** Foto cadastrada de um membro da equipe, pelo nome exato; indefinido se ainda não houver. */
+export function fotoEquipe(nome: string): (typeof FOTOS_SITE)[keyof typeof FOTOS_SITE] | undefined {
+  return (FOTOS_EQUIPE as Record<string, (typeof FOTOS_SITE)[keyof typeof FOTOS_SITE]>)[nome];
+}
+
 export const FOTOS_ESTRUTURA_SITE = [
   FOTOS_SITE["estrutura-area-treino"],
   FOTOS_SITE["estrutura-equipamentos"],

@@ -5,7 +5,12 @@ import { PlaceholderFoto } from "../components/PlaceholderFoto";
 import { ChamadaAcao } from "../components/Blocos";
 import { linkWhatsApp, sitePath, type OrigemWhatsApp } from "../config";
 import { PAGINAS_SERVICO, type Bloco, type Botao } from "../conteudoServicos";
-import { FOTOS_SITE } from "../fotos";
+import { FOTOS_SITE, fotoEquipe } from "../fotos";
+
+function FotoPessoa({ nome, descricao }: { nome: string; descricao?: string }) {
+  const f = fotoEquipe(nome);
+  return <PlaceholderFoto descricao={f?.descricao ?? descricao ?? nome} src={f?.src} width={f?.width} height={f?.height} className="aspect-[4/5]" />;
+}
 
 function Botoes({ botoes, origem, escuro }: { botoes: Botao[]; origem: OrigemWhatsApp; escuro?: boolean }) {
   return (
@@ -112,13 +117,13 @@ function BlocoView({ b, origem, fundo }: { b: Bloco; origem: OrigemWhatsApp; fun
             <div className={`mt-8 grid gap-6 ${b.pessoas.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-[minmax(0,360px)_1fr] md:items-center md:gap-10"}`}>
               {b.pessoas.length > 1 ? b.pessoas.map((p) => (
                 <div key={p.nome}>
-                  <PlaceholderFoto descricao={p.foto ?? p.nome} className="aspect-[4/5]" />
+                  <FotoPessoa nome={p.nome} descricao={p.foto} />
                   <p className="mt-4 text-xl font-bold">{p.nome}</p>
                   {p.funcao && <p className="sp-rotulo sp-texto-acao mt-1">{p.funcao}</p>}
                   {p.registro && <p className="sp-texto2 mt-1 text-sm">{p.registro}</p>}
                 </div>
               )) : (() => { const p = b.pessoas[0]; return (<>
-                <PlaceholderFoto descricao={p.foto ?? p.nome} className="aspect-[4/5]" />
+                <FotoPessoa nome={p.nome} descricao={p.foto} />
                 <div>
                   <h2 className="text-3xl">{p.nome}</h2>
                   {p.funcao && <p className="sp-rotulo sp-texto-acao mt-2">{p.funcao}</p>}
