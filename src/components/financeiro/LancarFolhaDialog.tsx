@@ -1,6 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, FileUp } from "lucide-react";
@@ -17,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useFornecedores } from "@/hooks/useDespesas";
 import { extrairTextoDocumento } from "@/lib/extrairTextoDocumento";
+import { TIPOS_FOLHA, dataPadrao, descricaoFolha, divergeTipo, eh13, nascePendente, padraoTrava, rotuloCompetencia, type TipoFolha } from "@/lib/folhaTipos";
 
 const CAT_COMISSOES = "fb292895-bc41-474a-9e57-58f6777748df";
 const CAT_DSR = "5c86da2d-6ecd-4b85-ba33-56b3ea0e6687";
@@ -37,7 +37,7 @@ function useAuto(sugestao: number | null, deps: unknown[]) {
   return { v, editado, set: (x: string) => { setV(x); setEditado(true); }, fixar: (x: string) => { setV(x); setEditado(true); }, reset: () => setEditado(false) };
 }
 
-type Mapeado = { campos: Record<string, number>; outrosVenc: number; outrosVencDesc: string; outrosDesc: number; outrosDescDesc: string; ferias: boolean };
+type Mapeado = { campos: Record<string, number>; outrosVenc: number; outrosVencDesc: string; outrosDesc: number; outrosDescDesc: string; ferias: boolean; tipoDetectado?: "salario" | "13" | "ferias" };
 export type RegistroHolerite = {
   funcionario?: string | null; cpf?: string | null; competencia?: string | null;
   total_vencimentos?: number | null; total_descontos?: number | null; valor_liquido?: number | null;
@@ -52,15 +52,17 @@ export type FolhaFormHandle = { lancar: (opts?: { atualizarId?: string }) => Pro
 const compDe = (c?: string | null) => { const mc = /^(\d{1,2})\/(\d{4})$/.exec(String(c ?? "")); return mc ? new Date(Number(mc[2]), Number(mc[1]) - 1, 1) : null; };
 
 const FolhaForm = forwardRef<FolhaFormHandle, {
-  mesTela: Date; funcionarios: Func[]; fornIdInicial?: string; registro?: RegistroHolerite; casar?: boolean;
+  mesTela: Date; funcionarios: Func[]; fornIdInicial?: string; registro?: RegistroHolerite; casar?: boolean; tipo: TipoFolha; dataVenc: string;
   onFornChange?: (id: string) => void; children?: (ctx: { importar: (r: RegistroHolerite) => void; ferias: boolean; setFerias: (b: boolean) => void }) => React.ReactNode;
-}>(function FolhaForm({ mesTela, funcionarios, fornIdInicial, registro, casar, onFornChange, children }, ref) {
+}>(function FolhaForm({ mesTela, funcionarios, fornIdInicial, registro, casar, tipo, dataVenc, onFornChange, children }, ref) {
   const [fornId, setFornIdRaw] = useState(fornIdInicial ?? "");
   const setFornId = (v: string) => { setFornIdRaw(v); onFornChange?.(v); };
   const [comp, setComp] = useState(() => startOfMonth(addMonths(mesTela, -1)));
   const [horas, setHoras] = useState("");
   const [inss, setInss] = useState("");
-  const [ferias, setFerias] = useState(false);
+  const [ferias, setFerias] = useState(tipo === "ferias");
+  const [decimo, setDecimo] = useState("");
+  const [adiant13, setAdiant13] = useState("");
   const [horasFerias, setHorasFerias] = useState("");
   const [mediaFerias, setMediaFerias] = useState("");
   const [adiantFerias, setAdiantFerias] = useState("");
@@ -73,7 +75,8 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
   const confianca = !!forn?.cargo_confianca;
   const ini = format(comp, "yyyy-MM-dd");
   const fim = format(endOfMonth(comp), "yyyy-MM-dd");
-  const dataPag = format(addMonths(comp, 1), "yyyy-MM-05");
+  const dataPag = dataVenc || dataPadrao(tipo, comp);
+  const e13 = eh13(tipo);
   const vHoras = num(horas);
 
   const somasQ = useQuery({
@@ -113,8 +116,9 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
   const vCom = num(com.v), vDsr = num(dsr.v), vInss = num(inss), vVt = num(vt.v);
   const vHF = ferias ? num(horasFerias) : 0, vMF = ferias ? num(mediaFerias) : 0, vTerco = ferias ? num(terco.v) : 0, vAdF = ferias ? num(adiantFerias) : 0;
   const vOV = num(outrosVenc), vOD = num(outrosDesc);
-  const totalVenc = r2(vHoras + vGrat + vHF + vMF + vTerco + vCom + vDsr + vOV);
-  const totalDesc = r2(vInss + vVt + vAdF + vOD);
+  const v13 = e13 ? num(decimo) : 0, vAd13 = e13 ? num(adiant13) : 0;
+  const totalVenc = r2(vHoras + vGrat + vHF + vMF + vTerco + vCom + vDsr + vOV + v13);
+  const totalDesc = r2(vInss + vVt + vAdF + vOD + vAd13);
   const liquido = r2(totalVenc - totalDesc);
 
   const anos = Array.from({ length: new Date().getFullYear() + 1 - 2017 + 1 }, (_, i) => 2017 + i);
@@ -133,7 +137,8 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     setInss(str(c.inss));
     if (c.grat) grat.fixar(str(c.grat));
     vt.fixar(str(c.vt)); com.fixar(str(c.com)); dsr.fixar(str(c.dsr));
-    setFerias(m.ferias);
+    setFerias(m.ferias || tipo === "ferias");
+    setDecimo(str(c.decimo)); setAdiant13(str(c.adiant13));
     setHorasFerias(str(c.horasFerias)); setMediaFerias(str(c.mediaFerias)); setAdiantFerias(str(c.adiantFerias));
     if (m.ferias) terco.fixar(str(c.tercoFerias));
     setOutrosVenc(str(m.outrosVenc)); setOutrosVencDesc(m.outrosVencDesc);
@@ -149,30 +154,32 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
   async function lancar(opts?: { atualizarId?: string }): Promise<LancarRes> {
     if (!forn) return "Escolha o funcionário.";
     if (!forn.categoria_padrao_id) return "Este funcionário não tem subcategoria pessoal cadastrada em Fornecedores.";
-    if (vHoras <= 0) return "Informe o valor de Horas Normais.";
-    if ([vGrat, vCom, vDsr, vInss, vVt, vHF, vMF, vTerco, vAdF, vOV, vOD].some((x) => x < 0)) return "Valores não podem ser negativos.";
+    if (tipo === "salario" && vHoras <= 0) return "Informe o valor de Horas Normais.";
+    if (tipo !== "salario" && totalVenc <= 0) return "Informe os vencimentos do holerite.";
+    if ([v13, vAd13, vGrat, vCom, vDsr, vInss, vVt, vHF, vMF, vTerco, vAdF, vOV, vOD].some((x) => x < 0)) return "Valores não podem ser negativos.";
     // valor da despesa = líquido completo (Total de Vencimentos − Total de Descontos, com Comissão/DSR):
     // é o que efetivamente sai via PIX/extrato. Sem valor bruto de categoria separado.
     const valorPago = liquido;
     if (valorPago < 0) return "Os descontos são maiores que o salário.";
-    const mesAbrev = format(comp, "MMM", { locale: ptBR }).replace(".", "");
-    const partes: string[] = [`Horas Normais: ${brl(vHoras)}`];
+    const partes: string[] = [];
+    if (vHoras || tipo === "salario") partes.push(`Horas Normais: ${brl(vHoras)}`);
+    if (v13) partes.push(`13º Salário: ${brl(v13)}`);
     const p = (l: string, v: number, neg = false) => { if (v) partes.push(`${l}: ${neg ? "-" : ""}${brl(v)}`); };
     p("Gratificação", vGrat); p("Horas Férias", vHF); p("Média Valor Férias", vMF); p("1/3 Férias", vTerco);
     p("Comissões", vCom); p("DSR", vDsr);
     if (vOV) partes.push(`Outros Vencimentos${outrosVencDesc ? ` (${outrosVencDesc})` : ""}: ${brl(vOV)}`);
-    p("INSS", vInss, true); p("Vale Transporte", vVt, true); p("Adiantamento Férias", vAdF, true);
+    p("INSS", vInss, true); p("Vale Transporte", vVt, true); p("Adiantamento Férias", vAdF, true); p("Adiantamento 13º", vAd13, true);
     if (vOD) partes.push(`Outros Descontos${outrosDescDesc ? ` (${outrosDescDesc})` : ""}: -${brl(vOD)}`);
     partes.push(`Total Vencimentos: ${brl(totalVenc)}`, `Total Descontos: -${brl(totalDesc)}`, `Líquido: ${brl(liquido)}`);
-    const rotulo = `${mesAbrev}/${format(comp, "yyyy")}`;
+    const rotulo = rotuloCompetencia(tipo, comp);
     const hoje = format(new Date(), "yyyy-MM-dd");
     // Data futura = pagamento ainda vai acontecer: nasce pendente (sem data_pagamento/valor_pago),
     // para aparecer na fila de Pagamentos Pix. Hoje ou passado = registro retroativo: nasce paga.
-    const futuro = dataPag > hoje;
+    const futuro = nascePendente(dataPag, hoje);
     const payload = {
       categoria_id: forn.categoria_padrao_id,
       fornecedor_id: forn.id,
-      descricao: `${ferias ? "Salário + Férias" : "Salário"} ${forn.nome} (${rotulo})`,
+      descricao: descricaoFolha(tipo, forn.nome, comp, ferias),
       valor: valorPago,
       valor_pago: futuro ? null : valorPago,
       valor_liquido_previsto: valorPago,
@@ -192,11 +199,14 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
     // Trava de duplicidade: um salário LANÇADO (pago ou com "(mmm/yyyy)") por funcionário por competência.
     // Em vez de só bloquear, compara com o gravado: igual → nada a fazer; diferente → pergunta se atualiza.
     const base = (cols = "id") => supabase.from("despesas").select(cols)
-      .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id)
-      .eq("data_competencia", dataPag).ilike("descricao", "Salário%");
+      .eq("fornecedor_id", forn.id).eq("categoria_id", forn.categoria_padrao_id);
+    const colsJa = "id, valor, valor_liquido_previsto, valor_pago, observacao, conciliado, pix_status";
+    // Salário: trava antiga (mesma data). 13º/Férias: trava própria por tipo + competência, sem tocar no salário.
     // O valor do ilike vai entre aspas: sem elas, os parênteses de "(set/2026)" quebram o filtro.
-    const { data: jaRaw, error: eJa } = await base("id, valor, valor_liquido_previsto, valor_pago, observacao, conciliado, pix_status")
-      .or(`status.eq.pago,descricao.ilike."*(${rotulo})*"`).limit(1);
+    const { data: jaRaw, error: eJa } = tipo === "salario"
+      ? await base(colsJa).eq("data_competencia", dataPag).ilike("descricao", "Salário%")
+        .or(`status.eq.pago,descricao.ilike."*(${rotulo})*"`).limit(1)
+      : await base(colsJa).ilike("descricao", padraoTrava(tipo, comp)).limit(1);
     if (eJa) return "Não foi possível conferir lançamentos anteriores: " + eJa.message;
     const ja = (jaRaw ?? []) as unknown as { id: string; valor: number; valor_liquido_previsto: number | null; valor_pago: number | null; observacao: string | null; conciliado: boolean; pix_status: string | null }[];
     if (ja.length) {
@@ -211,9 +221,12 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
         return `Já lançado para ${rotulo} com valores diferentes, mas não pode ser alterado: ${e.conciliado ? "já está conciliado" : "o Pix já foi enviado ao Inter"}.`;
       return { tipo: "diferente", id: e.id, rotulo, diffs };
     }
-    const { data: prevRaw, error: ePrev } = await base().eq("status", "pendente").order("created_at").limit(1);
-    if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
-    const prev = (prevRaw ?? []) as unknown as { id: string }[];
+    let prev: { id: string }[] = [];
+    if (tipo === "salario") {
+      const { data: prevRaw, error: ePrev } = await base().eq("data_competencia", dataPag).ilike("descricao", "Salário%").eq("status", "pendente").order("created_at").limit(1);
+      if (ePrev) return "Não foi possível conferir a previsão do mês: " + ePrev.message;
+      prev = (prevRaw ?? []) as unknown as { id: string }[];
+    }
     const { data: u } = await supabase.auth.getUser();
     const { error } = prev.length
       ? await supabase.from("despesas").update(payload as never).eq("id", prev[0].id).eq("status", "pendente")
@@ -258,12 +271,18 @@ const FolhaForm = forwardRef<FolhaFormHandle, {
                 <SelectContent>{anos.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Vencimento e pagamento: {format(new Date(dataPag + "T12:00:00"), "dd/MM/yyyy")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{TIPOS_FOLHA.find((t) => t.valor === tipo)?.rotulo} · Vencimento e pagamento: {format(new Date(dataPag + "T12:00:00"), "dd/MM/yyyy")}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {Num({ label: "Horas Normais (R$)", value: horas, onChange: setHoras })}
             {confianca && Num({ label: "Gratificação de Função 40% (R$)", value: grat.v, onChange: grat.set })}
           </div>
+          {e13 && (
+            <div className="grid grid-cols-2 gap-3 rounded-md border p-3">
+              {Num({ label: "13º Salário (R$)", value: decimo, onChange: setDecimo })}
+              {Num({ label: "Adiantamento 13º (desconto)", value: adiant13, onChange: setAdiant13 })}
+            </div>
+          )}
           {ferias && (
             <div className="grid grid-cols-2 gap-3 rounded-md border p-3">
               {Num({ label: "Horas Férias (R$)", value: horasFerias, onChange: setHorasFerias })}
@@ -346,6 +365,25 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
   const [recibo, setRecibo] = useState<RegistroHolerite | null>(null);
   const [manual, setManual] = useState(false);
   const [arrastando, setArrastando] = useState(false);
+  const [tipo, setTipo] = useState<TipoFolha>("salario");
+  const [dataVenc, setDataVenc] = useState("");
+  const bloqueado = !!(extrato || recibo || manual);
+  const seletor = (
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <Label>Tipo de pagamento</Label>
+        <Select value={tipo} onValueChange={(v) => setTipo(v as TipoFolha)} disabled={bloqueado}>
+          <SelectTrigger aria-label="Tipo de pagamento"><SelectValue /></SelectTrigger>
+          <SelectContent>{TIPOS_FOLHA.map((t) => <SelectItem key={t.valor} value={t.valor}>{t.rotulo}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>Data de vencimento</Label>
+        <Input type="date" value={dataVenc} onChange={(e) => setDataVenc(e.target.value)} disabled={bloqueado} aria-label="Data de vencimento" />
+        {!dataVenc && <p className="text-xs text-muted-foreground mt-1">Em branco: data padrão do tipo.</p>}
+      </div>
+    </div>
+  );
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<FolhaFormHandle>(null);
 
@@ -379,7 +417,7 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
     if (typeof res === "string") return toast.error(res);
     if (res?.tipo === "igual") return toast.info(`Nada a atualizar: os valores são os mesmos já lançados para ${res.rotulo}.`);
     if (res?.tipo === "diferente") return setConfirmar(res);
-    toast.success(atualizarId ? "Lançamento atualizado." : "Salário lançado.");
+    toast.success(atualizarId ? "Lançamento atualizado." : "Pagamento lançado.");
     setConfirmar(null);
     qc.invalidateQueries({ queryKey: ["despesas"] });
     onClose();
@@ -391,10 +429,11 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
         <DialogHeader><DialogTitle>{extrato ? "Lançar folha — Extrato mensal" : "Lançar folha"}</DialogTitle></DialogHeader>
         <input ref={fileRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => escolher(e.target.files?.[0])} />
         {extrato ? (
-          <ExtratoLista registros={extrato} mesTela={mesTela} funcionarios={funcionarios} onVoltar={() => setExtrato(null)} onClose={onClose} />
+          <><div className="opacity-80">{seletor}</div><ExtratoLista tipo={tipo} dataVenc={dataVenc} registros={extrato} mesTela={mesTela} funcionarios={funcionarios} onVoltar={() => setExtrato(null)} onClose={onClose} /></>
         ) : recibo || manual ? (
           <>
-            <FolhaForm ref={formRef} mesTela={mesTela} funcionarios={funcionarios} registro={recibo ?? undefined} casar={!!recibo}>
+            {seletor}
+            <FolhaForm ref={formRef} tipo={tipo} dataVenc={dataVenc} mesTela={mesTela} funcionarios={funcionarios} registro={recibo ?? undefined} casar={!!recibo}>
               {(ctx) => (
                 <div className="space-y-2">
                   {recibo ? (
@@ -415,7 +454,7 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
             <DialogFooter>
               <Button variant="ghost" onClick={() => { setRecibo(null); setManual(false); }}>{recibo ? "← Trocar PDF" : "← Voltar"}</Button>
               <Button variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button onClick={() => salvar()} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar salário"}</Button>
+              <Button onClick={() => salvar()} disabled={salvando || lendo}>{salvando ? "Salvando…" : "Lançar"}</Button>
             </DialogFooter>
             <AlertDialog open={!!confirmar} onOpenChange={(o) => !o && setConfirmar(null)}>
               <AlertDialogContent>
@@ -440,6 +479,7 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
           </>
         ) : (
           <div className="space-y-4 py-2">
+            {seletor}
             <button
               type="button"
               disabled={lendo}
@@ -467,8 +507,8 @@ export function LancarFolhaDialog({ mesTela, onClose }: { mesTela: Date; onClose
 
 type EstadoLinha = { fornId: string; match: "ok" | "confirme" | "nao"; pular: boolean; aberto: boolean; lancado: boolean; erro?: string; enviando: boolean; existente?: Existente };
 
-function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
-  registros: RegistroHolerite[]; mesTela: Date; funcionarios: Func[]; onVoltar: () => void; onClose: () => void;
+function ExtratoLista({ tipo, dataVenc, registros, mesTela, funcionarios, onVoltar, onClose }: {
+  tipo: TipoFolha; dataVenc: string; registros: RegistroHolerite[]; mesTela: Date; funcionarios: Func[]; onVoltar: () => void; onClose: () => void;
 }) {
   const qc = useQueryClient();
   const refs = useRef<(FolhaFormHandle | null)[]>([]);
@@ -495,7 +535,7 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
 
   async function lancarIndividual(i: number, atualizarId?: string) {
     const r = await lancarUma(i, atualizarId);
-    if (r === "ok") { toast.success(atualizarId ? "Lançamento atualizado." : "Salário lançado."); qc.invalidateQueries({ queryKey: ["despesas"] }); }
+    if (r === "ok") { toast.success(atualizarId ? "Lançamento atualizado." : "Pagamento lançado."); qc.invalidateQueries({ queryKey: ["despesas"] }); }
     else if (r === "igual") toast.info("Nada a atualizar: os valores são os mesmos já lançados.");
     else if (r === "diferente") toast.warning("Já existe lançamento com valores diferentes. Confira e clique em Atualizar.");
     else if (r === "erro") toast.error("Não foi possível lançar este funcionário. Veja o aviso na linha.");
@@ -544,6 +584,7 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
                   </div>
                 </div>
                 {r.mapeado?.ferias && <Badge variant="outline">Férias</Badge>}
+                {divergeTipo(tipo, r.mapeado?.tipoDetectado) && <Badge variant="outline" className="border-warning/50 text-warning">Holerite não parece {TIPOS_FOLHA.find((t) => t.valor === tipo)?.rotulo}</Badge>}
                 {l.lancado && l.existente?.tipo === "igual" ? <Badge variant="outline">Sem alterações</Badge>
                   : l.lancado ? <Badge className="bg-success/20 text-success border-success/40" variant="outline">Lançado</Badge>
                   : l.existente?.tipo === "diferente" ? <Badge variant="outline" className="border-warning/50 text-warning">Diferente do lançado</Badge>
@@ -565,7 +606,7 @@ function ExtratoLista({ registros, mesTela, funcionarios, onVoltar, onClose }: {
               {!r.erro && (
                 <div className={l.aberto ? "border-t p-3 space-y-3" : "hidden"}>
                   <FolhaForm
-                    ref={(h) => { refs.current[i] = h; }}
+                    ref={(h) => { refs.current[i] = h; }} tipo={tipo} dataVenc={dataVenc}
                     mesTela={mesTela} funcionarios={funcionarios} fornIdInicial={l.fornId} registro={r}
                     onFornChange={(id) => upd(i, { fornId: id, match: "ok", erro: undefined, existente: undefined })}
                   />

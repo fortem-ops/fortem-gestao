@@ -49,7 +49,11 @@ function mapear(itens: Item[]) {
     const d = norm(it.descricao);
     const v = Number(it.vencimento) || 0, ds = Number(it.desconto) || 0;
     let campo: string | null = null;
-    if (d.includes("ADIANTAMENTO") && d.includes("FERIAS")) campo = "adiantFerias";
+    const e13 = d.includes("13") || d.includes("DECIMO");
+    if (e13 && d.includes("INSS")) campo = "inss";
+    else if (e13 && (d.includes("ADIANTAMENTO") || d.includes("DESCONTO") || d.includes("1A PARCELA") || d.includes("1ª PARCELA"))) campo = "adiant13";
+    else if (e13 && !d.includes("IRRF")) campo = "decimo";
+    else if (d.includes("ADIANTAMENTO") && d.includes("FERIAS")) campo = "adiantFerias";
     else if (d.includes("1/3")) campo = "tercoFerias";
     else if (d.includes("MEDIA") && d.includes("FERIAS")) campo = "mediaFerias";
     else if (d.includes("HORAS FERIAS") || d === "FERIAS") campo = "horasFerias";
@@ -59,7 +63,7 @@ function mapear(itens: Item[]) {
     else if (d.includes("GRATIFICACAO")) campo = "grat";
     else if (d.includes("INSS")) campo = "inss";
     else if (d.includes("VALE TRANSPORTE") || d.includes("VALE-TRANSPORTE")) campo = "vt";
-    const desc = ["adiantFerias", "inss", "vt"].includes(campo ?? "");
+    const desc = ["adiantFerias", "adiant13", "inss", "vt"].includes(campo ?? "");
     if (campo) add(campo, desc ? ds || v : v || ds);
     else if (v > 0) { outrosVenc += v; outrosV.push(it.descricao.trim()); }
     else if (ds > 0) { outrosDesc += ds; outrosD.push(it.descricao.trim()); }
@@ -69,6 +73,7 @@ function mapear(itens: Item[]) {
     outrosVenc: Math.round(outrosVenc * 100) / 100, outrosVencDesc: outrosV.join(", "),
     outrosDesc: Math.round(outrosDesc * 100) / 100, outrosDescDesc: outrosD.join(", "),
     ferias: !!(c.horasFerias || c.mediaFerias || c.tercoFerias || c.adiantFerias),
+    tipoDetectado: c.decimo ? "13" : (c.horasFerias || c.mediaFerias || c.tercoFerias) ? "ferias" : "salario",
   };
 }
 
