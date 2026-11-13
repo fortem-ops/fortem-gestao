@@ -16,13 +16,13 @@ describe("festa 10 anos", () => {
   it("4 pessoas custam R$ 300", () => expect(calcularTotalFesta(3)).toBe(30000));
   it("limite de 3 acompanhantes", () => expect(calcularTotalFesta(5)).toBe(30000));
   it("voucher Equipe10 zera o total de todos", () => expect(calcularTotalFesta(3, true)).toBe(0));
-  it("reabre após o prazo antigo e aceita até o último segundo de 12/11 em Brasília", () => {
-    expect(FESTA_PRAZO_ISO).toBe("2026-11-12");
+  it("reabre após o prazo antigo e aceita até o último segundo de 14/11 em Brasília", () => {
+    expect(FESTA_PRAZO_ISO).toBe("2026-11-14");
     expect(festa10AnosConfig.prazoIso).toBe(FESTA_PRAZO_ISO);
-    expect(FESTA_PRAZO_FIM.toISOString()).toBe("2026-11-13T02:59:59.999Z");
+    expect(FESTA_PRAZO_FIM.toISOString()).toBe("2026-11-15T02:59:59.999Z");
     expect(confirmacoesAbertas(new Date("2026-11-08T14:13:00Z"))).toBe(true);
-    expect(confirmacoesAbertas(new Date("2026-11-13T02:59:59.999Z"))).toBe(true);
-    expect(confirmacoesAbertas(new Date("2026-11-13T03:00:00Z"))).toBe(false);
+    expect(confirmacoesAbertas(new Date("2026-11-15T02:59:59.999Z"))).toBe(true);
+    expect(confirmacoesAbertas(new Date("2026-11-15T03:00:00Z"))).toBe(false);
   });
   it("WhatsApp exige celular com DDD", () => {
     expect(whatsappValido("(51) 99999-0000")).toBe(true);
