@@ -16,7 +16,7 @@ Só banco + funções + testes. Nada de página, e-mail, tela da equipe, altera�
 | Segmento | Cadastros |
 |---|---|
 | Equipe (sem oferta) | 7 |
-| Upgrade: Start+/Power/Pro ativos com data final | 99 (cerca de 95 depois de tirar os 4 que já estão no Livre) |
+| Upgrade: Start+/Power/Pro ativos com data final | 99, sendo 95 elegíveis (4 já no Livre pelo contrato) |
 | Wellhub | 45 |
 | TotalPass | 22 |
 | Bloqueados (Wellhub + TotalPass juntos) | 0 |
@@ -26,20 +26,23 @@ Só banco + funções + testes. Nada de página, e-mail, tela da equipe, altera�
 | Só Corrida (Corrida vira principal, sem oferta de upgrade) | 5 |
 | Fora: Start antigo 13, Start 2027 6, VIP 4, Consultoria 3 | — |
 
-## 3. Riscos e casos que não se encaixam (preciso da sua decisão)
+## 3. Decisões confirmadas
 
-1. **Papel "consultor" não existe** no sistema (papéis: admin, coordenador, professor, nutricionista, fisioterapeuta, aluno). Proposta: leitura e mudança de status para **admin e coordenador**. Confirma?
-2. **Start antigo (13 alunos)** é anual e tem data final, ao contrário do Start 2027. A regra de exclusão fala em "Start mensal". Proposta: **excluir** os 13 (lista de elegíveis = Start+, Power, Pro). Confirma ou inclui?
-3. **Frequência divergente**: cerca de 25 alunos têm frequência no cadastro diferente da do contrato (ex.: cadastro 3x, contrato 2x). Proposta: valer o **contrato** (o que foi vendido). Lista será entregue para a equipe revisar.
-4. **Data de início divergente**: cerca de 45 planos antigos têm `planos.data_inicio` diferente do `contratos.data_inicio` (renovações). Proposta: ciclo pelo **`planos.data_inicio`** (vigência atual). Confirma?
-5. **Plano que termina no meio de um ciclo**: o último pedaço conta proporcional (dias até `data_fim` / dias reais desse ciclo), não como ciclo completo.
-6. **Corrida para quem só tem Corrida (5)**: já tem Corrida ativa, então não recebe oferta nenhuma.
-7. **Ex-aluno que era de agregadora**: entra como ex-aluno (oferta Power/Pro 2027 −R$ 400).
-8. **Preço de Corrida 6 meses**: os itens são antigos (sem versão). Leitura por `nome` + `periodo_meses = 6` (Start/Start+ 960, Power 900, Pro 840, Sem Plano 1.080). Start 2027 usa "Corrida - Start".
+1. Interesses: leitura e mudança de status **só admin** (coordenador não).
+2. Start antigo (13) **fora** do upgrade. Elegíveis: Start+, Power e Pro (antigos e 2027) com data final.
+3. Frequência: vale a do **contrato**. Divergentes hoje (16, cadastro → contrato):
+   - Power: Julia Marchetti 2→1x; Marília Paz de Paiva 1→3; Nicolas Teste 3→2x (cadastro de teste); Paula Cerski Lavratti 2→3
+   - Pro: Edna Weisheimer 3→Livre (fica sem upgrade); Mayara Squeff Janovik 1→2
+   - Start+: Betina Schneider de Lima 2→1; Carlos Augusto Piccinini 2→3; Carolina Guerra Baião 1→2; Frederico Luiz Lanziotti Muller 3→2; Gabrieli Lazzari Vieira 2→3; Lisheng Zheng 3→2; Rafael Fernandes e Silva 2→3; Rosane Baur 3→2; Sofia Robin Ávila da Silva 3→2; Sonia Marchetti 2→1
+4. Ciclo contado a partir de `planos.data_inicio`.
+5. Último pedaço antes da data final conta proporcional.
+6. Quem já tem Corrida ativa não recebe oferta de Corrida.
+7. Ex-aluno de agregadora entra como ex-aluno.
+8. Corrida 6 meses lida por nome + `periodo_meses = 6`; Start 2027 usa "Corrida - Start".
 
 ## 4. O que será criado
 
-**Tabela `promo10_interesses`**: aluno_id, segmento, oferta, detalhes (jsonb), valor_promocional, valor_sem_desconto, codigo_pedido único (P10-0001, sequência), status (novo/contatado/fechado/desistiu, padrão novo), observacao, created_at, atualizado_por, atualizado_em. Sem acesso anônimo; inserção só pelo servidor (service_role); leitura e atualização só para os papéis da decisão 1; gatilho que só deixa a equipe alterar status/observacao e grava quem/quando.
+**Tabela `promo10_interesses`**: aluno_id, segmento, oferta, detalhes (jsonb), valor_promocional, valor_sem_desconto, codigo_pedido único (P10-0001, sequência), status (novo/contatado/fechado/desistiu, padrão novo), observacao, created_at, atualizado_por, atualizado_em. Sem acesso anônimo; inserção só pelo servidor (service_role); leitura e atualização só para admin (`is_admin(auth.uid())`); gatilho que só deixa a equipe alterar status/observacao e grava quem/quando.
 
 **Funções no servidor (search_path fixo, sem acesso de aluno/anônimo)**:
 - `fn_promo10_ciclo(data_inicio, data_fim, hoje, degraus, valor_mes)` — cálculo puro do proporcional + ciclos completos (dia 29–31 vira fim de mês, como na recorrência).
@@ -59,6 +62,6 @@ Só banco + funções + testes. Nada de página, e-mail, tela da equipe, altera�
 
 ## Detalhes técnicos
 
-- Migração única: tabela + grants (service_role ALL; authenticated SELECT/UPDATE) + RLS + gatilho + funções; `REVOKE EXECUTE` de anon/authenticated nas funções de ofertas (a edge function da Fase 2 chama com service_role).
+- Migração única: tabela + grants (service_role ALL; authenticated SELECT/UPDATE, filtrado por RLS só admin) + RLS + gatilho + funções; `REVOKE EXECUTE` de anon/authenticated nas funções de ofertas (a edge function da Fase 2 chama com service_role).
 - Arredondamento em centavos (round 2) na parte proporcional; total = proporcional + completos.
 - Regra registrada em `src/components/planos/AGENTS.md`; roadmap.md com uma linha.
