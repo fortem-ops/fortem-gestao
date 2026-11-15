@@ -1,7 +1,7 @@
 // Fotos de eventos — página pública: dados do evento, busca por selfie e galeria.
 // A selfie fica só na memória desta requisição: nunca vai para storage, banco ou log.
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { BUCKET, ipHash } from "../_shared/fotos-evento-srv.ts";
+import { BUCKET, URL_VALIDADE_S, ipHash } from "../_shared/fotos-evento-srv.ts";
 import { rekognition, ErroAws, base64 } from "../_shared/rekognition.ts";
 import { avaliarTurnstile } from "../_shared/planos-turnstile.ts";
 import {
@@ -10,7 +10,8 @@ import {
 } from "../_shared/fotos-evento.ts";
 
 type Sb = ReturnType<typeof admin>;
-const POR_PAGINA = 30;
+const POR_PAGINA = 12;
+const MAX_POR_PAGINA = 30;
 
 async function eventoPublico(sb: Sb, slug: unknown) {
   if (typeof slug !== "string" || !/^[a-z0-9-]{2,60}$/.test(slug)) return null;
@@ -18,14 +19,15 @@ async function eventoPublico(sb: Sb, slug: unknown) {
   return data && data.ativo ? data : null;
 }
 
-type FotoRow = { id: string; storage_path: string; storage_path_preview: string | null; largura: number | null; altura: number | null; orientacao: string | null };
+type FotoRow = { id: string; storage_path: string; storage_path_preview: string | null; storage_path_miniatura: string | null; largura: number | null; altura: number | null; orientacao: string | null };
 async function comUrls(sb: Sb, fotos: FotoRow[]) {
-  const caminhos = fotos.flatMap((f) => [f.storage_path, f.storage_path_preview ?? f.storage_path]);
-  const { data } = caminhos.length ? await sb.storage.from(BUCKET).createSignedUrls(caminhos, 600) : { data: [] };
+  const caminhos = [...new Set(fotos.flatMap((f) => [f.storage_path, f.storage_path_preview ?? f.storage_path, f.storage_path_miniatura].filter((x): x is string => !!x)))];
+  const { data } = caminhos.length ? await sb.storage.from(BUCKET).createSignedUrls(caminhos, URL_VALIDADE_S) : { data: [] };
   const mapa = new Map((data ?? []).map((s) => [s.path, s.signedUrl]));
   return fotos.map((f) => ({
     id: f.id, largura: f.largura, altura: f.altura, orientacao: f.orientacao,
     url_previa: mapa.get(f.storage_path_preview ?? f.storage_path) ?? null, url_original: mapa.get(f.storage_path) ?? null,
+    url_miniatura: f.storage_path_miniatura ? mapa.get(f.storage_path_miniatura) ?? null : null,
   }));
 }
 const filtroPublico = <T extends { eq: (c: string, v: unknown) => T; in: (c: string, v: unknown[]) => T }>(q: T) =>
@@ -43,7 +45,7 @@ Deno.serve(async (req) => {
       // Capa: só se a equipe escolheu e a foto continua aprovada; senão a página mostra fundo preto.
       let capa = null;
       if (ev.capa_foto_id) {
-        const { data } = await filtroPublico(sb.from("fotos_evento").select("id, storage_path, storage_path_preview, largura, altura, orientacao").eq("evento_id", ev.id).eq("id", ev.capa_foto_id));
+        const { data } = await filtroPublico(sb.from("fotos_evento").select("id, storage_path, storage_path_preview, storage_path_miniatura, largura, altura, orientacao").eq("evento_id", ev.id).eq("id", ev.capa_foto_id));
         if (data?.length) capa = (await comUrls(sb, data as FotoRow[]))[0];
       }
       const { data: cfg } = await sb.from("sistema_config").select("chave, valor").in("chave", ["planos_turnstile_ativo", "planos_turnstile_site_key"]);
@@ -58,9 +60,10 @@ Deno.serve(async (req) => {
 
     if (body.acao === "galeria") {
       const pagina = Math.max(0, Math.min(10000, Number(body.pagina) || 0));
-      const { data, count } = await filtroPublico(sb.from("fotos_evento").select("id, storage_path, storage_path_preview, largura, altura, orientacao", { count: "exact" }).eq("evento_id", ev.id))
-        .order("criado_em").range(pagina * POR_PAGINA, pagina * POR_PAGINA + POR_PAGINA - 1);
-      return jsonResponse({ fotos: await comUrls(sb, (data ?? []) as FotoRow[]), total: count ?? 0, pagina, por_pagina: POR_PAGINA });
+      const POR = Math.max(1, Math.min(MAX_POR_PAGINA, Number(body.por_pagina) || POR_PAGINA));
+      const { data, count } = await filtroPublico(sb.from("fotos_evento").select("id, storage_path, storage_path_preview, storage_path_miniatura, largura, altura, orientacao", { count: "exact" }).eq("evento_id", ev.id))
+        .order("criado_em").range(pagina * POR, pagina * POR + POR - 1);
+      return jsonResponse({ fotos: await comUrls(sb, (data ?? []) as FotoRow[]), total: count ?? 0, pagina, por_pagina: POR });
     }
 
     if (body.acao === "buscar") {
@@ -96,7 +99,7 @@ Deno.serve(async (req) => {
       selfie.fill(0);
       let fotos: FotoRow[] = [];
       if (ids.length) {
-        const { data } = await filtroPublico(sb.from("fotos_evento").select("id, storage_path, storage_path_preview, largura, altura, orientacao").eq("evento_id", ev.id).in("id", ids));
+        const { data } = await filtroPublico(sb.from("fotos_evento").select("id, storage_path, storage_path_preview, storage_path_miniatura, largura, altura, orientacao").eq("evento_id", ev.id).in("id", ids));
         const ordem = new Map(ids.map((id, i) => [id, i]));
         fotos = ((data ?? []) as FotoRow[]).sort((a, b) => (ordem.get(a.id)! - ordem.get(b.id)!));
       }

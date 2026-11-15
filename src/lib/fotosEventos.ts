@@ -84,3 +84,39 @@ export function totais(fotos: FotoTotais[]) {
   }
   return t;
 }
+
+// ---- Desempenho: miniatura, original reduzido e carregamento progressivo ----
+export const LADO_MINIATURA = 400;
+export const LADO_ORIGINAL_MAX = 2560;
+export const LADO_STORIES = 2048;
+export const QUALIDADE_MINIATURA = 0.75;
+export const QUALIDADE_ORIGINAL = 0.85;
+export const FOTOS_POR_LOTE_GRADE = 12;
+
+/** Miniatura da grade: maior lado até 400px, sem ampliar, mesma proporção. */
+export const dimensoesMiniatura = (w: number, h: number) => dimensoesPrevia(w, h, LADO_MINIATURA);
+
+/**
+ * O que fazer com o original antes do envio. Recebe as medidas JÁ orientadas (EXIF aplicado na leitura).
+ * Acima de 2560px (ou HEIC, que precisa virar JPEG) é redesenhado em JPEG 85, sem EXIF, com os pixels já
+ * na posição certa. Até 2560px em JPEG/PNG segue o arquivo original, sem perder qualidade.
+ */
+export function planoOriginal(w: number, h: number, opcoes: { heic: boolean }): { reencodar: boolean; w: number; h: number } {
+  const d = dimensoesPrevia(w, h, LADO_ORIGINAL_MAX);
+  return { reencodar: opcoes.heic || Math.max(w, h) > LADO_ORIGINAL_MAX, ...d };
+}
+
+/** WebP quando o navegador gera; senão JPEG (Safari antigo devolve PNG ao pedir WebP). */
+export function tipoMiniatura(tipoGerado: string): { tipo: "image/webp" | "image/jpeg"; ext: "webp" | "jpg" } {
+  return tipoGerado === "image/webp" ? { tipo: "image/webp", ext: "webp" } : { tipo: "image/jpeg", ext: "jpg" };
+}
+
+/** Imagem da grade: miniatura; sem ela, a prévia de 1200px. */
+export function urlGrade(f: { url_miniatura?: string | null; url_previa: string | null }): string | null {
+  return f.url_miniatura || f.url_previa;
+}
+
+/** Quantas fotos mostrar depois de mais uma rolagem (começa com 12). */
+export function proximoLimite(atual: number, total: number, passo = FOTOS_POR_LOTE_GRADE): number {
+  return Math.min(total, Math.max(atual, 0) + passo);
+}

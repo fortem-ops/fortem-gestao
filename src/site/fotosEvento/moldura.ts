@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import logoBranco from "@/assets/fotos-evento/logo-fortem-branco.svg.asset.json";
 import logoPreto from "@/assets/fotos-evento/logo-fortem-preto.svg.asset.json";
 import {
-  claridade, escalaSegura, layoutFoto, layoutStories, nomeArquivo, pretoEBranco,
+  claridade, escalaMoldura, layoutFoto, layoutStories, nomeArquivo, pretoEBranco,
   type Claridade, type Cor, type DadosEvento, type Fonte, type Formato, type Layout,
 } from "@/lib/molduraFotos";
 
@@ -65,7 +65,8 @@ export async function gerarMoldura(img: HTMLImageElement, formato: Formato, cor:
   const [lb, lp] = await Promise.all([carregarLogo("branco"), carregarLogo("preto")]);
   const w0 = img.naturalWidth, h0 = img.naturalHeight;
   // Foto P&B: pixels convertidos numa tela à parte, antes da moldura (o vermelho da identidade fica).
-  const k = escalaSegura(w0, h0 * 1.07);
+  // Stories parte de uma versão de 2048px (reduzida em memória); FOTO usa o original.
+  const k = escalaMoldura(formato, w0, h0);
   const fw = Math.round(w0 * k), fh = Math.round(h0 * k);
   const fc = document.createElement("canvas"); fc.width = fw; fc.height = fh;
   const fx = fc.getContext("2d", { willReadFrequently: cor === "pb" })!;

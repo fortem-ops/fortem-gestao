@@ -38,12 +38,15 @@ export default function Moderacao({ eventoId, podeGerir }: { eventoId: string; p
     },
   });
   const ids = useMemo(() => pendentes.map((p) => p.id), [pendentes]);
-  const { data: previas = {} } = useQuery({
+  // Links valem 24h: reaproveitados por 20h para o navegador usar o cache.
+  const { data: urls } = useQuery({
     queryKey: ["fotos-evento", eventoId, "previas", ids.join(",")],
     enabled: ids.length > 0,
-    staleTime: 8 * 60_000,
-    queryFn: async () => (await fotosAdmin<{ previas: Record<string, string | null> }>("previas", { foto_ids: ids })).previas,
+    staleTime: 20 * 3600_000, gcTime: 20 * 3600_000,
+    queryFn: () => fotosAdmin<{ previas: Record<string, string | null>; miniaturas?: Record<string, string | null> }>("previas", { foto_ids: ids }),
   });
+  const previas = urls?.previas ?? {};
+  const miniaturas = urls?.miniaturas ?? previas;
 
   const fila = useMemo(() => ordenarFila(pendentes.map((p) => ({ ...p, hash: hashes[p.id] ?? null }))), [pendentes, hashes]);
   const grupos = useMemo(() => agruparQuaseIdenticas(fila), [fila]);
@@ -115,8 +118,8 @@ export default function Moderacao({ eventoId, podeGerir }: { eventoId: string; p
                 return (
                   <div key={p.id} className={`relative rounded-md overflow-hidden border-2 ${p.alerta_moderacao ? "border-destructive" : "border-transparent"} ${sel.has(p.id) ? "ring-2 ring-primary" : ""}`}>
                     <button type="button" className="block w-full aspect-square bg-muted" onClick={() => setAberta(plana.findIndex((x) => x.id === p.id))}>
-                      {previas[p.id] && (
-                        <img src={previas[p.id]!} alt="" crossOrigin="anonymous" loading="lazy" className="w-full h-full object-cover"
+                      {(miniaturas[p.id] ?? previas[p.id]) && (
+                        <img src={(miniaturas[p.id] ?? previas[p.id])!} alt="" crossOrigin="anonymous" loading="lazy" decoding="async" className="w-full h-full object-cover"
                           onLoad={(e) => { const img = e.currentTarget; if (!(p.id in hashes)) setHashes((h) => ({ ...h, [p.id]: hashDaImagem(img) })); }} />
                       )}
                     </button>

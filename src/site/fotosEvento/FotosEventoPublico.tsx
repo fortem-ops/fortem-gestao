@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Camera, Check, ChevronLeft, ChevronRight, Download, Upload, X } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { maskWhatsApp } from "@/lib/festa10anos";
 import {
-  adicionarFotos, mensagemErro, problemasBusca, problemasEnvio, textoBotaoEnvio, textoContador, textoEncontradas, textoRecebidas, totalPaginas, MAX_FOTOS_ENVIO,
+  adicionarFotos, mensagemErro, problemasBusca, problemasEnvio, textoBotaoEnvio, textoContador, textoEncontradas, textoRecebidas, MAX_FOTOS_ENVIO,
 } from "@/lib/fotosPublico";
 import { BUCKET_FOTOS } from "@/components/fotosEventos/api";
 import { prepararFoto } from "@/components/fotosEventos/imagem";
 import logoBranco from "@/assets/fotos-evento/logo-fortem-branco.svg.asset.json";
 import { chamar, type EventoPublico, type FotoPublica } from "./api";
 import Selfie from "./Selfie";
+import GradeFotos from "./GradeFotos";
+import { FOTOS_POR_LOTE_GRADE } from "@/lib/fotosEventos";
 import TurnstileFotos from "./TurnstileFotos";
 import { carregarFoto, entregar, gerarMoldura, montarZip, type Gerada } from "./moldura";
 import type { Formato } from "@/lib/molduraFotos";
@@ -34,18 +37,6 @@ const Cantoneiras = () => <><span className="fe-cant fe-cant-sd" aria-hidden /><
 
 function Seletor<T extends string>({ opcoes, valor, onChange }: { opcoes: [T, string][]; valor: T; onChange: (v: T) => void }) {
   return <div className="fe-seletor">{opcoes.map(([v, r]) => <button key={v} className={v === valor ? "ativo" : ""} onClick={() => onChange(v)}>{r}</button>)}</div>;
-}
-
-function Grade({ fotos, cor, onAbrir }: { fotos: FotoPublica[]; cor: Cor; onAbrir: (i: number) => void }) {
-  return (
-    <div className="fe-grade">
-      {fotos.map((f, i) => (
-        <button key={f.id} onClick={() => onAbrir(i)} aria-label={`Abrir foto ${i + 1}`}>
-          {f.url_previa && <img src={f.url_previa} alt="" loading="lazy" className={cor === "pb" ? "fe-pb" : ""} />}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 /** Foto aberta: a prévia é exatamente o arquivo que será salvo. */
@@ -135,7 +126,20 @@ export default function FotosEventoPublico() {
   const [cor, setCor] = useState<Cor>("colorida");
   const [formato, setFormato] = useState<Formato>("foto");
   const [aberta, setAberta] = useState<{ lista: FotoPublica[]; i: number } | null>(null);
-  const [galeria, setGaleria] = useState<{ fotos: FotoPublica[]; total: number; pagina: number; por: number } | null>(null);
+  // Galeria em páginas de 12, guardada por 20h (links valem 24h): voltar à galeria não baixa de novo.
+  type PaginaGaleria = { fotos: FotoPublica[]; total: number; pagina: number; por_pagina: number };
+  const galeriaQ = useInfiniteQuery({
+    queryKey: ["fotos-evento-publico", "galeria"],
+    enabled: tela === "galeria",
+    initialPageParam: 0,
+    staleTime: 20 * 3600_000, gcTime: 20 * 3600_000,
+    queryFn: ({ pageParam }) => chamar<PaginaGaleria>("fotos-evento-publico", { acao: "galeria", pagina: pageParam, por_pagina: FOTOS_POR_LOTE_GRADE }),
+    getNextPageParam: (ult) => ((ult.pagina + 1) * ult.por_pagina < ult.total ? ult.pagina + 1 : undefined),
+  });
+  const galeriaFotos = galeriaQ.data?.pages.flatMap((p) => p.fotos) ?? [];
+  const galeriaTotal = galeriaQ.data?.pages[0]?.total ?? 0;
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = galeriaQ;
+  const maisGaleria = useCallback(() => { if (hasNextPage && !isFetchingNextPage) void fetchNextPage(); }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   const [arquivos, setArquivos] = useState<{ file: File; url: string }[]>([]);
   const [enviando, setEnviando] = useState(false); const [recebidas, setRecebidas] = useState(0);
 
@@ -167,13 +171,7 @@ export default function FotosEventoPublico() {
     } finally { clearInterval(t); novoToken(); }
   }
 
-  async function abrirGaleria(pagina = 0) {
-    setErro(null);
-    try {
-      const r = await chamar<{ fotos: FotoPublica[]; total: number; pagina: number; por_pagina: number }>("fotos-evento-publico", { acao: "galeria", pagina });
-      setGaleria({ fotos: r.fotos, total: r.total, pagina: r.pagina, por: r.por_pagina }); setTela("galeria");
-    } catch (e) { setErro(mensagemErro(e instanceof Error ? e.message : "")); }
-  }
+  function abrirGaleria() { setErro(null); setTela("galeria"); }
 
   function escolher(lista: FileList | null) {
     if (!lista) return;
@@ -190,17 +188,27 @@ export default function FotosEventoPublico() {
     if (!tsPronto) { setErro(mensagemErro("verificacao_necessaria")); return; }
     setErro(null); setEnviando(true); setProgresso(0);
     try {
+      // Etapa 1 (até 30%): reduzir no aparelho (original até 2560px, prévia e miniatura). Etapa 2 (até 90%): enviar.
       const prontas = [];
-      for (const a of arquivos) prontas.push(await prepararFoto(a.file));
-      const r = await chamar<{ envio_id: string; arquivos: { original: { path: string; token: string }; previa: { path: string; token: string } }[] }>("fotos-evento-envio", {
+      for (let i = 0; i < arquivos.length; i++) {
+        prontas.push(await prepararFoto(arquivos[i].file));
+        setProgresso(Math.round(((i + 1) / arquivos.length) * 30));
+      }
+      type Alvo = { path: string; token: string };
+      const r = await chamar<{ envio_id: string; arquivos: { original: Alvo; previa: Alvo; miniatura: Alvo }[] }>("fotos-evento-envio", {
         acao: "iniciar", nome, whatsapp: whats, aceite_publicacao: true, turnstile: token,
-        arquivos: prontas.map((p, i) => ({ nome: arquivos[i].file.name, tipo: p.tipo, tamanho: p.original.size, largura: p.largura, altura: p.altura })),
+        arquivos: prontas.map((p, i) => ({ nome: arquivos[i].file.name, tipo: p.tipo, tamanho: p.original.size, largura: p.largura, altura: p.altura, miniatura: p.tipoMiniatura === "image/webp" ? "webp" : "jpg" })),
       });
       const st = supabase.storage.from(BUCKET_FOTOS);
       for (let i = 0; i < r.arquivos.length; i++) {
         const d = r.arquivos[i]; const p = prontas[i];
-        await Promise.all([st.uploadToSignedUrl(d.original.path, d.original.token, p.original, { contentType: p.tipo }), st.uploadToSignedUrl(d.previa.path, d.previa.token, p.previa, { contentType: "image/jpeg" })]);
-        setProgresso(Math.round(((i + 1) / r.arquivos.length) * 90));
+        const res = await Promise.all([
+          st.uploadToSignedUrl(d.original.path, d.original.token, p.original, { contentType: p.tipo }),
+          st.uploadToSignedUrl(d.previa.path, d.previa.token, p.previa, { contentType: "image/jpeg" }),
+          st.uploadToSignedUrl(d.miniatura.path, d.miniatura.token, p.miniatura, { contentType: p.tipoMiniatura }),
+        ]);
+        if (res.some((x) => x.error)) throw new Error("falha_envio");
+        setProgresso(30 + Math.round(((i + 1) / r.arquivos.length) * 60));
       }
       const c = await chamar<{ recebidas: number }>("fotos-evento-envio", { acao: "concluir", envio_id: r.envio_id });
       setRecebidas(c.recebidas); setArquivos([]); setAceiteEnvio(false); setTela("enviado");
@@ -241,7 +249,7 @@ export default function FotosEventoPublico() {
         <h1 className="fe-h1">{textoEncontradas(encontradas.length)}</h1>
         <p className="fe-texto">Toque numa foto para escolher o formato e baixar.</p>
         <Seletor<Cor> opcoes={[["colorida", "COLORIDAS"], ["pb", "PRETO E BRANCO"]]} valor={cor} onChange={setCor} />
-        <Grade fotos={encontradas} cor={cor} onAbrir={(i) => setAberta({ lista: encontradas, i })} />
+        <GradeFotos fotos={encontradas} pb={cor === "pb"} onAbrir={(i) => setAberta({ lista: encontradas, i })} />
         <p className="fe-label">FORMATO DO DOWNLOAD</p>
         <Seletor<Formato> opcoes={[["foto", "FOTO"], ["stories", "STORIES"]]} valor={formato} onChange={setFormato} />
         <BaixarTodas fotos={encontradas} formato={formato} cor={cor} evento={ev?.evento ?? null} />
@@ -255,25 +263,21 @@ export default function FotosEventoPublico() {
         <h1 className="fe-h1">AINDA NÃO ENCONTRAMOS VOCÊ</h1>
         <p className="fe-texto">Pode ser a luz ou o ângulo da selfie. Tente de novo, de frente e num lugar claro. Se as fotos ainda estão chegando, volte mais tarde.</p>
         <button className="fe-botao" onClick={() => setTela("selfie")}>TENTAR OUTRA SELFIE</button>
-        <button className="fe-botao fe-botao-borda" onClick={() => void abrirGaleria(0)}>VER TODAS AS FOTOS</button>
+        <button className="fe-botao fe-botao-borda" onClick={abrirGaleria}>VER TODAS AS FOTOS</button>
       </div></>
     );
-  } else if (tela === "galeria" && galeria) {
-    const paginas = totalPaginas(galeria.total, galeria.por);
+  } else if (tela === "galeria") {
     conteudo = (
       <><Topo /><div className="fe-corpo">
         <button className="fe-link" onClick={voltarInicio}><ChevronLeft className="inline h-4 w-4" />Voltar</button>
         <h1 className="fe-h1">TODAS AS FOTOS</h1>
-        <p className="fe-texto">{galeria.total} foto(s) da festa.</p>
+        {galeriaQ.isError && <p className="fe-erro" role="alert">{mensagemErro(galeriaQ.error instanceof Error ? galeriaQ.error.message : "")}</p>}
+        {galeriaQ.isLoading ? <p className="fe-texto">Carregando fotos...</p> : <p className="fe-texto">{galeriaTotal} foto(s) da festa.</p>}
         <Seletor<Cor> opcoes={[["colorida", "COLORIDAS"], ["pb", "PRETO E BRANCO"]]} valor={cor} onChange={setCor} />
-        {galeria.fotos.length ? <Grade fotos={galeria.fotos} cor={cor} onAbrir={(i) => setAberta({ lista: galeria.fotos, i })} /> : <p className="fe-texto">As fotos ainda estão sendo preparadas. Volte mais tarde.</p>}
-        {paginas > 1 && (
-          <div className="fe-paginas">
-            <button className="fe-botao fe-botao-borda" disabled={galeria.pagina === 0} onClick={() => void abrirGaleria(galeria.pagina - 1)}>ANTERIOR</button>
-            <span>{galeria.pagina + 1} de {paginas}</span>
-            <button className="fe-botao fe-botao-borda" disabled={galeria.pagina >= paginas - 1} onClick={() => void abrirGaleria(galeria.pagina + 1)}>PRÓXIMA</button>
-          </div>
-        )}
+        {galeriaFotos.length
+          ? <GradeFotos fotos={galeriaFotos} pb={cor === "pb"} onAbrir={(i) => setAberta({ lista: galeriaFotos, i })} temMais={!!hasNextPage} onMais={maisGaleria} />
+          : !galeriaQ.isLoading && <p className="fe-texto">As fotos ainda estão sendo preparadas. Volte mais tarde.</p>}
+        {isFetchingNextPage && <p className="fe-nota">Carregando mais fotos...</p>}
       </div></>
     );
   } else if (tela === "enviado") {
@@ -319,7 +323,7 @@ export default function FotosEventoPublico() {
               {verificacao}
               {erro && <p className="fe-erro" role="alert">{erro}</p>}
               <button className="fe-botao" onClick={irParaSelfie} disabled={indisponivel}><Camera className="h-4 w-4" />TIRAR SELFIE</button>
-              <button className="fe-link fe-centro-txt" onClick={() => void abrirGaleria(0)} disabled={indisponivel}>Prefere ver todas as fotos da festa?</button>
+              <button className="fe-link fe-centro-txt" onClick={abrirGaleria} disabled={indisponivel}>Prefere ver todas as fotos da festa?</button>
             </>
           ) : (
             <>
@@ -340,7 +344,7 @@ export default function FotosEventoPublico() {
                 <span>Declaro que tirei estas fotos na festa e autorizo a FORTEM a publicá-las na galeria do evento e a usá-las para que os participantes encontrem suas fotos.</span>
               </label>
               {verificacao}
-              {enviando && <div className="fe-barra"><div style={{ width: `${progresso}%` }} /></div>}
+              {enviando && <><div className="fe-barra"><div style={{ width: `${progresso}%` }} /></div><p className="fe-nota">{progresso < 30 ? "Preparando as fotos no seu celular..." : "Enviando..."}</p></>}
               {erro && <p className="fe-erro" role="alert">{erro}</p>}
               <button className="fe-botao" onClick={() => void enviar()} disabled={enviando || indisponivel}>{enviando ? "ENVIANDO..." : textoBotaoEnvio(arquivos.length)}</button>
             </>

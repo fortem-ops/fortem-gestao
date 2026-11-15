@@ -1,7 +1,7 @@
 // Fotos de eventos — ações da equipe: coleção, upload, indexação, moderação, leads e original.
 // Gerir (admin/coordenador): coleção, upload, indexação, CSV, original. Moderar (+ professor): aprovar/rejeitar.
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { BUCKET, papelEquipe } from "../_shared/fotos-evento-srv.ts";
+import { BUCKET, URL_VALIDADE_S, arquivosDaFoto, extMiniatura, papelEquipe } from "../_shared/fotos-evento-srv.ts";
 import { rekognition, ErroAws, base64 } from "../_shared/rekognition.ts";
 import {
   arquivoValido, colecaoValida, orientacao, LOTE_INDEXACAO, type FaceRecord,
@@ -113,17 +113,19 @@ Deno.serve(async (req) => {
         const id = crypto.randomUUID();
         const original = `${ev.id}/fotografo/original/${id}.${ext(a.tipo)}`;
         const previa = `${ev.id}/fotografo/preview/${id}.jpg`;
-        const [u1, u2] = await Promise.all([
+        const miniatura = `${ev.id}/fotografo/miniatura/${id}.${extMiniatura(a?.miniatura)}`;
+        const [u1, u2, u3] = await Promise.all([
           sb.storage.from(BUCKET).createSignedUploadUrl(original), sb.storage.from(BUCKET).createSignedUploadUrl(previa),
+          sb.storage.from(BUCKET).createSignedUploadUrl(miniatura),
         ]);
-        if (u1.error || u2.error) { saida.push({ nome: a?.nome ?? null, error: "falha_url" }); continue; }
+        if (u1.error || u2.error || u3.error) { saida.push({ nome: a?.nome ?? null, error: "falha_url" }); continue; }
         const { error } = await sb.from("fotos_evento").insert({
-          id, evento_id: ev.id, storage_path: original, storage_path_preview: previa, largura, altura,
+          id, evento_id: ev.id, storage_path: original, storage_path_preview: previa, storage_path_miniatura: miniatura, largura, altura,
           orientacao: orientacao(largura, altura), origem: "fotografo", status_moderacao: "aprovada",
           moderado_por: papel.userId, moderado_em: new Date().toISOString(),
         });
         if (error) { saida.push({ nome: a?.nome ?? null, error: "falha_registro" }); continue; }
-        saida.push({ nome: a?.nome ?? null, foto_id: id, original: { path: original, token: u1.data.token }, previa: { path: previa, token: u2.data.token } });
+        saida.push({ nome: a?.nome ?? null, foto_id: id, original: { path: original, token: u1.data.token }, previa: { path: previa, token: u2.data.token }, miniatura: { path: miniatura, token: u3.data.token } });
       }
       return jsonResponse({ arquivos: saida });
     }
@@ -165,7 +167,7 @@ Deno.serve(async (req) => {
       const decisao = body.decisao;
       if (decisao !== "aprovar" && decisao !== "rejeitar") return jsonResponse({ error: "decisao_invalida" }, 400);
       const ids = (Array.isArray(body.foto_ids) ? body.foto_ids : []).filter(ehUuid).slice(0, 200);
-      const { data: fotos } = await sb.from("fotos_evento").select("id, evento_id, storage_path, storage_path_preview, origem, status_moderacao")
+      const { data: fotos } = await sb.from("fotos_evento").select("id, evento_id, storage_path, storage_path_preview, storage_path_miniatura, origem, status_moderacao")
         .in("id", ids).eq("origem", "convidado").eq("status_moderacao", "pendente");
       const agora = new Date().toISOString();
       const aprovadas = new Map<string, string[]>();
@@ -176,7 +178,7 @@ Deno.serve(async (req) => {
         } else {
           const ev = await evento(sb, f.evento_id);
           if (ev && colecaoValida(ev.collection_id) && ev.colecao_criada_em) await apagarRostos(sb, ev.collection_id, f.id);
-          await sb.storage.from(BUCKET).remove([f.storage_path, f.storage_path_preview].filter((x): x is string => !!x));
+          await sb.storage.from(BUCKET).remove(arquivosDaFoto(f));
           await sb.from("fotos_evento").update({ status_moderacao: "rejeitada", moderado_por: papel.userId, moderado_em: agora }).eq("id", f.id);
           await sb.from("eventos_fotos").update({ capa_foto_id: null }).eq("capa_foto_id", f.id);
         }
@@ -197,21 +199,62 @@ Deno.serve(async (req) => {
     }
 
     if (acao === "previas") {
+      // previas = 1200px (foto aberta); miniaturas = grade (cai para a prévia quando falta).
       const ids = (Array.isArray(body.foto_ids) ? body.foto_ids : []).filter(ehUuid).slice(0, 200);
-      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview").in("id", ids).neq("status_moderacao", "rejeitada");
-      const caminhos = (fotos ?? []).map((f) => f.storage_path_preview ?? f.storage_path);
-      const { data: urls } = caminhos.length ? await sb.storage.from(BUCKET).createSignedUrls(caminhos, 600) : { data: [] };
+      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview, storage_path_miniatura").in("id", ids).neq("status_moderacao", "rejeitada");
+      const prev = (f: { storage_path: string; storage_path_preview: string | null }) => f.storage_path_preview ?? f.storage_path;
+      const caminhos = [...new Set((fotos ?? []).flatMap((f) => [prev(f), f.storage_path_miniatura ?? prev(f)]))];
+      const { data: urls } = caminhos.length ? await sb.storage.from(BUCKET).createSignedUrls(caminhos, URL_VALIDADE_S) : { data: [] };
       const mapa = new Map((urls ?? []).map((u) => [u.path, u.signedUrl]));
-      return jsonResponse({ previas: Object.fromEntries((fotos ?? []).map((f) => [f.id, mapa.get(f.storage_path_preview ?? f.storage_path) ?? null])) });
+      return jsonResponse({
+        previas: Object.fromEntries((fotos ?? []).map((f) => [f.id, mapa.get(prev(f)) ?? null])),
+        miniaturas: Object.fromEntries((fotos ?? []).map((f) => [f.id, mapa.get(f.storage_path_miniatura ?? prev(f)) ?? null])),
+      });
+    }
+
+    if (acao === "miniaturas_faltando") {
+      // Backfill: devolve a prévia (fonte) e um link de envio para a miniatura de até 25 fotos sem miniatura.
+      if (!ehUuid(body.evento_id)) return jsonResponse({ error: "evento_invalido" }, 400);
+      const { count } = await sb.from("fotos_evento").select("id", { count: "exact", head: true })
+        .eq("evento_id", body.evento_id).eq("upload_concluido", true).neq("status_moderacao", "rejeitada").is("storage_path_miniatura", null);
+      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview")
+        .eq("evento_id", body.evento_id).eq("upload_concluido", true).neq("status_moderacao", "rejeitada").is("storage_path_miniatura", null)
+        .order("criado_em").limit(body.apenas_contar === true ? 0 : 25);
+      const saida = [];
+      for (const f of fotos ?? []) {
+        const fonte = f.storage_path_preview ?? f.storage_path;
+        const pasta = f.storage_path.split("/").slice(0, -1).join("/").replace(/\/original(\/|$)/, "/miniatura$1");
+        const caminho = `${pasta}/${f.id}.${extMiniatura(body.miniatura)}`;
+        const [u, up] = await Promise.all([sb.storage.from(BUCKET).createSignedUrl(fonte, 600), sb.storage.from(BUCKET).createSignedUploadUrl(caminho, { upsert: true })]);
+        if (u.error || up.error) continue;
+        saida.push({ foto_id: f.id, url_previa: u.data.signedUrl, miniatura: { path: caminho, token: up.data.token } });
+      }
+      return jsonResponse({ faltando: count ?? 0, fotos: saida });
+    }
+
+    if (acao === "concluir_miniaturas") {
+      const itens = (Array.isArray(body.itens) ? body.itens : []).slice(0, 25)
+        .filter((i: unknown): i is { foto_id: string; path: string } => !!i && ehUuid((i as { foto_id?: unknown }).foto_id) && typeof (i as { path?: unknown }).path === "string");
+      let ok = 0;
+      for (const i of itens) {
+        // Só aceita o caminho esperado para a foto e só se o arquivo existir.
+        if (!new RegExp(`/miniatura/(.+/)?${i.foto_id}\\.(webp|jpg)$`).test(i.path)) continue;
+        const pasta = i.path.split("/").slice(0, -1).join("/"); const nome = i.path.split("/").pop()!;
+        const { data: lista } = await sb.storage.from(BUCKET).list(pasta, { search: nome, limit: 1 });
+        if (!lista?.some((o) => o.name === nome)) continue;
+        const { error } = await sb.from("fotos_evento").update({ storage_path_miniatura: i.path }).eq("id", i.foto_id).is("storage_path_miniatura", null);
+        if (!error) ok++;
+      }
+      return jsonResponse({ concluidas: ok });
     }
 
     if (acao === "limpar_incompletos") {
       if (!ehUuid(body.evento_id)) return jsonResponse({ error: "evento_invalido" }, 400);
       const limite = new Date(Date.now() - 2 * 3600_000).toISOString();
-      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview")
+      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview, storage_path_miniatura")
         .eq("evento_id", body.evento_id).eq("upload_concluido", false).lt("criado_em", limite).limit(500);
       if (fotos?.length) {
-        await sb.storage.from(BUCKET).remove(fotos.flatMap((f) => [f.storage_path, f.storage_path_preview]).filter((x): x is string => !!x));
+        await sb.storage.from(BUCKET).remove(fotos.flatMap(arquivosDaFoto));
         await sb.from("fotos_evento").delete().in("id", fotos.map((f) => f.id));
       }
       return jsonResponse({ removidas: fotos?.length ?? 0 });
@@ -243,7 +286,7 @@ Deno.serve(async (req) => {
       if (!ehUuid(body.foto_id)) return jsonResponse({ error: "foto_invalida" }, 400);
       const { data: f } = await sb.from("fotos_evento").select("storage_path, status_moderacao").eq("id", body.foto_id).maybeSingle();
       if (!f || f.status_moderacao === "rejeitada") return jsonResponse({ error: "foto_nao_encontrada" }, 404);
-      const { data: u } = await sb.storage.from(BUCKET).createSignedUrl(f.storage_path, 600, { download: true });
+      const { data: u } = await sb.storage.from(BUCKET).createSignedUrl(f.storage_path, URL_VALIDADE_S, { download: true });
       return jsonResponse({ url: u?.signedUrl ?? null });
     }
 

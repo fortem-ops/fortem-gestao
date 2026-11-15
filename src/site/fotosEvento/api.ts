@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { SLUG_FESTA } from "@/lib/fotosPublico";
 
-export type FotoPublica = { id: string; largura: number | null; altura: number | null; orientacao: string | null; url_previa: string | null; url_original: string | null };
+export type FotoPublica = { id: string; largura: number | null; altura: number | null; orientacao: string | null; url_previa: string | null; url_original: string | null; url_miniatura?: string | null };
 export type EventoPublico = {
   evento: { slug: string; nome: string; data: string; texto_assinatura: string | null; local: string | null };
   capa: { url: string | null; largura: number | null; altura: number | null } | null;

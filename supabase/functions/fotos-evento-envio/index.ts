@@ -1,6 +1,6 @@
 // Fotos de eventos — envio de fotos por convidados (até 30), com moderação assistida (só sinaliza).
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { BUCKET, ipHash } from "../_shared/fotos-evento-srv.ts";
+import { BUCKET, arquivosDaFoto, extMiniatura, ipHash } from "../_shared/fotos-evento-srv.ts";
 import { rekognition, base64 } from "../_shared/rekognition.ts";
 import { avaliarTurnstile } from "../_shared/planos-turnstile.ts";
 import {
@@ -44,22 +44,23 @@ Deno.serve(async (req) => {
         const id = crypto.randomUUID();
         const original = `${ev.id}/convidados/original/${envioId}/${id}.${a.tipo === "image/png" ? "png" : "jpg"}`;
         const previa = `${ev.id}/convidados/preview/${envioId}/${id}.jpg`;
-        const [u1, u2] = await Promise.all([sb.storage.from(BUCKET).createSignedUploadUrl(original), sb.storage.from(BUCKET).createSignedUploadUrl(previa)]);
-        if (u1.error || u2.error) throw new Error("url");
+        const miniatura = `${ev.id}/convidados/miniatura/${envioId}/${id}.${extMiniatura(a.miniatura)}`;
+        const [u1, u2, u3] = await Promise.all([sb.storage.from(BUCKET).createSignedUploadUrl(original), sb.storage.from(BUCKET).createSignedUploadUrl(previa), sb.storage.from(BUCKET).createSignedUploadUrl(miniatura)]);
+        if (u1.error || u2.error || u3.error) throw new Error("url");
         const largura = Number(a.largura), altura = Number(a.altura);
         const { error } = await sb.from("fotos_evento").insert({
-          id, evento_id: ev.id, storage_path: original, storage_path_preview: previa, largura, altura, orientacao: orientacao(largura, altura),
+          id, evento_id: ev.id, storage_path: original, storage_path_preview: previa, storage_path_miniatura: miniatura, largura, altura, orientacao: orientacao(largura, altura),
           origem: "convidado", enviado_por: leadId, envio_id: envioId, status_moderacao: "pendente", status_indexacao: "pendente",
         });
         if (error) throw new Error("registro");
-        saida.push({ foto_id: id, original: { path: original, token: u1.data.token }, previa: { path: previa, token: u2.data.token } });
+        saida.push({ foto_id: id, original: { path: original, token: u1.data.token }, previa: { path: previa, token: u2.data.token }, miniatura: { path: miniatura, token: u3.data.token } });
       }
       return jsonResponse({ envio_id: envioId, arquivos: saida });
     }
 
     if (body.acao === "concluir") {
       if (typeof body.envio_id !== "string" || !UUID.test(body.envio_id)) return jsonResponse({ error: "envio_invalido" }, 400);
-      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview, enviado_por, upload_concluido")
+      const { data: fotos } = await sb.from("fotos_evento").select("id, storage_path, storage_path_preview, storage_path_miniatura, enviado_por, upload_concluido")
         .eq("envio_id", body.envio_id).eq("evento_id", ev.id).eq("upload_concluido", false);
       let recebidas = 0; let leadId: string | null = null;
       for (const f of fotos ?? []) {
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
         const bytes = prev ? new Uint8Array(await prev.arrayBuffer()) : null;
         const jpeg = !!bytes && bytes[0] === 0xff && bytes[1] === 0xd8;
         if (!obj || !tipoOk || !(Number(meta.size) > 0 && Number(meta.size) <= MAX_BYTES_ARQUIVO) || !bytes || !jpeg || bytes.length > MAX_BYTES_REKOGNITION) {
-          await sb.storage.from(BUCKET).remove([f.storage_path, f.storage_path_preview].filter((x): x is string => !!x));
+          await sb.storage.from(BUCKET).remove(arquivosDaFoto(f));
           await sb.from("fotos_evento").delete().eq("id", f.id);
           continue;
         }

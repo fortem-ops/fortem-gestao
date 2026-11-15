@@ -16,6 +16,7 @@ import type { EventoFotos } from "@/components/fotosEventos/api";
 import { fotosAdmin } from "@/components/fotosEventos/api";
 import UploadLote from "@/components/fotosEventos/UploadLote";
 import PainelEvento from "@/components/fotosEventos/PainelEvento";
+import MiniaturasFaltando from "@/components/fotosEventos/MiniaturasFaltando";
 import CapaEvento from "@/components/fotosEventos/CapaEvento";
 import Moderacao from "@/components/fotosEventos/Moderacao";
 
@@ -89,7 +90,7 @@ export default function FotosEventos() {
             {gerir && <TabsTrigger value="upload">Enviar fotos</TabsTrigger>}
             <TabsTrigger value="moderacao">Moderação</TabsTrigger>
           </TabsList>
-          {gerir && <TabsContent value="painel" className="space-y-6"><PainelEvento evento={sel} /><CapaEvento evento={sel} /></TabsContent>}
+          {gerir && <TabsContent value="painel" className="space-y-6"><PainelEvento evento={sel} /><MiniaturasFaltando eventoId={sel.id} /><CapaEvento evento={sel} /></TabsContent>}
           {gerir && <TabsContent value="upload"><UploadLote eventoId={sel.id} /></TabsContent>}
           <TabsContent value="moderacao"><Moderacao eventoId={sel.id} podeGerir={gerir} /></TabsContent>
         </Tabs>

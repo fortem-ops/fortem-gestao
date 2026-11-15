@@ -1940,6 +1940,13 @@
       "when": 1794495722530,
       "tag": "0276_corrida_plano_adicional_agendamento",
       "breakpoints": true
+    },
+    {
+      "idx": 277,
+      "version": "7",
+      "when": 1794750426320,
+      "tag": "0277_fotos_evento_miniatura",
+      "breakpoints": true
     }
   ]
 }

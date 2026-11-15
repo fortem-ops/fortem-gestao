@@ -39,7 +39,8 @@
 .fotos-evento .fe-seletor button { padding: 10px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--fe-cinza); }
 .fotos-evento .fe-seletor button.ativo { background: var(--fe-branco); color: var(--fe-preto); }
 .fotos-evento .fe-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.fotos-evento .fe-grade button { aspect-ratio: 1; background: var(--fe-cartao); overflow: hidden; }
+.fotos-evento .fe-grade button { aspect-ratio: 1; background: #1a1a1a; overflow: hidden; }
+.fotos-evento .fe-grade-fim { height: 1px; }
 .fotos-evento .fe-grade img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .fotos-evento .fe-pb { filter: grayscale(1); }
 .fotos-evento .fe-barra { height: 4px; background: var(--fe-linha); width: 100%; }

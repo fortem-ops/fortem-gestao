@@ -1,0 +1,2 @@
+ALTER TABLE public.fotos_evento ADD COLUMN IF NOT EXISTS storage_path_miniatura text;
+COMMENT ON COLUMN public.fotos_evento.storage_path_miniatura IS 'Miniatura (~400px, WebP ou JPEG) usada nas grades; sem ela, a grade usa a prévia.';

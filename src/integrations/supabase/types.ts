@@ -5508,6 +5508,7 @@ export type Database = {
           status_indexacao: string
           status_moderacao: string
           storage_path: string
+          storage_path_miniatura: string | null
           storage_path_preview: string | null
           upload_concluido: boolean
         }
@@ -5530,6 +5531,7 @@ export type Database = {
           status_indexacao?: string
           status_moderacao?: string
           storage_path: string
+          storage_path_miniatura?: string | null
           storage_path_preview?: string | null
           upload_concluido?: boolean
         }
@@ -5552,6 +5554,7 @@ export type Database = {
           status_indexacao?: string
           status_moderacao?: string
           storage_path?: string
+          storage_path_miniatura?: string | null
           storage_path_preview?: string | null
           upload_concluido?: boolean
         }

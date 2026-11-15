@@ -2,6 +2,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 export const BUCKET = "fotos-eventos";
+/** Links assinados valem 24h: o navegador reaproveita o mesmo link (e o cache) durante a sessão. */
+export const URL_VALIDADE_S = 24 * 3600;
+/** Extensão da miniatura informada pelo navegador (WebP ou, sem suporte, JPEG). */
+export const extMiniatura = (v: unknown): "webp" | "jpg" => (v === "webp" ? "webp" : "jpg");
+/** Todos os arquivos de uma foto (original, prévia e miniatura), para apagar juntos. */
+export const arquivosDaFoto = (f: { storage_path: string; storage_path_preview?: string | null; storage_path_miniatura?: string | null }) =>
+  [f.storage_path, f.storage_path_preview, f.storage_path_miniatura].filter((x): x is string => !!x);
 
 export async function ipHash(req: Request): Promise<string> {
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || req.headers.get("cf-connecting-ip") || "sem-ip";

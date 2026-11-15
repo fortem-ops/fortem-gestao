@@ -188,5 +188,15 @@ export function escalaSegura(w: number, h: number, limite = 16_000_000): number 
   return w * h > limite ? Math.sqrt(limite / (w * h)) : 1;
 }
 
+/** Lado máximo da foto usada no Stories (1080×1920 não precisa de mais). */
+export const LADO_FONTE_STORIES = 2048;
+
+/** Escala da foto antes da moldura: Stories reduz para 2048px no maior lado; FOTO usa o original (só o limite do iPhone). */
+export function escalaMoldura(formato: Formato, w: number, h: number): number {
+  const seguro = escalaSegura(w, h * 1.07);
+  if (formato !== "stories") return seguro;
+  return Math.min(seguro, Math.min(1, LADO_FONTE_STORIES / Math.max(w, h)));
+}
+
 export const nomeArquivo = (n: number, formato: Formato, cor: Cor) =>
   `fortem-10anos-${String(n).padStart(2, "0")}-${formato}-${cor === "pb" ? "pb" : "colorida"}.jpg`;

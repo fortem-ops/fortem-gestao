@@ -10,6 +10,7 @@ export default function CapaEvento({ evento }: { evento: EventoFotos }) {
   const qc = useQueryClient();
   const { data: previas = {} } = useQuery({
     queryKey: ["fotos-evento", evento.id, "capa-opcoes"],
+    staleTime: 20 * 3600_000,
     queryFn: async () => {
       const { data, error } = await supabase.from("fotos_evento").select("id").eq("evento_id", evento.id)
         .eq("status_moderacao", "aprovada").eq("upload_concluido", true).order("criado_em").limit(60);
@@ -17,7 +18,8 @@ export default function CapaEvento({ evento }: { evento: EventoFotos }) {
       const ids = (data ?? []).map((f) => f.id);
       if (evento.capa_foto_id && !ids.includes(evento.capa_foto_id)) ids.unshift(evento.capa_foto_id);
       if (!ids.length) return {};
-      return (await fotosAdmin<{ previas: Record<string, string | null> }>("previas", { foto_ids: ids })).previas;
+      const r = await fotosAdmin<{ previas: Record<string, string | null>; miniaturas?: Record<string, string | null> }>("previas", { foto_ids: ids });
+      return r.miniaturas ?? r.previas;
     },
   });
   async function definir(fotoId: string | null) {
