@@ -5,8 +5,10 @@ export const MIN_CONFIANCA_MODERACAO = 70;
 export const MAX_FOTOS_ENVIO = 30;
 export const MAX_BYTES_ARQUIVO = 15 * 1024 * 1024;
 export const MAX_BYTES_REKOGNITION = 5 * 1024 * 1024;
-export const LIMITE_BUSCAS_HORA = 10;
-export const LIMITE_ENVIOS_HORA = 3;
+export const LIMITE_BUSCAS_HORA = 60; // por IP
+export const LIMITE_BUSCAS_WHATSAPP_HORA = 10;
+export const LIMITE_ENVIOS_HORA = 30; // por IP; envio só conta se concluído (pendente libera em 15 min)
+export const LIMITE_ENVIOS_WHATSAPP_HORA = 10;
 export const LOTE_INDEXACAO = 5;
 export const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/heic", "image/heif"] as const;
 

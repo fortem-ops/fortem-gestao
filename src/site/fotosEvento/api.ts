@@ -14,7 +14,7 @@ export async function chamar<T>(funcao: "fotos-evento-publico" | "fotos-evento-e
   if (error) {
     let codigo = "erro_interno";
     const ctx = (error as { context?: Response }).context;
-    if (ctx && typeof ctx.json === "function") { const j = await ctx.json().catch(() => null); if (j?.error) codigo = j.error; }
+    if (ctx && typeof ctx.json === "function") { const j = await ctx.json().catch(() => null); if (j?.error) codigo = j.error; if (typeof j?.minutos === "number") codigo += `:${j.minutos}`; }
     throw new Error(codigo);
   }
   return data as T;

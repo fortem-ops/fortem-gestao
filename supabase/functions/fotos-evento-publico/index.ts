@@ -1,12 +1,12 @@
 // Fotos de eventos — página pública: dados do evento, busca por selfie e galeria.
 // A selfie fica só na memória desta requisição: nunca vai para storage, banco ou log.
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { BUCKET, URL_VALIDADE_S, ipHash } from "../_shared/fotos-evento-srv.ts";
+import { BUCKET, URL_VALIDADE_S, ipHash, whatsHash } from "../_shared/fotos-evento-srv.ts";
 import { rekognition, ErroAws, base64 } from "../_shared/rekognition.ts";
 import { avaliarTurnstile } from "../_shared/planos-turnstile.ts";
 import {
   colecaoValida, decodificarSelfie, fotosDosMatches, normalizarWhatsapp, LIMIAR_BUSCA, MAX_ROSTOS_BUSCA,
-  LIMITE_BUSCAS_HORA, type FaceMatch,
+  LIMITE_BUSCAS_HORA, LIMITE_BUSCAS_WHATSAPP_HORA, type FaceMatch,
 } from "../_shared/fotos-evento.ts";
 
 type Sb = ReturnType<typeof admin>;
@@ -77,8 +77,9 @@ Deno.serve(async (req) => {
       const { data: cfg } = await sb.from("sistema_config").select("valor").eq("chave", "planos_turnstile_ativo").maybeSingle();
       const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
       if (await avaliarTurnstile(cfg?.valor, Deno.env.get("TURNSTILE_SECRET_KEY"), body.turnstile, ip) === "recusado") return jsonResponse({ error: "verificacao_necessaria" }, 403);
-      const { data: liberado } = await sb.rpc("fn_fotos_rate_limit", { p_ip_hash: await ipHash(req), p_acao: "busca", p_limite: LIMITE_BUSCAS_HORA });
-      if (liberado !== true) return jsonResponse({ error: "limite_buscas" }, 429);
+      const { data: lim } = await sb.rpc("fn_fotos_limite", { p_chaves: [await ipHash(req), await whatsHash(whatsapp)], p_limites: [LIMITE_BUSCAS_HORA, LIMITE_BUSCAS_WHATSAPP_HORA], p_acao: "busca" });
+      const rl = lim as { ok?: boolean; minutos?: number } | null;
+      if (rl?.ok !== true) return jsonResponse({ error: "limite_buscas", minutos: rl?.minutos ?? null }, 429);
       const { data: leadId } = await sb.rpc("fn_fotos_lead_registrar", { p_evento: ev.id, p_nome: nome, p_whatsapp: whatsapp, p_email: email, p_biometria: true, p_publicacao: false });
 
       let ids: string[] = [];

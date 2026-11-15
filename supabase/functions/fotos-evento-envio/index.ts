@@ -1,10 +1,10 @@
 // Fotos de eventos — envio de fotos por convidados (até 30), com moderação assistida (só sinaliza).
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
-import { BUCKET, arquivosDaFoto, extMiniatura, ipHash } from "../_shared/fotos-evento-srv.ts";
+import { BUCKET, arquivosDaFoto, extMiniatura, ipHash, whatsHash } from "../_shared/fotos-evento-srv.ts";
 import { rekognition, base64 } from "../_shared/rekognition.ts";
 import { avaliarTurnstile } from "../_shared/planos-turnstile.ts";
 import {
-  alertaModeracao, arquivoValido, normalizarWhatsapp, orientacao, LIMITE_ENVIOS_HORA, MAX_BYTES_ARQUIVO,
+  alertaModeracao, arquivoValido, normalizarWhatsapp, orientacao, LIMITE_ENVIOS_HORA, LIMITE_ENVIOS_WHATSAPP_HORA, MAX_BYTES_ARQUIVO,
   MAX_BYTES_REKOGNITION, MAX_FOTOS_ENVIO, MIN_CONFIANCA_MODERACAO, TIPOS_ACEITOS, type RotuloModeracao,
 } from "../_shared/fotos-evento.ts";
 
@@ -34,11 +34,12 @@ Deno.serve(async (req) => {
       const { data: cfg } = await sb.from("sistema_config").select("valor").eq("chave", "planos_turnstile_ativo").maybeSingle();
       const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
       if (await avaliarTurnstile(cfg?.valor, Deno.env.get("TURNSTILE_SECRET_KEY"), body.turnstile, ip) === "recusado") return jsonResponse({ error: "verificacao_necessaria" }, 403);
-      const { data: liberado } = await sb.rpc("fn_fotos_rate_limit", { p_ip_hash: await ipHash(req), p_acao: "envio", p_limite: LIMITE_ENVIOS_HORA });
-      if (liberado !== true) return jsonResponse({ error: "limite_envios" }, 429);
+      const envioId = crypto.randomUUID();
+      const { data: lim } = await sb.rpc("fn_fotos_limite", { p_chaves: [await ipHash(req), await whatsHash(whatsapp)], p_limites: [LIMITE_ENVIOS_HORA, LIMITE_ENVIOS_WHATSAPP_HORA], p_acao: "envio", p_ref: envioId });
+      const r = lim as { ok?: boolean; minutos?: number } | null;
+      if (r?.ok !== true) return jsonResponse({ error: "limite_envios", minutos: r?.minutos ?? null }, 429);
       const { data: leadId, error: le } = await sb.rpc("fn_fotos_lead_registrar", { p_evento: ev.id, p_nome: nome, p_whatsapp: whatsapp, p_email: "", p_biometria: false, p_publicacao: true });
       if (le || !leadId) throw new Error("lead");
-      const envioId = crypto.randomUUID();
       const saida = [];
       for (const a of arquivos) {
         const id = crypto.randomUUID();
@@ -86,6 +87,7 @@ Deno.serve(async (req) => {
         await sb.from("fotos_evento").update({ upload_concluido: true, alerta_moderacao: alerta.alerta, rotulos_moderacao: alerta.rotulos }).eq("id", f.id);
         recebidas++;
       }
+      if (recebidas) await sb.rpc("fn_fotos_limite_concluir", { p_ref: body.envio_id });
       if (leadId && recebidas) await sb.rpc("fn_fotos_lead_contar", { p_lead: leadId, p_buscas: 0, p_encontradas: 0, p_enviadas: recebidas });
       return jsonResponse({ recebidas });
     }

@@ -28,8 +28,10 @@ describe("página pública de fotos", () => {
     expect(textoEncontradas(12)).toBe("ENCONTRAMOS 12 FOTOS SUAS");
   });
   it("mensagens de limite sem exclamação", () => {
-    expect(mensagemErro("limite_buscas")).toContain("muitas buscas");
-    expect(mensagemErro("limite_envios")).toContain("muitos envios");
+    expect(mensagemErro("limite_envios")).toBe("Muitos envios a partir desta conexão agora. Aguarde alguns minutos e tente de novo.");
+    expect(mensagemErro("limite_envios:12")).toBe("Muitos envios a partir desta conexão agora. Aguarde 12 minutos e tente de novo.");
+    expect(mensagemErro("limite_envios:1")).toContain("Aguarde 1 minuto e");
+    expect(mensagemErro("limite_buscas:5")).toBe("Muitas buscas a partir desta conexão agora. Aguarde 5 minutos e tente de novo.");
     for (const c of ["limite_buscas", "x"]) expect(mensagemErro(c)).not.toContain("!");
   });
   it("paginação e tamanho da selfie", () => {

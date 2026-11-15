@@ -31,3 +31,8 @@ export async function papelEquipe(req: Request): Promise<Papel | null> {
   ]);
   return { userId, gerir: gerir === true, moderar: moderar === true };
 }
+
+export async function whatsHash(whatsapp: string): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("fortem-fotos-w:" + whatsapp));
+  return "w:" + [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}

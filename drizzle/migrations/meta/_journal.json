@@ -1947,6 +1947,13 @@
       "when": 1794750426320,
       "tag": "0277_fotos_evento_miniatura",
       "breakpoints": true
+    },
+    {
+      "idx": 278,
+      "version": "7",
+      "when": 1794752482749,
+      "tag": "0278_migration",
+      "breakpoints": true
     }
   ]
 }

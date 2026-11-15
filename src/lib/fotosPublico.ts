@@ -43,10 +43,15 @@ export function textoEncontradas(n: number): string { return n === 1 ? "ENCONTRA
 export function textoRecebidas(n: number): string { return n === 1 ? "RECEBEMOS SUA FOTO" : `RECEBEMOS SUAS ${n} FOTOS`; }
 
 /** Mensagens claras para os códigos devolvidos pelo servidor. */
-export function mensagemErro(codigo: string): string {
+export function mensagemErro(codigoBruto: string): string {
+  const [codigo, min] = codigoBruto.split(":");
+  const minutos = Number(min);
+  if (codigo === "limite_envios" || codigo === "limite_buscas") {
+    const base = codigo === "limite_envios" ? "Muitos envios a partir desta conexão agora." : "Muitas buscas a partir desta conexão agora.";
+    const espera = minutos > 0 ? ` Aguarde ${minutos === 1 ? "1 minuto" : `${minutos} minutos`} e tente de novo.` : " Aguarde alguns minutos e tente de novo.";
+    return base + espera;
+  }
   const m: Record<string, string> = {
-    limite_buscas: "Você fez muitas buscas na última hora. Tente de novo mais tarde.",
-    limite_envios: "Você fez muitos envios na última hora. Tente de novo mais tarde.",
     verificacao_necessaria: "Confirme a verificação de segurança e tente de novo.",
     rosto_nao_detectado: "Não conseguimos ver um rosto na selfie. Tente de frente e num lugar claro.",
     selfie_invalida: "A selfie não pôde ser lida. Tente outra.",

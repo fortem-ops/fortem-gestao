@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   alertaModeracao, arquivoValido, colecaoDoSlug, colecaoValida, decodificarSelfie, fotoPublica, fotosDosMatches,
   normalizarWhatsapp, orientacao, resultadoIndexacao, retencaoVencida, MAX_BYTES_ARQUIVO, MAX_FOTOS_ENVIO,
-  LIMITE_BUSCAS_HORA, LIMITE_ENVIOS_HORA, LIMIAR_BUSCA, MAX_ROSTOS_BUSCA, MIN_CONFIANCA_MODERACAO,
+  LIMITE_BUSCAS_HORA, LIMITE_BUSCAS_WHATSAPP_HORA, LIMITE_ENVIOS_HORA, LIMITE_ENVIOS_WHATSAPP_HORA, LIMIAR_BUSCA, MAX_ROSTOS_BUSCA, MIN_CONFIANCA_MODERACAO,
 } from "../fotos-evento";
 import { assinar } from "../rekognition";
 
 describe("fotos de eventos — regras do dono", () => {
   it("parâmetros da AWS e limites pedidos", () => {
     expect(LIMIAR_BUSCA).toBe(90); expect(MAX_ROSTOS_BUSCA).toBe(100); expect(MIN_CONFIANCA_MODERACAO).toBe(70);
-    expect(MAX_FOTOS_ENVIO).toBe(30); expect(LIMITE_BUSCAS_HORA).toBe(10); expect(LIMITE_ENVIOS_HORA).toBe(3);
+    expect(MAX_FOTOS_ENVIO).toBe(30); expect(LIMITE_BUSCAS_HORA).toBe(60); expect(LIMITE_BUSCAS_WHATSAPP_HORA).toBe(10); expect(LIMITE_ENVIOS_HORA).toBe(30); expect(LIMITE_ENVIOS_WHATSAPP_HORA).toBe(10);
     expect(MAX_BYTES_ARQUIVO).toBe(15 * 1024 * 1024);
   });
   it("coleção sempre com prefixo fortem-", () => {

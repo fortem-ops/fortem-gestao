@@ -10830,21 +10830,27 @@ export type Database = {
       rate_limit_fotos_publico: {
         Row: {
           acao: string
+          concluido: boolean
           criado_em: string
           id: number
           ip_hash: string
+          ref: string | null
         }
         Insert: {
           acao: string
+          concluido?: boolean
           criado_em?: string
           id?: number
           ip_hash: string
+          ref?: string | null
         }
         Update: {
           acao?: string
+          concluido?: boolean
           criado_em?: string
           id?: number
           ip_hash?: string
+          ref?: string | null
         }
         Relationships: []
       }
@@ -14510,6 +14516,16 @@ export type Database = {
         }
         Returns: string
       }
+      fn_fotos_limite: {
+        Args: {
+          p_acao: string
+          p_chaves: string[]
+          p_limites: number[]
+          p_ref?: string
+        }
+        Returns: Json
+      }
+      fn_fotos_limite_concluir: { Args: { p_ref: string }; Returns: undefined }
       fn_fotos_pode_gerir: { Args: { _uid?: string }; Returns: boolean }
       fn_fotos_pode_moderar: { Args: { _uid?: string }; Returns: boolean }
       fn_fotos_rate_limit: {
