@@ -3,7 +3,7 @@ export const JANELA_HUMANO_MS = 2 * 60 * 60 * 1000;
 
 /** Venda desistida, expirada ou estornada: o link não vale mais. */
 export function vendaEncerrada(status: string | null | undefined): boolean {
-  return ["cancelado", "estornado", "falha"].includes(String(status ?? ""));
+  return ["cancelado", "estornado"].includes(String(status ?? ""));
 }
 
 /** Com o Turnstile ligado, a cobrança exige verificação aprovada no link nas últimas 2 horas. */

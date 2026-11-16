@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
 import { avaliarTurnstile } from "../_shared/planos-turnstile.ts";
+import { vendaEncerrada } from "../_shared/semestral-link.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
     if (!venda) return json(200, { ok: false, estado: "invalido" });
     if (venda.status_pagamento === "pago") return json(200, { ok: false, estado: "ja_pago" });
     // venda desistida/expirada/estornada: o link deixa de valer
-    if (["cancelado", "estornado", "falha"].includes(String(venda.status_pagamento))) {
+    if (vendaEncerrada(venda.status_pagamento)) {
       return json(200, { ok: false, estado: "expirado" });
     }
 
