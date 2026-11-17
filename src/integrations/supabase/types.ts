@@ -14744,6 +14744,7 @@ export type Database = {
         Args: { p_codigo: string; p_subtotal: number }
         Returns: Json
       }
+      fn_loja_venda_balcao: { Args: { p_payload: Json }; Returns: Json }
       fn_loja_vincular_aluno: { Args: { p_pedido_id: string }; Returns: string }
       fn_lookup_aluno_por_cpf_hash: {
         Args: { p_cpf_hash: string }

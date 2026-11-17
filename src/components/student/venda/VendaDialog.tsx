@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VendaProdutos } from "./VendaProdutos";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -138,7 +139,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [modo2027, setModo2027] = useState(false);
   useEffect(() => { if (!open) setModo2027(false); }, [open]);
 
-  const [tab, setTab] = useState<"planos" | "servicos">("planos");
+  const [tab, setTab] = useState<"planos" | "servicos" | "produtos">("planos");
   // Nova Venda R1: opção escolhida na aba Planos (Start/Power/Pro/Consultoria = 2027; demais = fluxo legado).
   const [opcaoPlano, setOpcaoPlano] = useState("");
   useEffect(() => { if (!open) setOpcaoPlano(""); }, [open]);
@@ -725,9 +726,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         )}
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className={cn(!NOVA_VENDA_R1 && podeVender2027 && modo2027 && "hidden")}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="planos">Planos</TabsTrigger>
             <TabsTrigger value="servicos">Serviços</TabsTrigger>
+            <TabsTrigger value="produtos">Produtos</TabsTrigger>
           </TabsList>
 
           {/* ============= PLANOS ============= */}
@@ -1166,6 +1168,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           </TabsContent>
 
           {/* ============= SERVIÇOS ============= */}
+          <TabsContent value="produtos" className="mt-6">
+            {tab === "produtos" && <VendaProdutos alunoId={alunoId} onDone={() => onOpenChange(false)} />}
+          </TabsContent>
+
           <TabsContent value="servicos" className="mt-6">
             <StepIndicator steps={["Serviço", "Resumo"]} current={sStep} />
 

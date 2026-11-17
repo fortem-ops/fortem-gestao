@@ -252,3 +252,4 @@ Decisões: admin define máximo, cliente escolhe 1x..máximo (opção fixas trav
 - [ ] Promoções 10 anos Fase 1: plano atualizado aguardando aprovação.
 - [x] Corrida: plano adicional de Corrida libera agendamento (fn_tem_plano_corrida usada no servidor e no portal)
 - [x] Cartão das compras do /planos em Meios de Pagamento
+- [x] Nova Venda > aba Produtos (Loja, desconto/cupom, registrar/Pix/cartão salvo, baixa de estoque)
