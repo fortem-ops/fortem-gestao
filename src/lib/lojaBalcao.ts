@@ -13,3 +13,11 @@ export function situacaoItem(disponivel: number, quantidade: number, permiteEnco
   if (disponivel >= quantidade) return "disponivel";
   return permiteEncomenda ? "encomenda" : "bloqueado";
 }
+
+const normalizar = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+export function filtrarProdutos<T extends { nome: string; detalhe: string }>(itens: T[], busca: string): T[] {
+  const q = normalizar(busca);
+  if (!q) return itens;
+  return itens.filter((i) => normalizar(`${i.nome} ${i.detalhe}`).includes(q));
+}

@@ -2,11 +2,11 @@ import { useMemo, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { Minus, Plus, Package, Trash2, Copy } from "lucide-react";
+import { Minus, Plus, Package, Trash2, Copy, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProdutosLoja } from "@/hooks/useProdutosLoja";
 import { useFormasPagamento } from "./PaymentFields";
-import { calcularDesconto, situacaoItem, type TipoDesconto } from "@/lib/lojaBalcao";
+import { calcularDesconto, filtrarProdutos, situacaoItem, type TipoDesconto } from "@/lib/lojaBalcao";
 import { formatBRL } from "@/lib/vendas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ export function VendaProdutos({ alunoId, onDone }: { alunoId: string; onDone: ()
   const qc = useQueryClient();
   const { data: produtos = [], isLoading } = useProdutosLoja();
   const { data: formas = [] } = useFormasPagamento();
+  const [busca, setBusca] = useState("");
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
   const [tipoDesc, setTipoDesc] = useState<TipoDesconto>("valor");
   const [descValor, setDescValor] = useState("");
@@ -149,9 +150,16 @@ export function VendaProdutos({ alunoId, onDone }: { alunoId: string; onDone: ()
   return (
     <div className="space-y-5 min-w-0 w-full overflow-x-hidden">
       {!travado && (
+        <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto" aria-label="Buscar produto" className="pl-9 pr-9" />
+          {busca && <button type="button" onClick={() => setBusca("")} aria-label="Limpar busca" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
+        </div>
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
           {opcoes.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhum produto ativo na Loja.</p>}
-          {opcoes.map((o) => {
+          {opcoes.length > 0 && filtrarProdutos(opcoes, busca).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nenhum produto encontrado.</p>}
+          {filtrarProdutos(opcoes, busca).map((o) => {
             const sit = situacaoItem(o.disponivel, 1, o.permite);
             return (
               <div key={o.varianteId} className="flex items-center gap-3 rounded-lg border border-border p-2">
@@ -165,6 +173,7 @@ export function VendaProdutos({ alunoId, onDone }: { alunoId: string; onDone: ()
               </div>
             );
           })}
+        </div>
         </div>
       )}
 
