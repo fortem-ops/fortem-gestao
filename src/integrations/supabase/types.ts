@@ -13648,6 +13648,10 @@ export type Database = {
         Args: { p_motivo: string; p_status: string; p_tentativa_id: string }
         Returns: Json
       }
+      fn_checkout_2027_cartao_salvar: {
+        Args: { p_proposta_id: string }
+        Returns: string
+      }
       fn_checkout_2027_cartao_simulado: {
         Args: { p_proposta_id: string }
         Returns: boolean

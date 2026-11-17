@@ -1961,6 +1961,13 @@
       "when": 1794916102138,
       "tag": "0279_harden_ponto_definer_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 280,
+      "version": "7",
+      "when": 1794916520349,
+      "tag": "0280_planos_site_cartao_meios_pagamento",
+      "breakpoints": true
     }
   ]
 }

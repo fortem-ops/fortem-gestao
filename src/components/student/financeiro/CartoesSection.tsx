@@ -35,7 +35,7 @@ type Cartao = {
   expiration_year: number | null;
   ativo: boolean;
   is_default: boolean;
-  origem: "portal_aluno" | "link_cadastro" | "recepcao";
+  origem: "portal_aluno" | "link_cadastro" | "recepcao" | "planos_site";
   created_at: string;
 };
 
@@ -93,6 +93,8 @@ function OrigemBadge({ origem }: { origem: Cartao["origem"] }) {
     return <Badge className="bg-green-600 hover:bg-green-600 gap-1 text-xs"><Smartphone className="h-3 w-3" />App do Aluno</Badge>;
   if (origem === "link_cadastro")
     return <Badge className="bg-blue-600 hover:bg-blue-600 gap-1 text-xs"><Link2 className="h-3 w-3" />Link de Cadastro</Badge>;
+  if (origem === "planos_site")
+    return <Badge variant="secondary" className="gap-1 text-xs"><Link2 className="h-3 w-3" />Site de planos</Badge>;
   return <Badge className="bg-orange-600 hover:bg-orange-600 gap-1 text-xs"><Building2 className="h-3 w-3" />Recepção</Badge>;
 }
 
