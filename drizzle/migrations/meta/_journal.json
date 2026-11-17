@@ -1954,6 +1954,13 @@
       "when": 1794752482749,
       "tag": "0278_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 279,
+      "version": "7",
+      "when": 1794916102138,
+      "tag": "0279_harden_ponto_definer_functions",
+      "breakpoints": true
     }
   ]
 }
