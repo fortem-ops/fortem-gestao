@@ -52,17 +52,18 @@ export function PedidosLojaRows({ pedidos, colunasExtras }: { pedidos: Linha[]; 
           <TableCell>{formatBRL(Number(p.valor_final ?? 0))}</TableCell>
           <TableCell>{p.forma_pagamento ? labelFormaPagamento(p.forma_pagamento) : "A definir"}</TableCell>
           <TableCell>—</TableCell>
-          <TableCell><Badge variant="outline" className={cor[p.status] ?? ""}>{statusPedidoLabel(p.status)}</Badge></TableCell>
-          <TableCell>—</TableCell>
-          {colunasExtras && (
-            <TableCell>
-              {podeDarBaixaPedido(p.status) && (
-                <Button size="sm" variant="outline" onClick={() => setBaixa({ id: p.id, nome: null, valor_final: Number(p.valor_final), resumo: resumo(p) })}>
+          <TableCell>
+            <div className="flex flex-col items-start gap-1.5">
+              <Badge variant="outline" className={cor[p.status] ?? ""}>{statusPedidoLabel(p.status)}</Badge>
+              {colunasExtras && podeDarBaixaPedido(p.status) && (
+                <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setBaixa({ id: p.id, nome: null, valor_final: Number(p.valor_final), resumo: resumo(p) })}>
                   Dar baixa
                 </Button>
               )}
-            </TableCell>
-          )}
+            </div>
+          </TableCell>
+          <TableCell>—</TableCell>
+          {colunasExtras && <TableCell />}
         </TableRow>
       ))}
       <DarBaixaPedidoDialog pedido={baixa} onOpenChange={(o) => !o && setBaixa(null)} />
