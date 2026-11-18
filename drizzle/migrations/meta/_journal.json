@@ -1982,6 +1982,13 @@
       "when": 1794917296419,
       "tag": "0282_pagamentos_rede_pedido_unico",
       "breakpoints": true
+    },
+    {
+      "idx": 283,
+      "version": "7",
+      "when": 1795003091546,
+      "tag": "0283_loja_balcao_pendente_sem_forma",
+      "breakpoints": true
     }
   ]
 }

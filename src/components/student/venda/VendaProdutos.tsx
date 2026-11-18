@@ -80,7 +80,7 @@ export function VendaProdutos({ alunoId, onDone }: { alunoId: string; onDone: ()
   }
 
   async function concluir() {
-    if (modo === "registrar" && !forma) { toast.error("Escolha a forma de pagamento."); return; }
+    if (modo === "registrar" && pago && !forma) { toast.error("Escolha a forma de pagamento."); return; }
     if (modo === "cartao" && !cartaoId) { toast.error("O aluno não tem cartão salvo."); return; }
     setSalvando(true);
     try {
@@ -90,7 +90,7 @@ export function VendaProdutos({ alunoId, onDone }: { alunoId: string; onDone: ()
           aluno_id: alunoId, idempotency_key: `balcao:${chave}`,
           itens: carrinho.map((i) => ({ variante_id: i.varianteId, quantidade: i.quantidade })),
           cupom_codigo: cupom.trim() || null, desconto_tipo: tipoDesc, desconto_valor: Number(descValor.replace(",", ".")) || 0,
-          forma_pagamento: modo === "registrar" ? forma : modo === "pix" ? "pix" : "cartao_credito",
+          forma_pagamento: modo === "registrar" ? (pago ? forma : null) : modo === "pix" ? "pix" : "cartao_credito",
           pago: modo === "registrar" && pago,
         } });
         if (error) throw error;
@@ -230,14 +230,16 @@ export function VendaProdutos({ alunoId, onDone }: { alunoId: string; onDone: ()
           </RadioGroup>
           {modo === "registrar" && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Select value={forma} onValueChange={setForma}>
-                <SelectTrigger><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
-                <SelectContent>{formas.map((f) => <SelectItem key={f.id} value={f.slug}>{f.nome}</SelectItem>)}</SelectContent>
-              </Select>
               <Select value={pago ? "pago" : "pendente"} onValueChange={(v) => setPago(v === "pago")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="pago">Já recebido</SelectItem><SelectItem value="pendente">Pendente</SelectItem></SelectContent>
               </Select>
+              {pago ? (
+                <Select value={forma} onValueChange={setForma}>
+                  <SelectTrigger><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
+                  <SelectContent>{formas.map((f) => <SelectItem key={f.id} value={f.slug}>{f.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              ) : <p className="text-xs text-muted-foreground self-center">A forma é escolhida ao dar baixa, no Histórico de Vendas.</p>}
             </div>
           )}
           {modo === "cartao" && (cartoes.length === 0

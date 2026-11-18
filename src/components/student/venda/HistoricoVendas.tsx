@@ -22,6 +22,7 @@ import { semItensAgregadora } from "@/lib/semestral";
 import { GerarLinkPagamento } from "@/components/pagamentos/GerarLinkPagamento";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
 import { DevolverPixVenda } from "./DevolverPixVenda";
+import { PedidosLojaRows, usePedidosLojaAluno } from "./PedidosLojaRows";
 
 
 type Props = { alunoId: string };
@@ -37,6 +38,7 @@ const statusColor: Record<string, string> = {
 export function HistoricoVendas({ alunoId }: Props) {
   const qc = useQueryClient();
   const { data: formas = [] } = useFormasPagamento();
+  const { data: pedidosLoja = [] } = usePedidosLojaAluno(alunoId);
 
   const { data: vendas = [], isLoading } = useQuery({
     queryKey: ["vendas-aluno", alunoId],
@@ -435,7 +437,8 @@ export function HistoricoVendas({ alunoId }: Props) {
                   </TableRow>
                 );
               })}
-              {vendas.length === 0 && (
+              <PedidosLojaRows pedidos={pedidosLoja} colunasExtras={!!isCoordAdmin} />
+              {vendas.length === 0 && pedidosLoja.length === 0 && (
                 <TableRow><TableCell colSpan={isCoordAdmin ? 9 : 8} className="text-center text-muted-foreground py-6">Nenhuma venda registrada</TableCell></TableRow>
               )}
             </TableBody>
