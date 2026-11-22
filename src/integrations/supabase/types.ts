@@ -13878,6 +13878,14 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_clube_ajuste_manual_pontos: {
+        Args: {
+          p_aluno_id: string
+          p_motivo_manual: string
+          p_pontos_manual: number
+        }
+        Returns: Json
+      }
       fn_clube_avaliar_conquistas: {
         Args: { p_aluno_id: string }
         Returns: undefined

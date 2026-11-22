@@ -571,9 +571,8 @@ function RankingTab() {
   const ajustar = useMutation({
     mutationFn: async () => {
       if (!ajuste || !motivo.trim()) throw new Error("Motivo obrigatório");
-      const { data, error } = await supabase.rpc("fn_clube_adicionar_pontos", {
+      const { data, error } = await supabase.rpc("fn_clube_ajuste_manual_pontos", {
         p_aluno_id: ajuste.aluno_id,
-        p_acao: "ajuste_manual",
         p_motivo_manual: motivo,
         p_pontos_manual: pontos,
       });

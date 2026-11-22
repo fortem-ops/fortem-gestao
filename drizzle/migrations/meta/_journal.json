@@ -1989,6 +1989,13 @@
       "when": 1795003091546,
       "tag": "0283_loja_balcao_pendente_sem_forma",
       "breakpoints": true
+    },
+    {
+      "idx": 284,
+      "version": "7",
+      "when": 1795379924152,
+      "tag": "0284_seguranca_anon_views_funcoes",
+      "breakpoints": true
     }
   ]
 }
