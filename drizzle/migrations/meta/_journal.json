@@ -2017,6 +2017,13 @@
       "when": 1795434025452,
       "tag": "0287_b_audit_log_novas_operacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 288,
+      "version": "7",
+      "when": 1795461504181,
+      "tag": "0288_equipe_push_fase1",
+      "breakpoints": true
     }
   ]
 }

@@ -4310,6 +4310,87 @@ export type Database = {
           },
         ]
       }
+      equipe_push_log: {
+        Row: {
+          corpo: string
+          criado_em: string
+          enviado_em: string | null
+          enviar_apos: string
+          erro: string | null
+          gatilho: string
+          id: string
+          referencia: string
+          status: string
+          sucesso: boolean
+          titulo: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          corpo?: string
+          criado_em?: string
+          enviado_em?: string | null
+          enviar_apos?: string
+          erro?: string | null
+          gatilho: string
+          id?: string
+          referencia: string
+          status?: string
+          sucesso?: boolean
+          titulo: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          corpo?: string
+          criado_em?: string
+          enviado_em?: string | null
+          enviar_apos?: string
+          erro?: string | null
+          gatilho?: string
+          id?: string
+          referencia?: string
+          status?: string
+          sucesso?: boolean
+          titulo?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      equipe_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       estoque_movimentos: {
         Row: {
           created_at: string

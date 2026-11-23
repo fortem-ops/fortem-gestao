@@ -123,7 +123,9 @@ const sistemaCoordAdminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
   { title: "Notificações por Email", url: "/admin/notificacoes-email", icon: Bell },
 ];
-const sistemaAdminItems = [] as { title: string; url: string; icon: any }[];
+const sistemaAdminItems: { title: string; url: string; icon: typeof Bell }[] = [
+  { title: "Push da equipe", url: "/admin/push-equipe", icon: Bell },
+];
 
 const sistemaCoordAdminExtraItems = [
   { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },

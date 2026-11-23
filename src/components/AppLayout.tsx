@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom";
 import { useForcarAppEquipe } from "@/hooks/useForcarAppEquipe";
 import { GlobalCadastroSearch } from "@/components/GlobalCadastroSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AtivarNotificacoes } from "@/components/equipe/AtivarNotificacoes";
 import { NotifChatProvider } from "@/contexts/NotifChatContext";
 import { NotificacaoChatDock } from "@/components/notificar/NotificacaoChatDock";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -40,6 +41,7 @@ export function AppLayout() {
               <div className="flex-1 flex justify-center min-w-0">
                 <GlobalCadastroSearch />
               </div>
+              <AtivarNotificacoes />
               <ThemeToggle />
             </header>
             <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 min-w-0">

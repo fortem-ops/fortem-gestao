@@ -35,6 +35,7 @@ const Admin = lazyWithReload(() => import("./pages/Admin"));
 const Auditoria = lazyWithReload(() => import("./pages/Auditoria"));
 const Loja = lazyWithReload(() => import("./pages/Loja"));
 const AdminNotificacoesEmail = lazyWithReload(() => import("./pages/AdminNotificacoesEmail"));
+const AdminPushEquipe = lazyWithReload(() => import("./pages/AdminPushEquipe"));
 
 const Agenda = lazyWithReload(() => import("./pages/Agenda"));
 const AgendaTreinos = lazyWithReload(() => import("./pages/AgendaTreinos"));
@@ -644,6 +645,14 @@ const App = () => (
                 }
               />
 
+              <Route
+                path="/admin/push-equipe"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AdminPushEquipe />
+                  </Suspense>
+                }
+              />
               <Route
                 path="/admin/notificacoes-email"
                 element={
