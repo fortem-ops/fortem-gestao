@@ -2003,6 +2003,20 @@
       "when": 1795433871375,
       "tag": "0285_a_remover_whatsapp_ponto",
       "breakpoints": true
+    },
+    {
+      "idx": 286,
+      "version": "7",
+      "when": 1795433994436,
+      "tag": "0286_b_aluno_papel_automatico",
+      "breakpoints": true
+    },
+    {
+      "idx": 287,
+      "version": "7",
+      "when": 1795434025452,
+      "tag": "0287_b_audit_log_novas_operacoes",
+      "breakpoints": true
     }
   ]
 }

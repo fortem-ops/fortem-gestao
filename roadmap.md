@@ -5,4 +5,4 @@
 - [ ] 2FA Fase 2 (servidor) — aguardando pedido do dono
 
 - [x] A: remover ponto pelo WhatsApp (manter agenda de amanhã)
-- [ ] B: exclusão segura, Igor, papéis/desvínculo, papel aluno automático, Usuários só equipe
+- [x] B (Igor não excluído: tem vínculos): exclusão segura, Igor, papéis/desvínculo, papel aluno automático, Usuários só equipe

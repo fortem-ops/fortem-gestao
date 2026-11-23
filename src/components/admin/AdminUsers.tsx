@@ -24,6 +24,7 @@ import { Search, Shield, Trash2, Plus, Pencil, UserPlus } from "lucide-react";
 import { Constants } from "@/integrations/supabase/types";
 import { Switch } from "@/components/ui/switch";
 import { FichaFuncionario } from "./FichaFuncionario";
+import { usuarioApareceNaEquipe } from "@/lib/authAccess";
 
 const ROLES = Constants.public.Enums.app_role;
 const ROLE_LABELS: Record<string, string> = {
@@ -283,6 +284,7 @@ export function AdminUsers() {
   const filtered = profiles.filter((p) => {
     const email = emailByUserId.get(p.user_id) || "";
     if (/^teste\..*@fortem\.app$/i.test(email)) return false;
+    if (!usuarioApareceNaEquipe(getRolesForUser(p.user_id).map((r) => r.role))) return false;
     if (!mostrarDesativados && p.ativo === false) return false;
     const q = search.toLowerCase();
     return (

@@ -18,3 +18,9 @@ export async function userHasStaffAccess(userId: string) {
   if (error) throw error;
   return (data?.length ?? 0) > 0;
 }
+
+/** Tela de Usuários: mostra equipe e quem não tem papel; quem é só aluno não aparece. */
+export function usuarioApareceNaEquipe(roles: readonly string[]): boolean {
+  if (roles.length === 0) return true;
+  return roles.some((r) => (STAFF_ROLES as readonly string[]).includes(r));
+}

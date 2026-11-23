@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.23.8";
 import { ehEquipe, validarResetMfa } from "./mfa-regras.ts";
+import { COLUNAS_VINCULO, excluirUsuarioSeguro } from "./excluir-regras.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -336,18 +337,35 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "delete") {
-      if (body.user_id === callerId) return json({ error: "Não é permitido excluir o próprio usuário" }, 400);
-      // Remove dependents that may not cascade from auth.users
-      await admin.from("user_roles").delete().eq("user_id", body.user_id);
-      await admin.from("profiles").delete().eq("user_id", body.user_id);
-      const { error: dErr } = await admin.auth.admin.deleteUser(body.user_id);
-      if (dErr) {
-        const msg = dErr.message || (dErr as any).msg || JSON.stringify(dErr);
-        console.error("deleteUser failed", dErr);
-        return json({
-          error: msg || "Falha ao excluir usuário. Pode haver vínculos (alunos, agendas, tarefas, etc.) referenciando este usuário.",
-        }, 400);
-      }
+      const alvo = body.user_id;
+      const r = await excluirUsuarioSeguro(callerId, alvo, {
+        contarVinculos: async () => {
+          const out = [];
+          for (const [tabela, coluna] of COLUNAS_VINCULO) {
+            const { count, error } = await admin.from(tabela).select("*", { count: "exact", head: true }).eq(coluna, alvo);
+            if (error) throw new Error(`Falha ao checar ${tabela}.${coluna}: ${error.message}`);
+            out.push({ tabela, coluna, total: count ?? 0 });
+          }
+          return out;
+        },
+        deleteUser: async () => {
+          const { error } = await admin.auth.admin.deleteUser(alvo);
+          if (!error) return null;
+          console.error("deleteUser failed", error);
+          return error.message || "Falha ao excluir usuário.";
+        },
+        limparRestos: async () => {
+          await admin.from("user_roles").delete().eq("user_id", alvo);
+          await admin.from("profiles").delete().eq("user_id", alvo);
+        },
+        auditar: async () => {
+          await admin.from("audit_log").insert({
+            tabela: "auth.users", registro_id: alvo, operacao: "USER_DELETE", user_id: callerId,
+            dados_depois: { excluido_por: callerId, alvo, em: new Date().toISOString() },
+          });
+        },
+      });
+      if (!r.ok) return json({ error: r.erro, vinculos: r.vinculos ?? [] }, r.status);
       return json({ ok: true });
     }
 
