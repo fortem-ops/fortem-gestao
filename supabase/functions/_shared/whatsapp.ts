@@ -95,6 +95,24 @@ export async function registrarNoChat(
 
   if (!conversaId) return;
 
+  // O send-whatsapp já grava cada envio (com o código da Meta). Se acabou de gravar,
+  // só troca o texto pelo texto completo do aviso, sem criar mensagem repetida.
+  const desde = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const { data: recente } = await admin
+    .from('whatsapp_mensagens')
+    .select('id')
+    .eq('conversa_id', conversaId)
+    .eq('direcao', 'enviada')
+    .not('wamid', 'is', null)
+    .gte('created_at', desde)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (recente?.id) {
+    await admin.from('whatsapp_mensagens').update({ conteudo: mensagem }).eq('id', recente.id);
+    return;
+  }
+
   await admin.from('whatsapp_mensagens').insert({
     conversa_id: conversaId,
     direcao: 'enviada',

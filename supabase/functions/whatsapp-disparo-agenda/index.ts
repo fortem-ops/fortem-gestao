@@ -1,7 +1,7 @@
 // whatsapp-disparo-agenda — redeploy trigger 2026-07-09 (normalize phone)
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { normalizarTelefone, resolveTemplate } from '../_shared/whatsapp.ts';
+import { normalizarTelefone, resolveTemplate, registrarNoChat } from '../_shared/whatsapp.ts';
 import { buildAgendaContext, buildTemplatePayload } from '../_shared/agenda-template.ts';
 
 const admin = createClient(
@@ -248,48 +248,104 @@ Deno.serve(async (req) => {
         erro_detalhe: send.ok ? null : JSON.stringify({ error: send.error, details: send.details }),
       });
 
-      // Após confirmar send.ok === true, salvar no chat
-      if (send.ok) {
-        // Upsert conversa
-        let conversaId: string | null = null;
-        const nowIso = new Date().toISOString();
+      if (send.ok) await registrarNoChat(admin, destinoTelefone, destinoNome, mensagem);
 
-        const { data: upserted } = await admin
-          .from('whatsapp_conversas')
-          .upsert(
-            {
-              telefone: destinoTelefone,
-              nome_contato: destinoNome,
-              ultima_mensagem: mensagem.substring(0, 100),
-              ultima_mensagem_at: nowIso,
-            },
-            { onConflict: 'telefone', ignoreDuplicates: false },
-          )
-          .select('id')
-          .single();
+      // Enviar cópia para o consultor se existir
+      const consultorUserId = (ctx.agenda as any).consultor_id;
+      if (send.ok && consultorUserId && cfg.destinatario === 'profissional') {
+        const { data: consultorProfile } = await admin
+          .from('profiles')
+          .select('phone, full_name')
+          .eq('user_id', consultorUserId)
+          .maybeSingle();
 
-        if (upserted?.id) {
-          conversaId = upserted.id;
-        } else {
-          const { data: existing } = await admin
-            .from('whatsapp_conversas')
-            .select('id')
-            .eq('telefone', destinoTelefone)
-            .single();
-          conversaId = existing?.id ?? null;
-        }
+        const consultorTel = normalizarTelefone((consultorProfile as any)?.phone);
 
-        if (conversaId) {
-          await admin.from('whatsapp_mensagens').insert({
-            conversa_id: conversaId,
-            direcao: 'enviada',
-            tipo: 'text',
-            conteudo: mensagem,
-            status: 'sent',
-            enviado_por: null, // disparo automático, sem funcionário específico
+        if (consultorTel && consultorTel !== destinoTelefone) {
+          const consultorPayload = templatePayload
+            ? { ...templatePayload, to: consultorTel }
+            : null;
+
+          const sendConsultor = consultorPayload
+            ? await callSendWhatsApp(consultorPayload)
+            : await sendWhatsAppText(consultorTel, mensagem);
+
+          await admin.from('whatsapp_disparos_log').insert({
+            config_id: cfg.id,
+            agenda_id: agendaId,
+            aluno_id: ctx.agenda.aluno_id ?? null,
+            destinatario_telefone: consultorTel,
+            destinatario_nome: (consultorProfile as any)?.full_name ?? 'Consultor',
+            mensagem_enviada: mensagem,
+            status: sendConsultor.ok ? 'enviado' : 'erro',
+            erro_detalhe: sendConsultor.ok ? null : JSON.stringify({ error: sendConsultor.error }),
           });
+
+          if (sendConsultor.ok) {
+            await registrarNoChat(admin, consultorTel, (consultorProfile as { full_name?: string } | null)?.full_name ?? 'Consultor', mensagem);
+          }
         }
       }
+
+      results.push({ config: cfg.nome, skipped: 'ja_enviado' });
+        continue;
+      }
+
+      const destinoTelefone = normalizarTelefone(
+        cfg.destinatario === 'profissional' ? ctx.profTelefone : ctx.alunoTelefone,
+      );
+      const destinoNome = cfg.destinatario === 'profissional' ? ctx.profissional?.full_name : ctx.aluno?.nome;
+
+      const mensagem = resolveTemplate(cfg.template_texto, ctx.vars);
+
+      // Modo teste bloqueia envio para alunos
+      if (cfg.destinatario === 'aluno' && cfg.modo_teste) {
+        await admin.from('whatsapp_disparos_log').insert({
+          config_id: cfg.id,
+          agenda_id: agendaId,
+          aluno_id: ctx.agenda.aluno_id ?? null,
+          destinatario_telefone: destinoTelefone,
+          destinatario_nome: destinoNome,
+          mensagem_enviada: mensagem,
+          status: 'bloqueado_teste',
+        });
+        results.push({ config: cfg.nome, status: 'bloqueado_teste' });
+        continue;
+      }
+
+      if (!destinoTelefone) {
+        await admin.from('whatsapp_disparos_log').insert({
+          config_id: cfg.id,
+          agenda_id: agendaId,
+          aluno_id: ctx.agenda.aluno_id ?? null,
+          destinatario_telefone: null,
+          destinatario_nome: destinoNome,
+          mensagem_enviada: mensagem,
+          status: 'erro',
+          erro_detalhe: 'Sem telefone cadastrado',
+        });
+        results.push({ config: cfg.nome, status: 'erro', reason: 'sem_telefone' });
+        continue;
+      }
+
+      const templatePayload = buildTemplatePayload(cfg.nome, cfg.gatilho, ctx.vars, destinoTelefone);
+
+      const send = templatePayload
+        ? await callSendWhatsApp(templatePayload)
+        : await sendWhatsAppText(destinoTelefone, mensagem);
+
+      await admin.from('whatsapp_disparos_log').insert({
+        config_id: cfg.id,
+        agenda_id: agendaId,
+        aluno_id: ctx.agenda.aluno_id ?? null,
+        destinatario_telefone: destinoTelefone,
+        destinatario_nome: destinoNome,
+        mensagem_enviada: mensagem,
+        status: send.ok ? 'enviado' : 'erro',
+        erro_detalhe: send.ok ? null : JSON.stringify({ error: send.error, details: send.details }),
+      });
+
+      if (send.ok) await registrarNoChat(admin, destinoTelefone, destinoNome, mensagem);
 
       // Enviar cópia para o consultor se existir
       const consultorUserId = (ctx.agenda as any).consultor_id;
