@@ -10,7 +10,7 @@
 | | Aluno (`manifest-aluno.json`, o atual renomeado) | Equipe (`manifest-equipe.json`, novo) |
 |---|---|---|
 | name / short_name | FORTEM Aluno / FORTEM | FORTEM Equipe / FORTEM Equipe |
-| id | `/?app=aluno` | `/?app=equipe` |
+| id | `/portal` | `/?app=equipe` |
 | start_url | `/portal` | `/login` (já logado, o login leva a `/equipe`) |
 | scope | `/` | `/` |
 | ícones | `icon-192.png`, `icon-512.png` | `icon-equipe-192.png`, `icon-equipe-512.png` (maskable) |
