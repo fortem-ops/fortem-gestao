@@ -28,14 +28,32 @@
     <h1>FORTEM Equipe</h1>
     <p id="instrucao">Para instalar: toque em Compartilhar e depois em "Adicionar à Tela de Início" (iPhone), ou no menu do Chrome em "Instalar app" (Android).</p>
     <a href="/login">Entrar na equipe</a>
+    <p style="margin-top:24px"><a href="/diagnostico-app" style="background:none;padding:0;color:#b1b3b3;font-weight:400;font-size:12px;text-decoration:underline">Diagnóstico do app</a></p>
   </main>
   <script>
     (function () {
-      var standalone = window.navigator.standalone === true ||
-        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      var nav = window.navigator;
+      var displayStandalone = !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      var standalone = nav.standalone === true || displayStandalone;
+      var ua = nav.userAgent || "";
+      // iOS: cada atalho tem armazenamento próprio, então a marca pode ficar no localStorage.
+      // Android: os atalhos dividem o localStorage do Chrome, então só a marca da sessão.
+      var ios = ("standalone" in nav) || /iPad|iPhone|iPod/.test(ua) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1);
+      var marcaLocal = null;
+      try { marcaLocal = localStorage.getItem("fortem_app"); } catch (e) {}
       try {
         sessionStorage.setItem("fortem_app", "equipe");
-        if (window.navigator.standalone === true) localStorage.setItem("fortem_app", "equipe");
+        if (ios && standalone) localStorage.setItem("fortem_app", "equipe");
+      } catch (e) {}
+      try {
+        var lista = JSON.parse(localStorage.getItem("fortem_diag_app") || "[]");
+        if (!Array.isArray(lista)) lista = [];
+        lista.push({
+          em: new Date().toISOString(), tipo: "abertura", origem: "equipe-app.html", pagina: "/equipe-app.html",
+          standalone_nav: nav.standalone === true, display_standalone: displayStandalone, ios: ios,
+          marca_local: marcaLocal, para: standalone ? "/login" : "/equipe-app.html"
+        });
+        localStorage.setItem("fortem_diag_app", JSON.stringify(lista.slice(-30)));
       } catch (e) {}
       if (standalone) location.replace("/login");
     })();

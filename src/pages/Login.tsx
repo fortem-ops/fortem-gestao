@@ -9,12 +9,14 @@ import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { userHasStaffAccess } from "@/lib/authAccess";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
 import { Seo } from "@/components/Seo";
 import { AccessCheckError } from "@/components/ProtectedRoute";
-import { appEquipeStandalone, destinoAposChecagem, lerAmbienteApp, type ResultadoChecagem } from "@/lib/appInstalavel";
+import { appEquipeStandalone, destinoAposChecagem, gravarMarcaEquipe, lerAmbienteApp, type ResultadoChecagem } from "@/lib/appInstalavel";
+import { checarPapelEquipe } from "@/lib/authAccess";
+import { AreaDaEquipe } from "@/components/auth/AreaDaEquipe";
+import { registrarDiag } from "@/lib/diagnosticoApp";
 
 
 export default function Login() {
@@ -52,6 +54,7 @@ export default function Login() {
 
   const [checagemFalhou, setChecagemFalhou] = useState(false);
   const [tentativa, setTentativa] = useState(0);
+  const [areaEquipe, setAreaEquipe] = useState(false);
 
   // Se já está logado quando chega aqui, redireciona pelo papel. Erro = tela de erro, nunca o portal.
   useEffect(() => {
@@ -59,24 +62,29 @@ export default function Login() {
     let cancelled = false;
     const appEquipe = appEquipeStandalone(lerAmbienteApp());
     const checar = async (): Promise<ResultadoChecagem> => {
-      for (let i = 0; i < 3; i++) {
-        try {
-          return { ok: true, isStaff: await userHasStaffAccess(user.id) };
-        } catch {
-          if (i < 2) await new Promise((r) => setTimeout(r, 800 * 2 ** i));
-        }
-      }
-      return { ok: false };
+      const r = await checarPapelEquipe(user.id);
+      return r.status === "erro" ? { ok: false } : { ok: true, isStaff: r.status === "equipe" };
     };
     setChecagemFalhou(false);
+    setAreaEquipe(false);
     checar().then((r) => {
       if (cancelled) return;
+      if (r.ok && r.isStaff) gravarMarcaEquipe();
       const destino = destinoAposChecagem(r, safeNext, appEquipe);
       if (destino === "erro") {
+        registrarDiag({ tipo: "tela", origem: "Login", pagina: "/login", motivo: "checagem_falhou", app_equipe: appEquipe });
         setChecagemFalhou(true);
         return;
       }
-      if (destino === "/login") return;
+      if (destino === "area_equipe") {
+        registrarDiag({ tipo: "tela", origem: "Login", pagina: "/login", motivo: "area_da_equipe_nao_equipe", app_equipe: appEquipe });
+        setAreaEquipe(true);
+        return;
+      }
+      registrarDiag({
+        tipo: "redirecionamento", origem: "Login", de: "/login", para: destino, app_equipe: appEquipe,
+        motivo: r.ok && r.isStaff ? "equipe_confirmada" : "nao_equipe_confirmado",
+      });
       if (safeNext && destino === safeNext) window.location.replace(safeNext);
       else navigate(destino, { replace: true });
     });
@@ -118,6 +126,8 @@ export default function Login() {
     setLoading(false);
     toast.success("Sessão limpa", { description: "Tente entrar novamente com seu e-mail e senha." });
   };
+
+  if (areaEquipe && user) return <AreaDaEquipe />;
 
   if (checagemFalhou && user) {
     return <AccessCheckError onRetry={() => setTentativa((t) => t + 1)} onSignOut={() => signOut()} isRetrying={false} />;
@@ -191,6 +201,11 @@ export default function Login() {
             </a>
           </p>
         )}
+        <p className="mt-3 text-center">
+          <a href="/diagnostico-app" className="text-[11px] text-muted-foreground/70 underline underline-offset-4">
+            Diagnóstico do app
+          </a>
+        </p>
       </motion.div>
     </div>
   );

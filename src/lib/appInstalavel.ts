@@ -45,9 +45,29 @@ export const MARCA_APP = "fortem_app";
 export interface AmbienteApp {
   standalone: boolean;
   marca: string | null;
+  /** iPhone/iPad: cada atalho tem armazenamento próprio, então a marca pode ficar no localStorage. */
+  ios?: boolean;
 }
 
-/** App da equipe instalado: aberto pelo atalho (standalone) com a marca gravada por /equipe-app.html. */
+export interface FontesAmbiente {
+  navStandalone: boolean | undefined;
+  displayStandalone: boolean;
+  ios: boolean;
+  marcaSessao: string | null;
+  marcaLocal: string | null;
+}
+
+/**
+ * Standalone = navigator.standalone (iOS antigo) OU display-mode standalone (iOS com manifest, Android).
+ * Marca permanente (localStorage) só vale no iOS; no Android os dois atalhos dividem o localStorage do Chrome.
+ */
+export function ambienteDe(f: FontesAmbiente): AmbienteApp {
+  const standalone = f.navStandalone === true || f.displayStandalone;
+  const marca = f.marcaSessao ?? (f.ios && standalone ? f.marcaLocal : null);
+  return { standalone, marca, ios: f.ios };
+}
+
+/** App da equipe instalado: aberto pelo atalho (standalone) com a marca da equipe. */
 export function appEquipeStandalone(amb: AmbienteApp): boolean {
   return amb.standalone && amb.marca === "equipe";
 }
@@ -59,25 +79,67 @@ export function redirecionarAppEquipe(pathname: string, amb: AmbienteApp): strin
   return null;
 }
 
-export function lerAmbienteApp(): AmbienteApp {
-  if (typeof window === "undefined") return { standalone: false, marca: null };
-  const nav = window.navigator as Navigator & { standalone?: boolean };
-  const standalone = nav.standalone === true || window.matchMedia?.("(display-mode: standalone)").matches === true;
-  let marca: string | null = null;
+export function ehIos(nav: Navigator & { standalone?: boolean }): boolean {
+  const ua = nav.userAgent ?? "";
+  return "standalone" in nav || /iPad|iPhone|iPod/.test(ua) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1);
+}
+
+function ler(storage: () => Storage): string | null {
   try {
-    marca = window.sessionStorage.getItem(MARCA_APP) ?? (nav.standalone === true ? window.localStorage.getItem(MARCA_APP) : null);
+    return storage().getItem(MARCA_APP);
   } catch {
-    marca = null;
+    return null;
   }
-  return { standalone, marca };
+}
+
+export function lerFontesAmbiente(): FontesAmbiente {
+  if (typeof window === "undefined") {
+    return { navStandalone: undefined, displayStandalone: false, ios: false, marcaSessao: null, marcaLocal: null };
+  }
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  return {
+    navStandalone: nav.standalone,
+    displayStandalone: window.matchMedia?.("(display-mode: standalone)").matches === true,
+    ios: ehIos(nav),
+    marcaSessao: ler(() => window.sessionStorage),
+    marcaLocal: ler(() => window.localStorage),
+  };
+}
+
+export function lerAmbienteApp(): AmbienteApp {
+  return ambienteDe(lerFontesAmbiente());
+}
+
+/** O que gravar quando a equipe é confirmada: nada fora do standalone; localStorage só no iOS. */
+export function marcasParaGravar(amb: AmbienteApp): { sessao: boolean; local: boolean } {
+  if (!amb.standalone) return { sessao: false, local: false };
+  return { sessao: true, local: amb.ios === true };
+}
+
+/** Grava fortem_app=equipe após confirmar equipe em modo standalone. */
+export function gravarMarcaEquipe(amb: AmbienteApp = lerAmbienteApp()): boolean {
+  const m = marcasParaGravar(amb);
+  if (!m.sessao || typeof window === "undefined") return false;
+  try {
+    window.sessionStorage.setItem(MARCA_APP, "equipe");
+    if (m.local) window.localStorage.setItem(MARCA_APP, "equipe");
+  } catch {
+    return false;
+  }
+  return true;
 }
 
 export type ResultadoChecagem = { ok: true; isStaff: boolean } | { ok: false };
 
 /** Destino do login após checar o papel. Erro nunca leva ao portal (falha fechada). */
-export function destinoAposChecagem(r: ResultadoChecagem, safeNext: string | null, appEquipe: boolean): string | "erro" {
+export function destinoAposChecagem(
+  r: ResultadoChecagem,
+  safeNext: string | null,
+  appEquipe: boolean,
+): string | "erro" | "area_equipe" {
   if (!r.ok) return "erro";
-  if (safeNext) return safeNext;
-  if (r.isStaff) return "/equipe";
-  return appEquipe ? "/login" : "/portal";
+  if (r.isStaff) return safeNext ?? "/equipe";
+  // Não é equipe: no app da equipe mostra a tela "Esta área é da equipe", nunca o portal.
+  if (appEquipe) return "area_equipe";
+  return safeNext ?? "/portal";
 }

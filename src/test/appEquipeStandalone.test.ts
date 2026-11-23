@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { destinoAposChecagem, redirecionarAppEquipe } from "@/lib/appInstalavel";
+import { ambienteDe, appEquipeStandalone, destinoAposChecagem, marcasParaGravar, redirecionarAppEquipe } from "@/lib/appInstalavel";
 
 const equipeApp = { standalone: true, marca: "equipe" };
 
@@ -13,7 +13,8 @@ describe("app da equipe no celular", () => {
   it("equipe vai para /equipe; aluno no navegador vai ao portal", () => {
     expect(destinoAposChecagem({ ok: true, isStaff: true }, null, true)).toBe("/equipe");
     expect(destinoAposChecagem({ ok: true, isStaff: false }, null, false)).toBe("/portal");
-    expect(destinoAposChecagem({ ok: true, isStaff: false }, null, true)).toBe("/login");
+    // No app da equipe, quem não é equipe vê "Esta área é da equipe", nunca o portal.
+    expect(destinoAposChecagem({ ok: true, isStaff: false }, null, true)).toBe("area_equipe");
   });
 
   it("app da equipe instalado não abre o portal nem a raiz", () => {
@@ -43,5 +44,28 @@ describe("app da equipe no celular", () => {
     const html = readFileSync("public/equipe-app.html", "utf8");
     expect(html).toContain('href="/manifest-equipe.json"');
     expect(html).toContain('name="apple-mobile-web-app-title" content="FORTEM Equipe"');
+  });
+
+  it("iPhone sem navigator.standalone, com display-mode standalone e marca salva, é o app da equipe", () => {
+    const amb = ambienteDe({ navStandalone: undefined, displayStandalone: true, ios: true, marcaSessao: null, marcaLocal: "equipe" });
+    expect(appEquipeStandalone(amb)).toBe(true);
+    expect(redirecionarAppEquipe("/portal/home", amb)).toBe("/login");
+  });
+
+  it("Android: marca só no localStorage não transforma o atalho do aluno em app da equipe", () => {
+    const amb = ambienteDe({ navStandalone: undefined, displayStandalone: true, ios: false, marcaSessao: null, marcaLocal: "equipe" });
+    expect(appEquipeStandalone(amb)).toBe(false);
+    expect(redirecionarAppEquipe("/portal/home", amb)).toBeNull();
+  });
+
+  it("equipe confirmada grava a marca só em standalone; permanente só no iPhone", () => {
+    expect(marcasParaGravar({ standalone: true, marca: null, ios: true })).toEqual({ sessao: true, local: true });
+    expect(marcasParaGravar({ standalone: true, marca: null, ios: false })).toEqual({ sessao: true, local: false });
+    expect(marcasParaGravar({ standalone: false, marca: null, ios: true })).toEqual({ sessao: false, local: false });
+  });
+
+  it("equipe-app.html grava a marca no iPhone também por display-mode", () => {
+    const html = readFileSync("public/equipe-app.html", "utf8");
+    expect(html).toContain('if (ios && standalone) localStorage.setItem("fortem_app", "equipe")');
   });
 });

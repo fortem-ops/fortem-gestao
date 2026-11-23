@@ -591,6 +591,12 @@ export default function PortalHome() {
         <span className="flex-1 text-sm font-semibold text-foreground">Assistente Fortem</span>
         <ChevronRight className="h-4 w-4 text-[#B1B3B3]" />
       </Link>
+
+      <p className="pt-2 text-center">
+        <Link to="/diagnostico-app" className="text-[11px] text-[#B1B3B3] underline underline-offset-4">
+          Diagnóstico do app
+        </Link>
+      </p>
     </div>
   );
 }

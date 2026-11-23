@@ -1,10 +1,14 @@
-import { Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Activity, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import { MfaGate } from "@/components/auth/MfaGate";
+import { AreaDaEquipe } from "@/components/auth/AreaDaEquipe";
+import { gravarMarcaEquipe } from "@/lib/appInstalavel";
+import { registrarDiag } from "@/lib/diagnosticoApp";
 
 function FullScreenLoader() {
   return (
@@ -64,6 +68,7 @@ export function ProtectedRoute({
   requireStaff?: boolean;
 }) {
   const { user, isReady, signOut } = useAuth();
+  const { pathname } = useLocation();
 
   // Cacheia o resultado de roles (evita requery a cada navegação).
   const {
@@ -78,9 +83,24 @@ export function ProtectedRoute({
     enabled: isReady && requireStaff && !!user,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
-    retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+    // A checagem já tenta 3 vezes com a sessão confirmada.
+    retry: 1,
+    retryDelay: 1500,
   });
+
+  // Equipe confirmada em modo standalone: grava a marca do app da equipe.
+  useEffect(() => {
+    if (requireStaff && hasStaffAccess === true) gravarMarcaEquipe();
+  }, [requireStaff, hasStaffAccess]);
+
+  const semUsuario = isReady && !user;
+  const naoEquipe = requireStaff && hasStaffAccess === false;
+  useEffect(() => {
+    if (semUsuario) registrarDiag({ tipo: "redirecionamento", origem: "ProtectedRoute", de: pathname, para: "/login", motivo: "sem_sessao" });
+  }, [semUsuario, pathname]);
+  useEffect(() => {
+    if (naoEquipe) registrarDiag({ tipo: "tela", origem: "ProtectedRoute", pagina: pathname, motivo: "area_da_equipe_nao_equipe" });
+  }, [naoEquipe, pathname]);
 
   // Enquanto auth não terminou de carregar, NUNCA decidir redirect — evita flash de /login.
   if (!isReady) return <FullScreenLoader />;
@@ -100,7 +120,8 @@ export function ProtectedRoute({
       );
     }
     if (checkingAccess || hasStaffAccess === undefined) return <FullScreenLoader />;
-    if (!hasStaffAccess) return <Navigate to="/portal" replace />;
+    // Nunca redireciona sozinho para o portal: mostra a tela "Esta área é da equipe".
+    if (!hasStaffAccess) return <AreaDaEquipe />;
     // Equipe só entra com sessão aal2 (2FA). Aluno/sem papel já saiu acima.
     return <MfaGate>{children}</MfaGate>;
   }

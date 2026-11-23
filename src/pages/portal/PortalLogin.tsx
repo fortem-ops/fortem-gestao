@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { AuthBackdrop } from "@/components/portal/AuthBackdrop";
 import { toast } from "sonner";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
-import { userHasStaffAccess } from "@/lib/authAccess";
+import { checarPapelEquipe } from "@/lib/authAccess";
+import { registrarDiag } from "@/lib/diagnosticoApp";
 import { lovable } from "@/integrations/lovable/index";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
@@ -46,11 +47,17 @@ export default function PortalLogin() {
 
   useEffect(() => {
     if (!user) return;
-    userHasStaffAccess(user.id).then((isStaff) => {
-      navigate(isStaff ? "/equipe" : "/portal", { replace: true });
-    }).catch(() => {
-      // Falha na checagem: fica no login do portal, sem redirecionar.
+    let cancelado = false;
+    checarPapelEquipe(user.id).then((r) => {
+      // Sem confirmação (erro): fica no login do portal, sem redirecionar.
+      if (cancelado || r.status === "erro") return;
+      const para = r.status === "equipe" ? "/equipe" : "/portal";
+      registrarDiag({ tipo: "redirecionamento", origem: "PortalLogin", de: "/portal/login", para, motivo: r.status });
+      navigate(para, { replace: true });
     });
+    return () => {
+      cancelado = true;
+    };
   }, [navigate, user]);
 
   async function handleSubmit(e: React.FormEvent) {

@@ -15,6 +15,8 @@ import { AgendaGuard } from "@/components/portal/AgendaGuard";
 import { AppLayout } from "@/components/AppLayout";
 import { AppInstalavelSync } from "@/components/AppInstalavelSync";
 import { AppEquipeGuard } from "@/components/AppEquipeGuard";
+import { DiagnosticoSessao } from "@/components/DiagnosticoSessao";
+import { PortalInicio } from "@/components/portal/RequireStudent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartProvider } from "@/hooks/useCartLoja";
 import Login from "./pages/Login";
@@ -119,6 +121,7 @@ const PortalResetPassword = lazyWithReload(() => import("./pages/portal/PortalRe
 const PortalProfile = lazyWithReload(() => import("./pages/portal/PortalProfile"));
 const PortalMeusDados = lazyWithReload(() => import("./pages/portal/PortalMeusDados"));
 const FacialResponsavel = lazyWithReload(() => import("./pages/FacialResponsavel"));
+const DiagnosticoApp = lazyWithReload(() => import("./pages/DiagnosticoApp"));
 const PortalFacial = lazyWithReload(() => import("./pages/portal/PortalFacial"));
 const PortalPagamentos = lazyWithReload(() => import("./pages/portal/PortalPagamentos"));
 const CadastrarCartaoPublico = lazyWithReload(() => import("./pages/CadastrarCartao"));
@@ -188,8 +191,10 @@ const App = () => (
         <AppInstalavelSync />
         <AppEquipeGuard />
         <AuthProvider>
+          <DiagnosticoSessao />
           <CartProvider>
           <Routes>
+            <Route path="/diagnostico-app" element={<Suspense fallback={<RouteFallback />}><DiagnosticoApp /></Suspense>} />
             <Route path="/facial/responsavel/:token" element={<Suspense fallback={<RouteFallback />}><FacialResponsavel /></Suspense>} />
             <Route path="/login" element={<Login />} />
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
@@ -237,7 +242,7 @@ const App = () => (
                 </RequireStudent>
               }
             >
-              <Route path="/portal" element={<Navigate to="/portal/home" replace />} />
+              <Route path="/portal" element={<PortalInicio />} />
               <Route path="/portal/home" element={<Suspense fallback={<RouteFallback />}><PortalHome /></Suspense>} />
               <Route path="/portal/perfil" element={<Suspense fallback={<RouteFallback />}><PortalProfile /></Suspense>} />
               <Route path="/portal/treinos" element={<Suspense fallback={<RouteFallback />}><PortalWorkouts /></Suspense>} />
