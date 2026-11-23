@@ -9,6 +9,7 @@ describe("fotoEquipe", () => {
     expect(fotoEquipe("Thaís dos Santos")).toBe(FOTOS_SITE["equipe-thais"]);
     expect(fotoEquipe("Jonas Hubner")).toBe(FOTOS_SITE["equipe-jonas"]);
     expect(fotoEquipe("Vanessa Coutinho")).toBe(FOTOS_SITE["equipe-vanessa"]);
+    expect(fotoEquipe("Júlia Assis Brasil")).toBe(FOTOS_SITE["equipe-julia"]);
   });
   it("sem foto cadastrada devolve indefinido", () => {
     expect(fotoEquipe("Pessoa Sem Foto")).toBeUndefined();
@@ -18,6 +19,6 @@ describe("fotoEquipe", () => {
     const nasPaginas = Object.values(PAGINAS_SERVICO).flatMap((pg) => pg.blocos)
       .flatMap((b) => (b.tipo === "pessoas" ? b.pessoas.map((p) => p.nome) : []));
     for (const n of nasPaginas) if (comFoto.includes(n)) expect(fotoEquipe(n)?.src).toBeTruthy();
-    expect(nasPaginas.filter((n) => fotoEquipe(n)).length).toBe(6);
+    expect(nasPaginas.filter((n) => fotoEquipe(n)).length).toBe(7);
   });
 });
