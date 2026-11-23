@@ -6,3 +6,5 @@
 
 - [x] A: remover ponto pelo WhatsApp (manter agenda de amanhã)
 - [x] B (Igor não excluído: tem vínculos): exclusão segura, Igor, papéis/desvínculo, papel aluno automático, Usuários só equipe
+
+- [ ] Atalhos Aluno/Equipe: prévia do ícone (aguarda aprovação), depois manifests (id aluno "/portal", equipe "/?app=equipe"), troca por rota, testes
