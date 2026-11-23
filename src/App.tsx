@@ -13,6 +13,7 @@ import { PortalLayout } from "@/components/portal/PortalLayout";
 import { StudentPortalProvider } from "@/contexts/StudentPortalContext";
 import { AgendaGuard } from "@/components/portal/AgendaGuard";
 import { AppLayout } from "@/components/AppLayout";
+import { AppInstalavelSync } from "@/components/AppInstalavelSync";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartProvider } from "@/hooks/useCartLoja";
 import Login from "./pages/Login";
@@ -183,6 +184,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <RastreamentoPublico />
+        <AppInstalavelSync />
         <AuthProvider>
           <CartProvider>
           <Routes>

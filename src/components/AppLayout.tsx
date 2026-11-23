@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
+import { useForcarAppEquipe } from "@/hooks/useForcarAppEquipe";
 import { GlobalCadastroSearch } from "@/components/GlobalCadastroSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotifChatProvider } from "@/contexts/NotifChatContext";
@@ -26,6 +27,7 @@ function SidebarToggleLabel() {
 }
 
 export function AppLayout() {
+  useForcarAppEquipe();
   return (
     <NotifChatProvider>
       <SidebarProvider>
