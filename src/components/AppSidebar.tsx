@@ -25,6 +25,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { MfaAparelhosButton } from "@/components/auth/MfaAparelhos";
 
 /* ─── Principal ─── */
 const principalItems = [
@@ -478,6 +479,7 @@ export function AppSidebar() {
             {user.email}
           </p>
         )}
+        <MfaAparelhosButton collapsed={collapsed} />
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "sm"}

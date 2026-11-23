@@ -14,6 +14,8 @@ Li o AGENTS.md da raiz. Regras aplicadas: teste de regressão, `bunx vitest run`
 | igorniederauer@gmail.com | nunca |
 | teste.nicolas@fortem.app | nunca |
 
+Status: Fase 1 implementada (sem migração). Fase 2 aguarda pedido separado.
+
 ## Fase 1 — cadastro obrigatório + bloqueio na tela
 1. **Login da equipe** (`/login`): depois de e-mail e senha, o sistema checa o nível da sessão (`mfa.getAuthenticatorAssuranceLevel`).
    - Tem fator verificado e sessão em aal1 → tela "Digite o código de 6 dígitos". Erro: "Código incorreto ou expirado. Confira o horário do celular e tente de novo." Pode tentar de novo sem refazer a senha.
@@ -60,11 +62,11 @@ Edge functions:
 - Não mudam: chamadas com `service_role` (crons `planos-recorrencia-diario`, `ponto-banco-expirar`, `conciliar-extrato-diario`, `ipca-atualizar`, webhooks Rede/Inter `pix-webhook`, agente facial). `service_role` ignora RLS e não passa pelos helpers com aal; `auth.jwt()` não tem aal mas também não é usado nesses caminhos.
 - Páginas públicas (`anon`): continuam iguais — usam as 19 funções liberadas para anon, que não dependem dos helpers de equipe. Vou rodar de novo os testes REST anon do último ajuste de segurança.
 
-Interruptor: `aal_ok()` lê um flag em tabela de configuração (`seguranca_config.mfa_servidor_ativo`, só admin/service). Ligar e desligar a Fase 2 é um `UPDATE`, sem nova migração.
+Interruptor: `aal_ok()` lê um flag em tabela de configuração (`seguranca_config.mfa_servidor_ativo`). Só `service_role` altera o flag: sem policy de escrita para admin ou qualquer usuário (leitura só admin). Motivo: um token de admin em aal1 não pode desligar a própria proteção. Ligar e desligar a Fase 2 é um `UPDATE` feito pelo servidor, sem nova migração.
 
 ## Migrações
 - **Fase 1**: nenhuma mudança de schema; só a ação `reset-mfa` grava no `audit_log` existente (via service_role).
-- **Fase 2 (migração `mfa_aal2_servidor`)**: cria `seguranca_config` (GRANT + RLS, leitura/escrita só admin, flag começa `false`), cria `aal_ok()` (sem EXECUTE para anon), recria os 9 helpers e ajusta as 2 policies. Ativação: `update seguranca_config set mfa_servidor_ativo = true` só depois da consulta acima.
+- **Fase 2 (migração `mfa_aal2_servidor`)**: cria `seguranca_config` (GRANT + RLS, leitura só admin, escrita só `service_role`, flag começa `false`), cria `aal_ok()` (sem EXECUTE para anon), recria os 9 helpers e ajusta as 2 policies. Ativação: `update seguranca_config set mfa_servidor_ativo = true` só depois da consulta acima.
 
 ## Arquivos que mudam
 - `src/contexts/AuthContext.tsx` (nível aal, desafio, cadastro)

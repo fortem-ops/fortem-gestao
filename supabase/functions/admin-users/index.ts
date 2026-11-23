@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.23.8";
+import { ehEquipe, validarResetMfa } from "./mfa-regras.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -63,7 +64,12 @@ async function ultimoAdminAtivo(admin: ReturnType<typeof createClient>, targetId
   return ids.every((id) => inat.has(id));
 }
 
+const ListMfaSchema = z.object({ action: z.literal("list-mfa") });
+const ResetMfaSchema = z.object({ action: z.literal("reset-mfa"), user_id: z.string().uuid() });
+
 const BodySchema = z.discriminatedUnion("action", [
+  ListMfaSchema,
+  ResetMfaSchema,
   CreateSchema,
   UpdateSchema,
   DeleteSchema,
@@ -98,12 +104,66 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: isAdminData, error: isAdminErr } = await admin.rpc("is_admin", { _user_id: callerId });
     if (isAdminErr) return json({ error: isAdminErr.message }, 500);
-    if (!isAdminData) return json({ error: "Forbidden: admin only" }, 403);
 
     const raw = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) return json({ error: parsed.error.flatten() }, 400);
     const body = parsed.data;
+
+    // list-mfa: admin ou coordenador (só leitura do status 2FA da equipe).
+    if (body.action === "list-mfa") {
+      let podeVer = !!isAdminData;
+      if (!podeVer) {
+        const { data: coord } = await admin.rpc("has_role", { _user_id: callerId, _role: "coordenador" });
+        podeVer = !!coord;
+      }
+      if (!podeVer) return json({ error: "Forbidden" }, 403);
+      const { data: roles, error: rErr } = await admin.from("user_roles").select("user_id, role");
+      if (rErr) return json({ error: rErr.message }, 500);
+      const porUsuario = new Map<string, string[]>();
+      for (const r of (roles ?? []) as { user_id: string; role: string }[]) {
+        porUsuario.set(r.user_id, [...(porUsuario.get(r.user_id) ?? []), r.role]);
+      }
+      const equipe = [...porUsuario.entries()].filter(([, rs]) => ehEquipe(rs)).map(([id]) => id);
+      const status: { user_id: string; verificados: number }[] = [];
+      for (const id of equipe) {
+        const { data, error } = await admin.auth.admin.mfa.listFactors({ userId: id });
+        if (error) return json({ error: error.message }, 500);
+        status.push({ user_id: id, verificados: (data?.factors ?? []).filter((f) => f.status === "verified").length });
+      }
+      return json({ status });
+    }
+
+    if (!isAdminData) return json({ error: "Forbidden: admin only" }, 403);
+
+    if (body.action === "reset-mfa") {
+      const { data: tRoles, error: tErr } = await admin.from("user_roles").select("role").eq("user_id", body.user_id);
+      if (tErr) return json({ error: tErr.message }, 500);
+      const motivo = validarResetMfa({
+        callerId,
+        callerIsAdmin: !!isAdminData,
+        targetId: body.user_id,
+        targetRoles: ((tRoles ?? []) as { role: string }[]).map((r) => r.role),
+      });
+      if (motivo) return json({ error: motivo }, 403);
+      const { data: lf, error: lErr } = await admin.auth.admin.mfa.listFactors({ userId: body.user_id });
+      if (lErr) return json({ error: lErr.message }, 500);
+      const fatores = lf?.factors ?? [];
+      for (const f of fatores) {
+        const { error } = await admin.auth.admin.mfa.deleteFactor({ id: f.id, userId: body.user_id });
+        if (error) return json({ error: error.message }, 500);
+      }
+      const { error: aErr } = await admin.from("audit_log").insert({
+        tabela: "auth.mfa_factors",
+        registro_id: body.user_id,
+        operacao: "MFA_RESET",
+        user_id: callerId,
+        dados_antes: { fatores: fatores.length },
+        dados_depois: { redefinido_por: callerId, alvo: body.user_id, em: new Date().toISOString() },
+      });
+      if (aErr) return json({ error: `2FA redefinido, mas falhou o registro: ${aErr.message}` }, 500);
+      return json({ ok: true, removidos: fatores.length });
+    }
 
     if (body.action === "list-emails") {
       const emails: { user_id: string; email: string | null; last_sign_in_at: string | null; banned_until: string | null }[] = [];

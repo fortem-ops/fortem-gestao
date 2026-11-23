@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Activity, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { userHasStaffAccess } from "@/lib/authAccess";
+import { MfaGate } from "@/components/auth/MfaGate";
 
 function FullScreenLoader() {
   return (
@@ -100,6 +101,8 @@ export function ProtectedRoute({
     }
     if (checkingAccess || hasStaffAccess === undefined) return <FullScreenLoader />;
     if (!hasStaffAccess) return <Navigate to="/portal" replace />;
+    // Equipe só entra com sessão aal2 (2FA). Aluno/sem papel já saiu acima.
+    return <MfaGate>{children}</MfaGate>;
   }
 
   return <>{children}</>;

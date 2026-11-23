@@ -138,6 +138,43 @@ export function AdminUsers() {
     enabled: !!isAdmin,
   });
 
+  const { data: isCoord } = useQuery({
+    queryKey: ["admin-users-is-coord", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "coordenador" });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+  const podeVer2fa = !!isAdmin || !!isCoord;
+
+  const { data: mfaStatus = [] } = useQuery({
+    queryKey: ["admin-users-mfa"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-users", { body: { action: "list-mfa" } });
+      if (error) throw error;
+      return (data?.status || []) as { user_id: string; verificados: number }[];
+    },
+    enabled: podeVer2fa,
+  });
+  const mfaByUserId = new Map(mfaStatus.map((m) => [m.user_id, m.verificados]));
+  const [resetMfaTarget, setResetMfaTarget] = useState<{ user_id: string; name: string } | null>(null);
+  const resetMfaMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-users", { body: { action: "reset-mfa", user_id: userId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(String(data.error));
+    },
+    onSuccess: () => {
+      toast.success("2FA redefinido. O usuário cadastra de novo no próximo login.");
+      setResetMfaTarget(null);
+      void queryClient.invalidateQueries({ queryKey: ["admin-users-mfa"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível redefinir o 2FA."),
+  });
+
   const emailByUserId = new Map(emails.map((e) => [e.user_id, e.email]));
   const lastSignInByUserId = new Map(emails.map((e) => [e.user_id, e.last_sign_in_at]));
 
@@ -295,6 +332,7 @@ export function AdminUsers() {
               <TableHead>E-mail</TableHead>
               <TableHead>Especialidade</TableHead>
               <TableHead>Permissões</TableHead>
+              {podeVer2fa && <TableHead>2FA</TableHead>}
               <TableHead className="w-[220px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -338,6 +376,17 @@ export function AdminUsers() {
                       ))}
                     </div>
                   </TableCell>
+                  {podeVer2fa && (
+                    <TableCell>
+                      {!mfaByUserId.has(profile.user_id) ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (mfaByUserId.get(profile.user_id) ?? 0) > 0 ? (
+                        <Badge className="text-xs bg-success/15 text-success border-success/30" variant="outline">Ativo</Badge>
+                      ) : (
+                        <Badge className="text-xs bg-warning/15 text-warning border-warning/30" variant="outline">Pendente</Badge>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Button
@@ -365,6 +414,11 @@ export function AdminUsers() {
                           >
                             {profile.ativo === false ? "Reativar" : "Desativar"}
                           </Button>
+                          {!isSelf && (mfaByUserId.get(profile.user_id) ?? 0) > 0 && (
+                            <Button size="sm" variant="ghost" onClick={() => setResetMfaTarget({ user_id: profile.user_id, name: profile.full_name })}>
+                              Redefinir 2FA
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>
@@ -375,6 +429,26 @@ export function AdminUsers() {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!resetMfaTarget} onOpenChange={(o) => { if (!o) setResetMfaTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Redefinir 2FA de {resetMfaTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os aparelhos dessa pessoa serão removidos. No próximo login ela cadastra um novo. Fica registrado quem fez.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={resetMfaMutation.isPending}
+              onClick={() => { if (resetMfaTarget) resetMfaMutation.mutate(resetMfaTarget.user_id); }}
+            >
+              Redefinir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add Role */}
       <Dialog open={addRoleOpen} onOpenChange={setAddRoleOpen}>
