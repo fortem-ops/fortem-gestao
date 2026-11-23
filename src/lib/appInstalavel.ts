@@ -39,3 +39,45 @@ export function aplicarApp(pathname: string): AppInstalavel {
   );
   return app;
 }
+
+export const MARCA_APP = "fortem_app";
+
+export interface AmbienteApp {
+  standalone: boolean;
+  marca: string | null;
+}
+
+/** App da equipe instalado: aberto pelo atalho (standalone) com a marca gravada por /equipe-app.html. */
+export function appEquipeStandalone(amb: AmbienteApp): boolean {
+  return amb.standalone && amb.marca === "equipe";
+}
+
+/** No app da equipe, o portal e a raiz nunca abrem: vão para o login da equipe. */
+export function redirecionarAppEquipe(pathname: string, amb: AmbienteApp): string | null {
+  if (!appEquipeStandalone(amb)) return null;
+  if (pathname === "/" || pathname === "/portal" || pathname.startsWith("/portal/")) return "/login";
+  return null;
+}
+
+export function lerAmbienteApp(): AmbienteApp {
+  if (typeof window === "undefined") return { standalone: false, marca: null };
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  const standalone = nav.standalone === true || window.matchMedia?.("(display-mode: standalone)").matches === true;
+  let marca: string | null = null;
+  try {
+    marca = window.sessionStorage.getItem(MARCA_APP) ?? (nav.standalone === true ? window.localStorage.getItem(MARCA_APP) : null);
+  } catch {
+    marca = null;
+  }
+  return { standalone, marca };
+}
+
+export type ResultadoChecagem = { ok: true; isStaff: boolean } | { ok: false };
+
+/** Destino do login após checar o papel. Erro nunca leva ao portal (falha fechada). */
+export function destinoAposChecagem(r: ResultadoChecagem, safeNext: string | null, appEquipe: boolean): string | "erro" {
+  if (!r.ok) return "erro";
+  if (safeNext) return safeNext;
+  if (r.isStaff) return "/equipe";
+  return appEquipe ? "/login" : "/portal";
+}

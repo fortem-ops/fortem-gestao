@@ -14,6 +14,7 @@ import { StudentPortalProvider } from "@/contexts/StudentPortalContext";
 import { AgendaGuard } from "@/components/portal/AgendaGuard";
 import { AppLayout } from "@/components/AppLayout";
 import { AppInstalavelSync } from "@/components/AppInstalavelSync";
+import { AppEquipeGuard } from "@/components/AppEquipeGuard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartProvider } from "@/hooks/useCartLoja";
 import Login from "./pages/Login";
@@ -185,6 +186,7 @@ const App = () => (
       <BrowserRouter>
         <RastreamentoPublico />
         <AppInstalavelSync />
+        <AppEquipeGuard />
         <AuthProvider>
           <CartProvider>
           <Routes>

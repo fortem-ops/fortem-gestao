@@ -19,7 +19,7 @@ function FullScreenLoader() {
   );
 }
 
-function AccessCheckError({
+export function AccessCheckError({
   onRetry,
   onSignOut,
   isRetrying,

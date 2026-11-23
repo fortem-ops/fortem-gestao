@@ -13,6 +13,8 @@ import { userHasStaffAccess } from "@/lib/authAccess";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
 import { Seo } from "@/components/Seo";
+import { AccessCheckError } from "@/components/ProtectedRoute";
+import { appEquipeStandalone, destinoAposChecagem, lerAmbienteApp, type ResultadoChecagem } from "@/lib/appInstalavel";
 
 
 export default function Login() {
@@ -26,7 +28,7 @@ export default function Login() {
   const nextParam = sp.get("next");
   // Só aceita redirecionos same-origin relativos (começando com "/").
   const safeNext = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : null;
-  const { signIn, user, isReady, resetAuthState } = useAuth();
+  const { signIn, user, isReady, resetAuthState, signOut } = useAuth();
 
   const runDiagnosis = async () => {
     setTesting(true);
@@ -48,31 +50,40 @@ export default function Login() {
     return () => { cancelled = true; };
   }, []);
 
-  // Se já está logado quando chega aqui, redireciona pelo papel.
+  const [checagemFalhou, setChecagemFalhou] = useState(false);
+  const [tentativa, setTentativa] = useState(0);
+
+  // Se já está logado quando chega aqui, redireciona pelo papel. Erro = tela de erro, nunca o portal.
   useEffect(() => {
     if (!isReady || !user) return;
     let cancelled = false;
-    userHasStaffAccess(user.id)
-      .then((isStaff) => {
-        if (cancelled) return;
-        if (safeNext) {
-          window.location.replace(safeNext);
-          return;
+    const appEquipe = appEquipeStandalone(lerAmbienteApp());
+    const checar = async (): Promise<ResultadoChecagem> => {
+      for (let i = 0; i < 3; i++) {
+        try {
+          return { ok: true, isStaff: await userHasStaffAccess(user.id) };
+        } catch {
+          if (i < 2) await new Promise((r) => setTimeout(r, 800 * 2 ** i));
         }
-        navigate(isStaff ? "/equipe" : "/portal", { replace: true });
-      })
-      .catch(() => {
-        if (cancelled) return;
-        if (safeNext) {
-          window.location.replace(safeNext);
-          return;
-        }
-        navigate("/portal", { replace: true });
-      });
+      }
+      return { ok: false };
+    };
+    setChecagemFalhou(false);
+    checar().then((r) => {
+      if (cancelled) return;
+      const destino = destinoAposChecagem(r, safeNext, appEquipe);
+      if (destino === "erro") {
+        setChecagemFalhou(true);
+        return;
+      }
+      if (destino === "/login") return;
+      if (safeNext && destino === safeNext) window.location.replace(safeNext);
+      else navigate(destino, { replace: true });
+    });
     return () => {
       cancelled = true;
     };
-  }, [navigate, user, isReady, safeNext]);
+  }, [navigate, user, isReady, safeNext, tentativa]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +118,10 @@ export default function Login() {
     setLoading(false);
     toast.success("Sessão limpa", { description: "Tente entrar novamente com seu e-mail e senha." });
   };
+
+  if (checagemFalhou && user) {
+    return <AccessCheckError onRetry={() => setTentativa((t) => t + 1)} onSignOut={() => signOut()} isRetrying={false} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -169,6 +184,13 @@ export default function Login() {
             </form>
           </CardContent>
         </Card>
+        {!appEquipeStandalone(lerAmbienteApp()) && (
+          <p className="mt-4 text-center text-sm">
+            <a href="/equipe-app.html" className="text-muted-foreground underline underline-offset-4">
+              Instalar app da equipe no celular
+            </a>
+          </p>
+        )}
       </motion.div>
     </div>
   );

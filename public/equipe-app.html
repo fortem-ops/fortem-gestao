@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FORTEM Equipe</title>
+  <meta name="description" content="Instale o app da equipe FORTEM na tela inicial." />
+  <meta name="robots" content="noindex" />
+  <link rel="manifest" href="/manifest-equipe.json" />
+  <meta name="theme-color" content="#E73C3E" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FORTEM Equipe" />
+  <link rel="apple-touch-icon" href="/icon-equipe-192.png" />
+  <link rel="icon" href="/icon-equipe-192.png" />
+  <style>
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#141414;color:#f2f2f2;font-family:Archivo,system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}
+    img{width:96px;height:96px;border-radius:22px}
+    h1{font-size:20px;margin:16px 0 8px}
+    p{color:#b1b3b3;font-size:15px;line-height:1.5;max-width:320px;margin:0 auto 16px}
+    a{color:#f2f2f2;background:#C8282A;padding:12px 20px;display:inline-block;text-decoration:none;font-weight:700}
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/icon-equipe-192.png" alt="FORTEM Equipe" />
+    <h1>FORTEM Equipe</h1>
+    <p id="instrucao">Para instalar: toque em Compartilhar e depois em "Adicionar à Tela de Início" (iPhone), ou no menu do Chrome em "Instalar app" (Android).</p>
+    <a href="/login">Entrar na equipe</a>
+  </main>
+  <script>
+    (function () {
+      var standalone = window.navigator.standalone === true ||
+        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      try {
+        sessionStorage.setItem("fortem_app", "equipe");
+        if (window.navigator.standalone === true) localStorage.setItem("fortem_app", "equipe");
+      } catch (e) {}
+      if (standalone) location.replace("/login");
+    })();
+  </script>
+</body>
+</html>

@@ -48,6 +48,8 @@ export default function PortalLogin() {
     if (!user) return;
     userHasStaffAccess(user.id).then((isStaff) => {
       navigate(isStaff ? "/equipe" : "/portal", { replace: true });
+    }).catch(() => {
+      // Falha na checagem: fica no login do portal, sem redirecionar.
     });
   }, [navigate, user]);
 

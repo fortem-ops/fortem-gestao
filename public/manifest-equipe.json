@@ -3,7 +3,7 @@
   "name": "FORTEM Equipe",
   "short_name": "FORTEM Equipe",
   "description": "Sistema da equipe FORTEM",
-  "start_url": "/login",
+  "start_url": "/equipe-app.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

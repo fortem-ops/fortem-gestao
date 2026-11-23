@@ -33,7 +33,7 @@ describe("atalhos de tela inicial", () => {
     expect(aluno.id).toBe("/portal");
     expect(legado.id).toBe("/portal");
     expect(equipe.id).toBe("/?app=equipe");
-    expect(equipe.start_url).toBe("/login");
+    expect(equipe.start_url).toBe("/equipe-app.html");
     expect(aluno.start_url).toBe("/portal");
     expect(equipe.name).toBe("FORTEM Equipe");
   });
