@@ -1,0 +1,2 @@
+DROP FUNCTION IF EXISTS public.fn_admin_testar_resumo_whatsapp();
+COMMENT ON TABLE public.whatsapp_disparos_config IS 'Gatilhos de ponto (lembrete_entrada, lembrete_intervalo_inicio, lembrete_intervalo_fim, lembrete_saida, resumo_diario_ponto) removidos em 23/11/2026: só histórico. Jobs removidos: whatsapp-disparo-ponto-5min (*/5 * * * *) e whatsapp-resumo-ponto-diario (40 23 * * 0-5).';

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { disparoVisivel } from "@/lib/whatsappGatilhosRemovidos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle, Edit, Send } from "lucide-react";
@@ -117,7 +118,7 @@ export default function WhatsAppDisparos() {
     },
   });
 
-  const configs = configsQuery.data ?? [];
+  const configs = (configsQuery.data ?? []).filter((c) => disparoVisivel(c.gatilho));
   const profissionais = configs.filter((c) => c.destinatario === "profissional");
   const alunos = configs.filter((c) => c.destinatario === "aluno");
 

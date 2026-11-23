@@ -13469,7 +13469,6 @@ export type Database = {
       }
       fn_admin_fix_timezone_divergencias: { Args: never; Returns: string }
       fn_admin_tarefas_pipeline: { Args: never; Returns: string }
-      fn_admin_testar_resumo_whatsapp: { Args: never; Returns: Json }
       fn_agenda_estornar_credito_por_agenda: {
         Args: { _agenda_id: string; _motivo?: string }
         Returns: undefined
