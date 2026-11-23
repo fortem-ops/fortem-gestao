@@ -13,6 +13,8 @@ import foto11 from "@/assets/fotos/estrutura-vestiarios-1.webp.asset.json";
 import foto12 from "@/assets/fotos/estrutura-recepcao.webp.asset.json";
 import foto13 from "@/assets/fotos/treinamento-orientacao.webp.asset.json";
 import foto14 from "@/assets/fotos/avaliacao-dinamometro.webp.asset.json";
+import foto15 from "@/assets/fotos/equipe-jonas.webp.asset.json";
+import foto16 from "@/assets/fotos/equipe-vanessa.webp.asset.json";
 
 /** Fotos reais do site, com dimensões intrínsecas e descrição da cena. */
 export const FOTOS_SITE = {
@@ -23,6 +25,8 @@ export const FOTOS_SITE = {
   "equipe-thais": { src: foto4.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de camiseta preta, na área de treino" },
   "equipe-cristiano": { src: foto5.url, width: 900, height: 1200, descricao: "Profissional sorrindo diante dos equipamentos de treino" },
   "equipe-bruno": { src: foto6.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de moletom preto, na área de treino" },
+  "equipe-jonas": { src: foto15.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de camiseta vermelha FORTEM, na área de treino" },
+  "equipe-vanessa": { src: foto16.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de braços cruzados e camiseta vermelha, na área de treino" },
   "estrutura-area-treino": { src: foto7.url, width: 1280, height: 720, descricao: "Área de treino com piso emborrachado, equipamentos e paredes vermelhas" },
   "estrutura-equipamentos": { src: foto8.url, width: 1280, height: 853, descricao: "Barras, anilhas e estruturas de força na área de treino" },
   "estrutura-reabilitacao": { src: foto9.url, width: 1280, height: 720, descricao: "Sala de reabilitação com maca e bancada" },
@@ -39,6 +43,8 @@ export const FOTOS_EQUIPE = {
   "Thaís dos Santos": FOTOS_SITE["equipe-thais"],
   "Cristiano Ransolin": FOTOS_SITE["equipe-cristiano"],
   "Bruno Funari": FOTOS_SITE["equipe-bruno"],
+  "Jonas Hubner": FOTOS_SITE["equipe-jonas"],
+  "Vanessa Coutinho": FOTOS_SITE["equipe-vanessa"],
 };
 
 /** Foto cadastrada de um membro da equipe, pelo nome exato; indefinido se ainda não houver. */

@@ -7,15 +7,17 @@ describe("fotoEquipe", () => {
   it("devolve a foto cadastrada pelo nome", () => {
     expect(fotoEquipe("Nicolas Janovik")).toBe(FOTOS_SITE["equipe-nicolas"]);
     expect(fotoEquipe("Thaís dos Santos")).toBe(FOTOS_SITE["equipe-thais"]);
+    expect(fotoEquipe("Jonas Hubner")).toBe(FOTOS_SITE["equipe-jonas"]);
+    expect(fotoEquipe("Vanessa Coutinho")).toBe(FOTOS_SITE["equipe-vanessa"]);
   });
   it("sem foto cadastrada devolve indefinido", () => {
-    expect(fotoEquipe("Jonas Hubner")).toBeUndefined();
+    expect(fotoEquipe("Pessoa Sem Foto")).toBeUndefined();
   });
   it("todos com foto na home também têm nas páginas de serviço", () => {
     const comFoto = EQUIPE.filter((p) => fotoEquipe(p.nome)).map((p) => p.nome);
     const nasPaginas = Object.values(PAGINAS_SERVICO).flatMap((pg) => pg.blocos)
       .flatMap((b) => (b.tipo === "pessoas" ? b.pessoas.map((p) => p.nome) : []));
     for (const n of nasPaginas) if (comFoto.includes(n)) expect(fotoEquipe(n)?.src).toBeTruthy();
-    expect(nasPaginas.filter((n) => fotoEquipe(n)).length).toBe(4);
+    expect(nasPaginas.filter((n) => fotoEquipe(n)).length).toBe(6);
   });
 });
