@@ -1,104 +1,94 @@
-# 2FA obrigatória para a equipe (TOTP nativo)
+# Dois itens independentes: A (ponto pelo WhatsApp) e B (usuários sem papel)
 
-Li o AGENTS.md da raiz. Regras aplicadas: teste de regressão, `bunx vitest run` + eslint, sem `any`, funções novas sem EXECUTE para `anon`.
+Cada item tem sua própria migração e seu próprio commit; dá para aprovar e desfazer um sem o outro.
 
-## Situação confirmada no banco (só leitura)
-- Funções de papel usadas pelas policies (nº de policies que citam): `is_staff()` 135, `is_staff(uuid)` 135, `is_coordinator_or_admin(uuid)` 144, `is_coordenador_ou_admin()` 91, `has_role(uuid, app_role)` 58, `is_admin(uuid)` 48, `is_admin_role()` 33, `is_professor_staff()` 14, `is_staff_or_aluno()` 14, `aluno_user_id(uuid)` 2.
-- Policies que leem `user_roles` direto (sem helper): 1 em `notificacao_destinatarios`, 1 em `storage.objects`.
-- Usuários sem papel (não serão alterados):
+---
 
-| E-mail | Último login |
+## A) Remover o envio de ponto pelo WhatsApp
+
+### O que encontrei (conferido no banco e no código)
+- **`whatsapp-disparo-ponto-5min`** (job 25, a cada 5 min) → função `whatsapp-disparo-ponto`, que só trata 5 gatilhos: `lembrete_entrada`, `lembrete_intervalo_inicio`, `lembrete_intervalo_fim`, `lembrete_saida`, `resumo_diario_ponto`. As 5 configurações em `whatsapp_disparos_config` estão **desligadas e em modo teste, com 0 envios no histórico**. Ou seja, o job roda 288 vezes por dia sem mandar nada.
+- **`whatsapp-resumo-ponto-diario`** (job 27, 23h40 UTC, dom–sex) → função `whatsapp-resumo-ponto`. Falhou em todas as execuções desde 16/11. **Atenção:** apesar do nome, essa função não fala de ponto: ela manda para os profissionais **os agendamentos de amanhã** (`agenda_servicos`), usando a configuração "Resumo Diário de Ponto" (desligada, 0 envios). Esse aviso de agenda já é feito, e funciona, pela rotina `whatsapp-resumo-agenda-amanha` (com envios até 22/11). Por isso dá para remover sem perder nada.
+- **Tela:** em Diagnóstico do Banco de Horas há o botão **"Testar resumo diário"**, que chama a função do banco `fn_admin_testar_resumo_whatsapp`. Ela só monta uma prévia da agenda de amanhã e não envia nada.
+- **Tela de WhatsApp > Disparos** (`WhatsAppDisparos.tsx`): lista todas as configurações, incluindo as 5 de ponto.
+- Não há gatilhos no banco nem filas próprias ligados a essas duas rotinas.
+
+### O que fica (usado por outras partes)
+- O Ponto inteiro: registro, `ponto-alertas-diarios` (job 5), `ponto-pendencias-diario` (job 16), `ponto-fechamento-mensal` (job 4) e `ponto-banco-expirar-mensal` (job 17). Nenhum deles depende das duas rotinas.
+- `send-whatsapp`, `_shared/whatsapp.ts` e `_shared/agenda-template.ts` (usados pela agenda, pelas cobranças e pelo chat).
+- As tabelas `whatsapp_disparos_config` e `whatsapp_disparos_log`, porque as rotinas de agenda e cobrança usam as duas. Não apago nenhum histórico.
+- `ponto_feriados` e `ponto_ferias` (do Ponto).
+
+### O que sai
+1. Desligar os jobs 25 e 27 (`cron.unschedule`), pela ferramenta de dados.
+2. Excluir as funções `whatsapp-disparo-ponto` e `whatsapp-resumo-ponto`, junto com as pastas delas no projeto.
+3. Migração `a_remover_whatsapp_ponto`:
+   - `DROP FUNCTION fn_admin_testar_resumo_whatsapp()`;
+   - marcar as 5 configurações de ponto como desligadas (já estão) com o comentário "removido em 23/11/2026". As linhas ficam para manter o histórico e não quebrar referências.
+4. Telas:
+   - tirar o botão "Testar resumo diário" de `DiagnosticoBancoHoras.tsx`;
+   - em `WhatsAppDisparos.tsx`, esconder as configurações desses 5 gatilhos (lista fixa em `src/lib/whatsappGatilhosRemovidos.ts`).
+5. `src/components/disparos/AGENTS.md`: nova regra "Ponto não envia WhatsApp; os gatilhos de ponto ficam só como histórico".
+6. Teste: a lista de Disparos não mostra gatilhos de ponto; os gatilhos de agenda e cobrança continuam aparecendo.
+
+### Como desfazer A
+- Reverter o commit (as funções e o botão voltam) e publicar as funções de novo.
+- Recriar os jobs com o mesmo comando de antes (vou guardar os comandos originais dos jobs 25 e 27 no texto da migração).
+- Recriar `fn_admin_testar_resumo_whatsapp` a partir da migração antiga em `supabase/migrations`.
+
+---
+
+## B) Usuários sem papel
+
+### O que encontrei
+| E-mail | Situação |
 |---|---|
-| teste.pro@fortem.app | 06/11/2026 |
-| wingert.marcia@gmail.com | 19/09/2026 |
-| igorniederauer@gmail.com | nunca |
-| teste.nicolas@fortem.app | nunca |
+| igorniederauer@gmail.com | Criado em 13/04, nunca entrou. **Já não tem perfil nem papel** (sinal de uma exclusão que parou no meio). 0 registros no histórico de auditoria. Sem cadastro de aluno. |
+| teste.pro@fortem.app | Já está **vinculado ao aluno BRUNA MEYER** (ativo), mas sem o papel `aluno`. |
+| teste.nicolas@fortem.app | Já está **vinculado ao aluno Nicolas Squeff Janovik** (cancelado), cujo e-mail no cadastro é nicolas.janovik@gmail.com, diferente do login. Sem o papel `aluno`. |
+| wingert.marcia@gmail.com | Já está **vinculado ao aluno MÁRCIA RIBEIRO WINGERT** (ativo), mas sem o papel `aluno`. |
 
-Status: Fase 1 implementada (sem migração). Fase 2 aguarda pedido separado.
+**Por que aparecem como equipe:** a tela de Usuários lista **todo perfil**, e todo login novo ganha um perfil automaticamente. Os 6 alunos que têm só o papel `aluno` também aparecem lá. As listas de profissionais (`fn_listar_profissionais`) já filtram por papel de equipe e não mostram esses 3.
 
-## Fase 1 — cadastro obrigatório + bloqueio na tela
-1. **Login da equipe** (`/login`): depois de e-mail e senha, o sistema checa o nível da sessão (`mfa.getAuthenticatorAssuranceLevel`).
-   - Tem fator verificado e sessão em aal1 → tela "Digite o código de 6 dígitos". Erro: "Código incorreto ou expirado. Confira o horário do celular e tente de novo." Pode tentar de novo sem refazer a senha.
-   - Sem fator → tela obrigatória "Ativar verificação em duas etapas": QR code, código manual (com botão copiar), campo de 6 dígitos para confirmar. Só libera após verificar (sessão vira aal2).
-2. **Bloqueio de rotas**: `ProtectedRoute requireStaff` passa a exigir aal2 para quem tem papel de equipe. Equipe em aal1 é levada para `/login/2fa` (desafio ou cadastro). Botão "Sair" sempre disponível.
-3. **Aluno**: portal e app não mudam. O teste de papel decide; aluno nunca vê a tela de 2FA.
-4. **Aparelho reserva**: em "Minha conta" (ou menu do usuário), botão "Adicionar aparelho reserva" (2º fator TOTP com nome, ex.: "Reserva"). Mostra a lista dos aparelhos do próprio usuário.
-5. **Tela de usuários** (`AdminUsers.tsx`): coluna "2FA" — Ativo (verde) / Pendente (amarelo) — para usuários de equipe; visível a admin e coordenador. Dados vêm da nova ação `list-mfa` da função `admin-users` (lê `auth.admin.mfa.listFactors`, só staff).
-6. **Redefinir 2FA** (só admin): botão "Redefinir 2FA" na linha do usuário, com confirmação. Ação `reset-mfa` na `admin-users`:
-   - recusa se `user_id` = quem chama ("Você não pode redefinir o seu próprio 2FA");
-   - recusa se o alvo não for de equipe;
-   - apaga todos os fatores (`auth.admin.mfa.deleteFactor`) e grava no `audit_log` (quem, para quem, quando, quantos fatores).
-   - O usuário cadastra de novo no próximo login.
-7. `admin-users` e `_shared/admin-ativo.ts`: nesta fase só **leem** o aal (para log), sem bloquear.
+**Por que ficaram sem papel (causa encontrada):** `fn_portal_link_aluno` só dá o papel `aluno` quando ela mesma faz o vínculo. Se o cadastro de aluno já estava vinculado (vínculo feito pela equipe ou importação), ela devolve "já vinculado" e sai **sem dar o papel**.
 
-Na Fase 1 o servidor ainda aceita aal1 — é a janela para os 10 cadastrarem.
+### B1 — Corrigir a exclusão em `admin-users` (ordem segura)
+Ordem nova da ação `delete`:
+1. Recusar a exclusão do próprio usuário (como hoje).
+2. **Checar vínculos** antes de apagar qualquer coisa: `alunos.user_id`/`responsavel_id`, `agenda_servicos` (profissional/consultor), `tarefas` (responsável/criador), `avaliacoes.avaliador_id`, `treinos.autor_id`, `contratos.criado_por`, `cobrancas.registrado_por` e as demais colunas com chave para `profiles`/`auth.users` sem exclusão em cascata (lista lida do banco: 30 colunas). Se houver vínculo, responder 409 com a lista ("Tem 3 tarefas e 1 agenda; desative em vez de excluir") e **não apagar nada**.
+3. `auth.admin.deleteUser`. `user_roles` e `profiles` já saem em cascata.
+4. Só se o passo 3 der certo: limpeza do que não tem cascata (sobra de `profiles`/`user_roles`, se houver) e registro no `audit_log` (quem, quem foi excluído, quando).
+- Regra pura em `supabase/functions/admin-users/excluir-regras.ts` (ordem dos passos e bloqueio por vínculo), com teste de regressão: com vínculo, nada é apagado; se `deleteUser` falhar, perfil e papéis continuam lá.
 
-## Consulta para conferir antes da Fase 2
-```sql
-select u.email, string_agg(distinct r.role::text, ',') papeis,
-       count(f.id) filter (where f.status='verified') fatores_ok
-from auth.users u
-join user_roles r on r.user_id=u.id and r.role <> 'aluno'
-left join auth.mfa_factors f on f.user_id=u.id
-group by u.email order by fatores_ok, u.email;
-```
-Ligar a Fase 2 só quando todas as linhas tiverem `fatores_ok >= 1`.
+Depois de publicada, excluo o igorniederauer pela própria ação (ou pela tela), já com a checagem. Se aparecer algum vínculo, paro e te mostro antes.
 
-## Fase 2 — imposição no servidor
-**Princípio**: uma função nova `public.aal_ok()` = `coalesce(auth.jwt()->>'aal','') = 'aal2'`. Os helpers retornam verdadeiro para papel de equipe só se `aal_ok()`. Papel `aluno` nunca depende de aal. Como as policies chamam os helpers, nenhuma das ~670 policies precisa ser reescrita.
+### B2 — Dar o papel `aluno` aos 3 (dados, não migração)
+- Inserir `user_roles (user_id, 'aluno')` para teste.pro, teste.nicolas e wingert.marcia. Os vínculos com `alunos` já existem e não mudam.
+- **Pergunta:** o teste.nicolas está ligado ao **seu** cadastro de aluno (Nicolas Squeff Janovik). Mantenho esse vínculo ou prefere desvincular? O plano mantém.
 
-Funções alteradas (`CREATE OR REPLACE`, mesma assinatura e mesmo `SECURITY DEFINER`/`search_path`):
-- `is_staff()`, `is_staff(uuid)`, `is_admin(uuid)`, `is_admin_role()`, `is_coordinator_or_admin(uuid)`, `is_coordenador_ou_admin()`, `is_professor_staff()` → `... AND aal_ok()`.
-- `has_role(uuid, app_role)` → exige `aal_ok()` só quando `_role <> 'aluno'`.
-- `is_staff_or_aluno()` → parte de equipe exige aal2; parte de aluno inalterada.
-- `aluno_user_id` não muda.
-- Quando `_user_id` ≠ `auth.uid()` (checagem de outro usuário, ex. em triggers), o aal **não** é exigido — o aal é da sessão de quem chama, não do alvo.
+### B3 — Regra para não se repetir (migração `b_aluno_papel_automatico`)
+- `fn_portal_link_aluno`: no caso "já vinculado", também garante o papel `aluno` (`ON CONFLICT DO NOTHING`).
+- Gatilho novo em `alunos`: quando `user_id` passa a ter valor, dá o papel `aluno` a esse usuário (SECURITY DEFINER, sem execução para anon). Cobre vínculos feitos pela equipe e por importação.
+- Não mexo no `handle_new_user` (gatilho do cadastro): não dá para saber, no cadastro, se é aluno ou equipe. Quem entra pelo portal sem cadastro de aluno continua sem papel e não acessa nada.
+- Tela de Usuários (`AdminUsers.tsx`): mostra só quem tem papel de equipe ou não tem papel nenhum ("Sem permissão", para o admin decidir). Quem tem só o papel `aluno` some da lista. Regra pura `usuarioApareceNaEquipe(roles)` em `src/lib/authAccess.ts`, com teste.
 
-Policies alteradas (as 2 que leem `user_roles` direto): `notificacao_destinatarios` e a de `storage.objects` passam a usar o helper equivalente (ou recebem `AND aal_ok()`). Nome exato das policies será lido e listado na migração antes de aplicar.
+### Testes de regressão (B)
+- `usuarioApareceNaEquipe(['aluno'])` = falso; `(['professor','aluno'])` = verdadeiro; `([])` = verdadeiro (aparece como "Sem permissão").
+- Exclusão: com vínculo, nada é apagado; falha no `deleteUser` não apaga perfil nem papéis.
+- Teste SQL do gatilho (dentro de transação com rollback): vincular `alunos.user_id` cria o papel `aluno`.
 
-Edge functions:
-- `_shared/admin-ativo.ts`: decodifica o JWT validado e exige `aal = 'aal2'`.
-- Funções que checam papel por conta própria com token de usuário (`admin-users` e as que usam `adminAtivo`, `whatsapp-midia`, `notify-agenda-evento` quando chamadas pela tela): mesma exigência via um helper novo `_shared/staff-aal.ts`. Na implementação levanto a lista completa com `rg` antes de editar.
-- Não mudam: chamadas com `service_role` (crons `planos-recorrencia-diario`, `ponto-banco-expirar`, `conciliar-extrato-diario`, `ipca-atualizar`, webhooks Rede/Inter `pix-webhook`, agente facial). `service_role` ignora RLS e não passa pelos helpers com aal; `auth.jwt()` não tem aal mas também não é usado nesses caminhos.
-- Páginas públicas (`anon`): continuam iguais — usam as 19 funções liberadas para anon, que não dependem dos helpers de equipe. Vou rodar de novo os testes REST anon do último ajuste de segurança.
+### Como desfazer B
+- B1: reverter o commit e publicar `admin-users` de novo. A exclusão do Igor não tem volta (ele nunca entrou e não tem dados).
+- B2: apagar as 3 linhas de `user_roles` com o papel `aluno`.
+- B3: migração que remove o gatilho e recria `fn_portal_link_aluno` como estava (o texto original fica guardado na migração).
 
-Interruptor: `aal_ok()` lê um flag em tabela de configuração (`seguranca_config.mfa_servidor_ativo`). Só `service_role` altera o flag: sem policy de escrita para admin ou qualquer usuário (leitura só admin). Motivo: um token de admin em aal1 não pode desligar a própria proteção. Ligar e desligar a Fase 2 é um `UPDATE` feito pelo servidor, sem nova migração.
+---
 
-## Migrações
-- **Fase 1**: nenhuma mudança de schema; só a ação `reset-mfa` grava no `audit_log` existente (via service_role).
-- **Fase 2 (migração `mfa_aal2_servidor`)**: cria `seguranca_config` (GRANT + RLS, leitura só admin, escrita só `service_role`, flag começa `false`), cria `aal_ok()` (sem EXECUTE para anon), recria os 9 helpers e ajusta as 2 policies. Ativação: `update seguranca_config set mfa_servidor_ativo = true` só depois da consulta acima.
+## Arquivos
+- A: `src/pages/DiagnosticoBancoHoras.tsx`, `src/components/whatsapp/WhatsAppDisparos.tsx`, novo `src/lib/whatsappGatilhosRemovidos.ts` + teste, `src/components/disparos/AGENTS.md`; excluir as pastas `supabase/functions/whatsapp-disparo-ponto` e `supabase/functions/whatsapp-resumo-ponto`.
+- B: `supabase/functions/admin-users/index.ts`, novo `excluir-regras.ts` + teste, `src/lib/authAccess.ts`, `src/components/admin/AdminUsers.tsx`, `src/test/usuariosEquipe.test.ts`, `AGENTS.md`.
+- Ao final: `bunx vitest run` e eslint nos arquivos alterados, sem `any` novo.
 
-## Arquivos que mudam
-- `src/contexts/AuthContext.tsx` (nível aal, desafio, cadastro)
-- `src/components/ProtectedRoute.tsx` (exige aal2 para equipe)
-- `src/lib/authAccess.ts` + novo `src/lib/mfa.ts` (regras puras testáveis)
-- novas: `src/pages/MfaVerificar.tsx`, `src/components/auth/MfaCadastro.tsx`, `src/components/auth/MfaDesafio.tsx`, `src/components/auth/MfaAparelhos.tsx`
-- `src/App.tsx` (rota `/login/2fa`)
-- `src/components/admin/AdminUsers.tsx` (coluna 2FA, botão Redefinir)
-- `supabase/functions/admin-users/index.ts` (`list-mfa`, `reset-mfa`, exige aal2 na Fase 2)
-- `supabase/functions/_shared/admin-ativo.ts` + novo `_shared/staff-aal.ts`
-- testes: `src/test/mfaAcesso.test.ts`, `supabase/functions/_shared/__tests__/staff-aal.test.ts`
-- `AGENTS.md`: regra "equipe exige aal2 via helpers; aluno nunca".
-
-## Testes de regressão
-- Equipe sem fator → destino é cadastro; com fator em aal1 → desafio; aal2 → libera.
-- Aluno (qualquer aal) → não é levado ao 2FA.
-- Fase 2: helper falso para equipe em aal1, verdadeiro em aal2, aluno verdadeiro em aal1 (teste SQL com `set request.jwt.claims` dentro de transação com rollback).
-- `reset-mfa` recusa o próprio usuário e alvo aluno.
-
-## Telas para você testar
-1. Login de admin → cadastro com QR no Authenticator → entra.
-2. Sair e entrar de novo → pede código; testar código errado.
-3. Adicionar aparelho reserva e entrar com ele.
-4. Usuários → coluna 2FA; "Redefinir 2FA" em outro usuário; confirmar que no seu próprio não aparece.
-5. Portal do aluno com Google → nada muda.
-6. Fase 2 ligada: telas de Vendas, Agenda, Financeiro, Ponto logado em aal2; `/planos`, `/10anos` sem login.
-
-## Como desfazer
-- **Fase 1**: reverter o commit do frontend (a tela de 2FA some; fatores cadastrados ficam guardados sem efeito). Emergência de um usuário: admin usa "Redefinir 2FA".
-- **Fase 2**: `update seguranca_config set mfa_servidor_ativo = false` — efeito imediato, servidor volta a aceitar aal1. Reversão total: nova migração recriando os helpers sem `aal_ok()`.
-- Se os 2 admins perderem acesso ao mesmo tempo: apagar o fator pelo banco (`delete from auth.mfa_factors where user_id = ...`) feito por mim, a seu pedido.
-
-## Pontos para você decidir
-- Coordenador também pode redefinir 2FA? (plano: só admin, como você pediu.)
-- O que fazer com os 4 usuários sem papel (tabela acima).
+## Telas para testar
+- A: Diagnóstico do Banco de Horas (botão sumiu, o resto funciona); WhatsApp > Disparos (sem os lembretes de ponto; os de agenda continuam); registrar um ponto normalmente.
+- B: Usuários (os 3 alunos e os outros 6 alunos não aparecem; o Igor sumiu); o portal com a conta da Márcia continua entrando.
