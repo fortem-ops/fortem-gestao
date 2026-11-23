@@ -1,3 +1,4 @@
+import { statusAvanca } from '../_shared/whatsapp-resumo.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { interpretarMensagem, previaConversa, baixarMidia } from '../_shared/whatsapp-entrada.ts';
@@ -117,6 +118,15 @@ Deno.serve(async (req) => {
 
         if (type === 'message') {
           await handleIncomingMessages(change.value);
+        } else if (type === 'status') {
+          for (const st of change.value.statuses as { id?: string; status?: string }[]) {
+            if (!st?.id || !st?.status) continue;
+            const { data: m } = await supabaseAdmin
+              .from('whatsapp_mensagens').select('id, status').eq('wamid', st.id).maybeSingle();
+            if (m && statusAvanca(m.status, st.status)) {
+              await supabaseAdmin.from('whatsapp_mensagens').update({ status: st.status }).eq('id', m.id);
+            }
+          }
         }
       } catch (e) {
         console.error('[whatsapp-webhook] parse error', e);

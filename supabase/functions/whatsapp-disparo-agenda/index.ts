@@ -122,6 +122,8 @@ Deno.serve(async (req) => {
 
       // Cópia para o consultor do agendamento (quando houver e for outro telefone)
       let sendConsultorManual: { ok: boolean; error?: string } | null = null;
+      let consultorNomeManual: string | null = null;
+      let consultorSemTelefone = false;
       const consultorUserIdManual = (ctx.agenda as any).consultor_id ?? null;
       if (consultorUserIdManual) {
         const { data: consultorProfile } = await admin
@@ -131,6 +133,8 @@ Deno.serve(async (req) => {
           .maybeSingle();
         const consultorTel = normalizarTelefone((consultorProfile as any)?.phone);
 
+        consultorNomeManual = (consultorProfile as { full_name?: string } | null)?.full_name ?? null;
+        if (!consultorTel) consultorSemTelefone = true;
         if (consultorTel && consultorTel !== profTel) {
           const consultorPayload = templatePayload ? { ...templatePayload, to: consultorTel } : null;
           sendConsultorManual = consultorPayload
@@ -161,6 +165,9 @@ Deno.serve(async (req) => {
           error: send.error,
           details: send.details,
           consultor: sendConsultorManual ? { ok: sendConsultorManual.ok, error: sendConsultorManual.error } : null,
+          profissional_nome: ctx.profissional?.full_name ?? null,
+          consultor_nome: consultorNomeManual,
+          consultor_sem_telefone: consultorSemTelefone,
         }),
         {
           status: send.ok ? 200 : 500,

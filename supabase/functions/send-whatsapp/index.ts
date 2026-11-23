@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { resumoTemplate } from '../_shared/whatsapp-resumo.ts';
 
 const WHATSAPP_TOKEN = Deno.env.get('WHATSAPP_TOKEN');
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
@@ -171,6 +172,17 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Falha ao enviar mensagem', status: metaResp.status, details: metaJson }),
         { status: metaResp.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
+    }
+
+    if (!isText) {
+      const wamidT = (metaJson as { messages?: { id?: string }[] })?.messages?.[0]?.id;
+      const waIdT = (metaJson as { contacts?: { wa_id?: string }[] })?.contacts?.[0]?.wa_id ?? toClean;
+      await upsertConversaAndSave({
+        telefone: waIdT,
+        conteudo: resumoTemplate(String(body.template_name), body.components, body.resumo),
+        wamid: wamidT,
+        enviado_por: typeof body.enviado_por === 'string' ? body.enviado_por : null,
+      });
     }
 
     if (isText) {

@@ -609,7 +609,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
     if (!agendamentoSalvo) return;
     setNotificando(true);
     try {
-      const { error } = await supabase.functions.invoke("whatsapp-disparo-agenda", {
+      const { data, error } = await supabase.functions.invoke("whatsapp-disparo-agenda", {
         body: {
           evento: "notificacao_manual",
           agenda_id: agendamentoSalvo.id,
@@ -617,7 +617,10 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         },
       });
       if (error) throw error;
-      toast.success("Professor e consultor notificados via WhatsApp");
+      const r = (data ?? {}) as { profissional_nome?: string | null; consultor_nome?: string | null; consultor_sem_telefone?: boolean; consultor?: { ok: boolean } | null };
+      const nomes = [r.profissional_nome, r.consultor?.ok ? r.consultor_nome : null].filter(Boolean).map((n) => String(n).split(" ")[0]);
+      toast.success(nomes.length ? `WhatsApp enviado para ${nomes.join(" e ")}` : "WhatsApp enviado");
+      if (r.consultor_sem_telefone) toast.warning(`${r.consultor_nome ?? "O consultor"} não tem telefone cadastrado e não recebeu.`);
     } catch (e: any) {
       toast.error("Erro ao notificar: " + (e?.message ?? "desconhecido"));
     } finally {
