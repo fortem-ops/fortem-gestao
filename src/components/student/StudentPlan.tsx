@@ -27,6 +27,7 @@ import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
 import { CancelarSemestral } from "@/components/student/CancelarSemestral";
+import { podeRenovarAntecipado } from "@/lib/renovacaoAntecipada";
 import { useCancelamentoMotivos, useCancelamentoMotivoMutations } from "@/hooks/useCancelamentoMotivos";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
@@ -109,16 +110,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     },
   });
 
-  const [renovando, setRenovando] = useState(false);
-  const renovarAntecipado = async () => {
-    if (!data) return;
-    setRenovando(true);
-    const { error } = await supabase.rpc("fn_plano_renovar_antecipado" as any, { _plano_id: data.id } as any);
-    setRenovando(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Plano renovado. Nova mensalidade gerada com vencimento hoje.");
-    queryClient.invalidateQueries();
-  };
+  const [renovOpen, setRenovOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["plano_ativo", student.id],
@@ -405,6 +397,25 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   }
 
 
+  // Renovação antecipada: Semestral e Pix Automático por grupo têm renovação própria.
+  const { data: renovInfo } = useQuery({
+    queryKey: ["renovacao-antecipada-info", data?.id],
+    enabled: !!data?.id && isAdmin === true,
+    queryFn: async () => {
+      const plano = data as { id: string; catalogo_id?: string | null };
+      let semestral = false;
+      if (plano.catalogo_id) {
+        const { data: cat, error } = await supabase.from("planos_catalogo").select("agregadora_requerida").eq("id", plano.catalogo_id).maybeSingle();
+        if (error) throw error;
+        // Sem leitura do item: trata como Semestral (esconde o botão).
+        semestral = !cat || cat.agregadora_requerida != null;
+      }
+      const { data: itens, error: e2 } = await supabase.from("pix_aut_itens").select("id").eq("plano_id", plano.id).is("ativo_ate", null).limit(1);
+      if (e2) throw e2;
+      return { semestral, emGrupoPix: (itens ?? []).length > 0 };
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-4">
@@ -507,26 +518,10 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               </div>
             )}
             {isAdmin && (data as any).catalogo_id && <CancelarSemestral planoId={data.id} alunoId={student.id} isAdmin={isAdmin} />}
-            {isAdmin && !(data as any).catalogo_id && (data as any).renovacao_automatica && data.duracao_meses === 1 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" disabled={renovando} className="gap-1.5">
-                    <RefreshCw className="h-3.5 w-3.5" /> Renovar antecipadamente
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Renovar plano antecipadamente?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      O ciclo atual ({new Date(data.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}) é encerrado hoje e começa um novo ciclo de 1 mês a partir de hoje, com nova mensalidade de R$ {Number(data.valor ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} vencendo hoje. Os próximos vencimentos passam para o dia de hoje de cada mês. Nada é cobrado automaticamente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={renovarAntecipado}>Confirmar renovação</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            {podeRenovarAntecipado({ isAdmin, plano: data, semestral: renovInfo?.semestral ?? false, emGrupoPix: renovInfo?.emGrupoPix ?? false, carregando: !renovInfo }) && (
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setRenovOpen(true)}>
+                <RefreshCw className="h-3.5 w-3.5" /> Renovar antecipadamente
+              </Button>
             )}
             {isCoordAdmin && (
               <Button size="sm" variant="outline" onClick={openEditPlan} disabled={saving} className="gap-1.5">
@@ -790,6 +785,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
+      <VendaDialog alunoId={student.id} alunoNome={student.nome} open={renovOpen} onOpenChange={setRenovOpen} renovacaoAntecipada />
 
       <CancelContractDialog
         open={cancelOpen}

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { inicioSugeridoRenovacao } from "@/lib/renovacaoAntecipada";
 import { VendaProdutos } from "./VendaProdutos";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,11 @@ import {
 } from "@/lib/vendas-servicos";
 
 
-type Props = { alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void };
+type Props = {
+  alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void;
+  /** Renovação antecipada (só admin): início sugerido hoje, editável para passado ou futuro. */
+  renovacaoAntecipada?: boolean;
+};
 
 const FREQ_OPTIONS: { value: Frequencia; label: string; desc: string }[] = [
   { value: "1x", label: "1x por semana", desc: "4 sessões/mês · 52 sessões/ano" },
@@ -119,7 +124,7 @@ const PLANO_STEPS_FULL = ["Frequência", "Plano", "Serviços", "Resumo", "Pagame
 const PLANO_STEPS_BASE = ["Frequência", "Plano", "Resumo", "Pagamento"];
 
 
-export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
+export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoAntecipada = false }: Props) {
   const qc = useQueryClient();
   const { data: roles } = useUserRoles();
   const isCoordAdmin = !!roles?.isCoordAdmin;
@@ -261,14 +266,16 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   // - adicional  → hoje (novo contrato paralelo, começa já)
   // - substituir → hoje (substitui o anterior)
   useEffect(() => {
-    if (modoContrato === "renovacao" && fimVigente) {
+    if (modoContrato === "renovacao" && renovacaoAntecipada) {
+      setDataInicio(inicioSugeridoRenovacao());
+    } else if (modoContrato === "renovacao" && fimVigente) {
       const proxima = new Date(fimVigente);
       proxima.setDate(proxima.getDate() + 1);
       setDataInicio(proxima);
     } else {
       setDataInicio(new Date());
     }
-  }, [modoContrato, fimVigente?.getTime()]);
+  }, [modoContrato, fimVigente?.getTime(), renovacaoAntecipada]);
 
 
   const { data: planos = [], isLoading: lp } = useQuery({
@@ -707,9 +714,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-primary" /> Nova Venda — {alunoNome}
+            <ShoppingCart className="w-5 h-5 text-primary" /> {renovacaoAntecipada ? "Renovação antecipada" : "Nova Venda"} — {alunoNome}
           </DialogTitle>
         </DialogHeader>
+        {renovacaoAntecipada && (
+          <p className="text-sm text-muted-foreground">
+            Escolha o plano da renovação. A data de início já vem com hoje e pode ser mudada para antes ou depois. Na cobrança, escolha online (cartão ou Pix), pendente ou baixa manual (maquininha ou dinheiro).
+          </p>
+        )}
 
         {!NOVA_VENDA_R1 && podeVender2027 && (
           <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Catálogo">
