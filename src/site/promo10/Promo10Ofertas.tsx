@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TEXTOS_PLANOS } from "@/config/planosPublicoTextos";
 import { PROMO10_DESCONTO_EX_ALUNO, type FrequenciaPromo10 } from "@/lib/promo10";
 import {
   diaDoCiclo,
@@ -24,16 +25,9 @@ const VANTAGENS_PRO_SEMESTRAL = [
   "Clube FORTEM com acúmulo turbinado",
   "Sem multa de cancelamento",
 ];
-const VANTAGENS_POWER = [
-  "Treino funcional personalizado",
-  "Avaliação física periódica",
-  "Acesso ao Clube FORTEM",
-];
-const VANTAGENS_PRO = [
-  "Treino funcional personalizado com reposição",
-  "Avaliação física periódica",
-  "Maior multiplicador no Clube FORTEM",
-];
+const VANTAGENS_POWER = TEXTOS_PLANOS.vantagens.power;
+const VANTAGENS_PRO = TEXTOS_PLANOS.vantagens.pro;
+const VANTAGEM_REPOSICAO = TEXTOS_PLANOS.vantagens.reposicao;
 
 export function Promo10Ofertas({
   primeiroNome,
@@ -194,7 +188,11 @@ export function Promo10Ofertas({
           <div className="grid gap-4 sm:grid-cols-2">
             {exAlunoFiltradas.map((o) => {
               const ehPro = o.familia === "pro_2027";
-              const vantagens = ehPro ? VANTAGENS_PRO : VANTAGENS_POWER;
+              const vantagens = ehPro
+                ? o.frequencia === "livre"
+                  ? VANTAGENS_PRO
+                  : [...VANTAGENS_PRO, VANTAGEM_REPOSICAO]
+                : VANTAGENS_POWER;
               return (
                 <div key={o.codigo} className="p10-card p-6 space-y-4">
                   <div className="flex items-center justify-between gap-2">
