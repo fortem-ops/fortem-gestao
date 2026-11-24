@@ -2,6 +2,9 @@ import type { FrequenciaPromo10, ResultadoCicloPromo10, SegmentoPromo10 } from "
 
 export const PROMO10_WHATSAPP_NUMERO = "555135199451";
 
+/** Nome de exibição da oferta Corrida para o aluno: sempre "Corrida", sem o nome do catálogo. */
+export const ROTULO_CORRIDA_PROMO10 = "Corrida";
+
 export interface OfertaUpgradePromo10 {
   tipo: "upgrade";
   plano_atual: string;
@@ -158,7 +161,7 @@ export function descreverInteresse(item: InteressePromo10): { titulo: string; de
   if (tipo === "corrida_6_mais_1" || item.oferta === "corrida_6_mais_1") {
     const eq = Number(d.valor_equivalente_mes ?? item.valor_promocional / 7);
     return {
-      titulo: `${String(d.nome_catalogo ?? "Corrida")} (6 meses + 1 grátis)`,
+      titulo: `${ROTULO_CORRIDA_PROMO10} (6 meses + 1 grátis)`,
       detalhe: `7 meses · ${formatarMoedaBr(item.valor_promocional)} (${formatarMoedaBr(eq)}/mês)`,
     };
   }

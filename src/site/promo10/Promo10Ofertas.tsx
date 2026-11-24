@@ -5,6 +5,7 @@ import {
   diaDoCiclo,
   formatarDataBr,
   formatarMoedaBr,
+  ROTULO_CORRIDA_PROMO10,
   rotuloFrequencia,
   textoQuebraUpgrade,
   type OfertaAgregadoraPromo10,
@@ -246,7 +247,7 @@ function CartaoCorrida({
       <span className="p10-badge">Combina com a oferta acima</span>
       <div className="space-y-1">
         <h2 className="text-xl font-black uppercase">Feche 6 meses, ganhe o 7º</h2>
-        <p className="text-sm text-[#d4d4d4]">{corrida.nome_catalogo} · {corrida.meses_total} meses de acesso</p>
+        <p className="text-sm text-[#d4d4d4]">{ROTULO_CORRIDA_PROMO10} · {corrida.meses_total} meses de acesso</p>
       </div>
       <div className="space-y-1">
         <p className="text-2xl font-black text-white">{formatarMoedaBr(corrida.valor_promocional)}</p>
