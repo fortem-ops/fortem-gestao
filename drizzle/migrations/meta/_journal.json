@@ -2052,6 +2052,13 @@
       "when": 1795541927916,
       "tag": "0292_venda_2027_criar_update_unico_parcelas",
       "breakpoints": true
+    },
+    {
+      "idx": 293,
+      "version": "7",
+      "when": 1795543822304,
+      "tag": "0293_receitas_sync_uma_vez_por_transacao",
+      "breakpoints": true
     }
   ]
 }
