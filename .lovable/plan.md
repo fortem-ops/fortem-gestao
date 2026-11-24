@@ -1,81 +1,56 @@
-# Push para a equipe — plano por fases
+# Promoções 10 anos — Fase 2 (página pública) + ajustes da Fase 1
 
-Push é um canal a mais. Tudo continua aparecendo dentro do sistema como hoje. Só os gatilhos da lista geram push; os marcados "SEM push" nunca geram. Cada fase só começa após sua aprovação; nenhuma migração é aplicada antes.
+## 0. Ajustes da Fase 1
+- **Desconto de ex-aluno R$ 400 → R$ 300.** Hoje o valor está duplicado: `PROMO10_DESCONTO_EX_ALUNO = 400` em `src/lib/promo10.ts` e `400.00` fixo três vezes em `fn_promo10_ofertas`. Nova migração recria a função lendo uma constante única no banco (`fn_promo10_desconto_ex_aluno()` → 300.00, imutável); o espelho em TS fica em `PROMO10_DESCONTO_EX_ALUNO = 300`, e um teste garante que os dois coincidem (ex.: 12x/Pix = catálogo − 300; recorrência = (mensalidade + 24,90) × 12 − 300 = R$ 25,00 a menos por mês). AGENTS.md atualizado.
+- **Privilégios de `promo10_interesses`.** Conferido no banco: `anon` e `authenticated` ainda têm todos os privilégios (SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER) por padrão. A migração faz `REVOKE ALL ... FROM anon, authenticated`, depois `GRANT SELECT, UPDATE ... TO authenticated` (a RLS de admin continua filtrando). `service_role` mantém ALL + a sequência. Teste no banco: anon sem nenhum privilégio; authenticated só SELECT/UPDATE.
 
-## O que já existe (lido no código)
-- `portal_push_subscriptions` (por `aluno_id`) e a função `send-push-notification`, que envia para um aluno com `web-push` e chaves VAPID (com conversão da chave PKCS8).
-- `public/sw.js` já trata `push` e `notificationclick` (sem URL abre `/portal`).
-- Já existem rotinas que serão a fonte dos gatilhos: `planos-recorrencia-diario`, `notificar-compra-recusada`, `auditoria-fiscal-pagamentos`, `verificar-pagamentos-pix-diario`, `ponto-alertas-diarios`, `ponto-notificar-pendencias`, `notify-notificacao-evento`, `check-push-triggers`.
-- A primeira etapa de cada fase confere no banco os detalhes ainda não lidos (campo de "funcionário ativo", estrutura de tarefas, `v_tecnico_alertas`, fila do Fiscal) antes de escrever SQL.
+## 1. O que reaproveita do /planos
+- `_shared/planos-verificacao.ts`: `cpfDigitosValidos`, `gerarCodigo`, `hashCodigo`, `mascararEmail`, `respostaEnvioPublica` (tempo de resposta igual com e sem cadastro).
+- `_shared/planos-turnstile.ts` + tabela `planos_turnstile_passes` (passe de uso único) e o componente de Turnstile já usado no site.
+- `fn_planos_resolver` (CPF → aluno por hash) e `fn_planos_limite` (limites por IP / CPF / e-mail).
+- Envio pelo Resend (`nao-responda@soufortem.com.br`, resposta para contatofortem@gmail.com), com o mesmo filtro de teste: enquanto a chave `planos_codigo_email_livre` não estiver ligada, só os cadastros em `planos_codigo_email_teste_ids` recebem código. Para a promoção crio chaves próprias (`promo10_codigo_email_livre` = false, `promo10_codigo_email_teste_ids`) para não depender do estado do /planos.
+- Não reaproveito a tabela `planos_verificacoes` nem `fn_planos_codigo_validar`: a promoção tem sessão e máximo de 5 tentativas próprios (abaixo).
 
-## Fase 1 — Infraestrutura
+## 2. Banco (uma migração, sem alterar dados existentes)
+- `promo10_verificacoes`: id, aluno_id, email (só servidor), codigo_hash, tentativas (máx. 5), expira_em (10 min), enviado_em (reenvio após 60 s), validado_em. Só `service_role`; RLS ligada sem políticas.
+- `promo10_sessoes`: token_hash (o navegador guarda o token, o banco só o hash), aluno_id, criada_em, expira_em (30 min, sem renovar). Só `service_role`.
+- `fn_promo10_codigo_validar(id, hash)`: conta tentativa, bloqueia na 5ª, marca validado e cria a sessão. Execução só `service_role`.
+- `fn_promo10_registrar_interesse(sessao, oferta_chave, frequencia)`: recalcula pela `fn_promo10_ofertas`, recusa oferta inexistente, aplica a regra de combinação e devolve `codigo_pedido`. Só `service_role`.
+- Regra de combinação: no máximo 1 principal por aluno com status `novo`; escolher outra principal atualiza essa linha. Se a anterior já está `contatado`, a nova não substitui e a tela pede para falar com a equipe. Mesma oferta repetida (novo/contatado) atualiza em vez de duplicar. Corrida é uma linha à parte, também sem duplicar.
 
-**Tabelas (uma migração)**
-- `equipe_push_subscriptions`: `id`, `user_id` (uuid, sem FK para auth), `endpoint` único, `p256dh`, `auth`, `user_agent`, `created_at`, `last_used_at`.
-  RLS: o próprio usuário (staff) faz select/insert/update/delete só nas suas linhas; admin (`is_admin`) lê todas. Grants para `authenticated` e `service_role`, nada para `anon`.
-- `equipe_push_log`: `user_id`, `gatilho`, `titulo`, `corpo`, `referencia` (texto, ex. `venda:123:D+1`), `sucesso`, `erro`, `enviado_em`.
-  Índice único parcial em `(gatilho, referencia, user_id)` onde `sucesso` ou "reservado" → deduplicação. A função reserva a linha antes de enviar (insert ... on conflict do nothing); se já existe, não envia.
-  RLS: só admin lê; só `service_role` escreve.
+## 3. Edge function nova: `promo10-publico`
+Ações (POST, sem login, Zod em tudo):
+- `turnstile_config` / `turnstile`: mesmas regras do /planos.
+- `enviar` (CPF + passe): limites 10/IP e 5/CPF por janela; resolve o aluno; resposta igual para CPF inexistente, sem e-mail, equipe ou bloqueado (tela "Vamos encontrar a melhor opção"). Equipe (papel de equipe) e as pessoas da equipe nunca entram. Devolve só `verificacao_id` + e-mail mascarado.
+- `reenviar`: só após 60 s, invalida o código anterior.
+- `validar` (id + código): até 5 tentativas; ao acertar, devolve `sessao` (token) + primeiro nome + ofertas calculadas.
+- `ofertas` (sessão): recarrega as ofertas, usado em "Voltar às promoções".
+- `interesse` (sessão + chave da oferta + frequência): grava e devolve `codigo_pedido`, resumo com valores e os interesses da sessão.
+- Depois de 31/12/2026 23:59 (Brasília) todas as ações respondem `encerrada`.
+- Logs em `system_logs` só com ids, e-mail mascarado e motivo — nunca CPF, código, token ou e-mail completo.
+- O navegador nunca recebe aluno_id, CPF, e-mail completo, telefone ou plano além do que a oferta mostra (plano atual, dia do ciclo, data final).
 
-**Função `send-push-equipe`** (edge, só chamada pelo servidor: exige chave de serviço/cron, recusa chamada de usuário comum)
-- Entrada validada (Zod): `user_ids[]` ou `papel`, `gatilho`, `referencia`, `titulo`, `corpo`, `url`, `urgente` (bool).
-- Regras aplicadas sempre, num módulo compartilhado `_shared/push-equipe.ts`:
-  - `gatilho` precisa estar na lista fixa de gatilhos permitidos (os "SEM push" não existem na lista → recusados).
-  - Funcionário inativo/desligado e sem papel de equipe é descartado.
-  - Não urgente fora do expediente (seg–qui 06:10–20:40, sex 06:10–19:40, Brasília) não sai; cobrança e falha de rotina saem a qualquer hora.
-  - Texto com "comissionamento" (qualquer caixa/acento) ou "!" é recusado.
-  - Deduplicação pelo log.
-  - 404/410 apaga a inscrição; sucesso atualiza `last_used_at`.
-- Lógica VAPID movida para `_shared/vapid.ts` e usada pelas duas funções (a do aluno não muda de comportamento).
+## 4. Página `/10anos/promocoes`
+Nova rota pública dentro do site, visual escuro FORTEM (fundo #0e0e0e, cartões #1a1a1a com borda 1px #4a4b4b, Archivo, títulos em caixa alta, cantos retos, botão #c8282a, cabeçalho "FORTEM" + selo "10 ANOS"), feita primeiro para o celular. O token da sessão fica só na memória da página (recarregar = recomeçar).
+Telas, com os textos do pedido: 1 CPF · 2 Código · 3 Ofertas (Upgrade, Agregador, Ex-aluno, Corrida, cada uma com "Tenho interesse") · 4 Interesse registrado (resumo, prévia e botão "Falar no WhatsApp" com wa.me/555135199451?text=… incluindo o P10-xxxx) · 5 Sem oferta · 6 Promoções encerradas.
+- Link "Promoções de aniversário" na página `/10anos`.
+- Os textos de cálculo (X de Y dias, N ciclos, sem desconto, economia) saem de funções puras em `src/lib/promo10Texto.ts`, incluindo a mensagem do WhatsApp.
 
-**Telas**
-- Botão "Ativar notificações" no menu do usuário da equipe (tema escuro), com estado deste aparelho: Ativadas / Desativadas / Bloqueadas no navegador. Desativar apaga só a inscrição deste aparelho. No iPhone, aviso de que só funciona pelo atalho "FORTEM Equipe".
-- Hook `useEquipePush` separado do `usePushNotifications` do aluno.
-- `sw.js`: `notificationclick` abre a `url` do payload (tarefa, aluno, cobrança, comunicado). Push da equipe sem URL abre `/` (nunca `/portal`).
-- Admin: aba simples "Push da equipe" com o log (quem, gatilho, sucesso/erro) e um botão "Enviar teste para mim".
+## 5. Como testar sem e-mail para alunos
+- Testes automáticos (vitest + Deno): constante R$ 300 e valores; máscara de CPF; e-mail mascarado; mensagem do WhatsApp; regra de encerramento no fuso de Brasília; 5 tentativas; reenvio 60 s; sessão vencida após 30 min; interesse recalculado no servidor (valor enviado pelo navegador é ignorado); combinação 1 principal + Corrida; repetição atualiza em vez de duplicar; resposta igual para CPF inexistente/equipe.
+- Teste real: `promo10_codigo_email_teste_ids` com apenas Bruna Meyer e NICOLAS TESTE; e-mail livre desligado, então nenhum outro aluno recebe código mesmo que alguém digite um CPF real. Rodo o fluxo pelo navegador local até o código chegar e registro um interesse; depois apago só os interesses de teste que eu criar.
+- Antes de cada teste real eu te aviso qual cadastro vou usar.
 
-**Testes Fase 1**: regras do `_shared/push-equipe.ts` (gatilho fora da lista, inativo, expediente, "comissionamento", "!", dedup), apagar 404/410, envio por pessoa e por papel, hook de inscrever/cancelar.
+## 6. Riscos
+- Os cadastros de teste precisam ter segmento com oferta; se Bruna/NICOLAS TESTE caírem em "sem oferta", testo as telas de oferta por dados simulados e o envio real só até o código.
+- E-mail desatualizado no cadastro faz o aluno cair no link do WhatsApp (esperado).
+- Liberar para todos depende de ligar `promo10_codigo_email_livre` — fica para você decidir na publicação.
+- Volume de e-mails no Resend se a campanha viralizar (limites por IP/CPF/e-mail ajudam).
+- Interesse com status `contatado` bloqueia troca de principal; a equipe ajusta na Fase 3.
 
-## Antes das Fases 2–4: textos para sua revisão
-Entrego uma tabela com todos os gatilhos: título, corpo, para quem, horário, link de destino. Sem exclamação, sem "comissionamento". Só implemento os gatilhos depois da aprovação dos textos.
+## Fora desta fase
+Tela da equipe e aviso interno (Fase 3), cobrança/checkout, envio de WhatsApp pelo sistema, alteração de dados existentes, publicação.
 
-## Fase 2 — Cobrança (admin), urgentes
-| Gatilho | Onde nasce |
-|---|---|
-| Cartão recusado D0 (motivo da Rede), D+1, D+3 (inadimplente) | `planos-recorrencia-diario` / `notificar-compra-recusada` |
-| Cartão salvo vencendo no mês seguinte | cron diário 07:30, 1 vez por cartão/mês |
-| Pix Automático não pago no vencimento; autorização cancelada | `verificar-pagamentos-pix-diario` e webhook do Inter |
-| Mensalidade com baixa manual vencendo hoje | cron 07:30 |
-| Mensalidade vencida sem baixa: só D+5 e D+10 | cron 07:30 |
-| Link de pagamento/contrato não pago em 48h → quem enviou | cron horário (`links_pagamento`, `links_contrato`) |
-| Cobrança das 08:00 não rodou, falhou ou bateu R$ 30.000 | verificação às 08:30 + fim da rotina |
-| Inconsistência crítica do Fiscal de Pagamentos | `auditoria-fiscal-pagamentos` |
-SEM push: chargeback e pagamento de inadimplente.
-
-## Fase 3 — Equipe, professor, coordenador
-- Equipe: comunicado do Notificar (destinatários, via `notify-notificacao-evento`), tarefa atrasada (responsável), divergência de ponto acima da tolerância e fechamento mensal disponível (`ponto-alertas-diarios`).
-- Professor: experimental agendada com ele; mensagem/feedback do portal; aluno novo atribuído; aniversariantes (07:30); sem treinar 7/15/30 dias (07:30, só nesses dias); tarefas técnicas no vencimento; lembrete de ponto 15 min após horário sem marcação (só professor, checado no envio).
-- Coordenador: tarefas atrasadas por profissional (resumo 07:30), alunos sem professor, `v_tecnico_alertas`, ponto da equipe, pedido de cancelamento, Fiscal de Avaliações (gatilho criado, liga quando o Fiscal existir).
-- Os itens "SEM push" da sua lista ficam de fora.
-
-## Fase 4 — Admin comercial/operação, nutri, fisio
-- Admin: lead 5 dias úteis sem retorno; experimental não convertida em 48h; venda do /planos; contrato vencendo só em 15 e 7 dias; aceite pendente acima de 30 dias; facial offline (`facial_agente_status`); críticos dos Fiscais de Créditos, Agenda de Serviços, Pipeline e Contratos; falha de rotina (crons, webhook Rede, Inter, disparos) — urgente.
-- Nutri: consulta agendada/remarcada/cancelada; consultas do dia 07:30; retorno vencendo; anamnese/questionário preenchido.
-- Fisio: consulta/sessão agendada/remarcada/cancelada; atendimentos do dia 07:30; relatório de reabilitação no vencimento.
-
-## Como os gatilhos disparam
-- Eventos imediatos: chamada a `send-push-equipe` no ponto onde o evento já é tratado (função existente ou trigger leve que enfileira).
-- Lembretes do dia: uma função nova `push-equipe-diario` (07:30 Brasília) que roda os gatilhos de horário; e `push-equipe-horario` (a cada 15 min) para links 48h, ponto 15 min e verificação da cobrança das 08:00. Agendamento pelo mecanismo gerenciado do projeto.
-- Cada gatilho tem uma função pura de "quem recebe e qual referência", testada isoladamente.
-
-## Testes (por fase, rodando `bunx vitest run` + eslint, sem `any`)
-- Inscrever/cancelar por funcionário; envio por pessoa e por papel; 404/410 apaga.
-- Dedup: mesmo gatilho+referência+pessoa só uma vez.
-- Cada gatilho da lista vai para o papel certo; cada "SEM push" é recusado.
-- Mensalidade vencida só em D+5 e D+10; contrato só em 15 e 7 dias.
-- Lembrete de ponto só professor; inativo não recebe; expediente respeitado para não urgentes.
-
-## Detalhes técnicos
-- Novos: migração Fase 1, `supabase/functions/send-push-equipe/`, `_shared/vapid.ts`, `_shared/push-equipe.ts` (+ testes Deno), `src/hooks/useEquipePush.ts`, `src/components/equipe/AtivarNotificacoes.tsx`, página/aba do log, testes vitest; nas fases 2–4, `push-equipe-diario`, `push-equipe-horario` e chamadas nas funções citadas.
-- Alterados: `send-push-notification` (passa a importar `_shared/vapid.ts`), `public/sw.js`, menu da equipe, `AGENTS.md` de `supabase/functions` (regra do push da equipe).
-- Sem novo segredo: usa as chaves VAPID já configuradas.
+## Arquivos
+- Novos: migração `promo10_fase2`, `supabase/functions/promo10-publico/index.ts` (+ AGENTS.md e teste Deno), `supabase/functions/_shared/promo10-publico.ts` (regras puras), `src/pages/Promo10Promocoes.tsx`, `src/site/promo10/*` (telas e css), `src/lib/promo10Texto.ts`, `src/test/promo10Texto.test.ts`.
+- Alterados: `src/lib/promo10.ts`, `src/test/promo10.test.ts`, `src/pages/Festa10Anos.tsx` (link), `src/App.tsx` (rota), `src/components/planos/AGENTS.md`, `src/site/AGENTS.md`.
