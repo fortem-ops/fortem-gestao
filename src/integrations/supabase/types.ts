@@ -15550,6 +15550,10 @@ export type Database = {
         Returns: number
       }
       fn_processar_horarios_fixos: { Args: never; Returns: Json }
+      fn_promo10_admin_recalcular: {
+        Args: { p_hoje?: string; p_interesse_id: string }
+        Returns: Json
+      }
       fn_promo10_ciclo: {
         Args: {
           p_data_fim: string

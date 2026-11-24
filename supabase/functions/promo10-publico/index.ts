@@ -155,6 +155,77 @@ const InteresseSchema = z.object({
   chave: z.string().min(1).max(80),
 });
 
+function rotuloOfertaAviso(oferta: string, segmento: string, detalhes: Record<string, unknown>): string {
+  const tipo = String(detalhes?.tipo ?? "");
+  if (tipo === "upgrade" || oferta.startsWith("upgrade_")) {
+    const atual = String(detalhes?.frequencia_atual ?? "");
+    const dest = String(detalhes?.frequencia_destino ?? oferta.replace("upgrade_", ""));
+    const f = (v: string) => (v === "livre" ? "Livre" : v);
+    return atual ? `Upgrade ${f(atual)} → ${f(dest)}` : `Upgrade → ${f(dest)}`;
+  }
+  if (tipo === "semestral_agregadora") {
+    const nome = String(detalhes?.nome ?? oferta).replace(/\s*-\s*(Wellhub|TotalPass)$/i, "").trim();
+    const agr = String(detalhes?.agregadora ?? segmento) === "totalpass" ? "TotalPass" : "Wellhub";
+    return `${nome} ${agr}`;
+  }
+  if (tipo === "ex_aluno") {
+    const fam = String(detalhes?.familia ?? "") === "pro_2027" ? "Pro" : "Power";
+    const freq = String(detalhes?.frequencia ?? "");
+    return `${fam} ${freq === "livre" ? "Livre" : freq} anual (ex-aluno)`;
+  }
+  if (tipo === "corrida_6_mais_1" || oferta === "corrida_6_mais_1") {
+    const cat = String(detalhes?.nome_catalogo ?? "").replace(/^Corrida\s*[-–]\s*/i, "").trim();
+    return cat ? `Corrida 6+1 · tabela ${cat}` : "Corrida 6+1";
+  }
+  return oferta;
+}
+
+function moedaBr(valor: number): string {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/** Aviso interno aos admins via notificacoes (sem CPF nem e-mail). Falha não impede o registro. */
+async function avisarAdminsInteresse(
+  alunoId: string,
+  res: { codigo_pedido: string; oferta: string; segmento: string; valor_promocional: number; detalhes?: Record<string, unknown> },
+) {
+  try {
+    const [{ data: aluno }, { data: roles }] = await Promise.all([
+      admin.from("alunos").select("nome").eq("id", alunoId).maybeSingle(),
+      admin.from("user_roles").select("user_id").eq("role", "admin"),
+    ]);
+    const ids = [...new Set((roles ?? []).map((r: { user_id: string }) => r.user_id))];
+    if (!ids.length) return;
+
+    const primeiro = primeiroNome(aluno?.nome);
+    const ofertaLegivel = rotuloOfertaAviso(res.oferta, res.segmento, res.detalhes ?? {});
+    const titulo = `Promoções 10 anos: novo interesse ${res.codigo_pedido} — ${primeiro} — ${ofertaLegivel} — ${moedaBr(Number(res.valor_promocional))}`;
+
+    const { data: notif } = await admin
+      .from("notificacoes")
+      .insert({
+        titulo,
+        descricao: `Novo interesse registrado na campanha de 10 anos (${res.codigo_pedido}). Acesse Comercial > Promoções 10 anos para acompanhar.`,
+        categoria: "comercial",
+        prioridade: "media",
+        tipo: "simples",
+        criado_por: ids[0],
+      })
+      .select("id")
+      .single();
+
+    if (notif?.id) {
+      await admin
+        .from("notificacao_destinatarios")
+        .insert(ids.map((usuario_id) => ({ notificacao_id: notif.id, usuario_id })));
+    }
+  } catch {
+    await logEvento("falha_aviso_interno", "Não foi possível criar aviso interno do interesse", {
+      codigo_pedido: res.codigo_pedido,
+    });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
@@ -386,6 +457,12 @@ Deno.serve(async (req) => {
           codigo_pedido: res.codigo_pedido,
           oferta: res.oferta,
         });
+        if (res.acao === "criado" || res.acao === "substituido") {
+          const sessao = await carregarSessao(p.data.sessao);
+          if (sessao) {
+            await avisarAdminsInteresse(sessao.alunoId, res);
+          }
+        }
       }
       return json(200, res);
     }

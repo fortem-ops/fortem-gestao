@@ -91,6 +91,7 @@ const comercialItems = [
 const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
   { title: "Disparo de Mensagens", url: "/comercial/disparos", icon: Send },
+  { title: "Promoções 10 anos", url: "/comercial/promocoes-10-anos", icon: Sparkles },
   { title: "Fotos do site", url: "/equipe/site/fotos", icon: ImageIcon },
 ];
 

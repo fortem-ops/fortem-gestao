@@ -95,6 +95,7 @@ const RelatoriosCRM = lazyWithReload(() => import("./pages/relatorios/CRM"));
 const RelatoriosEquipe = lazyWithReload(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazyWithReload(() => import("./pages/WhatsApp"));
 const Disparos = lazyWithReload(() => import("./pages/Disparos"));
+const Promo10Admin = lazyWithReload(() => import("./pages/Promo10Admin"));
 const SiteFotosAdmin = lazyWithReload(() => import("./pages/SiteFotosAdmin"));
 const Corrida = lazyWithReload(() => import("./pages/Corrida"));
 const PlanosRota = lazyWithReload(() => import("./pages/PlanosRota"));
@@ -668,6 +669,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <Disparos />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/comercial/promocoes-10-anos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Promo10Admin />
                   </Suspense>
                 }
               />
