@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { festa10AnosConfig as cfg } from "@/config/festa10anos";
-import { brlCentavos } from "@/lib/festa10anos";
 import { Seo } from "@/components/Seo";
-import FestaConfirmacaoForm from "@/components/festa/FestaConfirmacaoForm";
+import FestaGaleria from "@/site/components/FestaGaleria";
 import FestaFotosAno from "@/components/festa/FestaFotosAno";
 import FotoAutor from "@/components/festa/FotoAutor";
 import { agruparFotosPorAno, carregarFestaFotosPublico, carregarAjusteAutorPublico, AJUSTE_PADRAO, type AjusteFoto, type FestaFoto } from "@/lib/festaFotos";
@@ -35,13 +33,6 @@ const btnPrim = "inline-flex min-h-12 items-center justify-center bg-primary px-
 const btnSec = "inline-flex min-h-12 items-center justify-center border-2 border-foreground px-7 text-[13px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
 
 export default function Festa10Anos() {
-  const [totalConfirmados, setTotalConfirmados] = useState<number | null>(null);
-
-  const carregarTotal = useCallback(async () => {
-    const { data, error } = await supabase.rpc("fn_festa_total_confirmados" as any);
-    if (!error && typeof data === "number") setTotalConfirmados(data);
-  }, []);
-  useEffect(() => { carregarTotal(); }, [carregarTotal]);
   const [fotosDb, setFotosDb] = useState<Record<string, FestaFoto[]> | null>(null);
   useEffect(() => { carregarFestaFotosPublico().then((f) => setFotosDb(agruparFotosPorAno(f))).catch(() => setFotosDb(null)); carregarAjusteAutorPublico().then(setAjusteAutor).catch(() => {}); }, []);
   const [ajusteAutor, setAjusteAutor] = useState<AjusteFoto>(AJUSTE_PADRAO);
@@ -52,19 +43,19 @@ export default function Festa10Anos() {
   useEffect(() => { carregarInteracoes().then(setInteracoes).catch(() => {}); }, []);
   const onInteracao = useCallback((id: string, i: FestaInteracao) => setInteracoes((m) => ({ ...m, [id]: i })), []);
 
-  const local = `${cfg.local.endereco} · ${cfg.horario} · confirmações ${cfg.prazoTexto}`;
+  const local = `${cfg.local.endereco} · ${cfg.local.cidade}`;
 
   return (
     <main data-festa="10anos" className="min-h-screen overflow-x-clip bg-background font-light text-foreground">
-      <Seo title="FORTEM · 10 anos | 14.11.26" description="Dez anos de movimento. Confirme sua presença na festa de 10 anos da FORTEM, em 14 de novembro de 2026." path="/10anos" />
+      <Seo title="FORTEM · 10 anos | 14.11.26" description="Celebramos dez anos de movimento em 14 de novembro de 2026. Conheça nossa história, veja as fotos da festa e confira as promoções de aniversário." path="/10anos" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background">
         <div className="mx-auto flex h-[51px] max-w-7xl items-center justify-between gap-3 px-5 sm:px-8 md:h-auto md:py-3">
           <a href="#topo" aria-label="FORTEM, início" className="inline-flex min-h-11 items-center"><img src={fortemWordmark} alt="FORTEM" className="h-[22px] w-auto invert md:h-6" /></a>
           <nav aria-label="Seções" className="flex items-center gap-1 sm:gap-4">
             <a href="#historia" className={`${linkCls} hidden md:inline-flex`}>História</a>
-            <a href="#festa" className={`${linkCls} hidden md:inline-flex`}>A festa</a>
-            <a href="#confirmar" className="inline-flex h-11 items-center bg-primary px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-auto md:min-h-11 md:px-4 md:text-xs md:tracking-[0.12em]">Confirmar presença</a>
+            <a href="#festa" className={`${linkCls} hidden md:inline-flex`}>Como foi a festa</a>
+            <a href="/10anos/promocoes" className="inline-flex min-h-11 items-center bg-primary px-3 text-center text-[10px] font-bold uppercase text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:px-4 md:text-xs">Promoções de aniversário</a>
           </nav>
         </div>
       </header>
@@ -88,9 +79,8 @@ export default function Festa10Anos() {
               <PlayerIntroducao src="/audio/10anos/introducao.m4a" />
             </div>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row md:mt-9">
-              <a href="#confirmar" className={btnPrim}>Confirmar presença</a>
+              <a href="/10anos/promocoes" className={btnPrim}>Promoções de aniversário</a>
               <a href="#historia" className={btnSec}>Nossa história</a>
-              <a href="/10anos/promocoes" className={btnSec}>Promoções de aniversário</a>
             </div>
             <p className="mt-5 text-sm text-muted-foreground md:mt-8">{local}</p>
           </div>
@@ -98,13 +88,26 @@ export default function Festa10Anos() {
       </section>
 
 
+      <section id="promocoes" className="border-t border-border bg-card px-5 py-12 sm:px-8 md:py-20">
+        <div className="mx-auto max-w-7xl">
+          <Rotulo>FORTEM · 10 anos</Rotulo>
+          <h2 className="mt-5 text-3xl font-black uppercase leading-tight sm:text-5xl">Promoções de aniversário</h2>
+          <p className="mt-5 max-w-3xl text-lg text-muted-foreground">Alunos, ex-alunos e alunos Wellhub e TotalPass da FORTEM têm condições especiais até 31/12/2026.</p>
+          <a href="/10anos/promocoes" className={`${btnPrim} mt-7`}>Ver minhas promoções</a>
+        </div>
+      </section>
+
       <NossaHistoria audiosDb={audiosDb} ajusteAutor={ajusteAutor} fotosDb={fotosDb} interacoes={interacoes} onInteracao={onInteracao} />
 
       {/* A festa */}
       <section id="festa" className="scroll-mt-16 border-t border-border bg-card px-5 py-20 sm:px-8 sm:py-28">
         <div className="mx-auto max-w-7xl">
-          <Rotulo>A festa</Rotulo>
-          <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">{cfg.festa.titulo}</h2>
+          <Rotulo>14.11.26 · Uma noite para celebrar</Rotulo>
+          <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">Como foi a festa</h2>
+          <FestaGaleria />
+          <a href="/10anos/fotos" className={`${btnPrim} mt-8`}>Encontre suas fotos</a>
+          <details className="mt-12 border-t border-border">
+          <summary className="cursor-pointer py-5 text-lg font-bold uppercase">Relembre a noite</summary>
           <div className="mt-12 grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
             {[
               { t: "Data", v: <span className="first-letter:uppercase">{cfg.dataExtenso}</span> },
@@ -122,7 +125,7 @@ export default function Festa10Anos() {
             {cfg.festa.atracoes.map((a) => <li key={a} className="bg-card px-6 py-5 text-base font-bold uppercase tracking-[0.08em]">{a}</li>)}
           </ul>
 
-          <h3 className="mt-20 text-2xl font-black uppercase sm:text-3xl">COMO SERÁ A NOITE</h3>
+          <h3 className="mt-12 text-2xl font-black uppercase sm:text-3xl">Como foi a noite</h3>
           <ol className="mt-8 border-t border-border">
             {cfg.programacao.map((p) => (
               <li key={p.hora} className="grid grid-cols-[6.5rem_1fr] items-baseline gap-4 border-b border-border py-5 sm:grid-cols-[10rem_1fr]">
@@ -131,31 +134,7 @@ export default function Festa10Anos() {
               </li>
             ))}
           </ol>
-        </div>
-      </section>
-
-      {/* Confirmação */}
-      <section id="confirmar" className="scroll-mt-16 border-t border-border px-5 py-20 sm:px-8 sm:py-28">
-        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
-          <div>
-            <Rotulo>Confirme sua presença</Rotulo>
-            <h2 className="mt-5 text-4xl font-black uppercase leading-tight sm:text-6xl">{cfg.confirmacao.titulo}</h2>
-            <p className="mt-5 text-lg text-muted-foreground">Confirmações {cfg.prazoTexto}.</p>
-            <div className="relative mt-10 border border-border p-6">
-              <Cantoneiras cor="festa-marca-border" />
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Pessoas confirmadas</p>
-              <p className="mt-2 text-6xl font-black" aria-live="polite">{totalConfirmados ?? "—"}</p>
-            </div>
-            <div className="mt-8 border border-border">
-              <p className="border-b border-border px-6 py-4 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Valores por pessoa</p>
-              <dl className="divide-y divide-border">
-                <div className="flex flex-wrap justify-between gap-4 px-6 py-4"><dt>Adulto</dt><dd className="font-bold">{brlCentavos(cfg.valores.pessoaCentavos)}</dd></div>
-                <div className="flex justify-between gap-4 px-6 py-4"><dt>Criança</dt><dd className="font-bold">{cfg.valores.criancaTexto}</dd></div>
-              </dl>
-              <p className="border-t border-border px-6 py-4 text-sm text-muted-foreground">{cfg.valores.pagamento}</p>
-            </div>
-          </div>
-          <div><FestaConfirmacaoForm onConfirmado={carregarTotal} /></div>
+          </details>
         </div>
       </section>
 
@@ -165,7 +144,6 @@ export default function Festa10Anos() {
           <p className="text-xs font-bold uppercase tracking-[0.2em]">FORTEM · 10 ANOS · {cfg.dataCurta}</p>
           <p className="text-sm text-muted-foreground">{cfg.local.endereco} · {cfg.local.cidade}</p>
           <div className="flex items-center gap-4">
-            <a href="/10anos/promocoes" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Promoções de aniversário</a>
             <a href="/10anos/fotos" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Fotos da festa</a>
           </div>
         </div>
@@ -193,7 +171,7 @@ function Recolhivel({ titulo, children }: { titulo: string; children: React.Reac
 type HistoriaProps = { capitulos?: Capitulo[]; fotosDb: Record<string, FestaFoto[]> | null; interacoes: Record<string, FestaInteracao>; onInteracao: (id: string, i: FestaInteracao) => void; ajusteAutor?: AjusteFoto; audiosDb?: Record<string, Pick<FestaAudio, "url_audio" | "duracao_segundos">> };
 
 export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHistoriaCapitulos, fotosDb, interacoes, onInteracao, audiosDb = {} }: HistoriaProps) {
-  const caps = capitulos.filter((c) => !c.oculto).map((c) => ({ ...c, audio: audiosDb[c.ano]?.url_audio || c.audio }));
+  const caps = useMemo(() => capitulos.filter((c) => !c.oculto).map((c) => ({ ...c, audio: audiosDb[c.ano]?.url_audio || c.audio })), [capitulos, audiosDb]);
   const comAudio = caps.filter((c) => c.audio);
   const duracao = textoDuracao(comAudio.map((c) => audiosDb[c.ano]?.duracao_segundos));
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -211,7 +189,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
     const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && setAtivo(e.target.id.replace("cap-", ""))), { rootMargin: "-40% 0px -55% 0px" });
     caps.forEach((c) => { const el = document.getElementById(`cap-${c.ano}`); if (el) io.observe(el); });
     return () => io.disconnect();
-  }, [caps.length, isMobile]);
+  }, [caps, isMobile]);
 
   const tocar = (ano: string | null, restante: string[] = []) => {
     const a = audioRef.current; if (!a) return;
@@ -400,7 +378,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
                 <button type="button" aria-label="Próximo capítulo" onClick={() => passo(1)}
                   className="min-h-12 bg-foreground text-[13px] font-bold uppercase tracking-[0.12em] text-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">Próximo</button>
               ) : (
-                <a href="#confirmar" className="inline-flex min-h-12 items-center justify-center bg-foreground text-[13px] font-bold uppercase tracking-[0.1em] text-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Confirmar presença</a>
+                <a href="/10anos/promocoes" className="inline-flex min-h-12 items-center justify-center bg-foreground text-[13px] font-bold uppercase text-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Ver minhas promoções</a>
               )}
             </div>
           )}
@@ -412,7 +390,7 @@ export function NossaHistoria({ ajusteAutor = AJUSTE_PADRAO, capitulos = festaHi
           <Cantoneiras />
           <p className="text-3xl font-black uppercase leading-tight sm:text-5xl">{ab.fechamento.titulo}</p>
           <p className="mt-4 text-lg">{ab.fechamento.texto}</p>
-          <a href="#confirmar" className="mt-8 inline-flex min-h-12 items-center bg-background px-7 text-sm font-bold uppercase tracking-[0.12em] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{ab.fechamento.botao}</a>
+          <a href="/10anos/promocoes" className="mt-8 inline-flex min-h-12 items-center bg-background px-7 text-sm font-bold uppercase text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Ver minhas promoções</a>
         </div>
       </div>
       {isMobile && comAudio.length > 0 && <div className="sticky bottom-0 z-20 mt-10 pb-[env(safe-area-inset-bottom)]">{miniPlayer}</div>}

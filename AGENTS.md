@@ -8,6 +8,8 @@
 
 ## Decisões
 
+- The anniversary retrospective gallery uses the existing public event-photo endpoint and its signed thumbnail/preview URLs, never direct table or storage reads. Why: preserve moderation and private storage while keeping the public page light.
+
 ### Onde estão as demais regras (ler o arquivo da área ANTES de mexer, inclusive em SQL, RPCs, migrações e edge functions)
 - Planos, contratos, vendas, descontos, créditos, Recovery e serviços pagos: `src/components/planos/AGENTS.md`.
 - Financeiro (despesas, Pix, conciliação, encargos, "Cliente desde"): `src/lib/AGENTS.md`.

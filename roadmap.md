@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] /10anos: retrospectiva, chamada principal das promoções e galeria pública (155 arquivos / 1437 testes; lint limpo; navegador celular/computador conferido)
+- [ ] Promoções Fase 4: excluir somente interesses de teste — lista e aprovação separada do dono
+- [ ] Promoções Fase 4: liberar códigos por e-mail — aprovação separada do dono
+- [ ] Promoções Fase 4: publicar — revisão da /10anos e aprovação separada do dono
+
 - [x] 2FA Fase 1 (cadastro, desafio, reserva, coluna 2FA, list-mfa/reset-mfa)
 - [x] Registrar no plano: interruptor da Fase 2 só service_role
 - [ ] 2FA Fase 2 (servidor) — aguardando pedido do dono
