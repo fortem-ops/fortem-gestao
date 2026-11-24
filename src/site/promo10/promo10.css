@@ -1,0 +1,93 @@
+/* Visual escuro FORTEM exclusivo de /10anos/promocoes */
+[data-promo10] {
+  background-color: #0e0e0e;
+  color: #f5f5f5;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+[data-promo10] .p10-card {
+  background-color: #1a1a1a;
+  border: 1px solid #4a4b4b;
+  border-radius: 0;
+}
+
+[data-promo10] .p10-btn-primary {
+  background-color: #c8282a;
+  color: #ffffff;
+  border: 1px solid #c8282a;
+  border-radius: 0;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  min-height: 48px;
+  transition: opacity 120ms ease;
+}
+
+[data-promo10] .p10-btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+[data-promo10] .p10-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-promo10] .p10-btn-secondary {
+  background-color: transparent;
+  color: #f5f5f5;
+  border: 1px solid #4a4b4b;
+  border-radius: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  min-height: 44px;
+}
+
+[data-promo10] .p10-btn-secondary:hover:not(:disabled) {
+  border-color: #f5f5f5;
+}
+
+[data-promo10] .p10-input {
+  background-color: #0e0e0e;
+  color: #ffffff;
+  border: 1px solid #4a4b4b;
+  border-radius: 0;
+  min-height: 48px;
+  padding: 0 14px;
+  width: 100%;
+  font-size: 16px;
+}
+
+[data-promo10] .p10-input:focus {
+  outline: none;
+  border-color: #c8282a;
+}
+
+[data-promo10] .p10-badge {
+  background-color: #c8282a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  display: inline-block;
+}
+
+[data-promo10] .p10-tab {
+  background-color: #0e0e0e;
+  color: #d4d4d4;
+  border: 1px solid #4a4b4b;
+  border-radius: 0;
+  min-height: 42px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+[data-promo10] .p10-tab[data-ativo="true"] {
+  background-color: #c8282a;
+  border-color: #c8282a;
+  color: #ffffff;
+}

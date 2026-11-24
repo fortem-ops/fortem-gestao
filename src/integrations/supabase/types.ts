@@ -10479,6 +10479,93 @@ export type Database = {
           },
         ]
       }
+      promo10_sessoes: {
+        Row: {
+          aluno_id: string
+          criada_em: string
+          expira_em: string
+          token_hash: string
+        }
+        Insert: {
+          aluno_id: string
+          criada_em?: string
+          expira_em: string
+          token_hash: string
+        }
+        Update: {
+          aluno_id?: string
+          criada_em?: string
+          expira_em?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo10_sessoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo10_sessoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      promo10_verificacoes: {
+        Row: {
+          aluno_id: string
+          codigo_hash: string
+          created_at: string
+          email: string
+          enviado_em: string
+          expira_em: string
+          id: string
+          tentativas: number
+          validado_em: string | null
+        }
+        Insert: {
+          aluno_id: string
+          codigo_hash: string
+          created_at?: string
+          email: string
+          enviado_em?: string
+          expira_em: string
+          id?: string
+          tentativas?: number
+          validado_em?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          codigo_hash?: string
+          created_at?: string
+          email?: string
+          enviado_em?: string
+          expira_em?: string
+          id?: string
+          tentativas?: number
+          validado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo10_verificacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo10_verificacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       promocoes: {
         Row: {
           ativo: boolean
@@ -15473,8 +15560,22 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_promo10_codigo_validar: {
+        Args: { p_hash: string; p_id: string; p_token_hash: string }
+        Returns: Json
+      }
+      fn_promo10_desconto_ex_aluno: { Args: never; Returns: number }
       fn_promo10_ofertas: {
         Args: { p_aluno_id: string; p_hoje?: string }
+        Returns: Json
+      }
+      fn_promo10_registrar_interesse: {
+        Args: {
+          p_chave: string
+          p_hoje?: string
+          p_tipo: string
+          p_token_hash: string
+        }
         Returns: Json
       }
       fn_promover_categoria_para_grupo: {

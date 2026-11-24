@@ -105,6 +105,7 @@ const LojaRota = lazyWithReload(() => import("./site/pages/LojaRota"));
 const Festa10Anos = lazyWithReload(() => import("./pages/Festa10Anos"));
 const FotosEventoPublico = lazyWithReload(() => import("./site/fotosEvento/FotosEventoPublico"));
 const PrivacidadeFotos = lazyWithReload(() => import("./site/fotosEvento/PrivacidadeFotos"));
+const Promo10Promocoes = lazyWithReload(() => import("./pages/Promo10Promocoes"));
 const SiteHome = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteHome })));
 const SiteTreinamento = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteTreinamento })));
 const SiteNutricao = lazyWithReload(() => import("./site/pages/SitePaginas").then((m) => ({ default: m.SiteNutricao })));
@@ -215,6 +216,7 @@ const App = () => (
              <Route path="/10anos" element={<Suspense fallback={<RouteFallback />}><Festa10Anos /></Suspense>} />
              <Route path="/10anos/fotos" element={<Suspense fallback={<RouteFallback />}><FotosEventoPublico /></Suspense>} />
              <Route path="/10anos/fotos/privacidade" element={<Suspense fallback={<RouteFallback />}><PrivacidadeFotos /></Suspense>} />
+             <Route path="/10anos/promocoes" element={<Suspense fallback={<RouteFallback />}><Promo10Promocoes /></Suspense>} />
             <Route path="/" element={<Suspense fallback={null}><SiteHome /></Suspense>} />
             <Route path="/treinamento" element={<Suspense fallback={null}><SiteTreinamento /></Suspense>} />
             <Route path="/nutricao" element={<Suspense fallback={null}><SiteNutricao /></Suspense>} />

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  PROMO10_DESCONTO_EX_ALUNO,
   PROMO10_UPGRADE_CHEIO_MES,
   PROMO10_UPGRADE_PROMO_MES,
   calcularCicloPromo10,
@@ -7,6 +8,11 @@ import {
 } from "@/lib/promo10";
 
 describe("Promoções 10 anos — cálculo de ciclo (espelho de fn_promo10_ciclo)", () => {
+  it("constante de desconto de ex-aluno é R$ 300 (R$ 25/mês na recorrência)", () => {
+    expect(PROMO10_DESCONTO_EX_ALUNO).toBe(300);
+    expect(PROMO10_DESCONTO_EX_ALUNO / 12).toBe(25);
+  });
+
   it("Exemplo 1: metade de 1 ciclo de 30 dias, 1 degrau = R$ 40,00", () => {
     const r = calcularCicloPromo10("2026-11-01", "2026-12-01", "2026-11-16", 1, PROMO10_UPGRADE_PROMO_MES);
     expect(r.proporcional).toBe(40);

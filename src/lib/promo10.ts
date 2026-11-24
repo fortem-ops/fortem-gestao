@@ -1,7 +1,7 @@
 export const PROMO10_DATA_LIMITE = "2026-12-31";
 export const PROMO10_UPGRADE_PROMO_MES = 80;
 export const PROMO10_UPGRADE_CHEIO_MES = 100;
-export const PROMO10_DESCONTO_EX_ALUNO = 400;
+export const PROMO10_DESCONTO_EX_ALUNO = 300;
 
 export type FrequenciaPromo10 = "1x" | "2x" | "3x" | "livre";
 export type SegmentoPromo10 = "upgrade" | "wellhub" | "totalpass" | "ex_aluno" | "so_corrida" | "equipe" | "sem_oferta";
