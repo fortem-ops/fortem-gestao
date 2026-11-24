@@ -15,14 +15,15 @@ import {
 } from "@/lib/promo10Texto";
 
 const VANTAGENS_START_SEMESTRAL = [
-  "3 treinos presenciais por semana",
-  "Horários fixos garantidos",
+  "3x por semana (12 créditos por mês)",
+  "2 Avaliações Funcionais (1º e 6º mês)",
+  "Recorrência no cartão ou Pix Automático",
   "Sem multa de cancelamento",
 ];
 const VANTAGENS_PRO_SEMESTRAL = [
-  "3 treinos presenciais por semana",
-  "Reposição de treinos e vantagens do plano Pro",
-  "Clube FORTEM com acúmulo turbinado",
+  "Tudo do Start Semestral",
+  "Fixar horários na agenda",
+  "Bota de compressão: 4 sessões por mês",
   "Sem multa de cancelamento",
 ];
 const VANTAGENS_POWER = TEXTOS_PLANOS.vantagens.power;
