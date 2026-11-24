@@ -10416,6 +10416,69 @@ export type Database = {
         }
         Relationships: []
       }
+      promo10_interesses: {
+        Row: {
+          aluno_id: string
+          atualizado_em: string | null
+          atualizado_por: string | null
+          codigo_pedido: string
+          created_at: string
+          detalhes: Json
+          id: string
+          observacao: string | null
+          oferta: string
+          segmento: string
+          status: string
+          valor_promocional: number
+          valor_sem_desconto: number | null
+        }
+        Insert: {
+          aluno_id: string
+          atualizado_em?: string | null
+          atualizado_por?: string | null
+          codigo_pedido?: string
+          created_at?: string
+          detalhes?: Json
+          id?: string
+          observacao?: string | null
+          oferta: string
+          segmento: string
+          status?: string
+          valor_promocional: number
+          valor_sem_desconto?: number | null
+        }
+        Update: {
+          aluno_id?: string
+          atualizado_em?: string | null
+          atualizado_por?: string | null
+          codigo_pedido?: string
+          created_at?: string
+          detalhes?: Json
+          id?: string
+          observacao?: string | null
+          oferta?: string
+          segmento?: string
+          status?: string
+          valor_promocional?: number
+          valor_sem_desconto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo10_interesses_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo10_interesses_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       promocoes: {
         Row: {
           ativo: boolean
@@ -15400,6 +15463,20 @@ export type Database = {
         Returns: number
       }
       fn_processar_horarios_fixos: { Args: never; Returns: Json }
+      fn_promo10_ciclo: {
+        Args: {
+          p_data_fim: string
+          p_data_inicio: string
+          p_degraus: number
+          p_hoje: string
+          p_valor_mes: number
+        }
+        Returns: Json
+      }
+      fn_promo10_ofertas: {
+        Args: { p_aluno_id: string; p_hoje?: string }
+        Returns: Json
+      }
       fn_promover_categoria_para_grupo: {
         Args: { p_categoria: string; p_grupo_origem: string }
         Returns: number
