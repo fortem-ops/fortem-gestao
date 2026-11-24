@@ -47,7 +47,7 @@ export default function Festa10Anos() {
 
   return (
     <main data-festa="10anos" className="min-h-screen overflow-x-clip bg-background font-light text-foreground">
-      <Seo title="FORTEM · 10 anos | 14.11.26" description="Celebramos dez anos de movimento em 14 de novembro de 2026. Conheça nossa história, veja as fotos da festa e confira as promoções de aniversário." path="/10anos" />
+      <Seo title="FORTEM · 10 anos" description="Celebramos dez anos de movimento. Conheça nossa história, veja as fotos da festa e confira as promoções de aniversário." path="/10anos" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background">
         <div className="mx-auto flex h-[51px] max-w-7xl items-center justify-between gap-3 px-5 sm:px-8 md:h-auto md:py-3">
@@ -64,7 +64,7 @@ export default function Festa10Anos() {
       <section id="topo" className="px-5 py-8 sm:px-8 md:py-24 lg:py-28">
         <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-6 sm:gap-x-8 md:gap-y-10 lg:grid-cols-[1.3fr_1fr] lg:gap-x-14 lg:gap-y-8">
           <div className="col-start-1 row-start-1">
-            <h1 className="text-[44px] font-black leading-[0.85] md:text-8xl lg:text-[9rem]">{cfg.dataCurta}</h1>
+            <h1 className="text-[22px] font-extrabold uppercase tracking-[0.06em] md:text-3xl">{cfg.hero.titulo}</h1>
           </div>
           <div className="relative mx-auto aspect-square w-16 self-center md:w-[9rem] lg:row-span-2 lg:w-full lg:max-w-[26rem]">
             <Cantoneiras />
@@ -73,7 +73,6 @@ export default function Festa10Anos() {
             </div>
           </div>
           <div className="col-span-2 row-start-2 lg:col-span-1 lg:col-start-1 lg:row-start-2">
-            <p className="text-[22px] font-extrabold uppercase tracking-[0.06em] md:text-3xl">{cfg.hero.titulo}</p>
             <p className="mt-3 max-w-xl text-base leading-relaxed text-muted-foreground md:mt-4 md:text-lg">{cfg.hero.texto}</p>
             <div className="mt-5 md:max-w-md">
               <PlayerIntroducao src="/audio/10anos/introducao.m4a" />

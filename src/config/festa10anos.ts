@@ -49,7 +49,7 @@ export const festa10AnosConfig = {
   },
   hero: {
     titulo: "FORTEM · 10 ANOS",
-    texto: "Celebramos dez anos de movimento em 14 de novembro de 2026. Obrigado por celebrar com a gente.",
+    texto: "Celebramos dez anos de movimento. Obrigado por celebrar com a gente.",
   },
   historia: {
     titulo: "UMA DÉCADA DE MOVIMENTO",
