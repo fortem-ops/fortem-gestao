@@ -2045,6 +2045,13 @@
       "when": 1795530167325,
       "tag": "0291_promo10_fase3_admin_recalcular_e_acao",
       "breakpoints": true
+    },
+    {
+      "idx": 292,
+      "version": "7",
+      "when": 1795541927916,
+      "tag": "0292_venda_2027_criar_update_unico_parcelas",
+      "breakpoints": true
     }
   ]
 }
