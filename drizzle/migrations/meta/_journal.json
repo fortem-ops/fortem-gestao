@@ -2059,6 +2059,13 @@
       "when": 1795543822304,
       "tag": "0293_receitas_sync_uma_vez_por_transacao",
       "breakpoints": true
+    },
+    {
+      "idx": 294,
+      "version": "7",
+      "when": 1795545734469,
+      "tag": "0294_receitas_sync_sem_recalcular_view",
+      "breakpoints": true
     }
   ]
 }
