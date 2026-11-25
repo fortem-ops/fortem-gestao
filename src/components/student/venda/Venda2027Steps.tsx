@@ -14,13 +14,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/vendas";
 import { useUserRoles } from "@/hooks/useUserRoles";
-import { BANDEIRAS_PADRAO, type Bandeira } from "@/types/adquirente";
+import { type Bandeira } from "@/types/adquirente";
 import {
-  FORMAS_RECEBIMENTO,
   formaExigeBandeira,
   formaPermiteParcelas,
   validarBaixaCartao,
 } from "@/lib/formasRecebimento";
+import { VendaRetroativaSection } from "./VendaRetroativaSection";
 import {
   calcularVenda2027,
   calcularServicos2027,
@@ -125,10 +125,6 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
   const [motivoRetro, setMotivoRetro] = useState("");
 
   const valorManualNum = valorManual.trim() === "" ? null : Number(valorManual.replace(",", "."));
-  const formasRetro = useMemo(
-    () => FORMAS_RECEBIMENTO.filter((f) => f.value !== "cartao_credito_online"),
-    [],
-  );
 
   const { data: catalogo = [] } = useQuery({
     queryKey: ["planos-catalogo-2027"],
@@ -492,135 +488,39 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
       )}
 
       {isAdmin && !soServicos && item && (
-        <div className="rounded-lg border border-border p-3 space-y-3">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between text-sm font-medium text-left"
-            onClick={() => setRetroAberto((v) => !v)}
-          >
-            <span>Venda retroativa / ajuste de valor</span>
-            <span className="text-xs text-muted-foreground">{retroAberto ? "Ocultar" : "Abrir"}</span>
-          </button>
-          {retroAberto && (
-            <div className="space-y-3 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="venda-valor-cobrado">Valor cobrado (R$)</Label>
-                  <Input
-                    id="venda-valor-cobrado"
-                    type="number"
-                    min={valorCatalogoRef}
-                    step="0.01"
-                    placeholder={valorCatalogoRef.toFixed(2)}
-                    value={valorManual}
-                    onChange={(e) => {
-                      setValorManual(e.target.value);
-                      if (e.target.value.trim() !== "") setDesconto(0);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Opcional. Apenas valores acima do catálogo ({formatBRL(valorCatalogoRef)}).
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="venda-data-retro">Data da venda</Label>
-                  <Input
-                    id="venda-data-retro"
-                    type="date"
-                    value={dataVenda}
-                    onChange={(e) => {
-                      const d = e.target.value;
-                      setDataVenda(d);
-                      if (d) {
-                        setDataInicio(d);
-                        setPrimeiroVenc(d);
-                        setDataPagamento(d);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={jaPago} onCheckedChange={(v) => setJaPago(!!v)} />
-                Já pago
-              </label>
-
-              {jaPago && (
-                <div className="space-y-3 rounded-md border border-border/70 bg-muted/20 p-3">
-                  {forma === "recorrencia" && (
-                    <p className="text-xs text-muted-foreground">
-                      Em recorrência mensal, apenas a 1ª mensalidade nasce paga; as próximas seguem a cobrança recorrente.
-                    </p>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label>Forma de recebimento</Label>
-                      <Select value={formaRecebimento} onValueChange={setFormaRecebimento}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {formasRetro.map((f) => (
-                            <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="venda-data-pagamento">Data do pagamento</Label>
-                      <Input
-                        id="venda-data-pagamento"
-                        type="date"
-                        value={dataPagamento}
-                        onChange={(e) => setDataPagamento(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  {(formaExigeBandeira(formaRecebimento) || formaPermiteParcelas(formaRecebimento)) && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {formaExigeBandeira(formaRecebimento) && (
-                        <div className="space-y-1">
-                          <Label>Bandeira</Label>
-                          <Select value={bandeira} onValueChange={(v) => setBandeira(v as Bandeira)}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {BANDEIRAS_PADRAO.map((b) => (
-                                <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      {formaPermiteParcelas(formaRecebimento) && (
-                        <div className="space-y-1">
-                          <Label>Parcelas na máquina</Label>
-                          <Select value={String(parcelasMaquina)} onValueChange={(v) => setParcelasMaquina(Number(v))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                                <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {erroBaixaRetro && <p className="text-xs text-destructive">{erroBaixaRetro}</p>}
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <Label htmlFor="venda-motivo-retro">Motivo (obrigatório para ajuste/retroativa)</Label>
-                <Input
-                  id="venda-motivo-retro"
-                  placeholder="Ex.: Venda fechada na recepção em data anterior"
-                  value={motivoRetro}
-                  onChange={(e) => setMotivoRetro(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+        <VendaRetroativaSection
+          aberto={retroAberto}
+          onToggle={() => setRetroAberto((v) => !v)}
+          valorCatalogoRef={valorCatalogoRef}
+          valorManual={valorManual}
+          onValorManualChange={(v) => {
+            setValorManual(v);
+            if (v.trim() !== "") setDesconto(0);
+          }}
+          dataVenda={dataVenda}
+          onDataVendaChange={(d) => {
+            setDataVenda(d);
+            if (d) {
+              setDataInicio(d);
+              setPrimeiroVenc(d);
+              setDataPagamento(d);
+            }
+          }}
+          jaPago={jaPago}
+          onJaPagoChange={setJaPago}
+          avisoRecorrencia={forma === "recorrencia"}
+          formaRecebimento={formaRecebimento}
+          onFormaRecebimentoChange={setFormaRecebimento}
+          dataPagamento={dataPagamento}
+          onDataPagamentoChange={setDataPagamento}
+          bandeira={bandeira}
+          onBandeiraChange={setBandeira}
+          parcelasMaquina={parcelasMaquina}
+          onParcelasMaquinaChange={setParcelasMaquina}
+          erroBaixaRetro={erroBaixaRetro}
+          motivoRetro={motivoRetro}
+          onMotivoRetroChange={setMotivoRetro}
+        />
       )}
 
       <div className="space-y-1">

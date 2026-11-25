@@ -32,6 +32,9 @@ import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
 import { ServicosPlanoStep } from "./ServicosPlanoStep";
 import { Venda2027Steps } from "./Venda2027Steps";
 import { VendaSemestral, useItensSemestral, CHAVE_SEMESTRAL } from "./VendaSemestral";
+import { VendaRetroativaSection } from "./VendaRetroativaSection";
+import { type Bandeira } from "@/types/adquirente";
+import { formaExigeBandeira, formaPermiteParcelas, validarBaixaCartao } from "@/lib/formasRecebimento";
 import { semItensAgregadora } from "@/lib/semestral";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -172,6 +175,18 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
   const [parcelas, setParcelas] = useState(1);
   const [dataInicio, setDataInicio] = useState<Date>(new Date());
 
+  // Venda retroativa / ajuste de valor na Corrida (exclusivo admin)
+  const hojeStr = format(new Date(), "yyyy-MM-dd");
+  const [retroAberto, setRetroAberto] = useState(false);
+  const [valorManual, setValorManual] = useState("");
+  const [dataVendaRetro, setDataVendaRetro] = useState(hojeStr);
+  const [jaPagoRetro, setJaPagoRetro] = useState(false);
+  const [formaRecRetro, setFormaRecRetro] = useState("pix");
+  const [bandeiraRetro, setBandeiraRetro] = useState<Bandeira>("VISA");
+  const [parcelasMaquinaRetro, setParcelasMaquinaRetro] = useState(1);
+  const [dataPagRetro, setDataPagRetro] = useState(hojeStr);
+  const [motivoRetro, setMotivoRetro] = useState("");
+
   // Novo: tipo de cobrança / pagamento (Plano)
   const [tipoCobranca, setTipoCobranca] = useState<TipoCobranca | null>(null);
   const [aluno2025, setAluno2025] = useState(false);
@@ -195,6 +210,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
     setStatusPagamento("pendente"); setObservacoes("");
     setDesconto(0); setFormaPagamento(null); setParcelas(1);
     setDataInicio(new Date());
+    const h = format(new Date(), "yyyy-MM-dd");
+    setRetroAberto(false); setValorManual(""); setDataVendaRetro(h);
+    setJaPagoRetro(false); setFormaRecRetro("pix"); setBandeiraRetro("VISA");
+    setParcelasMaquinaRetro(1); setDataPagRetro(h); setMotivoRetro("");
     setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
     setOpcaoServicoId(null); setOpcaoServico(null);
     setModoContrato("substituir");
@@ -331,10 +350,26 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
     setDataInicio(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
   }, [isAgregadora, modoContrato, fimVigente?.getTime()]);
 
+  const valorCatalogoCorrida = Number(planoSelecionado?.valor || 0);
+  const valorManualNum = valorManual.trim() === "" ? null : Number(valorManual.replace(",", "."));
+  const valorManualValido =
+    isAdmin && planoEhCorrida && !isAgregadora &&
+    valorManualNum !== null && Number.isFinite(valorManualNum) && valorManualNum > valorCatalogoCorrida;
+  const erroValorManual =
+    isAdmin && planoEhCorrida && !isAgregadora &&
+    valorManualNum !== null && (!Number.isFinite(valorManualNum) || valorManualNum < valorCatalogoCorrida)
+      ? "Valor cobrado não pode ser menor que o catálogo (use desconto)"
+      : null;
+  const valorPlanoEfetivo = valorManualValido && valorManualNum !== null ? valorManualNum : valorCatalogoCorrida;
+  const modoRetroativoCorrida =
+    isAdmin && planoEhCorrida && !isAgregadora && (valorManualValido || dataVendaRetro < hojeStr || jaPagoRetro);
+  const erroBaixaRetro =
+    modoRetroativoCorrida && jaPagoRetro ? validarBaixaCartao(formaRecRetro, bandeiraRetro, parcelasMaquinaRetro) : null;
+
   const totaisPlano = planoSelecionado
     ? calcularTotaisVenda({
-        valorPlano: Number(planoSelecionado.valor || 0),
-        desconto,
+        valorPlano: valorPlanoEfetivo,
+        desconto: valorManualValido ? 0 : desconto,
         periodoMeses: planoSelecionado.periodo_meses || 1,
         tipoCobranca,
         aluno2025,
@@ -522,7 +557,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
       const tipoCobranca: TipoCobranca | null = agreg ? "tradicional" : tipoCobrancaSel;
       const modalidade: Modalidade | null = agreg ? "dinheiro" : modalidadeSel;
       const canalCartao = agreg ? null : canalCartaoSel;
-      const desconto = agreg ? 0 : descontoSel;
+      const desconto = agreg || valorManualValido ? 0 : descontoSel;
       const parcelas = agreg ? 1 : parcelasSel;
       const totaisPlano = agreg
         ? { subtotalPlano: 0, taxaMensal: 0, total: 0, mensalEstimado: 0 } as any
@@ -536,9 +571,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
       if (hasServicos && requerEscolhaServico(regraServicos) && !opcaoServico) {
         throw new Error("Selecione a opção de serviços incluídos no plano");
       }
+      if (erroValorManual) throw new Error(erroValorManual);
+      if (modoRetroativoCorrida) {
+        if (!motivoRetro.trim()) throw new Error("Informe o motivo da venda retroativa ou do ajuste de valor");
+        if (jaPagoRetro && erroBaixaRetro) throw new Error(erroBaixaRetro);
+      }
 
       const { data: { user } } = await supabase.auth.getUser();
-      const valor = agreg ? 0 : Number(planoSelecionado.valor || 0);
+      const valor = agreg ? 0 : valorPlanoEfetivo;
       const valorFinal = totaisPlano.subtotalPlano;
       const formaPgto = mapForma(modalidade, canalCartao);
       const canal = agreg ? "manual" : modalidade === "cartao_credito"
@@ -550,8 +590,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
           : null;
 
       // status inicial
-      const cartaoOnline = modalidade === "cartao_credito" && (tipoCobranca === "recorrencia" || canalCartao === "online");
-      const initialStatus: "pendente" | "pago" = agreg ? "pago"
+      const cartaoOnline = !(modoRetroativoCorrida && jaPagoRetro) &&
+        modalidade === "cartao_credito" && (tipoCobranca === "recorrencia" || canalCartao === "online");
+      const initialStatus: "pendente" | "pago" = agreg || (modoRetroativoCorrida && jaPagoRetro) ? "pago"
         : modalidade === "pendente" ? "pendente"
         : cartaoOnline ? "pendente"  // será atualizado pelo PagarCartaoDialog
         : statusPagamento;
@@ -569,7 +610,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
         vendedor_id: user?.id,
         status_pagamento: initialStatus,
         observacoes: (observacoes.trim() || (agreg ? "Adesão via plataforma (sem cobrança ao aluno)" : "")) || null,
-        data_venda: format(dataInicio, "yyyy-MM-dd"),
+        data_venda: modoRetroativoCorrida && dataVendaRetro ? dataVendaRetro : format(dataInicio, "yyyy-MM-dd"),
         tipo_cobranca: tipoCobranca,
         taxa_mensal: totaisPlano.taxaMensal,
         modalidade_pagamento: modalidade,
@@ -611,17 +652,38 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
       // Exceção: cartão online (tratado pela edge function rede-cobrar-cartao após aprovação).
       if (tipoCobranca !== "recorrencia" && !cartaoOnline) {
         const formaContrato = mapModalidadeParaContrato(modalidade, canalCartao);
-        const { error: rpcTradErr } = await (supabase as any).rpc("fn_criar_contrato_tradicional", {
-          p_venda_id: vendaIns?.id,
-          p_aluno_id: alunoId,
-          p_plano_id: planoSelecionado.id,
-          p_valor_total: valorFinal,
-          p_parcelas: parcelas || 1,
-          p_forma_pagamento: formaContrato,
-          p_data_inicio: format(dataInicio, "yyyy-MM-dd"),
-          p_status_pagamento: initialStatus,
-          p_servicos_inclusos: servicosInclusos,
-        });
+        const { error: rpcTradErr } = modoRetroativoCorrida
+          ? await (supabase as any).rpc("fn_criar_contrato_tradicional_retroativa", {
+              p: {
+                venda_id: vendaIns?.id,
+                aluno_id: alunoId,
+                plano_id: planoSelecionado.id,
+                data_inicio: format(dataInicio, "yyyy-MM-dd"),
+                data_venda: dataVendaRetro || format(dataInicio, "yyyy-MM-dd"),
+                forma_pagamento: formaContrato,
+                parcelas: parcelas || 1,
+                servicos_inclusos: servicosInclusos,
+                desconto: desconto || 0,
+                valor_plano_override: valorManualValido && valorManualNum !== null ? valorManualNum : null,
+                motivo: motivoRetro.trim(),
+                ja_pago: jaPagoRetro,
+                forma_recebimento: jaPagoRetro ? formaRecRetro : null,
+                bandeira: jaPagoRetro && formaExigeBandeira(formaRecRetro) ? bandeiraRetro : null,
+                parcelas_cartao: jaPagoRetro && formaPermiteParcelas(formaRecRetro) ? parcelasMaquinaRetro : null,
+                data_pagamento: jaPagoRetro ? dataPagRetro : null,
+              },
+            })
+          : await (supabase as any).rpc("fn_criar_contrato_tradicional", {
+              p_venda_id: vendaIns?.id,
+              p_aluno_id: alunoId,
+              p_plano_id: planoSelecionado.id,
+              p_valor_total: valorFinal,
+              p_parcelas: parcelas || 1,
+              p_forma_pagamento: formaContrato,
+              p_data_inicio: format(dataInicio, "yyyy-MM-dd"),
+              p_status_pagamento: initialStatus,
+              p_servicos_inclusos: servicosInclusos,
+            });
         if (rpcTradErr) throw rpcTradErr;
       }
       // Créditos de serviços incluídos: criar sempre que houver, tanto em
@@ -994,7 +1056,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                           <span className="inline-block w-4 h-4 rounded-full" style={{ background: planoSelecionado.cor || "#999" }} />
                           <h4 className="font-heading font-semibold text-lg">{planoSelecionado.nome}</h4>
                         </div>
-                        <span className="text-2xl font-bold text-primary">{formatBRL(planoSelecionado.valor)}</span>
+                        {valorManualValido && valorManualNum !== null ? (
+                          <div className="text-right">
+                            <div className="text-xs text-muted-foreground">Catálogo {formatBRL(valorCatalogoCorrida)} → Cobrado</div>
+                            <span className="text-2xl font-bold text-primary">{formatBRL(valorManualNum)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-2xl font-bold text-primary">{formatBRL(planoSelecionado.valor)}</span>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div><span className="text-muted-foreground">Aluno:</span> <span className="font-medium">{alunoNome}</span></div>
@@ -1084,7 +1153,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                     <TipoCobrancaSection
                       valorPlano={Number(planoSelecionado.valor || 0)}
                       periodoMeses={planoSelecionado.periodo_meses || 1}
-                      desconto={desconto}
+                      desconto={valorManualValido ? 0 : desconto}
                       onDescontoChange={setDesconto}
                       tipoCobranca={tipoCobranca}
                       onTipoCobrancaChange={setTipoCobranca}
@@ -1092,6 +1161,43 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                       onAluno2025Change={setAluno2025}
                       canTogglesAluno2025={isCoordAdmin}
                     />
+                    )}
+
+                    {isAdmin && planoEhCorrida && !isAgregadora && (
+                      <div className="space-y-2">
+                        <VendaRetroativaSection
+                          aberto={retroAberto}
+                          onToggle={() => setRetroAberto((v) => !v)}
+                          valorCatalogoRef={valorCatalogoCorrida}
+                          valorManual={valorManual}
+                          onValorManualChange={(v) => {
+                            setValorManual(v);
+                            if (v.trim() !== "") setDesconto(0);
+                          }}
+                          dataVenda={dataVendaRetro}
+                          onDataVendaChange={(d) => {
+                            setDataVendaRetro(d);
+                            if (d) {
+                              setDataInicio(new Date(`${d}T12:00:00`));
+                              setDataPagRetro(d);
+                            }
+                          }}
+                          jaPago={jaPagoRetro}
+                          onJaPagoChange={setJaPagoRetro}
+                          formaRecebimento={formaRecRetro}
+                          onFormaRecebimentoChange={setFormaRecRetro}
+                          dataPagamento={dataPagRetro}
+                          onDataPagamentoChange={setDataPagRetro}
+                          bandeira={bandeiraRetro}
+                          onBandeiraChange={setBandeiraRetro}
+                          parcelasMaquina={parcelasMaquinaRetro}
+                          onParcelasMaquinaChange={setParcelasMaquinaRetro}
+                          erroBaixaRetro={erroBaixaRetro}
+                          motivoRetro={motivoRetro}
+                          onMotivoRetroChange={setMotivoRetro}
+                        />
+                        {erroValorManual && <p className="text-xs text-destructive">{erroValorManual}</p>}
+                      </div>
                     )}
 
                     {!isAgregadora && tipoCobranca === "recorrencia" && (
@@ -1119,7 +1225,16 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                           {venderPlano.isPending ? "Salvando..." : "Concluir adesão"}
                         </Button>
                       ) : (
-                        <Button disabled={!tipoCobranca} onClick={() => setPStep(5)}>Continuar para Pagamento</Button>
+                        <Button
+                          disabled={
+                            !tipoCobranca ||
+                            !!erroValorManual ||
+                            (modoRetroativoCorrida && (!motivoRetro.trim() || !!erroBaixaRetro))
+                          }
+                          onClick={() => setPStep(5)}
+                        >
+                          Continuar para Pagamento
+                        </Button>
                       )}
                     </div>
                   </div>

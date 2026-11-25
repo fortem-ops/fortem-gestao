@@ -14470,6 +14470,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_criar_contrato_tradicional_retroativa: {
+        Args: { p: Json }
+        Returns: string
+      }
       fn_criar_link_contrato: {
         Args: { p_contrato_documento_id: string }
         Returns: Json
