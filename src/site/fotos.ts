@@ -16,6 +16,7 @@ import foto14 from "@/assets/fotos/avaliacao-dinamometro.webp.asset.json";
 import foto15 from "@/assets/fotos/equipe-jonas.webp.asset.json";
 import foto16 from "@/assets/fotos/equipe-vanessa.webp.asset.json";
 import foto17 from "@/assets/fotos/equipe-julia.webp.asset.json";
+import foto18 from "@/assets/fotos/equipe-yasmim.webp.asset.json";
 
 /** Fotos reais do site, com dimensões intrínsecas e descrição da cena. */
 export const FOTOS_SITE = {
@@ -29,6 +30,7 @@ export const FOTOS_SITE = {
   "equipe-jonas": { src: foto15.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de camiseta vermelha FORTEM, na área de treino" },
   "equipe-vanessa": { src: foto16.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de braços cruzados e camiseta vermelha, na área de treino" },
   "equipe-julia": { src: foto17.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de camiseta escura FORTEM, na área de treino" },
+  "equipe-yasmim": { src: foto18.url, width: 900, height: 1200, descricao: "Profissional sorrindo, de camiseta preta FORTEM, na área de treino" },
   "estrutura-area-treino": { src: foto7.url, width: 1280, height: 720, descricao: "Área de treino com piso emborrachado, equipamentos e paredes vermelhas" },
   "estrutura-equipamentos": { src: foto8.url, width: 1280, height: 853, descricao: "Barras, anilhas e estruturas de força na área de treino" },
   "estrutura-reabilitacao": { src: foto9.url, width: 1280, height: 720, descricao: "Sala de reabilitação com maca e bancada" },
@@ -48,6 +50,7 @@ export const FOTOS_EQUIPE = {
   "Jonas Hubner": FOTOS_SITE["equipe-jonas"],
   "Vanessa Coutinho": FOTOS_SITE["equipe-vanessa"],
   "Júlia Assis Brasil": FOTOS_SITE["equipe-julia"],
+  "Yasmim Avila": FOTOS_SITE["equipe-yasmim"],
 };
 
 /** Foto cadastrada de um membro da equipe, pelo nome exato; indefinido se ainda não houver. */

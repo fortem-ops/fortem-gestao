@@ -10,6 +10,7 @@ describe("fotoEquipe", () => {
     expect(fotoEquipe("Jonas Hubner")).toBe(FOTOS_SITE["equipe-jonas"]);
     expect(fotoEquipe("Vanessa Coutinho")).toBe(FOTOS_SITE["equipe-vanessa"]);
     expect(fotoEquipe("Júlia Assis Brasil")).toBe(FOTOS_SITE["equipe-julia"]);
+    expect(fotoEquipe("Yasmim Avila")).toBe(FOTOS_SITE["equipe-yasmim"]);
   });
   it("sem foto cadastrada devolve indefinido", () => {
     expect(fotoEquipe("Pessoa Sem Foto")).toBeUndefined();
