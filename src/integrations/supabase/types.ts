@@ -16027,6 +16027,7 @@ export type Database = {
       fn_validar_link_cartao: { Args: { p_token: string }; Returns: Json }
       fn_validar_link_contrato: { Args: { p_token: string }; Returns: Json }
       fn_venda_2027_criar: { Args: { p: Json }; Returns: Json }
+      fn_venda_2027_criar_retroativa: { Args: { p: Json }; Returns: Json }
       fn_venda_2027_gravar: {
         Args: {
           p: Json

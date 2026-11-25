@@ -2080,6 +2080,13 @@
       "when": 1795606274798,
       "tag": "0296_cobrancas_bandeira_parcelas_e_recebidos",
       "breakpoints": true
+    },
+    {
+      "idx": 297,
+      "version": "7",
+      "when": 1795611816626,
+      "tag": "0297_venda_2027_criar_retroativa",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/vendas";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { BANDEIRAS_PADRAO, type Bandeira } from "@/types/adquirente";
+import {
+  FORMAS_RECEBIMENTO,
+  formaExigeBandeira,
+  formaPermiteParcelas,
+  validarBaixaCartao,
+} from "@/lib/formasRecebimento";
 import {
   calcularVenda2027,
   calcularServicos2027,
@@ -84,6 +92,8 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
 export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, ocultarServicos }: Props) {
   const qc = useQueryClient();
   const hoje = format(new Date(), "yyyy-MM-dd");
+  const { data: roles } = useUserRoles();
+  const isAdmin = !!roles?.isAdmin;
 
   const [familia, setFamiliaState] = useState(familiaFixa ?? "power_2027");
   const [freq, setFreq] = useState("2x");
@@ -102,6 +112,23 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
   const [desconto, setDesconto] = useState(0);
   const [descontoRecorrente, setDescontoRecorrente] = useState<"" | "primeiro" | "todos">("");
   const [idem] = useState(() => crypto.randomUUID());
+
+  // Venda retroativa / ajuste de valor (exclusivo admin)
+  const [retroAberto, setRetroAberto] = useState(false);
+  const [valorManual, setValorManual] = useState("");
+  const [dataVenda, setDataVenda] = useState(hoje);
+  const [jaPago, setJaPago] = useState(false);
+  const [formaRecebimento, setFormaRecebimento] = useState("pix");
+  const [bandeira, setBandeira] = useState<Bandeira>("VISA");
+  const [parcelasMaquina, setParcelasMaquina] = useState(1);
+  const [dataPagamento, setDataPagamento] = useState(hoje);
+  const [motivoRetro, setMotivoRetro] = useState("");
+
+  const valorManualNum = valorManual.trim() === "" ? null : Number(valorManual.replace(",", "."));
+  const formasRetro = useMemo(
+    () => FORMAS_RECEBIMENTO.filter((f) => f.value !== "cartao_credito_online"),
+    [],
+  );
 
   const { data: catalogo = [] } = useQuery({
     queryKey: ["planos-catalogo-2027"],
@@ -128,6 +155,11 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
   });
 
   const soServicos = familia === "servicos";
+  const usarRetroativo =
+    isAdmin &&
+    !soServicos &&
+    retroAberto &&
+    (valorManualNum !== null || dataVenda !== hoje || jaPago);
   const ehStart = familia === "start_2027";
   const consultoria = ehConsultoriaFamilia(familia);
   const pacote = ehPacoteConsultoria(familia, duracao);
@@ -184,15 +216,23 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
           servicos: servicosItens.map((s: any) => ({ codigo: s.codigo, valor: s.valor })),
           formaServicos,
           parcelasServicos,
-          descontoPlano: desconto,
+          descontoPlano: valorManualNum !== null ? 0 : desconto,
+          valorPlanoOverride: usarRetroativo ? valorManualNum : null,
         }),
         calcErro: null,
       };
     } catch (e: any) {
-      return { calc: null, calcErro: consultoria ? String(e?.message ?? e) : null };
+      return { calc: null, calcErro: consultoria || usarRetroativo ? String(e?.message ?? e) : null };
     }
-  }, [soServicos, item, forma, parcelas, servicosItens, formaServicos, parcelasServicos, desconto, consultoria]);
-  const faltaEscolhaStart = cicloMensal && desconto > 0 && !descontoRecorrente;
+  }, [soServicos, item, forma, parcelas, servicosItens, formaServicos, parcelasServicos, desconto, consultoria, usarRetroativo, valorManualNum]);
+  const faltaEscolhaStart = cicloMensal && desconto > 0 && valorManualNum === null && !descontoRecorrente;
+  const erroBaixaRetro = usarRetroativo && jaPago
+    ? validarBaixaCartao(formaRecebimento, bandeira, parcelasMaquina)
+    : null;
+  const faltaMotivoRetro = usarRetroativo && motivoRetro.trim().length === 0;
+  const valorCatalogoRef = item
+    ? Number(item.valor) + (forma === "recorrencia" && !cicloMensal ? Number(item.taxa_recorrencia || 0) : 0)
+    : 0;
 
   const vender = useMutation({
     mutationFn: async () => {
@@ -214,13 +254,26 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
       }
       if (!item || !calc) throw new Error("Escolha o plano");
       if (!vendavel) throw new Error("Este plano 2027 ainda não está liberado para venda");
-      const { data, error } = await db.rpc("fn_venda_2027_criar", {
-        p: montarPayloadVenda2027({
-          alunoId, catalogoId: item.id, familia, duracao, servicosSel, forma, parcelas,
-          formaServicos, parcelasServicos, dataInicio, primeiroVenc, substituir: consultoria ? substituirConsultoria : substituir, observacoes,
-          idem, desconto, descontoRecorrente,
-        }),
+      const payloadBase = montarPayloadVenda2027({
+        alunoId, catalogoId: item.id, familia, duracao, servicosSel, forma, parcelas,
+        formaServicos, parcelasServicos, dataInicio, primeiroVenc, substituir: consultoria ? substituirConsultoria : substituir, observacoes,
+        idem, desconto: valorManualNum !== null ? 0 : desconto, descontoRecorrente,
       });
+      const { data, error } = usarRetroativo
+        ? await db.rpc("fn_venda_2027_criar_retroativa", {
+            p: {
+              ...payloadBase,
+              valor_plano_override: valorManualNum,
+              data_venda: dataVenda,
+              ja_pago: jaPago,
+              forma_recebimento: jaPago ? formaRecebimento : null,
+              bandeira: jaPago && formaExigeBandeira(formaRecebimento) ? bandeira : null,
+              parcelas_cartao: jaPago && formaPermiteParcelas(formaRecebimento) ? parcelasMaquina : null,
+              data_pagamento: jaPago ? dataPagamento : null,
+              motivo: motivoRetro.trim(),
+            },
+          })
+        : await db.rpc("fn_venda_2027_criar", { p: payloadBase });
       if (error) throw error;
       let contratoOk = true;
       if (data?.contrato_id && deveGerarDocumento2027(familia)) {
@@ -416,6 +469,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
           <Label>Desconto sobre o plano (R$)</Label>
           <Input
             type="number" min={0} step="0.01" className="w-40"
+            disabled={usarRetroativo && valorManualNum !== null}
             value={desconto || ""}
             onChange={(e) => setDesconto(Math.max(0, Number(e.target.value) || 0))}
           />
@@ -437,6 +491,138 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
         </div>
       )}
 
+      {isAdmin && !soServicos && item && (
+        <div className="rounded-lg border border-border p-3 space-y-3">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between text-sm font-medium text-left"
+            onClick={() => setRetroAberto((v) => !v)}
+          >
+            <span>Venda retroativa / ajuste de valor</span>
+            <span className="text-xs text-muted-foreground">{retroAberto ? "Ocultar" : "Abrir"}</span>
+          </button>
+          {retroAberto && (
+            <div className="space-y-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="venda-valor-cobrado">Valor cobrado (R$)</Label>
+                  <Input
+                    id="venda-valor-cobrado"
+                    type="number"
+                    min={valorCatalogoRef}
+                    step="0.01"
+                    placeholder={valorCatalogoRef.toFixed(2)}
+                    value={valorManual}
+                    onChange={(e) => {
+                      setValorManual(e.target.value);
+                      if (e.target.value.trim() !== "") setDesconto(0);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Opcional. Apenas valores acima do catálogo ({formatBRL(valorCatalogoRef)}).
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="venda-data-retro">Data da venda</Label>
+                  <Input
+                    id="venda-data-retro"
+                    type="date"
+                    value={dataVenda}
+                    onChange={(e) => {
+                      const d = e.target.value;
+                      setDataVenda(d);
+                      if (d) {
+                        setDataInicio(d);
+                        setPrimeiroVenc(d);
+                        setDataPagamento(d);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={jaPago} onCheckedChange={(v) => setJaPago(!!v)} />
+                Já pago
+              </label>
+
+              {jaPago && (
+                <div className="space-y-3 rounded-md border border-border/70 bg-muted/20 p-3">
+                  {forma === "recorrencia" && (
+                    <p className="text-xs text-muted-foreground">
+                      Em recorrência mensal, apenas a 1ª mensalidade nasce paga; as próximas seguem a cobrança recorrente.
+                    </p>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label>Forma de recebimento</Label>
+                      <Select value={formaRecebimento} onValueChange={setFormaRecebimento}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {formasRetro.map((f) => (
+                            <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="venda-data-pagamento">Data do pagamento</Label>
+                      <Input
+                        id="venda-data-pagamento"
+                        type="date"
+                        value={dataPagamento}
+                        onChange={(e) => setDataPagamento(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {(formaExigeBandeira(formaRecebimento) || formaPermiteParcelas(formaRecebimento)) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {formaExigeBandeira(formaRecebimento) && (
+                        <div className="space-y-1">
+                          <Label>Bandeira</Label>
+                          <Select value={bandeira} onValueChange={(v) => setBandeira(v as Bandeira)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {BANDEIRAS_PADRAO.map((b) => (
+                                <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {formaPermiteParcelas(formaRecebimento) && (
+                        <div className="space-y-1">
+                          <Label>Parcelas na máquina</Label>
+                          <Select value={String(parcelasMaquina)} onValueChange={(v) => setParcelasMaquina(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                                <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {erroBaixaRetro && <p className="text-xs text-destructive">{erroBaixaRetro}</p>}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label htmlFor="venda-motivo-retro">Motivo (obrigatório para ajuste/retroativa)</Label>
+                <Input
+                  id="venda-motivo-retro"
+                  placeholder="Ex.: Venda fechada na recepção em data anterior"
+                  value={motivoRetro}
+                  onChange={(e) => setMotivoRetro(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-1">
         <Label>Observações</Label>
         <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2} />
@@ -454,6 +640,11 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
             <span>{soServicos ? "Serviços 2027" : consultoria ? `Consultoria Online · ${rotuloDuracao(duracao)}` : `${item?.nome_exibicao ?? item?.nome} ${freq === "livre" ? "Livre" : freq}`}</span>
             <span>{formatBRL(calc.totalGeral)}</span>
           </div>
+          {usarRetroativo && valorManualNum !== null && (
+            <p className="text-xs text-muted-foreground">
+              Catálogo {formatBRL(valorCatalogoRef)} → Cobrado {formatBRL(valorManualNum)}
+            </p>
+          )}
           {consultoria && (
             <div className="space-y-0.5" data-testid="resumo-consultoria">
               {cicloMensal ? (
@@ -493,7 +684,11 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
         </div>
       )}
 
-      <Button className="w-full" disabled={!calc || !vendavel || faltaEscolhaStart || vender.isPending} onClick={() => vender.mutate()}>
+      <Button
+        className="w-full"
+        disabled={!calc || !vendavel || faltaEscolhaStart || !!erroBaixaRetro || faltaMotivoRetro || vender.isPending}
+        onClick={() => vender.mutate()}
+      >
         {vender.isPending ? "Registrando..." : "Registrar venda 2027"}
       </Button>
     </div>

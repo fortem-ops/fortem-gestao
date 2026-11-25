@@ -53,6 +53,8 @@ export type EntradaVenda2027 = {
   parcelasServicos?: number;
   /** Desconto sobre o plano (R$). Anual: abate o total; mensal: abate a 1ª mensalidade. */
   descontoPlano?: number;
+  /** Valor cobrado acima do catálogo (R$, só admin). Não combina com desconto. */
+  valorPlanoOverride?: number | null;
 };
 
 export const MESES_RECORRENCIA_2027 = 12;
@@ -114,13 +116,21 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   if (valorC <= 0) throw new Error("Valor do plano inválido");
   const descC = toCents(e.descontoPlano);
   if (descC < 0) throw new Error("Desconto inválido");
+  const temOverride = e.valorPlanoOverride !== undefined && e.valorPlanoOverride !== null && Number(e.valorPlanoOverride) > 0;
+  const overrideC = temOverride ? toCents(e.valorPlanoOverride) : null;
+  if (temOverride && descC > 0) throw new Error("Não é possível combinar valor cobrado manual com desconto");
 
   const ehStart = item.familia === "start_2027";
   const ehMensal = item.modalidade_cobranca === "recorrencia_mensal";
   // Consultoria Online mensal segue o Start: um ciclo por vez, sem taxa.
   const cicloACiclo = ehStart || item.familia === FAMILIA_CONSULTORIA_2027;
 
-  if (item.modalidade_cobranca === "pacote") return calcularPacote(e, valorC, descC, servicosC);
+  if (item.modalidade_cobranca === "pacote") {
+    if (overrideC !== null && overrideC < valorC) {
+      throw new Error("Valor cobrado não pode ser menor que o catálogo (use desconto)");
+    }
+    return calcularPacote(e, overrideC ?? valorC, descC, servicosC);
+  }
 
   if (ehStart && !ehMensal) throw new Error("Start 2027 é só recorrência mensal");
   if (ehMensal && forma !== "recorrencia") throw new Error("Item mensal só pode ser vendido em recorrência");
@@ -129,8 +139,12 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   // Power/Pro anual: plano + serviços nas mesmas parcelas (ou Pix à vista)
   if (!ehMensal) {
     const n = forma === "pix_vista" ? 1 : inteiroEntre(e.parcelas, 1, MAX_PARCELAS_PLANO_2027, "Parcelas");
+    if (overrideC !== null && overrideC < valorC) {
+      throw new Error("Valor cobrado não pode ser menor que o catálogo (use desconto)");
+    }
+    const basePlanoC = overrideC ?? valorC;
     if (descC >= valorC) throw new Error("Desconto maior que o valor do plano");
-    const planoC = valorC - descC;
+    const planoC = basePlanoC - descC;
     const parcelas = montarParcelas(planoC, servicosC, n);
     return {
       plano: { forma, total: fromCents(planoC + servicosC), parcelas },
@@ -146,12 +160,16 @@ export function calcularVenda2027(e: EntradaVenda2027): ResultadoVenda2027 {
   const taxaC = cicloACiclo ? 0 : toCents(item.taxa_recorrencia);
   const mensalC = valorC + taxaC;
   const nCobrancas = cicloACiclo ? 1 : MESES_RECORRENCIA_2027;
+  if (overrideC !== null && overrideC < mensalC) {
+    throw new Error("Valor cobrado não pode ser menor que o catálogo (use desconto)");
+  }
   if (descC >= mensalC) throw new Error("Desconto maior que a mensalidade");
+  const primeiraC = overrideC !== null ? overrideC : mensalC - descC;
   const parcelasPlano: Parcela2027[] = Array.from({ length: nCobrancas }, (_, i) => {
-    const v = i === 0 ? mensalC - descC : mensalC;
+    const v = i === 0 ? primeiraC : mensalC;
     return { numero: i + 1, valor: fromCents(v), plano: fromCents(v), servicos: 0 };
   });
-  const totalPlanoC = mensalC * nCobrancas - descC;
+  const totalPlanoC = primeiraC + mensalC * (nCobrancas - 1);
 
   let servicosAvulsos: Cobranca2027 | null = null;
   if (servicosC > 0) {
