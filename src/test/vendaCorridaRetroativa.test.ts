@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { formaExigeBandeira, formaPermiteParcelas, formaRecebimentoDaModalidade } from "@/lib/formasRecebimento";
 
 const mig = readFileSync(
   resolve(process.cwd(), "drizzle/migrations/0298_criar_contrato_tradicional_retroativa.sql"),
@@ -64,5 +65,27 @@ describe("fn_criar_contrato_tradicional_retroativa (Corrida)", () => {
     expect(retroSection).not.toMatch(/Forma de recebimento/);
     expect(retroSection).not.toMatch(/Bandeira/);
     expect(retroSection).not.toMatch(/Já pago/);
+  });
+
+  it("mapeia débito e crédito na máquina para slugs aceitos pelo banco (maquina_debito / maquina_credito)", () => {
+    const match = mig.match(/v_forma_rec NOT IN \(([^)]+)\)/);
+    expect(match).not.toBeNull();
+    const aceitasBanco = Array.from(match![1].matchAll(/'([^']+)'/g), (m) => m[1]);
+
+    const debito = formaRecebimentoDaModalidade("debito");
+    const creditoMaquina = formaRecebimentoDaModalidade("cartao_credito", "maquininha");
+    const dinheiro = formaRecebimentoDaModalidade("dinheiro");
+    const pix = formaRecebimentoDaModalidade("pix_avista");
+    const boleto = formaRecebimentoDaModalidade("boleto");
+
+    expect(debito).toBe("maquina_debito");
+    expect(creditoMaquina).toBe("maquina_credito");
+    expect(formaExigeBandeira(debito)).toBe(true);
+    expect(formaExigeBandeira(creditoMaquina)).toBe(true);
+    expect(formaPermiteParcelas(creditoMaquina)).toBe(true);
+
+    for (const slug of [debito, creditoMaquina, dinheiro, pix, boleto]) {
+      expect(aceitasBanco).toContain(slug);
+    }
   });
 });

@@ -35,7 +35,7 @@ import { Venda2027Steps } from "./Venda2027Steps";
 import { VendaSemestral, useItensSemestral, CHAVE_SEMESTRAL } from "./VendaSemestral";
 import { VendaRetroativaSection } from "./VendaRetroativaSection";
 import { BANDEIRAS_PADRAO, type Bandeira } from "@/types/adquirente";
-import { formaExigeBandeira, formaPermiteParcelas, validarBaixaCartao } from "@/lib/formasRecebimento";
+import { formaExigeBandeira, formaPermiteParcelas, formaRecebimentoDaModalidade, validarBaixaCartao } from "@/lib/formasRecebimento";
 import { semItensAgregadora } from "@/lib/semestral";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -360,13 +360,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
   const valorPlanoEfetivo = valorManualValido && valorManualNum !== null ? valorManualNum : valorCatalogoCorrida;
   const modoRetroativoCorrida =
     isAdmin && planoEhCorrida && !isAgregadora && (valorManualValido || dataVendaRetro < hojeStr);
-  const formaRecRetro =
-    modalidade === "debito" ? "cartao_debito_maquina"
-    : modalidade === "cartao_credito" && canalCartao === "maquininha" ? "cartao_credito_maquina"
-    : modalidade === "dinheiro" ? "dinheiro"
-    : modalidade === "pix_avista" ? "pix"
-    : modalidade === "boleto" ? "boleto"
-    : "pix";
+  const formaRecRetro = formaRecebimentoDaModalidade(modalidade, canalCartao);
   const jaPagoRetroEfetivo =
     modoRetroativoCorrida &&
     statusPagamento === "pago" &&

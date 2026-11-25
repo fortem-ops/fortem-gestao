@@ -37,6 +37,19 @@ export const formaExigeBandeira = (value: string): boolean =>
 export const formaPermiteParcelas = (value: string): boolean =>
   Boolean(getFormaRecebimento(value)?.permiteParcelas);
 
+/** Converte modalidade + canal da tela de venda para o slug aceito na baixa / venda já paga. */
+export function formaRecebimentoDaModalidade(
+  modalidade: string | null | undefined,
+  canalCartao?: string | null,
+): string {
+  if (modalidade === "debito") return "maquina_debito";
+  if (modalidade === "cartao_credito" && canalCartao === "maquininha") return "maquina_credito";
+  if (modalidade === "dinheiro") return "dinheiro";
+  if (modalidade === "pix_avista") return "pix";
+  if (modalidade === "boleto") return "boleto";
+  return "pix";
+}
+
 /** Modalidade da adquirente usada no cálculo de taxa/prazo dos recebíveis. */
 export function modalidadeAdquirente(forma: string, parcelas?: number | null): Modalidade | null {
   if (forma === "maquina_debito" || forma === "cartao_debito" || forma === "debito") {
