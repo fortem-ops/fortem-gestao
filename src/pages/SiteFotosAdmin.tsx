@@ -16,6 +16,7 @@ const NOMES: Record<ChaveFoto, string> = {
   "equipe-nicolas": "Equipe · Nicolas", "equipe-gustavo": "Equipe · Gustavo", "equipe-thais": "Equipe · Thaís",
   "equipe-cristiano": "Equipe · Cristiano", "equipe-bruno": "Equipe · Bruno",
   "equipe-jonas": "Equipe · Jonas", "equipe-vanessa": "Equipe · Vanessa", "equipe-julia": "Equipe · Júlia",
+  "equipe-yasmim": "Equipe · Yasmim",
   "estrutura-area-treino": "Estrutura · área de treino", "estrutura-equipamentos": "Estrutura · equipamentos",
   "estrutura-reabilitacao": "Estrutura · reabilitação (e topo Reabilitação)", "estrutura-nutricao": "Estrutura · nutrição (e topo Nutrição)",
   "estrutura-vestiarios-1": "Estrutura · vestiários", "estrutura-recepcao": "Estrutura · recepção",
