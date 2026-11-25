@@ -232,8 +232,11 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   // Renovação antecipada: o plano que ainda não começou não é um segundo plano,
   // é a continuação do vigente. Mostramos um card só, com a renovação embutida.
   const hojeStr = new Date().toISOString().split("T")[0];
+  const futurosIds = new Set(futurosFiltrados.map((p: any) => p.id));
   const corridaVigentes = corridaFiltrados.filter((p) => !p.data_inicio || p.data_inicio <= hojeStr);
-  const corridaFuturos = corridaFiltrados.filter((p) => p.data_inicio && p.data_inicio > hojeStr);
+  const corridaFuturos = corridaFiltrados.filter(
+    (p) => p.data_inicio && p.data_inicio > hojeStr && !futurosIds.has(p.id),
+  );
   const corridaCards = corridaVigentes.length > 0 ? corridaVigentes : corridaFuturos;
   const corridaRenovacoes = corridaVigentes.length > 0 ? corridaFuturos : [];
 

@@ -2101,6 +2101,13 @@
       "when": 1795614198211,
       "tag": "0299_audit_log_operacao_venda_retroativa",
       "breakpoints": true
+    },
+    {
+      "idx": 300,
+      "version": "7",
+      "when": 1795615244114,
+      "tag": "0300_plano_principal_ativo_prioriza_vigente_sobre_futuro",
+      "breakpoints": true
     }
   ]
 }

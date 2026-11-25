@@ -249,6 +249,24 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
     enabled: open && tab === "planos",
   });
 
+  // Plano de Corrida vigente (para sugerir renovação antecipada na Corrida)
+  const { data: planoCorridaVigente } = useQuery({
+    queryKey: ["plano-corrida-vigente-venda", alunoId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("planos")
+        .select("id, tipo, data_inicio, data_fim, duracao_meses, renovacao_automatica")
+        .eq("aluno_id", alunoId)
+        .eq("ativo", true)
+        .eq("atividade", "corrida")
+        .order("data_fim", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      return data || null;
+    },
+    enabled: open && tab === "planos",
+  });
+
   // Contratos ativos do aluno — usados para sugerir a variante de Corrida
   const { data: contratosAtivos = [] } = useQuery({
     queryKey: ["contratos-ativos-venda", alunoId],
@@ -277,22 +295,13 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
     return d;
   })();
 
-  // Ajusta data de início conforme o modo de contrato:
-  // - renovacao  → dia seguinte ao fim do plano vigente
-  // - adicional  → hoje (novo contrato paralelo, começa já)
-  // - substituir → hoje (substitui o anterior)
-  useEffect(() => {
-    if (modoContrato === "renovacao" && renovacaoAntecipada) {
-      setDataInicio(inicioSugeridoRenovacao());
-    } else if (modoContrato === "renovacao" && fimVigente) {
-      const proxima = new Date(fimVigente);
-      proxima.setDate(proxima.getDate() + 1);
-      setDataInicio(proxima);
-    } else {
-      setDataInicio(new Date());
-    }
-  }, [modoContrato, fimVigente?.getTime(), renovacaoAntecipada]);
-
+  const fimCorridaVigente = (() => {
+    if (!planoCorridaVigente) return null;
+    if (planoCorridaVigente.data_fim) return new Date(planoCorridaVigente.data_fim + "T00:00:00");
+    const d = new Date(planoCorridaVigente.data_inicio + "T00:00:00");
+    d.setMonth(d.getMonth() + (planoCorridaVigente.duracao_meses || 1));
+    return d;
+  })();
 
   const { data: planos = [], isLoading: lp } = useQuery({
     queryKey: ["planos-catalogo-ativos"],
@@ -331,12 +340,30 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
     if (sug) setPlanoId(sug.id);
   }, [modoCorrida, planoId, planosFiltrados.length, planoBaseAtivo]);
 
-  // Modo do contrato: Corrida é sempre adicional; demais mantêm o comportamento atual
+  // Modo do contrato: Corrida com plano vigente sugere renovação; demais mantêm o comportamento atual
   useEffect(() => {
-    if (planoEhCorrida) setModoContrato("adicional");
+    if (planoEhCorrida) setModoContrato(planoCorridaVigente ? "renovacao" : "adicional");
     else if (planoVigente) setModoContrato("renovacao");
     else setModoContrato("substituir");
-  }, [planoVigente?.id, planoEhCorrida]);
+  }, [planoVigente?.id, planoCorridaVigente?.id, planoEhCorrida]);
+
+  // Ajusta data de início conforme o modo de contrato:
+  // - renovacao (Corrida) → data de término da Corrida vigente
+  // - renovacao (demais)  → dia seguinte ao fim do plano vigente
+  // - adicional / substituir → hoje
+  useEffect(() => {
+    if (planoEhCorrida && modoContrato === "renovacao" && fimCorridaVigente) {
+      setDataInicio(new Date(fimCorridaVigente));
+    } else if (modoContrato === "renovacao" && renovacaoAntecipada) {
+      setDataInicio(inicioSugeridoRenovacao());
+    } else if (modoContrato === "renovacao" && fimVigente) {
+      const proxima = new Date(fimVigente);
+      proxima.setDate(proxima.getDate() + 1);
+      setDataInicio(proxima);
+    } else {
+      setDataInicio(new Date());
+    }
+  }, [modoContrato, fimVigente?.getTime(), fimCorridaVigente?.getTime(), planoEhCorrida, renovacaoAntecipada]);
 
   const isAgregadora = /gympass|wellhub|total\s?pass/i.test(planoSelecionado?.nome || "");
 
@@ -622,6 +649,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
       }).select("id, plano_id").single();
       if (error) throw error;
 
+      try {
       // Atualiza flag aluno_2025 se mudou
       if (tipoCobranca === "recorrencia" && aluno2025 !== !!alunoInfo?.aluno_2025) {
         await (supabase as any).from("alunos").update({ aluno_2025: aluno2025 }).eq("id", alunoId);
@@ -712,6 +740,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
           recorrencia: agreg || tipoCobranca === "recorrencia",
           modo: planoEhCorrida ? "adicional" : (planoVigente ? modoContrato : "substituir"),
         });
+      }
+      } catch (posVendaErr) {
+        // Se a criação do contrato/cobranças falhar, desfaz a venda recém-inserida
+        // (fn_cleanup_on_venda_delete remove também o plano criado pelo gatilho).
+        if (vendaIns?.id) {
+          await (supabase as any).from("vendas").delete().eq("id", vendaIns.id);
+        }
+        throw posVendaErr;
       }
 
       // Gerar documento de contrato automaticamente
@@ -1078,12 +1114,37 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                     </div>
 
                     {planoEhCorrida ? (
-                      <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">
-                        <div className="font-medium text-foreground">{NOVA_VENDA_R1 ? "Corrida" : "Plano adicional"}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {NOVA_VENDA_R1 ? "Não substitui o plano atual do aluno." : "Este plano é adicional e não substitui o plano atual do aluno."}
+                      planoCorridaVigente ? (
+                        <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-3">
+                          <div className="text-sm">
+                            <div className="font-medium text-foreground">Aluno já possui plano de Corrida vigente</div>
+                            <div className="text-xs text-muted-foreground">
+                              {planoCorridaVigente.tipo} · até {fimCorridaVigente ? format(fimCorridaVigente, "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            <RadioCard
+                              selected={modoContrato === "renovacao"}
+                              onClick={() => setModoContrato("renovacao")}
+                              title="Renovação"
+                              subtitle="Mantém a Corrida atual ativa até o fim. O novo contrato inicia na data de término."
+                            />
+                            <RadioCard
+                              selected={modoContrato === "adicional"}
+                              onClick={() => setModoContrato("adicional")}
+                              title="Novo contrato (adicional)"
+                              subtitle="Mantém o plano atual e cria um contrato independente com data de início livre."
+                            />
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">
+                          <div className="font-medium text-foreground">{NOVA_VENDA_R1 ? "Corrida" : "Plano adicional"}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {NOVA_VENDA_R1 ? "Não substitui o plano atual do aluno." : "Este plano é adicional e não substitui o plano atual do aluno."}
+                          </div>
+                        </div>
+                      )
                     ) : planoVigente && (
                       <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-3">
                         <div className="text-sm">

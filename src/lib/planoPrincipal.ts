@@ -93,6 +93,18 @@ export function planoVigente(plano: PlanoLike | null | undefined): boolean {
   return !fim || fim >= hoje();
 }
 
+/** Plano já iniciado = sem data de início definida, ou data de início <= hoje. */
+export function planoJaIniciado(plano: PlanoLike | null | undefined): boolean {
+  if (!plano) return false;
+  if (!plano.data_inicio) return true;
+  return new Date(plano.data_inicio + "T00:00:00") <= hoje();
+}
+
+/** Plano em vigor hoje = já iniciado e ainda não vencido. */
+export function planoEmVigor(plano: PlanoLike | null | undefined): boolean {
+  return planoJaIniciado(plano) && planoVigente(plano);
+}
+
 function porCreatedAtDesc(a: PlanoLike, b: PlanoLike) {
   return (b.created_at ?? "").localeCompare(a.created_at ?? "");
 }
@@ -122,8 +134,10 @@ export function selecionarPlanoExibicao(planos: PlanoLike[] | null | undefined):
   const principais = ativos.filter((p) => p.atividade !== ATIVIDADE_CORRIDA);
   const corridas = ativos.filter((p) => p.atividade === ATIVIDADE_CORRIDA);
 
-  const principalVigente = principais.find(planoVigente) ?? null;
-  const corridaVigente = corridas.find(planoVigente) ?? null;
+  const principalVigente =
+    principais.find(planoEmVigor) ?? principais.find(planoVigente) ?? null;
+  const corridaVigente =
+    corridas.find(planoEmVigor) ?? corridas.find(planoVigente) ?? null;
 
   const plano = principalVigente ?? corridaVigente ?? principais[0] ?? ativos[0] ?? null;
 
@@ -148,5 +162,5 @@ export function selecionarPlanoPrincipal(
     .filter((p) => p.ativo !== false && p.atividade !== ATIVIDADE_CORRIDA)
     .slice()
     .sort(porCreatedAtDesc);
-  return principais.find(planoVigente) ?? principais[0] ?? null;
+  return principais.find(planoEmVigor) ?? principais.find(planoVigente) ?? principais[0] ?? null;
 }

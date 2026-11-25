@@ -458,9 +458,11 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       {ativos.length > 0 ? (
         ativos.map((c, idx) => {
           let rotulo: { label: string; variant: "default" | "secondary" | "outline" } | null = null;
-          if (ativos.length > 1) {
+          if ((c.data_inicio ?? "") > hojeStr) {
+            const inicioBr = new Date(c.data_inicio + "T00:00:00").toLocaleDateString("pt-BR");
+            rotulo = { label: `Aguarda início (${inicioBr})`, variant: "secondary" };
+          } else if (ativos.length > 1) {
             if (idx === 0) rotulo = { label: "Vigente", variant: "default" };
-            else if ((c.data_inicio ?? "") > hojeStr) rotulo = { label: "Futuro", variant: "secondary" };
             else rotulo = { label: "Adicional", variant: "secondary" };
           }
           return (
