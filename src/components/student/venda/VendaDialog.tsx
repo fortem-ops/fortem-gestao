@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -33,7 +34,7 @@ import { ServicosPlanoStep } from "./ServicosPlanoStep";
 import { Venda2027Steps } from "./Venda2027Steps";
 import { VendaSemestral, useItensSemestral, CHAVE_SEMESTRAL } from "./VendaSemestral";
 import { VendaRetroativaSection } from "./VendaRetroativaSection";
-import { type Bandeira } from "@/types/adquirente";
+import { BANDEIRAS_PADRAO, type Bandeira } from "@/types/adquirente";
 import { formaExigeBandeira, formaPermiteParcelas, validarBaixaCartao } from "@/lib/formasRecebimento";
 import { semItensAgregadora } from "@/lib/semestral";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
@@ -180,10 +181,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
   const [retroAberto, setRetroAberto] = useState(false);
   const [valorManual, setValorManual] = useState("");
   const [dataVendaRetro, setDataVendaRetro] = useState(hojeStr);
-  const [jaPagoRetro, setJaPagoRetro] = useState(false);
-  const [formaRecRetro, setFormaRecRetro] = useState("pix");
   const [bandeiraRetro, setBandeiraRetro] = useState<Bandeira>("VISA");
-  const [parcelasMaquinaRetro, setParcelasMaquinaRetro] = useState(1);
   const [dataPagRetro, setDataPagRetro] = useState(hojeStr);
   const [motivoRetro, setMotivoRetro] = useState("");
 
@@ -212,8 +210,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
     setDataInicio(new Date());
     const h = format(new Date(), "yyyy-MM-dd");
     setRetroAberto(false); setValorManual(""); setDataVendaRetro(h);
-    setJaPagoRetro(false); setFormaRecRetro("pix"); setBandeiraRetro("VISA");
-    setParcelasMaquinaRetro(1); setDataPagRetro(h); setMotivoRetro("");
+    setBandeiraRetro("VISA"); setDataPagRetro(h); setMotivoRetro("");
     setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
     setOpcaoServicoId(null); setOpcaoServico(null);
     setModoContrato("substituir");
@@ -362,9 +359,22 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
       : null;
   const valorPlanoEfetivo = valorManualValido && valorManualNum !== null ? valorManualNum : valorCatalogoCorrida;
   const modoRetroativoCorrida =
-    isAdmin && planoEhCorrida && !isAgregadora && (valorManualValido || dataVendaRetro < hojeStr || jaPagoRetro);
+    isAdmin && planoEhCorrida && !isAgregadora && (valorManualValido || dataVendaRetro < hojeStr);
+  const formaRecRetro =
+    modalidade === "debito" ? "cartao_debito_maquina"
+    : modalidade === "cartao_credito" && canalCartao === "maquininha" ? "cartao_credito_maquina"
+    : modalidade === "dinheiro" ? "dinheiro"
+    : modalidade === "pix_avista" ? "pix"
+    : modalidade === "boleto" ? "boleto"
+    : "pix";
+  const jaPagoRetroEfetivo =
+    modoRetroativoCorrida &&
+    statusPagamento === "pago" &&
+    modalidade !== null &&
+    modalidade !== "pendente" &&
+    !(modalidade === "cartao_credito" && (tipoCobranca === "recorrencia" || canalCartao === "online"));
   const erroBaixaRetro =
-    modoRetroativoCorrida && jaPagoRetro ? validarBaixaCartao(formaRecRetro, bandeiraRetro, parcelasMaquinaRetro) : null;
+    jaPagoRetroEfetivo ? validarBaixaCartao(formaRecRetro, bandeiraRetro, parcelas || 1) : null;
 
   const totaisPlano = planoSelecionado
     ? calcularTotaisVenda({
@@ -574,7 +584,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
       if (erroValorManual) throw new Error(erroValorManual);
       if (modoRetroativoCorrida) {
         if (!motivoRetro.trim()) throw new Error("Informe o motivo da venda retroativa ou do ajuste de valor");
-        if (jaPagoRetro && erroBaixaRetro) throw new Error(erroBaixaRetro);
+        if (jaPagoRetroEfetivo && erroBaixaRetro) throw new Error(erroBaixaRetro);
       }
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -590,9 +600,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
           : null;
 
       // status inicial
-      const cartaoOnline = !(modoRetroativoCorrida && jaPagoRetro) &&
+      const cartaoOnline =
         modalidade === "cartao_credito" && (tipoCobranca === "recorrencia" || canalCartao === "online");
-      const initialStatus: "pendente" | "pago" = agreg || (modoRetroativoCorrida && jaPagoRetro) ? "pago"
+      const initialStatus: "pendente" | "pago" = agreg || jaPagoRetroEfetivo ? "pago"
         : modalidade === "pendente" ? "pendente"
         : cartaoOnline ? "pendente"  // será atualizado pelo PagarCartaoDialog
         : statusPagamento;
@@ -666,11 +676,11 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                 desconto: desconto || 0,
                 valor_plano_override: valorManualValido && valorManualNum !== null ? valorManualNum : null,
                 motivo: motivoRetro.trim(),
-                ja_pago: jaPagoRetro,
-                forma_recebimento: jaPagoRetro ? formaRecRetro : null,
-                bandeira: jaPagoRetro && formaExigeBandeira(formaRecRetro) ? bandeiraRetro : null,
-                parcelas_cartao: jaPagoRetro && formaPermiteParcelas(formaRecRetro) ? parcelasMaquinaRetro : null,
-                data_pagamento: jaPagoRetro ? dataPagRetro : null,
+                ja_pago: jaPagoRetroEfetivo,
+                forma_recebimento: jaPagoRetroEfetivo ? formaRecRetro : null,
+                bandeira: jaPagoRetroEfetivo && formaExigeBandeira(formaRecRetro) ? bandeiraRetro : null,
+                parcelas_cartao: jaPagoRetroEfetivo && formaPermiteParcelas(formaRecRetro) ? (parcelas || 1) : null,
+                data_pagamento: jaPagoRetroEfetivo ? dataPagRetro : null,
               },
             })
           : await (supabase as any).rpc("fn_criar_contrato_tradicional", {
@@ -1182,17 +1192,6 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                               setDataPagRetro(d);
                             }
                           }}
-                          jaPago={jaPagoRetro}
-                          onJaPagoChange={setJaPagoRetro}
-                          formaRecebimento={formaRecRetro}
-                          onFormaRecebimentoChange={setFormaRecRetro}
-                          dataPagamento={dataPagRetro}
-                          onDataPagamentoChange={setDataPagRetro}
-                          bandeira={bandeiraRetro}
-                          onBandeiraChange={setBandeiraRetro}
-                          parcelasMaquina={parcelasMaquinaRetro}
-                          onParcelasMaquinaChange={setParcelasMaquinaRetro}
-                          erroBaixaRetro={erroBaixaRetro}
                           motivoRetro={motivoRetro}
                           onMotivoRetroChange={setMotivoRetro}
                         />
@@ -1229,7 +1228,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                           disabled={
                             !tipoCobranca ||
                             !!erroValorManual ||
-                            (modoRetroativoCorrida && (!motivoRetro.trim() || !!erroBaixaRetro))
+                            (modoRetroativoCorrida && !motivoRetro.trim())
                           }
                           onClick={() => setPStep(5)}
                         >
@@ -1272,13 +1271,42 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
                       </div>
                     )}
 
+                    {jaPagoRetroEfetivo && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-lg border border-border bg-muted/20 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="venda-corrida-data-pagamento">Data do pagamento</Label>
+                          <Input
+                            id="venda-corrida-data-pagamento"
+                            type="date"
+                            value={dataPagRetro}
+                            onChange={(e) => setDataPagRetro(e.target.value)}
+                          />
+                        </div>
+                        {formaExigeBandeira(formaRecRetro) && (
+                          <div className="space-y-1">
+                            <Label>Bandeira</Label>
+                            <Select value={bandeiraRetro} onValueChange={(v) => setBandeiraRetro(v as Bandeira)}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {BANDEIRAS_PADRAO.map((b) => (
+                                  <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        {erroBaixaRetro && <p className="text-xs text-destructive sm:col-span-2">{erroBaixaRetro}</p>}
+                      </div>
+                    )}
+
                     <div className="flex justify-between pt-2">
                       <Button variant="outline" onClick={() => setPStep(4)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
                       <Button
                         disabled={
                           venderPlano.isPending ||
                           !modalidade ||
-                          (modalidade === "cartao_credito" && tipoCobranca === "tradicional" && !canalCartao)
+                          (modalidade === "cartao_credito" && tipoCobranca === "tradicional" && !canalCartao) ||
+                          !!erroBaixaRetro
                         }
                         onClick={() => venderPlano.mutate()}
                       >

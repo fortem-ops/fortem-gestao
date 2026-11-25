@@ -2094,6 +2094,13 @@
       "when": 1795613298928,
       "tag": "0298_criar_contrato_tradicional_retroativa",
       "breakpoints": true
+    },
+    {
+      "idx": 299,
+      "version": "7",
+      "when": 1795614198211,
+      "tag": "0299_audit_log_operacao_venda_retroativa",
+      "breakpoints": true
     }
   ]
 }

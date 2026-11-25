@@ -6,6 +6,14 @@ const mig = readFileSync(
   resolve(process.cwd(), "drizzle/migrations/0298_criar_contrato_tradicional_retroativa.sql"),
   "utf8",
 );
+const migAudit = readFileSync(
+  resolve(process.cwd(), "drizzle/migrations/0299_audit_log_operacao_venda_retroativa.sql"),
+  "utf8",
+);
+const retroSection = readFileSync(
+  resolve(process.cwd(), "src/components/student/venda/VendaRetroativaSection.tsx"),
+  "utf8",
+);
 
 describe("fn_criar_contrato_tradicional_retroativa (Corrida)", () => {
   it("exige admin (is_admin) e revoga acesso de anon/PUBLIC", () => {
@@ -42,5 +50,19 @@ describe("fn_criar_contrato_tradicional_retroativa (Corrida)", () => {
 
   it("não altera fn_criar_contrato_tradicional padrão", () => {
     expect(mig).not.toMatch(/CREATE OR REPLACE FUNCTION public\.fn_criar_contrato_tradicional\(/);
+  });
+
+  it("audit_log_operacao_check aceita a operação 'venda_retroativa'", () => {
+    expect(migAudit).toMatch(/ADD CONSTRAINT audit_log_operacao_check/);
+    expect(migAudit).toMatch(/'venda_retroativa'::text/);
+  });
+
+  it("seção de venda retroativa contém apenas valor, data da venda e motivo (sem forma de pagamento)", () => {
+    expect(retroSection).toMatch(/Valor cobrado/);
+    expect(retroSection).toMatch(/Data da venda/);
+    expect(retroSection).toMatch(/Motivo/);
+    expect(retroSection).not.toMatch(/Forma de recebimento/);
+    expect(retroSection).not.toMatch(/Bandeira/);
+    expect(retroSection).not.toMatch(/Já pago/);
   });
 });

@@ -14,8 +14,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/vendas";
 import { useUserRoles } from "@/hooks/useUserRoles";
-import { type Bandeira } from "@/types/adquirente";
+import { BANDEIRAS_PADRAO, type Bandeira } from "@/types/adquirente";
 import {
+  FORMAS_RECEBIMENTO,
   formaExigeBandeira,
   formaPermiteParcelas,
   validarBaixaCartao,
@@ -381,6 +382,76 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
               : "12 mensalidades criadas de uma vez; baixa manual a cada pagamento."}
           </p>
         )}
+        {usarRetroativo && (
+          <div className="space-y-2 pt-1">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={jaPago} onCheckedChange={(v) => setJaPago(!!v)} />
+              Já pago
+            </label>
+            {jaPago && (
+              <div className="space-y-3 rounded-md border border-border/70 bg-muted/20 p-3">
+                {forma === "recorrencia" && (
+                  <p className="text-xs text-muted-foreground">
+                    Em recorrência mensal, apenas a 1ª mensalidade nasce paga; as próximas seguem a cobrança recorrente.
+                  </p>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Forma de recebimento</Label>
+                    <Select value={formaRecebimento} onValueChange={setFormaRecebimento}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {FORMAS_RECEBIMENTO.filter((f) => f.value !== "cartao_credito_online").map((f) => (
+                          <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="venda-2027-data-pagamento">Data do pagamento</Label>
+                    <Input
+                      id="venda-2027-data-pagamento"
+                      type="date"
+                      value={dataPagamento}
+                      onChange={(e) => setDataPagamento(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {(formaExigeBandeira(formaRecebimento) || formaPermiteParcelas(formaRecebimento)) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {formaExigeBandeira(formaRecebimento) && (
+                      <div className="space-y-1">
+                        <Label>Bandeira</Label>
+                        <Select value={bandeira} onValueChange={(v) => setBandeira(v as Bandeira)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {BANDEIRAS_PADRAO.map((b) => (
+                              <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {formaPermiteParcelas(formaRecebimento) && (
+                      <div className="space-y-1">
+                        <Label>Parcelas na máquina</Label>
+                        <Select value={String(parcelasMaquina)} onValueChange={(v) => setParcelasMaquina(Number(v))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                              <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {erroBaixaRetro && <p className="text-xs text-destructive">{erroBaixaRetro}</p>}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       </>)}
 
@@ -506,18 +577,6 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
               setDataPagamento(d);
             }
           }}
-          jaPago={jaPago}
-          onJaPagoChange={setJaPago}
-          avisoRecorrencia={forma === "recorrencia"}
-          formaRecebimento={formaRecebimento}
-          onFormaRecebimentoChange={setFormaRecebimento}
-          dataPagamento={dataPagamento}
-          onDataPagamentoChange={setDataPagamento}
-          bandeira={bandeira}
-          onBandeiraChange={setBandeira}
-          parcelasMaquina={parcelasMaquina}
-          onParcelasMaquinaChange={setParcelasMaquina}
-          erroBaixaRetro={erroBaixaRetro}
           motivoRetro={motivoRetro}
           onMotivoRetroChange={setMotivoRetro}
         />
