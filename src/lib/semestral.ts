@@ -28,11 +28,22 @@ export function semItensAgregadora<Q extends { is: (coluna: string, valor: null)
 }
 
 export function beneficiosSemestral(item: ItemSemestral): string[] {
-  const freq = item.frequencia ?? "3x";
-  const out = [`${freq}/semana`, `${item.quantidade_creditos ?? 12} créditos por ciclo`];
+  const out: string[] = [];
+  if (item.frequencia) out.push(`${item.frequencia}/semana`);
+  if (item.quantidade_creditos != null) out.push(`${item.quantidade_creditos} créditos por ciclo`);
   if (item.permite_fixar_horario) out.push("Horários fixos");
   if ((item.bota_compressao_mes ?? 0) > 0) out.push(`Bota de compressão ${item.bota_compressao_mes}/ciclo`);
   return out;
+}
+
+/** Frequências disponíveis nos itens semestrais, ordenadas (2x antes de 3x). */
+export function frequenciasSemestral(itens: Pick<ItemSemestral, "frequencia">[]): string[] {
+  const ordem: Record<string, number> = { "1x": 1, "2x": 2, "3x": 3, livre: 4 };
+  const set = new Set<string>();
+  for (const i of itens) {
+    if (i.frequencia) set.add(i.frequencia);
+  }
+  return [...set].sort((a, b) => (ordem[a] ?? 9) - (ordem[b] ?? 9));
 }
 
 /** Resposta de `rede-cobrar-token` para a 1ª mensalidade do Semestral, traduzida para a tela. */

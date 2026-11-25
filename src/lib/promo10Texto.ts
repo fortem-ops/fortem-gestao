@@ -143,8 +143,11 @@ export function descreverInteresse(item: InteressePromo10): { titulo: string; de
 
   if (tipo === "semestral_agregadora") {
     const mensal = Number(d.valor_mensal ?? 0);
+    const freqRaw = String(d.frequencia ?? "").trim();
+    const nomeBase = String(d.nome ?? item.oferta);
+    const titulo = freqRaw ? `${nomeBase} (${rotuloFrequencia(freqRaw)})` : nomeBase;
     return {
-      titulo: String(d.nome ?? item.oferta),
+      titulo,
       detalhe: `6 meses · ${formatarMoedaBr(mensal)}/mês (${formatarMoedaBr(item.valor_promocional)} no período)`,
     };
   }

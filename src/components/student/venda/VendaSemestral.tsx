@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/vendas";
 import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
-import { beneficiosSemestral, interpretarCobrancaSemestral, podeDesistirSemestral, type EstadoCobranca, type ItemSemestral, type RespostaCobranca } from "@/lib/semestral";
+import { beneficiosSemestral, frequenciasSemestral, interpretarCobrancaSemestral, podeDesistirSemestral, type EstadoCobranca, type ItemSemestral, type RespostaCobranca } from "@/lib/semestral";
 import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { mensagemLinkSemestral, telefoneWhatsApp, urlWhatsAppSemestral } from "@/lib/semestralLink";
@@ -41,11 +41,20 @@ type Resultado = { venda_id?: string; contrato_id?: string; repetida?: boolean; 
 
 export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; itens: ItemSemestral[]; onDone: () => void }) {
   const qc = useQueryClient();
-  const [sel, setSel] = useState<string>(itens[0]?.id ?? "");
+  const freqs = frequenciasSemestral(itens);
+  const [freq, setFreq] = useState<string>(freqs.includes("3x") ? "3x" : (freqs[0] ?? ""));
+  const itensVisiveis = freqs.length > 1 ? itens.filter((i) => i.frequencia === freq) : itens;
+  const [sel, setSel] = useState<string>(itensVisiveis[0]?.id ?? itens[0]?.id ?? "");
   const [observacoes, setObservacoes] = useState("");
   const [idem] = useState(() => crypto.randomUUID());
-  const item = itens.find((i) => i.id === sel);
+  const item = itensVisiveis.find((i) => i.id === sel) ?? itensVisiveis[0];
   const [venda, setVenda] = useState<Resultado | null>(null);
+
+  function trocarFreq(nova: string) {
+    setFreq(nova);
+    const primeiro = itens.find((i) => i.frequencia === nova);
+    if (primeiro) setSel(primeiro.id);
+  }
 
   const vender = useMutation({
     mutationFn: async () => {
@@ -104,17 +113,36 @@ export function VendaSemestral({ alunoId, itens, onDone }: { alunoId: string; it
 
   return (
     <div className="space-y-4">
+      {freqs.length > 1 && (
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Frequência semanal">
+          {freqs.map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="radio"
+              aria-checked={freq === f}
+              onClick={() => trocarFreq(f)}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-sm font-semibold transition-all",
+                freq === f ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border hover:border-primary/40",
+              )}
+            >
+              {f}/semana
+            </button>
+          ))}
+        </div>
+      )}
       <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Plano Semestral">
-        {itens.map((i) => (
+        {itensVisiveis.map((i) => (
           <button
             key={i.id}
             type="button"
             role="radio"
-            aria-checked={sel === i.id}
+            aria-checked={item?.id === i.id}
             onClick={() => setSel(i.id)}
             className={cn(
               "rounded-lg border p-3 text-left text-sm transition-all",
-              sel === i.id ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border hover:border-primary/40",
+              item?.id === i.id ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border hover:border-primary/40",
             )}
           >
             <div className="flex items-baseline justify-between gap-2">

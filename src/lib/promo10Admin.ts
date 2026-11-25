@@ -89,7 +89,9 @@ export function rotuloOfertaEquipePromo10(item: {
   if (tipo === "semestral_agregadora") {
     const nome = String(d.nome ?? item.oferta).replace(/\s*-\s*(Wellhub|TotalPass)$/i, "").trim();
     const agr = String(d.agregadora ?? item.segmento) === "totalpass" ? "TotalPass" : "Wellhub";
-    return `${nome} ${agr}`;
+    const freqRaw = String(d.frequencia ?? "").trim()
+      || (/_(2x|3x)$/i.exec(item.oferta)?.[1]?.toLowerCase() ?? "");
+    return freqRaw ? `${nome} ${agr} ${freqCurta(freqRaw)}` : `${nome} ${agr}`;
   }
 
   if (tipo === "ex_aluno") {

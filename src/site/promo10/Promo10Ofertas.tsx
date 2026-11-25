@@ -15,12 +15,17 @@ import {
   type RespostaOfertasPromo10,
 } from "@/lib/promo10Texto";
 
-const VANTAGENS_START_SEMESTRAL = [
-  "3x por semana (12 créditos por mês)",
-  "2 Avaliações Funcionais (1º e 6º mês)",
-  "Recorrência no cartão ou Pix Automático",
-  "Sem multa de cancelamento",
-];
+function vantagensStartSemestral(freq: FrequenciaPromo10): string[] {
+  const linhaFreq = freq === "2x"
+    ? "2x por semana (8 créditos por mês)"
+    : "3x por semana (12 créditos por mês)";
+  return [
+    linhaFreq,
+    "2 Avaliações Funcionais (1º e 6º mês)",
+    "Recorrência no cartão ou Pix Automático",
+    "Sem multa de cancelamento",
+  ];
+}
 const VANTAGENS_PRO_SEMESTRAL = [
   "Tudo do Start Semestral",
   "Fixar horários na agenda",
@@ -51,9 +56,18 @@ export function Promo10Ofertas({
   );
 
   const [freqUpgrade, setFreqUpgrade] = useState<FrequenciaPromo10>(upgrades[0]?.frequencia_destino ?? "3x");
+  const freqsAgregadora = (["2x", "3x"] as FrequenciaPromo10[]).filter((f) =>
+    agregadoras.some((o) => o.frequencia === f),
+  );
+  const [freqAgregadora, setFreqAgregadora] = useState<FrequenciaPromo10>(
+    freqsAgregadora.includes("3x") ? "3x" : (freqsAgregadora[0] ?? "3x"),
+  );
   const [freqExAluno, setFreqExAluno] = useState<FrequenciaPromo10>("2x");
 
   const upgradeSel = upgrades.find((u) => u.frequencia_destino === freqUpgrade) ?? upgrades[0] ?? null;
+  const agregadorasFiltradas = freqsAgregadora.length > 0
+    ? agregadoras.filter((o) => o.frequencia === freqAgregadora)
+    : agregadoras;
   const exAlunoFiltradas = exAlunoAnuais.filter((o) => o.frequencia === freqExAluno);
 
   return (
@@ -128,18 +142,37 @@ export function Promo10Ofertas({
 
       {agregadoras.length > 0 && (
         <div className="space-y-4">
-          {agregadoras.map((o) => {
+          {freqsAgregadora.length > 1 && (
+            <div className="grid grid-cols-2 gap-2">
+              {freqsAgregadora.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className="p10-tab px-2 text-xs"
+                  data-ativo={freqAgregadora === f}
+                  onClick={() => setFreqAgregadora(f)}
+                >
+                  {f}/semana
+                </button>
+              ))}
+            </div>
+          )}
+          {agregadorasFiltradas.map((o) => {
             const ehPro = o.nome.toLowerCase().includes("pro");
-            const vantagens = ehPro ? VANTAGENS_PRO_SEMESTRAL : VANTAGENS_START_SEMESTRAL;
+            const vantagens = ehPro ? VANTAGENS_PRO_SEMESTRAL : vantagensStartSemestral(o.frequencia);
             return (
               <div key={o.codigo} className="p10-card p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-xl font-black uppercase">{o.nome}</h2>
                   {ehPro && <span className="p10-badge">Mais completo</span>}
                 </div>
-                {ehPro && <p className="text-sm font-bold text-[#e5e5e5]">Menos que o Start 3x e com mais vantagens</p>}
+                {ehPro && <p className="text-sm font-bold text-[#e5e5e5]">Menos que o Start {o.frequencia} e com mais vantagens</p>}
                 <div className="space-y-1">
-                  <p className="text-xs text-[#a3a3a3] line-through">Start 3x hoje R$ 599/mês</p>
+                  {o.valor_referencia_mes !== null && (
+                    <p className="text-xs text-[#a3a3a3] line-through">
+                      Start {o.frequencia} hoje {formatarMoedaBr(o.valor_referencia_mes)}/mês
+                    </p>
+                  )}
                   <p className="text-3xl font-black text-white">
                     {formatarMoedaBr(o.valor_mensal)}
                     <span className="text-sm font-bold text-[#d4d4d4]">/mês</span>

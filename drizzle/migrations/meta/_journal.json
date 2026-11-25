@@ -2066,6 +2066,13 @@
       "when": 1795545734469,
       "tag": "0294_receitas_sync_sem_recalcular_view",
       "breakpoints": true
+    },
+    {
+      "idx": 295,
+      "version": "7",
+      "when": 1795605497137,
+      "tag": "0295_promo10_ofertas_semestral_2x_3x",
+      "breakpoints": true
     }
   ]
 }

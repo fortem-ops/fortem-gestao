@@ -166,7 +166,9 @@ function rotuloOfertaAviso(oferta: string, segmento: string, detalhes: Record<st
   if (tipo === "semestral_agregadora") {
     const nome = String(detalhes?.nome ?? oferta).replace(/\s*-\s*(Wellhub|TotalPass)$/i, "").trim();
     const agr = String(detalhes?.agregadora ?? segmento) === "totalpass" ? "TotalPass" : "Wellhub";
-    return `${nome} ${agr}`;
+    const freq = String(detalhes?.frequencia ?? "").trim()
+      || (/_(2x|3x)$/i.exec(oferta)?.[1]?.toLowerCase() ?? "");
+    return freq ? `${nome} ${agr} ${freq}` : `${nome} ${agr}`;
   }
   if (tipo === "ex_aluno") {
     const fam = String(detalhes?.familia ?? "") === "pro_2027" ? "Pro" : "Power";
