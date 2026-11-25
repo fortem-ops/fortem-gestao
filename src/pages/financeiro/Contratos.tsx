@@ -28,7 +28,8 @@ import {
   FORMA_PAGAMENTO_LABELS, formatBRL, ContratoStatus,
 } from '@/types/financeiro';
 import { cn } from '@/lib/utils';
-import { FORMAS_RECEBIMENTO } from '@/lib/formasRecebimento';
+import { FORMAS_RECEBIMENTO, validarBaixaCartao } from '@/lib/formasRecebimento';
+import { CamposCartaoBaixa } from '@/components/financeiro/CamposCartaoBaixa';
 
 
 const STATUS_VARIANT: Record<ContratoStatus, string> = {
@@ -154,6 +155,8 @@ export default function Contratos() {
   const [inadOpen, setInadOpen] = useState(false);
   const [dataBaixa, setDataBaixa] = useState<Date>(new Date());
   const [formaBaixa, setFormaBaixa] = useState<string>('dinheiro');
+  const [bandeiraBaixa, setBandeiraBaixa] = useState<string>('');
+  const [parcelasBaixa, setParcelasBaixa] = useState<number>(1);
   const darBaixa = useDarBaixaLote();
 
 
@@ -191,6 +194,8 @@ export default function Contratos() {
       cobrancaIds: selecionadasList.map((c) => c.id),
       dataPagamento: format(dataBaixa, 'yyyy-MM-dd'),
       formaRecebimento: formaBaixa,
+      bandeira: bandeiraBaixa || null,
+      parcelasCartao: parcelasBaixa,
     });
 
     setBaixaOpen(false);
@@ -449,6 +454,14 @@ export default function Contratos() {
               </Select>
             </div>
 
+            <CamposCartaoBaixa
+              forma={formaBaixa}
+              bandeira={bandeiraBaixa}
+              onBandeiraChange={setBandeiraBaixa}
+              parcelas={parcelasBaixa}
+              onParcelasChange={setParcelasBaixa}
+              idPrefix="lote-baixa"
+            />
 
 
             <div className="rounded-lg border border-border p-3 text-sm space-y-1">
@@ -467,7 +480,14 @@ export default function Contratos() {
             <Button variant="outline" onClick={() => setBaixaOpen(false)} disabled={darBaixa.isPending}>
               Cancelar
             </Button>
-            <Button onClick={confirmarBaixa} disabled={darBaixa.isPending || selecionadasList.length === 0}>
+            <Button
+              onClick={confirmarBaixa}
+              disabled={
+                darBaixa.isPending ||
+                selecionadasList.length === 0 ||
+                Boolean(validarBaixaCartao(formaBaixa, bandeiraBaixa, parcelasBaixa))
+              }
+            >
               {darBaixa.isPending ? 'Salvando...' : 'Confirmar baixa'}
             </Button>
           </DialogFooter>

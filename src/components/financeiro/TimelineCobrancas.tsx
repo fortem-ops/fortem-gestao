@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/select';
 import { useCobrancasContrato, useRegistrarPagamento } from '@/hooks/useContratos';
 import { Cobranca, formatBRL } from '@/types/financeiro';
-import { FORMAS_RECEBIMENTO } from '@/lib/formasRecebimento';
+import { FORMAS_RECEBIMENTO, validarBaixaCartao } from '@/lib/formasRecebimento';
+import { CamposCartaoBaixa } from '@/components/financeiro/CamposCartaoBaixa';
 
 
 interface Props {
@@ -77,6 +78,8 @@ export function TimelineCobrancas({ contratoId, canRegister = false }: Props) {
 function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; onClose: () => void }) {
   const [dataPagamento, setDataPagamento] = useState(new Date().toISOString().split('T')[0]);
   const [formaRecebimento, setFormaRecebimento] = useState('dinheiro');
+  const [bandeira, setBandeira] = useState('');
+  const [parcelas, setParcelas] = useState(1);
   const [comprovante, setComprovante] = useState('');
   const registrar = useRegistrarPagamento();
 
@@ -85,6 +88,8 @@ function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; o
       cobrancaId: cobranca.id,
       dataPagamento,
       formaRecebimento,
+      bandeira: bandeira || null,
+      parcelasCartao: parcelas,
       comprovante_url: comprovante || undefined,
     });
     onClose();
@@ -118,6 +123,14 @@ function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; o
               </SelectContent>
             </Select>
           </div>
+          <CamposCartaoBaixa
+            forma={formaRecebimento}
+            bandeira={bandeira}
+            onBandeiraChange={setBandeira}
+            parcelas={parcelas}
+            onParcelasChange={setParcelas}
+            idPrefix="timeline-baixa"
+          />
           <div className="space-y-1.5">
             <Label htmlFor="comp">URL do comprovante (opcional)</Label>
             <Input id="comp" value={comprovante} onChange={(e) => setComprovante(e.target.value)} placeholder="https://..." />
@@ -125,7 +138,10 @@ function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; o
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={registrar.isPending}>
+          <Button
+            onClick={handleSubmit}
+            disabled={registrar.isPending || Boolean(validarBaixaCartao(formaRecebimento, bandeira, parcelas))}
+          >
             {registrar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar
           </Button>

@@ -2073,6 +2073,13 @@
       "when": 1795605497137,
       "tag": "0295_promo10_ofertas_semestral_2x_3x",
       "breakpoints": true
+    },
+    {
+      "idx": 296,
+      "version": "7",
+      "when": 1795606274798,
+      "tag": "0296_cobrancas_bandeira_parcelas_e_recebidos",
+      "breakpoints": true
     }
   ]
 }

@@ -2595,6 +2595,7 @@ export type Database = {
       cobrancas: {
         Row: {
           aluno_id: string
+          bandeira: string | null
           composicao: Json | null
           comprovante_url: string | null
           contrato_id: string
@@ -2610,6 +2611,7 @@ export type Database = {
           motivo_recusa: string | null
           numero_ciclo: number
           origem: string | null
+          parcelas_cartao: number | null
           pix_aut_grupo_id: string | null
           proxima_tentativa_em: string | null
           registrado_por: string | null
@@ -2621,6 +2623,7 @@ export type Database = {
         }
         Insert: {
           aluno_id: string
+          bandeira?: string | null
           composicao?: Json | null
           comprovante_url?: string | null
           contrato_id: string
@@ -2636,6 +2639,7 @@ export type Database = {
           motivo_recusa?: string | null
           numero_ciclo: number
           origem?: string | null
+          parcelas_cartao?: number | null
           pix_aut_grupo_id?: string | null
           proxima_tentativa_em?: string | null
           registrado_por?: string | null
@@ -2647,6 +2651,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string
+          bandeira?: string | null
           composicao?: Json | null
           comprovante_url?: string | null
           contrato_id?: string
@@ -2662,6 +2667,7 @@ export type Database = {
           motivo_recusa?: string | null
           numero_ciclo?: number
           origem?: string | null
+          parcelas_cartao?: number | null
           pix_aut_grupo_id?: string | null
           proxima_tentativa_em?: string | null
           registrado_por?: string | null

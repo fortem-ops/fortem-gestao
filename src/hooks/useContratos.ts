@@ -280,8 +280,13 @@ export function useCancelarContrato() {
 export function useRegistrarPagamento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ cobrancaId, dataPagamento, formaRecebimento, comprovante_url }: {
-      cobrancaId: string; dataPagamento: string; formaRecebimento: string; comprovante_url?: string;
+    mutationFn: async ({ cobrancaId, dataPagamento, formaRecebimento, bandeira, parcelasCartao, comprovante_url }: {
+      cobrancaId: string;
+      dataPagamento: string;
+      formaRecebimento: string;
+      bandeira?: string | null;
+      parcelasCartao?: number | null;
+      comprovante_url?: string;
     }) => {
       const forma = getFormaRecebimento(formaRecebimento);
       if (!forma) throw new Error('Forma de recebimento inválida');
@@ -293,6 +298,8 @@ export function useRegistrarPagamento() {
           data_pagamento: dataPagamento,
           forma_pagamento: forma.value,
           gateway: forma.gateway,
+          bandeira: forma.exigeBandeira ? (bandeira || null) : null,
+          parcelas_cartao: forma.permiteParcelas ? (parcelasCartao ?? 1) : null,
           meio_registro: 'manual_admin',
           ...(comprovante_url ? { comprovante_url } : {}),
         })
@@ -322,8 +329,12 @@ export function useRegistrarPagamento() {
 export function useDarBaixaLote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ cobrancaIds, dataPagamento, formaRecebimento }: {
-      cobrancaIds: string[]; dataPagamento: string; formaRecebimento?: string;
+    mutationFn: async ({ cobrancaIds, dataPagamento, formaRecebimento, bandeira, parcelasCartao }: {
+      cobrancaIds: string[];
+      dataPagamento: string;
+      formaRecebimento?: string;
+      bandeira?: string | null;
+      parcelasCartao?: number | null;
     }) => {
       if (!cobrancaIds.length) return 0;
       const forma = formaRecebimento ? getFormaRecebimento(formaRecebimento) : undefined;
@@ -334,7 +345,14 @@ export function useDarBaixaLote() {
           status: 'pago',
           data_pagamento: dataPagamento,
           meio_registro: 'manual_admin',
-          ...(forma ? { forma_pagamento: forma.value, gateway: forma.gateway } : {}),
+          ...(forma
+            ? {
+                forma_pagamento: forma.value,
+                gateway: forma.gateway,
+                bandeira: forma.exigeBandeira ? (bandeira || null) : null,
+                parcelas_cartao: forma.permiteParcelas ? (parcelasCartao ?? 1) : null,
+              }
+            : {}),
         })
         .in('id', cobrancaIds);
       if (error) throw error;

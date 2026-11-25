@@ -67,12 +67,14 @@ import {
   FORMAS_RECEBIMENTO,
   getFormaRecebimento,
   labelFormaPagamento,
+  validarBaixaCartao,
 } from "@/lib/formasRecebimento";
 import { propagarBaixaParaVenda } from "@/lib/baixaVenda";
 import { confirmarBaixaReservadaPix } from "@/lib/pixAutReserva";
 import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
 import { EstornarCobrancaDialog } from "@/components/financeiro/EstornarCobrancaDialog";
 import { ComprovanteEstornoDialog } from "@/components/financeiro/ComprovanteEstornoDialog";
+import { CamposCartaoBaixa } from "@/components/financeiro/CamposCartaoBaixa";
 import { useEstornosDoContrato, useMeuNome, type EstornoRegistro } from "@/hooks/useEstorno";
 import type { ComprovanteEstornoDados } from "@/lib/estornoPdf";
 import { ultimoDiaDoMes, novaDataFimValida } from "@/lib/reativarContrato";
@@ -118,6 +120,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const [baixaCobranca, setBaixaCobranca] = useState<any | null>(null);
   const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
   const [baixaForma, setBaixaForma] = useState<string>("dinheiro");
+  const [baixaBandeira, setBaixaBandeira] = useState<string>("");
+  const [baixaParcelas, setBaixaParcelas] = useState<number>(1);
   const [baixaLoading, setBaixaLoading] = useState(false);
   const [excluirCobranca, setExcluirCobranca] = useState<any | null>(null);
   const [excluirLoading, setExcluirLoading] = useState(false);
@@ -355,6 +359,11 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     if (!baixaCobranca) return;
     const forma = getFormaRecebimento(baixaForma);
     if (!forma) return;
+    const erroCartao = validarBaixaCartao(baixaForma, baixaBandeira, baixaParcelas);
+    if (erroCartao) {
+      toast({ title: "Dados incompletos", description: erroCartao, variant: "destructive" });
+      return;
+    }
     setBaixaLoading(true);
     try {
       if (!(await confirmarBaixaReservadaPix([baixaCobranca.id]))) return;
@@ -365,6 +374,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           data_pagamento: baixaData,
           forma_pagamento: forma.value,
           gateway: forma.gateway,
+          bandeira: forma.exigeBandeira ? baixaBandeira : null,
+          parcelas_cartao: forma.permiteParcelas ? baixaParcelas : null,
           meio_registro: "manual_admin",
           // Cobrança estornada: o recebimento manual não pode herdar a
           // transação de cartão já estornada (o histórico fica em pagamentos_rede).
@@ -433,6 +444,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     setBaixaCobranca(c);
     setBaixaData(new Date().toISOString().split("T")[0]);
     setBaixaForma("dinheiro");
+    setBaixaBandeira("");
+    setBaixaParcelas(1);
 
     setBaixaOpen(true);
   };
@@ -741,6 +754,14 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                 Como o valor entrou de fato. Substitui a forma "a definir" da venda.
               </p>
             </div>
+            <CamposCartaoBaixa
+              forma={baixaForma}
+              bandeira={baixaBandeira}
+              onBandeiraChange={setBaixaBandeira}
+              parcelas={baixaParcelas}
+              onParcelasChange={setBaixaParcelas}
+              idPrefix="baixa"
+            />
 
           </div>
           <DialogFooter>
@@ -749,7 +770,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             </Button>
             <Button
               onClick={handleBaixa}
-              disabled={baixaLoading || !baixaData}
+              disabled={baixaLoading || !baixaData || Boolean(validarBaixaCartao(baixaForma, baixaBandeira, baixaParcelas))}
               className="bg-green-600 hover:bg-green-700 text-white gap-1"
             >
               {baixaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
