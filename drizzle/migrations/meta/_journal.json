@@ -2143,6 +2143,13 @@
       "when": 1795701270802,
       "tag": "0305_treino_slot_excecoes_leitura_aluno_vinculado",
       "breakpoints": true
+    },
+    {
+      "idx": 306,
+      "version": "7",
+      "when": 1795702006270,
+      "tag": "0306_avisos_consultor_conversao_responsavel_push",
+      "breakpoints": true
     }
   ]
 }

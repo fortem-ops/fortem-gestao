@@ -11,6 +11,8 @@ const brt = (iso: string) => new Date(`${iso}-03:00`);
 describe("gatilhos com push", () => {
   it("só gatilhos da lista passam; itens SEM push são recusados", () => {
     expect(gatilhoPermitido("teste")).toBe(true);
+    expect(gatilhoPermitido("notificacao_aluno")).toBe(true);
+    expect(gatilhoPermitido("notificacao_aluno_urgente")).toBe(true);
     for (const g of ["chargeback", "lead_novo", "tarefa_nova", "despesa_vencendo", "qualquer"]) {
       expect(gatilhoPermitido(g)).toBe(false);
       expect(validarMensagem(g, "Título", "Corpo")).toBe("gatilho_sem_push");
@@ -20,9 +22,12 @@ describe("gatilhos com push", () => {
     expect(validarMensagem("teste", "Pronto!", "")).toBe("exclamacao");
     expect(validarMensagem("teste", "Aviso", "Seu Comissionamento saiu")).toBe("termo_proibido");
     expect(validarMensagem("teste", "Aviso", "Tudo certo")).toBeNull();
+    expect(validarMensagem("notificacao_aluno", "Avaliação experimental de Ana realizada por João", "Ficha disponível")).toBeNull();
   });
   it("o teste é urgente (sai a qualquer hora)", () => {
     expect(GATILHOS_EQUIPE.teste.urgente).toBe(true);
+    expect(GATILHOS_EQUIPE.notificacao_aluno.urgente).toBe(false);
+    expect(GATILHOS_EQUIPE.notificacao_aluno_urgente.urgente).toBe(true);
   });
 });
 

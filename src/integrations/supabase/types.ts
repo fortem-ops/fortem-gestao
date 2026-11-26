@@ -7022,6 +7022,63 @@ export type Database = {
           },
         ]
       }
+      notificacao_conversao_log: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          notificacao_id: string | null
+          plano_id: string | null
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          notificacao_id?: string | null
+          plano_id?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          notificacao_id?: string | null
+          plano_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_conversao_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacao_conversao_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "notificacao_conversao_log_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacao_conversao_log_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacao_conversao_log_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+        ]
+      }
       notificacao_destinatarios: {
         Row: {
           assinatura_digital: string | null

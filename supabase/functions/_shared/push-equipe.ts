@@ -11,6 +11,8 @@ export type PapelEquipe = (typeof PAPEIS_EQUIPE)[number];
  */
 export const GATILHOS_EQUIPE: Readonly<Record<string, { urgente: boolean }>> = {
   teste: { urgente: true },
+  notificacao_aluno: { urgente: false },
+  notificacao_aluno_urgente: { urgente: true },
 };
 
 export function gatilhoPermitido(gatilho: string): boolean {
