@@ -120,7 +120,7 @@ export function Venda2027Steps({ alunoId, temPlanoAtivo, onDone, familiaFixa, oc
   const [dataVenda, setDataVenda] = useState(hoje);
   const [jaPago, setJaPago] = useState(false);
   const [formaRecebimento, setFormaRecebimento] = useState("pix");
-  const [bandeira, setBandeira] = useState<Bandeira>("VISA");
+  const [bandeira, setBandeira] = useState<Bandeira>("visa");
   const [parcelasMaquina, setParcelasMaquina] = useState(1);
   const [dataPagamento, setDataPagamento] = useState(hoje);
   const [motivoRetro, setMotivoRetro] = useState("");

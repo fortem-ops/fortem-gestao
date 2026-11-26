@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { formaExigeBandeira, formaPermiteParcelas, formaRecebimentoDaModalidade } from "@/lib/formasRecebimento";
+import { BANDEIRAS_PADRAO } from "@/types/adquirente";
 
 const mig = readFileSync(
   resolve(process.cwd(), "drizzle/migrations/0298_criar_contrato_tradicional_retroativa.sql"),
@@ -87,5 +88,28 @@ describe("fn_criar_contrato_tradicional_retroativa (Corrida)", () => {
     for (const slug of [debito, creditoMaquina, dinheiro, pix, boleto]) {
       expect(aceitasBanco).toContain(slug);
     }
+  });
+
+  it("inicializa e reseta a bandeira da venda retroativa em minúsculo compatível com BANDEIRAS_PADRAO", () => {
+    const validas = BANDEIRAS_PADRAO.map((b) => b.value);
+    const vendaDialog = readFileSync(
+      resolve(process.cwd(), "src/components/student/venda/VendaDialog.tsx"),
+      "utf8",
+    );
+    const venda2027 = readFileSync(
+      resolve(process.cwd(), "src/components/student/venda/Venda2027Steps.tsx"),
+      "utf8",
+    );
+
+    const initDialog = vendaDialog.match(/useState<Bandeira>\("([^"]+)"\)/);
+    const resetDialog = vendaDialog.match(/setBandeiraRetro\("([^"]+)"\)/);
+    const init2027 = venda2027.match(/useState<Bandeira>\("([^"]+)"\)/);
+
+    expect(initDialog?.[1]).toBeDefined();
+    expect(resetDialog?.[1]).toBeDefined();
+    expect(init2027?.[1]).toBeDefined();
+    expect(validas).toContain(initDialog![1]);
+    expect(validas).toContain(resetDialog![1]);
+    expect(validas).toContain(init2027![1]);
   });
 });

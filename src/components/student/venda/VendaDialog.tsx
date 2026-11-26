@@ -181,7 +181,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
   const [retroAberto, setRetroAberto] = useState(false);
   const [valorManual, setValorManual] = useState("");
   const [dataVendaRetro, setDataVendaRetro] = useState(hojeStr);
-  const [bandeiraRetro, setBandeiraRetro] = useState<Bandeira>("VISA");
+  const [bandeiraRetro, setBandeiraRetro] = useState<Bandeira>("visa");
   const [dataPagRetro, setDataPagRetro] = useState(hojeStr);
   const [motivoRetro, setMotivoRetro] = useState("");
 
@@ -210,7 +210,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange, renovacaoA
     setDataInicio(new Date());
     const h = format(new Date(), "yyyy-MM-dd");
     setRetroAberto(false); setValorManual(""); setDataVendaRetro(h);
-    setBandeiraRetro("VISA"); setDataPagRetro(h); setMotivoRetro("");
+    setBandeiraRetro("visa"); setDataPagRetro(h); setMotivoRetro("");
     setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
     setOpcaoServicoId(null); setOpcaoServico(null);
     setModoContrato("substituir");
