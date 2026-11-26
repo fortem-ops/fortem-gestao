@@ -9,7 +9,7 @@ export type TreinoSlotBase = {
   instrutor_id: string | null;
   ativo?: boolean;
   observacoes?: string | null;
-  modalidade: string | null;
+  modalidade?: string | null;
 };
 
 export type TreinoSlotExcecao = {
