@@ -9,6 +9,7 @@ interface StudentPortalContextType {
   student: Tables<"alunos"> | null;
   loading: boolean;
   unlinked: boolean;
+  linkReason: string | null;
   refetch: () => void;
   /** true só quando confirmado "só Consultoria Online"; null = carregando/erro. */
   somenteOnline?: SomenteOnline;
@@ -20,13 +21,18 @@ const StudentPortalContext = createContext<StudentPortalContextType | undefined>
 export function StudentPortalProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [linkDone, setLinkDone] = useState(false);
+  const [linkReason, setLinkReason] = useState<string | null>(null);
 
   // Chama o RPC e só libera a query quando ele terminar (await real).
   useEffect(() => {
     if (!user || linkDone) return;
     void (async () => {
       try {
-        await supabase.rpc("fn_portal_link_aluno");
+        const { data: res } = await supabase.rpc("fn_portal_link_aluno");
+        if (res && typeof res === "object" && !Array.isArray(res)) {
+          const reason = (res as Record<string, unknown>).reason;
+          setLinkReason(typeof reason === "string" ? reason : null);
+        }
       } catch {
         // em caso de erro, libera mesmo assim para não travar
       } finally {
@@ -70,11 +76,12 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
       student: data ?? null,
       loading: authLoading || !linkDone || isLoading,
       unlinked: !!user && linkDone && !isLoading && !data,
+      linkReason,
       refetch: () => { void refetch(); },
       somenteOnline,
       somenteOnlineLoading: !!alunoId && somenteOnlineLoading,
     }),
-    [data, authLoading, linkDone, isLoading, user, refetch, somenteOnline, alunoId, somenteOnlineLoading],
+    [data, authLoading, linkDone, isLoading, user, linkReason, refetch, somenteOnline, alunoId, somenteOnlineLoading],
   );
 
   return <StudentPortalContext.Provider value={value}>{children}</StudentPortalContext.Provider>;

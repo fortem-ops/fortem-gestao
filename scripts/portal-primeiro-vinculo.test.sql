@@ -1,24 +1,29 @@
 -- Regression against the real trigger/RPC. Every fixture and side effect is rolled back.
+-- Never depends on real student accounts or fixed auth UUIDs.
 BEGIN;
 DO $test$
 DECLARE
-  uid uuid := '9e30eeda-134b-4cb8-94df-1233195462f5';
-  other_uid uuid := 'c3c79c00-4948-4a39-ab01-3b1965f8a3ad';
+  uid uuid := gen_random_uuid();
+  other_uid uuid := gen_random_uuid();
   staff_uid uuid;
-  email_teste text;
+  email_teste text := 'fixture.vinculo.' || replace(uid::text, '-', '') || '@invalid.test';
+  other_email text := 'fixture.outro.' || replace(other_uid::text, '-', '') || '@invalid.test';
   aluno uuid;
   result jsonb;
   blocked boolean;
   assignment text;
+  avisos_antes integer;
+  avisos_depois integer;
   total integer := 0;
 BEGIN
-  SELECT email INTO STRICT email_teste FROM auth.users WHERE id = uid;
+  INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
+  VALUES
+    (uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', email_teste, '', now(), now(), now(), '{}'::jsonb, '{}'::jsonb),
+    (other_uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', other_email, '', now(), now(), now(), '{}'::jsonb, '{}'::jsonb);
+
   SELECT r.user_id INTO STRICT staff_uid FROM public.user_roles r
     WHERE r.role IN ('admin', 'coordenador') AND public.is_staff(r.user_id) LIMIT 1;
   PERFORM set_config('request.jwt.claims', '{}', true);
-  UPDATE public.alunos SET user_id = NULL, email = 'rollback-' || id || '@invalid.test'
-    WHERE user_id = uid OR lower(trim(email)) = lower(email_teste);
-  UPDATE public.alunos SET user_id = NULL WHERE user_id = other_uid;
   INSERT INTO public.alunos (nome, email, is_equipe)
     VALUES ('REGRESSAO VINCULO ROLLBACK', email_teste, true) RETURNING id INTO aluno;
   PERFORM set_config('request.jwt.claims', jsonb_build_object('sub', uid, 'role', 'authenticated')::text, true);
@@ -81,9 +86,20 @@ BEGIN
 
   PERFORM set_config('request.jwt.claims', '{}', true);
   UPDATE public.alunos SET email = 'different@invalid.test' WHERE id = aluno;
+  SELECT count(*) INTO avisos_antes FROM public.notificacoes WHERE created_at >= transaction_timestamp();
   PERFORM set_config('request.jwt.claims', jsonb_build_object('sub', uid, 'role', 'authenticated')::text, true);
   result := public.fn_portal_link_aluno();
   IF result->>'reason' IS DISTINCT FROM 'no_match' THEN RAISE EXCEPTION 'Different email linked'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.system_logs WHERE modulo = 'portal-link-aluno' AND acao = 'no_match' AND user_id = uid AND created_at >= transaction_timestamp()) THEN
+    RAISE EXCEPTION 'no_match was not logged';
+  END IF;
+  SELECT count(*) INTO avisos_depois FROM public.notificacoes WHERE created_at >= transaction_timestamp();
+  IF avisos_depois <> avisos_antes + 1 THEN RAISE EXCEPTION 'Expected 1 admin notice on no_match'; END IF;
+  -- Segunda chamada no mesmo dia não gera segundo aviso (máx 1/dia)
+  result := public.fn_portal_link_aluno();
+  IF (SELECT count(*) FROM public.notificacoes WHERE created_at >= transaction_timestamp()) <> avisos_depois THEN
+    RAISE EXCEPTION 'Admin notice rate limit (1/day) violated';
+  END IF;
   blocked := false;
   BEGIN
     UPDATE public.alunos SET user_id = uid WHERE id = aluno;
@@ -94,9 +110,13 @@ BEGIN
 
   PERFORM set_config('request.jwt.claims', '{}', true);
   UPDATE public.alunos SET user_id = other_uid, email = email_teste WHERE id = aluno;
+  DELETE FROM public.system_logs WHERE modulo = 'portal-link-aluno' AND acao = 'aviso_admin_enviado' AND user_id = uid;
   PERFORM set_config('request.jwt.claims', jsonb_build_object('sub', uid, 'role', 'authenticated')::text, true);
   result := public.fn_portal_link_aluno();
-  IF result->>'reason' IS DISTINCT FROM 'no_match' THEN RAISE EXCEPTION 'Occupied account linked'; END IF;
+  IF result->>'reason' IS DISTINCT FROM 'ja_vinculado_outra_conta' THEN RAISE EXCEPTION 'Occupied account should return ja_vinculado_outra_conta, got %', result; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.notificacoes WHERE aluno_id = aluno AND created_at >= transaction_timestamp()) THEN
+    RAISE EXCEPTION 'Expected admin notice on ja_vinculado_outra_conta';
+  END IF;
   total := total + 1;
 
   PERFORM set_config('request.jwt.claims', jsonb_build_object('sub', staff_uid, 'role', 'authenticated')::text, true);

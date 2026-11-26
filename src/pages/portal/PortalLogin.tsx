@@ -9,6 +9,7 @@ import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { checarPapelEquipe } from "@/lib/authAccess";
 import { registrarDiag } from "@/lib/diagnosticoApp";
 import { lovable } from "@/integrations/lovable/index";
+import { limparRetornoOAuthPortal, marcarRetornoOAuthPortal } from "@/lib/oauthPortalReturn";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
 import { Seo } from "@/components/Seo";
@@ -89,10 +90,12 @@ export default function PortalLogin() {
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
+    marcarRetornoOAuthPortal();
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
+      limparRetornoOAuthPortal();
       setGoogleLoading(false);
       toast.error("Não foi possível iniciar o login com Google", { description: "Tente novamente ou use e-mail e senha." });
       return;
@@ -102,15 +105,18 @@ export default function PortalLogin() {
       return;
     }
     // Sessão definida sem redirect: o useEffect acima navega para o destino.
+    limparRetornoOAuthPortal();
     setGoogleLoading(false);
   }
 
   async function handleAppleSignIn() {
     setAppleLoading(true);
+    marcarRetornoOAuthPortal();
     const result = await lovable.auth.signInWithOAuth("apple", {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
+      limparRetornoOAuthPortal();
       setAppleLoading(false);
       toast.error("Não foi possível iniciar o login com Apple", { description: "Tente novamente ou use e-mail e senha." });
       return;
@@ -120,6 +126,7 @@ export default function PortalLogin() {
       return;
     }
     // Sessão definida sem redirect: o useEffect acima navega para o destino.
+    limparRetornoOAuthPortal();
     setAppleLoading(false);
   }
 

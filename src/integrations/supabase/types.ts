@@ -13704,6 +13704,17 @@ export type Database = {
         Args: { _data: string; _usuario: string }
         Returns: Database["public"]["Enums"]["tipo_acordo_intervalo"]
       }
+      fn_admin_alunos_vinculo_integridade: {
+        Args: never
+        Returns: {
+          aluno_email: string
+          aluno_id: string
+          auth_email: string
+          motivo: string
+          nome: string
+          user_id: string
+        }[]
+      }
       fn_admin_fix_timezone_divergencias: { Args: never; Returns: string }
       fn_admin_tarefas_pipeline: { Args: never; Returns: string }
       fn_agenda_estornar_credito_por_agenda: {

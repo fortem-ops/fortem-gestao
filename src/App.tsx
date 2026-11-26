@@ -16,6 +16,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { AppInstalavelSync } from "@/components/AppInstalavelSync";
 import { AppEquipeGuard } from "@/components/AppEquipeGuard";
 import { DiagnosticoSessao } from "@/components/DiagnosticoSessao";
+import { OAuthPortalReturn } from "@/components/portal/OAuthPortalReturn";
 import { PortalInicio } from "@/components/portal/RequireStudent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartProvider } from "@/hooks/useCartLoja";
@@ -195,6 +196,7 @@ const App = () => (
         <AppEquipeGuard />
         <AuthProvider>
           <DiagnosticoSessao />
+          <OAuthPortalReturn />
           <CartProvider>
           <Routes>
             <Route path="/diagnostico-app" element={<Suspense fallback={<RouteFallback />}><DiagnosticoApp /></Suspense>} />

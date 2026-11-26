@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award, UsersRound } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -24,7 +24,7 @@ const navItems = [
 
 export function PortalLayout() {
   const { signOut, user } = useAuth();
-  const { student, loading, unlinked, somenteOnline } = useStudentPortal();
+  const { student, loading, unlinked, linkReason, somenteOnline } = useStudentPortal();
   const itensNav = filtrarNavPortal(navItems, somenteOnline);
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
@@ -58,15 +58,28 @@ export function PortalLayout() {
   }
 
   if (unlinked) {
+    const emailLogado = user?.email ?? "";
+    const textoWpp = encodeURIComponent(
+      `Olá! Tentei entrar no Portal do Aluno com o e-mail ${emailLogado}, mas minha conta apareceu como ainda não vinculada. Podem me ajudar?`,
+    );
+    const urlWpp = `https://wa.me/555135199451?text=${textoWpp}`;
+    const mensagem =
+      linkReason === "ja_vinculado_outra_conta"
+        ? "Esse e-mail já está vinculado a outra conta de acesso na FORTEM. Nossa equipe já foi avisada para ajustar o vínculo, ou você pode falar conosco pelo WhatsApp."
+        : "Esse e-mail ainda não está vinculado a um cadastro de aluno na FORTEM. Nossa equipe já foi avisada — se preferir, chame no WhatsApp para liberarmos seu acesso.";
     return (
       <div data-portal="true" className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="glass-card max-w-md w-full p-8 text-center space-y-4 rounded-2xl">
           <img src={fortemIcon} alt="Fortem" className="mx-auto w-14 h-14" />
           <h1 className="text-xl font-heading font-bold">Conta ainda não vinculada</h1>
           <p className="text-sm text-muted-foreground">
-            Você está logado como <strong>{user?.email}</strong>, mas esse e-mail ainda não está
-            cadastrado na FORTEM. Fale com seu professor para liberar o acesso.
+            Você entrou como <strong>{emailLogado}</strong>. {mensagem}
           </p>
+          <Button asChild className="w-full">
+            <a href={urlWpp} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="w-4 h-4 mr-2" /> Falar com a equipe no WhatsApp
+            </a>
+          </Button>
           <Button variant="outline" className="w-full" onClick={() => signOut().then(() => navigate("/portal/login"))}>
             <LogOut className="w-4 h-4 mr-2" /> Sair
           </Button>

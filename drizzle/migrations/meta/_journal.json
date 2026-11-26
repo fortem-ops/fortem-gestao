@@ -2108,6 +2108,13 @@
       "when": 1795615244114,
       "tag": "0300_plano_principal_ativo_prioriza_vigente_sobre_futuro",
       "breakpoints": true
+    },
+    {
+      "idx": 301,
+      "version": "7",
+      "when": 1795695054234,
+      "tag": "0301_portal_link_aluno_logs_aviso_e_integridade",
+      "breakpoints": true
     }
   ]
 }

@@ -18,3 +18,4 @@
 - [x] Push da equipe Fase 1 (infra, pendentes 06:10, aba admin, aviso iPhone, proteção do push do aluno)
 - [ ] Push da equipe: revisão dos textos — aguardando o dono
 - [ ] Push da equipe Fases 2–4 — aguardando aprovação dos textos
+- [x] Portal: retorno do login social (Google/Apple + PWA), logs/aviso 1x/dia em fn_portal_link_aluno, ja_vinculado_outra_conta, consulta de integridade e ensaios com fixtures
