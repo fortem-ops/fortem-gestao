@@ -2150,6 +2150,13 @@
       "when": 1795702006270,
       "tag": "0306_avisos_consultor_conversao_responsavel_push",
       "breakpoints": true
+    },
+    {
+      "idx": 307,
+      "version": "7",
+      "when": 1795702948902,
+      "tag": "0307_comissoes_fase1_avaliacao_e_planos_site",
+      "breakpoints": true
     }
   ]
 }
