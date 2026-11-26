@@ -61,6 +61,7 @@ import { SUBCATEGORIA_TO_CODE, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMappin
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import { PrescribeOptionsDialog } from "./PrescribeOptionsDialog";
+import { useRelatorioTrocaTreino } from "@/hooks/useRelatorioTrocaTreino";
 import {
   emptyPersonalizado,
   flattenPersonalizado,
@@ -115,6 +116,7 @@ export function PersonalizadoEditor({
   readOnly = false,
 }: Props) {
   const { user } = useAuth();
+  const abrirRelatorio = useRelatorioTrocaTreino();
   const { blocosAquecimento, categoriasForca } = useExerciseCategories();
   const forcaCategories: ExerciseCategory[] = categoriasForca;
   const AQUECIMENTO_BLOCOS = useMemo(
@@ -646,6 +648,8 @@ export function PersonalizadoEditor({
           .from("tarefas")
           .delete()
           .eq("aluno_id", targetAlunoId)
+          .is("treino_id", null)
+          .neq("status", "concluida")
           .in("tipo_auto", ["atualizar_treino", "treino_onda_concluida"]);
         const dataLimite = new Date();
         dataLimite.setDate(dataLimite.getDate() + 30);
@@ -671,6 +675,7 @@ export function PersonalizadoEditor({
       );
       clearDraft();
       onSaved?.();
+      await abrirRelatorio(targetAlunoId);
     } catch (e) {
       toast.error("Erro ao aplicar: " + (e instanceof Error ? e.message : ""));
     } finally {

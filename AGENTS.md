@@ -8,6 +8,9 @@
 
 ## Decisões
 
+- Technical task eligibility is enforced by the database task guard using both student status and inactive pipeline membership; workout reports link to the prescribed workout, and assessment inserts/finalization notify protected staff roles. Why: cover every writer, preserve authorship, and avoid orphaned or duplicate technical reminders.
+- Workout prescription callbacks use the shared report-navigation hook; existing session autosaves do not reopen reports. Why: keep all prescription methods consistent without interrupting training logs.
+
 - The anniversary retrospective gallery uses the existing public event-photo endpoint and its signed thumbnail/preview URLs, never direct table or storage reads. Why: preserve moderation and private storage while keeping the public page light.
 
 ### Onde estão as demais regras (ler o arquivo da área ANTES de mexer, inclusive em SQL, RPCs, migrações e edge functions)
