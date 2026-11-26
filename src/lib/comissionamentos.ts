@@ -56,7 +56,7 @@ export const TIPO_LABEL: Record<ComissaoTipo, string> = {
 
 export const STATUS_LABEL: Record<ComissaoStatus, string> = {
   pendente: "Pendente",
-  em_validacao: "Em validação",
+  em_validacao: "Aguardando aprovação",
   aprovado: "Aprovado",
   pago: "Pago",
   cancelado: "Cancelado",

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, CheckCircle2, Clock, AlertCircle, Target } from "lucide-react";
@@ -20,6 +21,7 @@ import {
   useCarteiraStats,
   useConcluirPendencia,
   useUpdateComissaoStatus,
+  useAprovarComissoes,
   useUpdateConfig,
 } from "@/hooks/useComissionamentos";
 import {
@@ -28,6 +30,7 @@ import {
   STATUS_COLOR,
   TIPO_LABEL,
   PENDENCIA_LABEL,
+  type Comissionamento,
   type ComissaoStatus,
 } from "@/lib/comissionamentos";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -428,8 +431,34 @@ function AdminListagem({ isAdmin }: { isAdmin: boolean }) {
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const { data: rows = [] } = useComissionamentos(statusFiltro === "todos" ? {} : { status: [statusFiltro as ComissaoStatus] });
   const updateStatus = useUpdateComissaoStatus();
+  const aprovar = useAprovarComissoes();
+  const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [profMap, setProfMap] = useState<Record<string, string>>({});
   const [alunoMap, setAlunoMap] = useState<Record<string, string>>({});
+
+  const aprovaveis = useMemo(
+    () => rows.filter((r) => r.status === "em_validacao" || r.status === "pendente"),
+    [rows]
+  );
+  const aprovaveisIds = useMemo(() => new Set(aprovaveis.map((r) => r.id)), [aprovaveis]);
+  const selecionadasValidas = useMemo(
+    () => selecionadas.filter((id) => aprovaveisIds.has(id)),
+    [selecionadas, aprovaveisIds]
+  );
+  const todasSelecionadas = aprovaveis.length > 0 && selecionadasValidas.length === aprovaveis.length;
+
+  const toggleSelecao = (id: string) => {
+    setSelecionadas((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  };
+  const toggleTodas = () => {
+    setSelecionadas(todasSelecionadas ? [] : aprovaveis.map((r) => r.id));
+  };
+  const handleAprovar = (ids: string[]) => {
+    if (!ids.length) return;
+    aprovar.mutate(ids, {
+      onSuccess: () => setSelecionadas((prev) => prev.filter((id) => !ids.includes(id))),
+    });
+  };
 
   useQuery({
     queryKey: ["comissao-prof-map"],
@@ -459,7 +488,7 @@ function AdminListagem({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <Select value={statusFiltro} onValueChange={setStatusFiltro}>
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -469,14 +498,42 @@ function AdminListagem({ isAdmin }: { isAdmin: boolean }) {
             ))}
           </SelectContent>
         </Select>
+        {isAdmin && selecionadasValidas.length > 0 && (
+          <Button size="sm" onClick={() => handleAprovar(selecionadasValidas)} disabled={aprovar.isPending}>
+            Aprovar selecionadas ({selecionadasValidas.length})
+          </Button>
+        )}
       </div>
       <Table>
         <TableHeader><TableRow>
+          {isAdmin && (
+            <TableHead className="w-10">
+              <Checkbox
+                checked={todasSelecionadas}
+                onCheckedChange={toggleTodas}
+                disabled={aprovaveis.length === 0}
+                aria-label="Selecionar todas aguardando aprovação"
+              />
+            </TableHead>
+          )}
           <TableHead>Profissional</TableHead><TableHead>Aluno</TableHead><TableHead>Tipo</TableHead><TableHead>Data</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead><TableHead>Ação</TableHead>
         </TableRow></TableHeader>
         <TableBody>
-          {rows.map((c: any) => (
+          {rows.map((c: Comissionamento) => {
+            const podeAprovar = c.status === "em_validacao" || c.status === "pendente";
+            return (
             <TableRow key={c.id}>
+              {isAdmin && (
+                <TableCell>
+                  {podeAprovar && (
+                    <Checkbox
+                      checked={selecionadasValidas.includes(c.id)}
+                      onCheckedChange={() => toggleSelecao(c.id)}
+                      aria-label={`Selecionar comissão ${c.id}`}
+                    />
+                  )}
+                </TableCell>
+              )}
               <TableCell>{profMap[c.profissional_id] || c.profissional_id.slice(0, 8)}</TableCell>
               <TableCell>{c.aluno_id ? (alunoMap[c.aluno_id] || "—") : <em className="text-muted-foreground">Carteira</em>}</TableCell>
               <TableCell><Badge variant="outline">{TIPO_LABEL[c.tipo as keyof typeof TIPO_LABEL]}</Badge></TableCell>
@@ -484,17 +541,25 @@ function AdminListagem({ isAdmin }: { isAdmin: boolean }) {
               <TableCell className="font-semibold">{formatBRL(c.valor)}</TableCell>
               <TableCell><Badge className={STATUS_COLOR[c.status as ComissaoStatus]} variant="outline">{STATUS_LABEL[c.status as ComissaoStatus]}</Badge></TableCell>
               <TableCell>
-                <Select value={c.status} onValueChange={(v) => updateStatus.mutate({ id: c.id, status: v as ComissaoStatus })}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(["pendente", "em_validacao", "aprovado", "pago", "cancelado"] as ComissaoStatus[]).map((s) => (
-                      <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  {isAdmin && podeAprovar && (
+                    <Button size="sm" variant="secondary" className="h-8 text-xs" onClick={() => handleAprovar([c.id])} disabled={aprovar.isPending}>
+                      Aprovar
+                    </Button>
+                  )}
+                  <Select value={c.status} onValueChange={(v) => updateStatus.mutate({ id: c.id, status: v as ComissaoStatus })}>
+                    <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["pendente", "em_validacao", "aprovado", "pago", "cancelado"] as ComissaoStatus[]).map((s) => (
+                        <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

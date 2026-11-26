@@ -14316,6 +14316,7 @@ export type Database = {
         }[]
       }
       fn_comissao_af_ativa: { Args: never; Returns: boolean }
+      fn_comissao_aprovar: { Args: { _ids: string[] }; Returns: number }
       fn_comissao_valor: {
         Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
         Returns: number
@@ -16134,6 +16135,10 @@ export type Database = {
       fn_tem_plano_corrida: {
         Args: { p_aluno_id: string; p_data?: string }
         Returns: boolean
+      }
+      fn_tentar_comissao_agregadora: {
+        Args: { _aluno: string; _data_treino?: string }
+        Returns: string
       }
       fn_tentar_comissao_experimental: {
         Args: { _agenda: string; _aluno: string; _profissional: string }

@@ -162,6 +162,22 @@ export function useUpdateComissaoStatus() {
   });
 }
 
+export function useAprovarComissoes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { data, error } = await supabase.rpc("fn_comissao_aprovar", { _ids: ids });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+    onSuccess: (count) => {
+      toast.success(count === 1 ? "Comissão aprovada" : `${count} comissões aprovadas`);
+      qc.invalidateQueries({ queryKey: ["comissionamentos"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 export function useUpdateConfig() {
   const qc = useQueryClient();
   return useMutation({
