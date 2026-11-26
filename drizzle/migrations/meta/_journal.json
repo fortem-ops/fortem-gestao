@@ -2115,6 +2115,13 @@
       "when": 1795695054234,
       "tag": "0301_portal_link_aluno_logs_aviso_e_integridade",
       "breakpoints": true
+    },
+    {
+      "idx": 302,
+      "version": "7",
+      "when": 1795696047248,
+      "tag": "0302_treino_slot_excecoes",
+      "breakpoints": true
     }
   ]
 }

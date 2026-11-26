@@ -12152,6 +12152,59 @@ export type Database = {
           },
         ]
       }
+      treino_slot_excecoes: {
+        Row: {
+          capacidade_maxima: number
+          created_at: string
+          created_by: string | null
+          data: string
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          instrutor_id: string | null
+          modalidade: string
+          observacoes: string | null
+          slot_id: string
+          updated_at: string
+        }
+        Insert: {
+          capacidade_maxima: number
+          created_at?: string
+          created_by?: string | null
+          data: string
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          instrutor_id?: string | null
+          modalidade?: string
+          observacoes?: string | null
+          slot_id: string
+          updated_at?: string
+        }
+        Update: {
+          capacidade_maxima?: number
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          instrutor_id?: string | null
+          modalidade?: string
+          observacoes?: string | null
+          slot_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treino_slot_excecoes_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "treino_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treino_slots: {
         Row: {
           ativo: boolean

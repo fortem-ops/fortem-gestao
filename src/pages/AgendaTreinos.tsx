@@ -1,12 +1,19 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, startOfWeek, addDays, addWeeks, isSameDay } from "date-fns";
+import { format, startOfWeek, addDays, addWeeks, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Plus, Pencil, Users, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import {
+  aplicarExcecaoNoSlot,
+  proximaOcorrenciaDiaSemana,
+  validarCapacidadeExcecao,
+  type SlotComExcecao,
+  type TreinoSlotExcecao,
+} from "@/lib/treinoSlotExcecoes";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,16 +67,22 @@ function SlotDialog({
   open,
   onOpenChange,
   slot,
+  dataOrigem,
   profiles,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   slot: Slot | null;
+  dataOrigem?: string | null;
   profiles: Profile[];
   onSaved: () => void;
 }) {
   const isEdit = !!slot;
+  const [confirmScopeOpen, setConfirmScopeOpen] = useState(false);
+  const [dataExcecao, setDataExcecao] = useState(
+    () => dataOrigem || (slot ? proximaOcorrenciaDiaSemana(slot.dia_semana) : ""),
+  );
   const [form, setForm] = useState({
     dias: slot ? [slot.dia_semana] : [1],
     horario_inicio: slot?.horario_inicio?.slice(0, 5) ?? "07:00",
@@ -128,7 +141,7 @@ function SlotDialog({
   };
 
   const save = useSupabaseMutation({
-    mutationFn: async () => {
+    mutationFn: async (escopo?: "somente_dia" | "proximos") => {
       const base = {
         capacidade_maxima: form.capacidade_maxima,
         instrutor_id: form.instrutor_id || null,
@@ -140,6 +153,36 @@ function SlotDialog({
         if (toMinutes(form.horario_fim) <= toMinutes(form.horario_inicio)) {
           throw new Error("Horário final deve ser maior que o inicial");
         }
+        if (escopo === "somente_dia") {
+          if (!dataExcecao) throw new Error("Escolha a data para aplicar a alteração.");
+          const diaEscolhido = parseISO(dataExcecao).getDay();
+          if (diaEscolhido !== slot!.dia_semana) {
+            throw new Error(`A data escolhida precisa cair em ${DIAS[slot!.dia_semana]}.`);
+          }
+          const { count, error: errCount } = await supabase
+            .from("treino_agendamentos")
+            .select("id", { count: "exact", head: true })
+            .eq("slot_id", slot!.id)
+            .eq("data", dataExcecao)
+            .in("status", ["agendado", "confirmado"]);
+          if (errCount) throw errCount;
+          const erroCap = validarCapacidadeExcecao(form.capacidade_maxima, count ?? 0);
+          if (erroCap) throw new Error(erroCap);
+
+          const { error } = await supabase.from("treino_slot_excecoes").upsert(
+            {
+              slot_id: slot!.id,
+              data: dataExcecao,
+              horario_inicio: form.horario_inicio,
+              horario_fim: form.horario_fim,
+              ...base,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "slot_id,data" },
+          );
+          if (error) throw error;
+          return { criados: 1, ignorados: [] as string[], escopo };
+        }
         const { error } = await supabase
           .from("treino_slots")
           .update({
@@ -150,7 +193,7 @@ function SlotDialog({
           })
           .eq("id", slot!.id);
         if (error) throw error;
-        return { criados: 1, ignorados: [] as string[] };
+        return { criados: 1, ignorados: [] as string[], escopo: "proximos" as const };
       }
 
       if (form.dias.length === 0) throw new Error("Selecione ao menos um dia da semana");
@@ -190,18 +233,39 @@ function SlotDialog({
 
       const { error } = await supabase.from("treino_slots").insert(payloads);
       if (error) throw error;
-      return { criados: payloads.length, ignorados };
+      return { criados: payloads.length, ignorados, escopo: undefined };
     },
-    onSuccess: ({ criados, ignorados }) => {
+    onSuccess: ({ criados, ignorados, escopo }) => {
       const msg = isEdit
-        ? "Horário atualizado"
+        ? escopo === "somente_dia" && dataExcecao
+          ? `Horário atualizado somente para ${format(parseISO(dataExcecao), "dd/MM")}`
+          : "Horário atualizado para este e os próximos dias"
         : `${criados} horário${criados === 1 ? "" : "s"} criado${criados === 1 ? "" : "s"}` +
           (ignorados.length ? ` · já existia em ${ignorados.join(", ")}` : "");
       toastSuccess(msg);
+      setConfirmScopeOpen(false);
       onSaved();
       onOpenChange(false);
     },
   });
+
+  const handleSalvarClick = () => {
+    if (!isEdit) {
+      save.mutate(undefined);
+      return;
+    }
+    if (toMinutes(form.horario_fim) <= toMinutes(form.horario_inicio)) {
+      toastError("Horário final deve ser maior que o inicial");
+      return;
+    }
+    if (!Number.isFinite(form.capacidade_maxima) || form.capacidade_maxima < 1) {
+      toastError("Capacidade máxima deve ser de pelo menos 1 vaga.");
+      return;
+    }
+    setConfirmScopeOpen(true);
+  };
+
+  const dataExcecaoLabel = dataExcecao ? format(parseISO(dataExcecao), "dd/MM") : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -364,9 +428,50 @@ function SlotDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>Salvar</Button>
+          <Button onClick={handleSalvarClick} disabled={save.isPending}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
+      {isEdit && (
+        <AlertDialog open={confirmScopeOpen} onOpenChange={setConfirmScopeOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Aplicar alteração em qual período?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Escolha se a mudança vale somente para o dia escolhido ou para este e os próximos horários.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {!dataOrigem && (
+              <div className="space-y-1.5">
+                <Label htmlFor="data-excecao-slot">Data da alteração pontual ({DIAS[slot!.dia_semana]})</Label>
+                <Input
+                  id="data-excecao-slot"
+                  type="date"
+                  value={dataExcecao}
+                  onChange={(e) => setDataExcecao(e.target.value)}
+                />
+              </div>
+            )}
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel disabled={save.isPending}>Cancelar</AlertDialogCancel>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={save.isPending}
+                onClick={() => save.mutate("somente_dia")}
+              >
+                Somente neste dia{dataExcecaoLabel ? ` (${dataExcecaoLabel})` : ""}
+              </Button>
+              <Button
+                type="button"
+                disabled={save.isPending}
+                onClick={() => save.mutate("proximos")}
+              >
+                Este e os próximos
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </Dialog>
   );
 }
@@ -392,7 +497,7 @@ type AgendamentoRow = {
 };
 
 type SelectedCell = {
-  slot: Slot;
+  slot: SlotComExcecao<Slot>;
   data: Date;
 } | null;
 
@@ -410,7 +515,7 @@ function SlotDetailSheet({
   agendamentos: AgendamentoRow[];
   profileMap: Record<string, string>;
   isAdmin: boolean;
-  onEdit: (s: Slot) => void;
+  onEdit: (s: Slot, dataStr?: string) => void;
   onRefetch: () => void;
 }) {
   const dataStr = selected ? format(selected.data, "yyyy-MM-dd") : "";
@@ -475,6 +580,9 @@ function SlotDetailSheet({
             {selected.slot.instrutor_id && (
               <>· <span>{profileMap[selected.slot.instrutor_id] ?? "—"}</span></>
             )}
+            {selected.slot.temExcecao && (
+              <Badge variant="secondary" className="text-[10px]">Alterado neste dia</Badge>
+            )}
             <Badge variant="outline" className="ml-auto">
               <Users className="w-3 h-3 mr-1" />
               {ativos.length}/{selected.slot.capacidade_maxima}
@@ -483,7 +591,7 @@ function SlotDetailSheet({
         </SheetHeader>
 
         <div className="mt-3 flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => onEdit(selected.slot)}>
+          <Button variant="ghost" size="sm" onClick={() => onEdit(selected.slot, dataStr)}>
             <Pencil className="w-3.5 h-3.5 mr-1" /> Editar horário
           </Button>
         </div>
@@ -560,7 +668,7 @@ function WeeklyGrid({
 }: {
   slots: Slot[];
   profileMap: Record<string, string>;
-  onEdit: (s: Slot) => void;
+  onEdit: (s: Slot, dataStr?: string) => void;
   isAdmin: boolean;
 }) {
   const qc = useQueryClient();
@@ -586,24 +694,41 @@ function WeeklyGrid({
   const weekStartStr = format(weekStart, "yyyy-MM-dd");
   const weekEndStr = format(addDays(weekStart, 6), "yyyy-MM-dd");
 
+  const { data: excecoes = [] } = useQuery({
+    queryKey: ["treino-slot-excecoes-semana", weekStartStr, weekEndStr],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("treino_slot_excecoes")
+        .select("id, slot_id, data, horario_inicio, horario_fim, capacidade_maxima, instrutor_id, modalidade, observacoes")
+        .gte("data", weekStartStr)
+        .lte("data", weekEndStr);
+      if (error) throw error;
+      return (data ?? []) as TreinoSlotExcecao[];
+    },
+  });
 
-  // Uma linha por horário de início (independente da duração/atividade)
-  const rows = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of slots) set.add(s.horario_inicio);
-    return Array.from(set)
-      .map((horario_inicio) => ({ key: horario_inicio, horario_inicio }))
-      .sort((a, b) => toMinutes(a.horario_inicio) - toMinutes(b.horario_inicio));
-  }, [slots]);
+  const excecoesMap = useMemo(() => {
+    const m = new Map<string, TreinoSlotExcecao>();
+    for (const e of excecoes) m.set(`${e.slot_id}|${e.data}`, e);
+    return m;
+  }, [excecoes]);
 
-  // Índice: (dia_semana + horario_inicio) -> slots (várias atividades)
-  const slotIndex = useMemo(() => {
-    const m = new Map<string, Slot[]>();
-    for (const s of slots) {
-      const k = `${s.dia_semana}|${s.horario_inicio}`;
-      const arr = m.get(k);
-      if (arr) arr.push(s);
-      else m.set(k, [s]);
+  // Índice: (dataStr + horario_inicio efetivo) -> slots com exceções aplicadas
+  const { rows, slotIndex } = useMemo(() => {
+    const horariosSet = new Set<string>();
+    const m = new Map<string, SlotComExcecao<Slot>[]>();
+    for (const d of weekDays) {
+      const dia = d.getDay();
+      const dataStr = format(d, "yyyy-MM-dd");
+      for (const s of slots) {
+        if (s.dia_semana !== dia) continue;
+        const efetivo = aplicarExcecaoNoSlot(s, excecoesMap.get(`${s.id}|${dataStr}`));
+        horariosSet.add(efetivo.horario_inicio);
+        const k = `${dataStr}|${efetivo.horario_inicio}`;
+        const arr = m.get(k);
+        if (arr) arr.push(efetivo);
+        else m.set(k, [efetivo]);
+      }
     }
     for (const arr of m.values()) {
       arr.sort(
@@ -612,8 +737,11 @@ function WeeklyGrid({
           a.horario_fim.localeCompare(b.horario_fim),
       );
     }
-    return m;
-  }, [slots]);
+    const r = Array.from(horariosSet)
+      .map((horario_inicio) => ({ key: horario_inicio, horario_inicio }))
+      .sort((a, b) => toMinutes(a.horario_inicio) - toMinutes(b.horario_inicio));
+    return { rows: r, slotIndex: m };
+  }, [slots, weekDays, excecoesMap]);
 
 
   const { data: agendamentos = [], refetch: refetchAg } = useQuery({
@@ -741,7 +869,8 @@ function WeeklyGrid({
               </div>
               {displayDays.map((d, di) => {
                 const dia = d.getDay();
-                const slotsDia = slotIndex.get(`${dia}|${row.horario_inicio}`) ?? [];
+                const dataStr = format(d, "yyyy-MM-dd");
+                const slotsDia = slotIndex.get(`${dataStr}|${row.horario_inicio}`) ?? [];
                 if (slotsDia.length === 0) {
                   return (
                     <div key={`c-${row.key}-${di}`} className="border-t border-border/60 flex items-center justify-center text-muted-foreground/30">
@@ -749,7 +878,6 @@ function WeeklyGrid({
                     </div>
                   );
                 }
-                const dataStr = format(d, "yyyy-MM-dd");
 
                 return (
                   <div key={`c-${row.key}-${di}`} className="border-t border-border/60 flex flex-col gap-0.5 p-0.5">
@@ -787,6 +915,11 @@ function WeeklyGrid({
                               {slot.instrutor_id && (
                                 <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
                                   {profileMap[slot.instrutor_id] ?? "—"}
+                                </div>
+                              )}
+                              {slot.temExcecao && (
+                                <div className="text-[9px] font-medium text-amber-600 dark:text-amber-400 leading-tight mt-0.5">
+                                  Alterado neste dia
                                 </div>
                               )}
                               {inativo && <div className="text-[9px] uppercase text-muted-foreground">off</div>}
@@ -830,7 +963,7 @@ function WeeklyGrid({
         agendamentos={agendamentos}
         profileMap={profileMap}
         isAdmin={isAdmin}
-        onEdit={(s) => { setSelected(null); onEdit(s); }}
+        onEdit={(s, dataStr) => { setSelected(null); onEdit(s, dataStr); }}
         onRefetch={() => {
           refetchAg();
           qc.invalidateQueries({ queryKey: ["treino-agendamentos-dia"] });
@@ -842,8 +975,10 @@ function WeeklyGrid({
 }
 
 function HorariosTab() {
+  const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Slot | null>(null);
+  const [editingData, setEditingData] = useState<string | null>(null);
   const [view, setView] = useState<"grade" | "lista">("grade");
   const { data: roles } = useUserRoles();
   const isAdmin = !!roles?.isAdmin;
@@ -888,7 +1023,17 @@ function HorariosTab() {
     return g;
   }, [slots]);
 
-  const openEdit = (s: Slot) => { setEditing(s); setDialogOpen(true); };
+  const openEdit = (s: Slot, dataStr?: string) => {
+    setEditing(s);
+    setEditingData(dataStr ?? null);
+    setDialogOpen(true);
+  };
+
+  const handleSaved = () => {
+    refetch();
+    qc.invalidateQueries({ queryKey: ["treino-slot-excecoes-semana"] });
+    qc.invalidateQueries({ queryKey: ["treino-slot-excecoes-dia"] });
+  };
 
   return (
     <div className="space-y-4">
@@ -899,7 +1044,7 @@ function HorariosTab() {
             <TabsTrigger value="lista">Lista por dia</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
+        <Button onClick={() => { setEditing(null); setEditingData(null); setDialogOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Novo Horário
         </Button>
       </div>
@@ -954,8 +1099,9 @@ function HorariosTab() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           slot={editing}
+          dataOrigem={editingData}
           profiles={profiles}
-          onSaved={refetch}
+          onSaved={handleSaved}
         />
       )}
     </div>
@@ -970,16 +1116,28 @@ function AgendamentosTab() {
   const diaSemana = data.getDay();
 
   const { data: slots = [] } = useQuery({
-    queryKey: ["treino-slots-dia", diaSemana],
+    queryKey: ["treino-slots-dia", diaSemana, dataStr],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("treino_slots")
-        .select("*")
-        .eq("dia_semana", diaSemana)
-        .eq("ativo", true)
-        .order("horario_inicio");
-      if (error) throw error;
-      return data as Slot[];
+      const [slotsRes, excRes] = await Promise.all([
+        supabase
+          .from("treino_slots")
+          .select("*")
+          .eq("dia_semana", diaSemana)
+          .eq("ativo", true)
+          .order("horario_inicio"),
+        supabase
+          .from("treino_slot_excecoes")
+          .select("id, slot_id, data, horario_inicio, horario_fim, capacidade_maxima, instrutor_id, modalidade, observacoes")
+          .eq("data", dataStr),
+      ]);
+      if (slotsRes.error) throw slotsRes.error;
+      if (excRes.error) throw excRes.error;
+      const excMap = new Map<string, TreinoSlotExcecao>(
+        (excRes.data ?? []).map((e) => [e.slot_id, e as TreinoSlotExcecao]),
+      );
+      return ((slotsRes.data ?? []) as Slot[])
+        .map((s) => aplicarExcecaoNoSlot(s, excMap.get(s.id)))
+        .sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio));
     },
   });
 
@@ -1036,8 +1194,11 @@ function AgendamentosTab() {
         return (
           <Card key={slot.id} className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">
+                <h3 className="font-semibold flex items-center gap-2">
                   {slot.horario_inicio.slice(0, 5)}
+                  {slot.temExcecao && (
+                    <Badge variant="secondary" className="text-[10px]">Alterado neste dia</Badge>
+                  )}
                 </h3>
                 <Badge variant="outline">{ativos.length} / {slot.capacidade_maxima} alunos</Badge>
               </div>

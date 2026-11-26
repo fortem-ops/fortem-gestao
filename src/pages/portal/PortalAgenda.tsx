@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { aplicarExcecaoNoSlot, type TreinoSlotExcecao } from "@/lib/treinoSlotExcecoes";
 import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight, Pin, CalendarPlus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -127,16 +128,29 @@ export default function PortalAgenda() {
   const saldo = cicloAtivo ? Math.max(0, cicloAtivo.creditos_liberados - cicloAtivo.creditos_usados) : 0;
 
   const { data: slots = [] } = useQuery({
-    queryKey: ["portal-treino-slots", diaSelecionado.getDay()],
+    queryKey: ["portal-treino-slots", format(diaSelecionado, "yyyy-MM-dd")],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("treino_slots")
-        .select("*")
-        .eq("dia_semana", diaSelecionado.getDay())
-        .eq("ativo", true)
-        .order("horario_inicio");
-      if (error) throw error;
-      return (data || []) as Slot[];
+      const dataStr = format(diaSelecionado, "yyyy-MM-dd");
+      const [slotsRes, excRes] = await Promise.all([
+        supabase
+          .from("treino_slots")
+          .select("*")
+          .eq("dia_semana", diaSelecionado.getDay())
+          .eq("ativo", true)
+          .order("horario_inicio"),
+        supabase
+          .from("treino_slot_excecoes")
+          .select("id, slot_id, data, horario_inicio, horario_fim, capacidade_maxima, instrutor_id, modalidade, observacoes")
+          .eq("data", dataStr),
+      ]);
+      if (slotsRes.error) throw slotsRes.error;
+      if (excRes.error) throw excRes.error;
+      const excMap = new Map<string, TreinoSlotExcecao>(
+        (excRes.data ?? []).map((e) => [e.slot_id, e as TreinoSlotExcecao]),
+      );
+      return ((slotsRes.data || []) as Slot[])
+        .map((s) => aplicarExcecaoNoSlot(s, excMap.get(s.id)))
+        .sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio));
     },
   });
 
