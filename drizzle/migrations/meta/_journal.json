@@ -2136,6 +2136,13 @@
       "when": 1795700925276,
       "tag": "0304_tarefas_inativos_incluir_fim_onda",
       "breakpoints": true
+    },
+    {
+      "idx": 305,
+      "version": "7",
+      "when": 1795701270802,
+      "tag": "0305_treino_slot_excecoes_leitura_aluno_vinculado",
+      "breakpoints": true
     }
   ]
 }
