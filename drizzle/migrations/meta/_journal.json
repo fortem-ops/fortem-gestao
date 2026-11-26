@@ -2122,6 +2122,13 @@
       "when": 1795696047248,
       "tag": "0302_treino_slot_excecoes",
       "breakpoints": true
+    },
+    {
+      "idx": 303,
+      "version": "7",
+      "when": 1795700120230,
+      "tag": "0303_registros_tecnicos_inativos_autoria_treino",
+      "breakpoints": true
     }
   ]
 }

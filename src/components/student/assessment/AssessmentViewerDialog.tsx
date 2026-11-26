@@ -27,6 +27,7 @@ import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
 import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
+import { RegistroAutor } from "./RegistroAutor";
 
 interface Props {
   open: boolean;
@@ -57,7 +58,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     queryKey: ["is-staff", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.rpc("is_staff", { _user_id: user!.id });
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_staff", { _user_id: user.id });
       return !!data;
     },
   });
@@ -66,10 +68,11 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     queryKey: ["avaliacao-funcional", avaliacao?.id],
     enabled: !!avaliacao && isFuncional,
     queryFn: async () => {
+      if (!avaliacao) return null;
       const { data } = await supabase
         .from("avaliacao_funcional")
         .select("*")
-        .eq("avaliacao_id", avaliacao!.id)
+        .eq("avaliacao_id", avaliacao.id)
         .maybeSingle();
       return data;
     },
@@ -89,10 +92,11 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     queryKey: ["avaliacao-protocolo-schema", avaliacao?.protocolo_id],
     enabled: isDynamic && !!avaliacao?.protocolo_id,
     queryFn: async () => {
+      if (!avaliacao?.protocolo_id) return null;
       const { data } = await supabase
         .from("avaliacao_protocolos" as never)
         .select("nome, schema")
-        .eq("id", avaliacao!.protocolo_id!)
+        .eq("id", avaliacao.protocolo_id)
         .maybeSingle();
       return data as { nome: string; schema: { sections: { id: string; title: string; questions: { id: string; label: string; type: string; detalheLabel?: string; labelSim?: string; labelNao?: string; options?: { value: string; label: string }[] }[] }[] } } | null;
     },
@@ -112,10 +116,11 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     queryKey: ["avaliacao-tipo-nome", avaliacao?.tipo],
     enabled: !!avaliacao?.tipo,
     queryFn: async () => {
+      if (!avaliacao) return null;
       const { data } = await supabase
         .from("avaliacao_tipos" as never)
         .select("id, nome")
-        .eq("slug", avaliacao!.tipo)
+        .eq("slug", avaliacao.tipo)
         .maybeSingle();
       return data as { id: string; nome: string } | null;
     },
@@ -198,6 +203,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
               <Badge variant="outline" className="text-muted-foreground">Protocolo: {protocoloInfo.nome}</Badge>
             )}
           </DialogTitle>
+          <RegistroAutor userId={avaliacao.avaliador_id} />
         </DialogHeader>
 
 
@@ -226,12 +232,13 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
             protocoloId={avaliacao.protocolo_id}
             schema={expSchema as never}
             avaliacaoId={avaliacao.id}
+            treinoId={avaliacao.treino_id}
             permiteUpload
           />
         ) : isEvolucao && expSchema ? (
           <ReabilitacaoEvolucaoViewer raw={dados} schema={expSchema as never} />
-        ) : isDynamic && (expSchema || schemaPending) ? (
-          <ExperimentalView dados={expDados!} schema={expSchema} withFaseInicial={isExperimental} />
+        ) : isDynamic && expDados && (expSchema || schemaPending) ? (
+          <ExperimentalView dados={expDados} schema={expSchema} withFaseInicial={isExperimental} />
         ) : isLoading && isFuncional ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : (

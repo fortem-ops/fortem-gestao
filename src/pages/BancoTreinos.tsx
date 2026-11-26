@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRelatorioTrocaTreino } from "@/hooks/useRelatorioTrocaTreino";
+import type { Json } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -919,6 +921,7 @@ function TemplateDetail({
 
 export default function BancoTreinos() {
   const { user } = useAuth();
+  const abrirRelatorio = useRelatorioTrocaTreino();
   const queryClient = useQueryClient();
 
   // Papéis vêm do hook global (mesma chave de cache ["user-roles", uid]),
@@ -989,7 +992,7 @@ export default function BancoTreinos() {
       if (ids.length === 0) return {} as Record<string, string>;
       const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
       const map: Record<string, string> = {};
-      (data || []).forEach((p: any) => { map[p.user_id] = p.full_name || "Professor"; });
+      (data || []).forEach((p) => { map[p.user_id] = p.full_name || "Professor"; });
       return map;
     },
     staleTime: 5 * 60_000,
@@ -1008,7 +1011,7 @@ export default function BancoTreinos() {
     });
     const result: { autorId: string; titulo: string; isMine: boolean; modelos: typeof modelosPersonalizados }[] = [];
     if (user?.id && groups.has(user.id)) {
-      result.push({ autorId: user.id, titulo: "Meus Modelos", isMine: true, modelos: groups.get(user.id)! });
+      result.push({ autorId: user.id, titulo: "Meus Modelos", isMine: true, modelos: groups.get(user.id) ?? [] });
     }
     Array.from(groups.entries())
       .filter(([id]) => id !== user?.id)
@@ -1034,7 +1037,7 @@ export default function BancoTreinos() {
     if (!user) return;
     const { error } = await supabase.from("banco_treinos_personalizados").insert({
       nome: `${m.nome} (cópia)`,
-      conteudo: m.conteudo as any,
+      conteudo: m.conteudo as Json,
       criado_por: user.id,
     });
     if (error) {
@@ -1107,7 +1110,7 @@ export default function BancoTreinos() {
       queryClient.invalidateQueries({ queryKey: ["banco-treinos-escolhas"] });
       toast.success("Escolha salva no template");
     },
-    onError: (e: any) => toast.error(e.message || "Falha ao salvar"),
+    onError: (e: unknown) => toast.error((e instanceof Error ? e.message : "") || "Falha ao salvar"),
   });
 
   const clearMutation = useMutation({
@@ -1122,7 +1125,7 @@ export default function BancoTreinos() {
       queryClient.invalidateQueries({ queryKey: ["banco-treinos-escolhas"] });
       toast.success("Escolha removida");
     },
-    onError: (e: any) => toast.error(e.message || "Falha ao remover"),
+    onError: (e: unknown) => toast.error((e instanceof Error ? e.message : "") || "Falha ao remover"),
   });
 
   const overrideMutation = useMutation({
@@ -1153,7 +1156,7 @@ export default function BancoTreinos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banco-treinos-escolhas"] });
     },
-    onError: (e: any) => toast.error(e.message || "Falha ao salvar alteração"),
+    onError: (e: unknown) => toast.error((e instanceof Error ? e.message : "") || "Falha ao salvar alteração"),
   });
 
   const handleSaveChoice = (template: WorkoutTemplate, ex: WorkoutExercise, treino: string, b: BankExercise) => {
@@ -1290,6 +1293,7 @@ export default function BancoTreinos() {
     try {
       await prescribeFaseInicial(template.fase, aluno.id, user.id, `${template.fase} — Prescrito pelo Banco de Treinos`);
       toast.success("Treino prescrito", { description: `${template.fase} → ${aluno.nome}` });
+      await abrirRelatorio(aluno.id);
     } catch (err) {
       toast.error("Não foi possível prescrever", { description: (err as Error).message });
     } finally {
@@ -1303,6 +1307,7 @@ export default function BancoTreinos() {
         alunoId={editor531.alunoId}
         alunoNome={editor531.alunoNome}
         onBack={() => setEditor531(null)}
+        onSaved={() => { void abrirRelatorio(editor531.alunoId); }}
       />
     );
   }
@@ -1313,6 +1318,7 @@ export default function BancoTreinos() {
         alunoId={editorM102.alunoId}
         alunoNome={editorM102.alunoNome}
         onBack={() => setEditorM102(null)}
+        onSaved={() => { void abrirRelatorio(editorM102.alunoId); }}
       />
     );
   }
@@ -1323,6 +1329,7 @@ export default function BancoTreinos() {
         alunoId={editorPS.alunoId}
         alunoNome={editorPS.alunoNome}
         onBack={() => setEditorPS(null)}
+        onSaved={() => { void abrirRelatorio(editorPS.alunoId); }}
       />
     );
   }
@@ -1333,6 +1340,7 @@ export default function BancoTreinos() {
         alunoId={editor5RM.alunoId}
         alunoNome={editor5RM.alunoNome}
         onBack={() => setEditor5RM(null)}
+        onSaved={() => { void abrirRelatorio(editor5RM.alunoId); }}
       />
     );
   }
@@ -1343,6 +1351,7 @@ export default function BancoTreinos() {
         alunoId={editorXFab.alunoId}
         alunoNome={editorXFab.alunoNome}
         onBack={() => setEditorXFab(null)}
+        onSaved={() => { void abrirRelatorio(editorXFab.alunoId); }}
       />
     );
   }
@@ -1353,6 +1362,7 @@ export default function BancoTreinos() {
         alunoId={editorPTTP.alunoId}
         alunoNome={editorPTTP.alunoNome}
         onBack={() => setEditorPTTP(null)}
+        onSaved={() => { void abrirRelatorio(editorPTTP.alunoId); }}
       />
     );
   }
@@ -1363,6 +1373,7 @@ export default function BancoTreinos() {
         alunoId={editorEasyStrength.alunoId}
         alunoNome={editorEasyStrength.alunoNome}
         onBack={() => setEditorEasyStrength(null)}
+        onSaved={() => { void abrirRelatorio(editorEasyStrength.alunoId); }}
       />
     );
   }
@@ -1373,6 +1384,7 @@ export default function BancoTreinos() {
         alunoId={editorMileDeep1RM.alunoId}
         alunoNome={editorMileDeep1RM.alunoNome}
         onBack={() => setEditorMileDeep1RM(null)}
+        onSaved={() => { void abrirRelatorio(editorMileDeep1RM.alunoId); }}
       />
     );
   }
@@ -1383,6 +1395,7 @@ export default function BancoTreinos() {
         alunoId={editorMileDeep5RM.alunoId}
         alunoNome={editorMileDeep5RM.alunoNome}
         onBack={() => setEditorMileDeep5RM(null)}
+        onSaved={() => { void abrirRelatorio(editorMileDeep5RM.alunoId); }}
       />
     );
   }
@@ -1393,6 +1406,7 @@ export default function BancoTreinos() {
         alunoId={editorFoolproof.alunoId}
         alunoNome={editorFoolproof.alunoNome}
         onBack={() => setEditorFoolproof(null)}
+        onSaved={() => { void abrirRelatorio(editorFoolproof.alunoId); }}
       />
     );
   }
@@ -1403,6 +1417,7 @@ export default function BancoTreinos() {
         alunoId={editorPTTP2.alunoId}
         alunoNome={editorPTTP2.alunoNome}
         onBack={() => setEditorPTTP2(null)}
+        onSaved={() => { void abrirRelatorio(editorPTTP2.alunoId); }}
       />
     );
   }

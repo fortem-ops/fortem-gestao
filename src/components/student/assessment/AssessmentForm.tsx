@@ -180,12 +180,14 @@ export function AssessmentForm({
   student,
   tipoSlugInicial,
   protocoloNomeInicial,
+  treinoId,
 }: {
   student: Tables<"alunos">;
   /** Pré-seleciona o tipo pelo slug (ex.: vindo de uma tarefa). */
   tipoSlugInicial?: string | null;
   /** Pré-seleciona o protocolo pelo nome/prefixo (ex.: "evolucao"). */
   protocoloNomeInicial?: string | null;
+  treinoId?: string | null;
 }) {
   const { data: tipos = [], isLoading: loadingTipos } = useQuery({
     queryKey: ["avaliacao-tipos"],
@@ -273,7 +275,7 @@ export function AssessmentForm({
       </div>
 
       {tipoSel ? (
-        <EngineDispatcher student={student} tipo={tipoSel} protocolo={protoSel} />
+        <EngineDispatcher student={student} tipo={tipoSel} protocolo={protoSel} treinoId={treinoId} />
       ) : (
         <div className="glass-card rounded-lg p-6 text-center text-sm text-muted-foreground">
           Nenhum tipo de avaliação configurado. Acesse Admin → Tipos de Avaliação.
@@ -283,7 +285,7 @@ export function AssessmentForm({
   );
 }
 
-function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"alunos">; tipo: AvaliacaoTipo; protocolo: AvaliacaoProtocolo | null }) {
+function EngineDispatcher({ student, tipo, protocolo, treinoId }: { student: Tables<"alunos">; tipo: AvaliacaoTipo; protocolo: AvaliacaoProtocolo | null; treinoId?: string | null }) {
   const permiteUpload = !!protocolo?.permite_upload;
   // Engine antigo `funcional_fixo` foi unificado no lançamento funcional v2.
   if (tipo.engine === "funcional_fixo" || tipo.engine === "funcional_v2") {
@@ -318,6 +320,7 @@ function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"aluno
       protocoloId={protocolo.id}
       schema={schema}
       permiteUpload={permiteUpload}
+      treinoId={treinoId}
     />
   );
 }

@@ -43,6 +43,7 @@ interface Props {
   schema: ExperimentalSchema;
   avaliacaoId?: string;
   permiteUpload?: boolean;
+  treinoId?: string | null;
 }
 
 /**
@@ -50,7 +51,7 @@ interface Props {
  * Usada por Pliometria, Força, Experimental e novos tipos dinâmicos.
  * Mantém autosave (debounce 800ms) e fluxo finalizar/reabrir.
  */
-export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawSchema, avaliacaoId, permiteUpload }: Props) {
+export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawSchema, avaliacaoId, permiteUpload, treinoId }: Props) {
   const schema = tipoSlug === "experimental" ? ensureFaseInicialQuestion(rawSchema) : rawSchema;
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -134,6 +135,7 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
               avaliador_id: user.id,
               tipo: tipoSlug,
               protocolo_id: protocoloId,
+              treino_id: tipoSlug === "relatorioforca" ? treinoId ?? null : null,
               dados: debounced as never,
             } as never)
             .select()
@@ -154,6 +156,7 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
         queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
         queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
         queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
+        queryClient.invalidateQueries({ queryKey: ["tarefas"] });
       } catch (e) {
         const msg =
           (e as { message?: string })?.message ||

@@ -1068,6 +1068,7 @@ export type Database = {
           origem: string
           protocolo_id: string | null
           tipo: string
+          treino_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1082,6 +1083,7 @@ export type Database = {
           origem?: string
           protocolo_id?: string | null
           tipo: string
+          treino_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1096,6 +1098,7 @@ export type Database = {
           origem?: string
           protocolo_id?: string | null
           tipo?: string
+          treino_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1118,6 +1121,13 @@ export type Database = {
             columns: ["protocolo_id"]
             isOneToOne: false
             referencedRelation: "avaliacao_protocolos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_treino_id_fkey"
+            columns: ["treino_id"]
+            isOneToOne: false
+            referencedRelation: "treinos"
             referencedColumns: ["id"]
           },
         ]
@@ -11805,6 +11815,7 @@ export type Database = {
           tipo_atividade: string
           tipo_auto: string | null
           titulo: string
+          treino_id: string | null
           updated_at: string
         }
         Insert: {
@@ -11823,6 +11834,7 @@ export type Database = {
           tipo_atividade?: string
           tipo_auto?: string | null
           titulo: string
+          treino_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -11841,6 +11853,7 @@ export type Database = {
           tipo_atividade?: string
           tipo_auto?: string | null
           titulo?: string
+          treino_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -11857,6 +11870,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "tarefas_treino_id_fkey"
+            columns: ["treino_id"]
+            isOneToOne: false
+            referencedRelation: "treinos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -13818,6 +13838,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_aluno_inativo: { Args: { _aluno_id: string }; Returns: boolean }
       fn_aluno_last_access: { Args: { _aluno_id: string }; Returns: Json }
       fn_aluno_somente_online: {
         Args: { p_aluno_id: string }
@@ -16052,6 +16073,7 @@ export type Database = {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
         Returns: Json
       }
+      fn_tarefa_tecnica: { Args: { _tipo: string }; Returns: boolean }
       fn_tem_plano_corrida: {
         Args: { p_aluno_id: string; p_data?: string }
         Returns: boolean

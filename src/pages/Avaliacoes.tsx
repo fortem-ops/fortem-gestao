@@ -61,6 +61,7 @@ export default function Avaliacoes() {
           student={aluno}
           tipoSlugInicial={searchParams.get("tipo")}
           protocoloNomeInicial={searchParams.get("protocolo")}
+          treinoId={searchParams.get("treino")}
         />
 
       </div>

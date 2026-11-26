@@ -15,6 +15,7 @@ import { Dumbbell, Eye, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { useRelatorioTrocaTreino } from "@/hooks/useRelatorioTrocaTreino";
 
 // Lazy: this dialog pulls in WORKOUT_TEMPLATES (~30KB) + WorkoutDetail.
 // Only load when the user actually opens the import flow.
@@ -32,16 +33,18 @@ type Treino = Tables<"treinos">;
 
 export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
   const { user } = useAuth();
+  const abrirRelatorio = useRelatorioTrocaTreino();
   const [viewing, setViewing] = useState<Treino | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: canDelete } = useQuery({
     queryKey: ["can-delete-treino", user?.id],
     queryFn: async () => {
+      if (!user) return false;
       const { data } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user!.id);
+        .eq("user_id", user.id);
       const roles = (data ?? []).map((r) => r.role);
       return roles.some((r) => ["admin", "coordenador", "professor"].includes(r));
     },
@@ -71,8 +74,8 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
       if (error) throw error;
       toast.success("Treino excluído com sucesso!");
       refetch();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao excluir treino.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao excluir treino.");
     } finally {
       setDeletingId(null);
     }
@@ -84,10 +87,10 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
         <h3 className="font-heading font-semibold text-foreground">Histórico de Treinos</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <Suspense fallback={null}>
-            <ImportFromBankDialog alunoId={student.id} alunoNome={student.nome} onSaved={() => refetch()} />
+            <ImportFromBankDialog alunoId={student.id} alunoNome={student.nome} onSaved={() => { void refetch(); void abrirRelatorio(student.id); }} />
           </Suspense>
           <Suspense fallback={null}>
-            <ImportFromStudentDialog alunoId={student.id} onSaved={() => refetch()} />
+            <ImportFromStudentDialog alunoId={student.id} onSaved={() => { void refetch(); void abrirRelatorio(student.id); }} />
           </Suspense>
         </div>
       </div>
@@ -171,6 +174,7 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
                 treino={viewing}
                 onBack={() => setViewing(null)}
                 onSaved={async () => {
+                  await abrirRelatorio(student.id);
                   const { data: fresh } = await refetch();
                   const updated = fresh?.find((t) => t.id === viewing.id);
                   if (updated) setViewing(updated);

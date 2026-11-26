@@ -14,6 +14,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AssessmentViewerDialog } from "./assessment/AssessmentViewerDialog";
+import { RegistroAutor } from "./assessment/RegistroAutor";
 import { fetchLastFuncionalDate, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 import { useAuth } from "@/contexts/AuthContext";
 import { userHasStaffAccess } from "@/lib/authAccess";
@@ -40,7 +41,7 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
 
   const { data: canEdit } = useQuery({
     queryKey: ["staff-access", user?.id],
-    queryFn: () => userHasStaffAccess(user!.id),
+    queryFn: () => user ? userHasStaffAccess(user.id) : false,
     enabled: !!user,
   });
 
@@ -48,7 +49,8 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
     queryKey: ["is-staff", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.rpc("is_staff", { _user_id: user!.id });
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_staff", { _user_id: user.id });
       return !!data;
     },
   });
@@ -114,16 +116,17 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
 
   const saveHistoricoMutation = useSupabaseMutation({
     mutationFn: async (date: Date) => {
+      if (!user) throw new Error("Usuário não autenticado");
       const iso = format(date, "yyyy-MM-dd");
       const { error } = await supabase.from("avaliacoes").insert({
         aluno_id: student.id,
-        avaliador_id: user!.id,
+        avaliador_id: user.id,
         tipo: "funcional",
         data: iso,
         observacoes: "Data registrada manualmente (avaliação realizada anteriormente fora do sistema)",
         dados: {},
         origem: "historico_manual",
-      } as any);
+      });
       if (error) throw error;
     },
     successMessage: "Data da última avaliação registrada.",
@@ -216,7 +219,7 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold text-foreground">{rotuloAvaliacao(a)}</p>
-                  {(a as any).origem === "historico_manual" && (
+                  {a.origem === "historico_manual" && (
                     <Badge variant="outline" className="status-info text-[10px]">Registro histórico</Badge>
                   )}
                 </div>
@@ -226,6 +229,7 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
                 {a.observacoes && (
                   <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{a.observacoes}</p>
                 )}
+                <RegistroAutor userId={a.avaliador_id} />
               </div>
               <div className="flex items-center gap-1 self-center" onClick={(e) => e.stopPropagation()}>
                 <Eye className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
