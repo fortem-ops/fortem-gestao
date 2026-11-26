@@ -1,6 +1,7 @@
 export interface TaskActionable {
   tipo_auto?: string | null;
   aluno_id?: string | null;
+  treino_id?: string | null;
 }
 
 /**
@@ -15,6 +16,11 @@ export function getTaskActionTarget(task: TaskActionable): string | null {
 
   switch (tipo_auto) {
     case "atualizar_treino":
+      if (task.treino_id) {
+        return `/avaliacoes?${new URLSearchParams({ aluno: aluno_id, new: "1", tipo: "relatorioforca", treino: task.treino_id })}`;
+      }
+      return `/alunos/${aluno_id}?tab=treinos`;
+    case "treino_onda_concluida":
       return `/alunos/${aluno_id}?tab=treinos`;
     case "reavaliacao_funcional":
     case "avaliacao_funcional_agendada":

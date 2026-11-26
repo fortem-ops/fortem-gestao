@@ -2129,6 +2129,13 @@
       "when": 1795700120230,
       "tag": "0303_registros_tecnicos_inativos_autoria_treino",
       "breakpoints": true
+    },
+    {
+      "idx": 304,
+      "version": "7",
+      "when": 1795700925276,
+      "tag": "0304_tarefas_inativos_incluir_fim_onda",
+      "breakpoints": true
     }
   ]
 }

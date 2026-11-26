@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Inativos: cessar/limpar tarefas técnicas; relatório junto ao treino; autoria histórica/futura; avisos à coordenação/admin e testes.
+- [ ] Inativos, autoria, relatório junto à troca e avisos: aplicados e ensaios SQL revertidos passaram; falta conferência visual completa, bloqueada pela ativação de 2FA da conta temporária; não publicado.
 
 - [x] /10anos: retirar a data do topo e do título; preservar texto, áudio e botões, sem liberar e-mails, excluir teste ou publicar
 - [x] /10anos: retrospectiva, chamada principal das promoções e galeria pública (155 arquivos / 1437 testes; lint limpo; navegador celular/computador conferido)

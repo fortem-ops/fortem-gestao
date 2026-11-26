@@ -17,11 +17,23 @@ export default function Avaliacoes() {
   const [searchParams] = useSearchParams();
   const initialAluno = searchParams.get("aluno") || "";
   const autoNew = searchParams.get("new") === "1";
+  const treinoId = searchParams.get("treino");
 
   const [alunoId, setAlunoId] = useState<string>(initialAluno);
   const [view, setView] = useState<View>(autoNew && initialAluno ? "new" : "select");
   const [selectedAval, setSelectedAval] = useState<Tables<"avaliacoes"> | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+
+  const { data: treino, isLoading: treinoLoading } = useQuery({
+    queryKey: ["treino-protocolo-relatorio", treinoId, alunoId],
+    enabled: !!treinoId && !!alunoId,
+    queryFn: async () => {
+      if (!treinoId) return null;
+      const { data, error } = await supabase.from("treinos").select("template_fase, descricao").eq("id", treinoId).eq("aluno_id", alunoId).single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: aluno } = useQuery({
     queryKey: ["aluno-min-aval", alunoId],
@@ -57,12 +69,12 @@ export default function Avaliacoes() {
           </Button>
           <h1 className="text-2xl font-heading font-bold text-foreground">Novo Relatório — {aluno.nome}</h1>
         </div>
-        <AssessmentForm
+        {treinoId && treinoLoading ? <p className="text-sm text-muted-foreground">Carregando treino…</p> : <AssessmentForm
           student={aluno}
           tipoSlugInicial={searchParams.get("tipo")}
-          protocoloNomeInicial={searchParams.get("protocolo")}
-          treinoId={searchParams.get("treino")}
-        />
+          protocoloNomeInicial={searchParams.get("protocolo") ?? (treino ? ((treino.template_fase ?? treino.descricao)?.toLowerCase().includes("corrida") ? "Treinos de corrida" : "Treinos de força") : null)}
+          treinoId={treinoId}
+        />}
 
       </div>
     );
