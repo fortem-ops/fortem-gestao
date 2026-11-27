@@ -55,4 +55,18 @@ describe("Agenda de Treinos — inclusão e exclusão por Admin e Coordenador", 
     expect(sql).toContain("frequencia_semanal = 5");
     expect(sql).toContain("INSERT INTO public.audit_log");
   });
+
+  it("regressão: funções de saldo e agendamento da equipe não referenciam _plano.frequencia_semanal", () => {
+    const sql = readFileSync(
+      resolve(
+        process.cwd(),
+        "drizzle/migrations/0314_corrigir_saldo_creditos_e_agendar_treino_equipe.sql",
+      ),
+      "utf8",
+    );
+    expect(sql).not.toContain("_plano.frequencia_semanal");
+    expect(sql).toContain("c.frequencia_semanal = 5");
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.fn_saldo_creditos_treino_aluno(uuid) FROM PUBLIC, anon");
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.fn_agendar_treino_equipe(uuid, date, uuid, boolean) FROM PUBLIC, anon");
+  });
 });

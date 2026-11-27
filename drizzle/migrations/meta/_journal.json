@@ -2199,6 +2199,13 @@
       "when": 1795803687246,
       "tag": "0313_agenda_treinos_incluir_excluir_equipe",
       "breakpoints": true
+    },
+    {
+      "idx": 314,
+      "version": "7",
+      "when": 1795804029294,
+      "tag": "0314_corrigir_saldo_creditos_e_agendar_treino_equipe",
+      "breakpoints": true
     }
   ]
 }
