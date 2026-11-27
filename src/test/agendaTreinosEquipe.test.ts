@@ -42,6 +42,22 @@ describe("Agenda de Treinos — inclusão e exclusão por Admin e Coordenador", 
     expect(
       formatarSaldoCreditosTreino({ ok: true, tipo: "agregadora", plano_nome: "Wellhub" }),
     ).toEqual({ texto: "Agregadora (Wellhub)", alertaSemSaldo: false });
+
+    expect(
+      formatarSaldoCreditosTreino({ ok: true, tipo: "prospect" }),
+    ).toEqual({ texto: "Prospect · Treino Experimental", alertaSemSaldo: false });
+
+    expect(
+      formatarSaldoCreditosTreino({
+        ok: true,
+        tipo: "creditos",
+        origem: "legado",
+        saldo: 144,
+        total: 156,
+        usados: 12,
+        plano_nome: "Power",
+      }),
+    ).toEqual({ texto: "144 créditos restantes de 156 · Power", alertaSemSaldo: false });
   });
 
   it("migration revoga anon, restringe agendamento a admin/coordenador, respeita Livre e grava audit_log", () => {
@@ -68,5 +84,22 @@ describe("Agenda de Treinos — inclusão e exclusão por Admin e Coordenador", 
     expect(sql).toContain("c.frequencia_semanal = 5");
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.fn_saldo_creditos_treino_aluno(uuid) FROM PUBLIC, anon");
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.fn_agendar_treino_equipe(uuid, date, uuid, boolean) FROM PUBLIC, anon");
+  });
+
+  it("regressão: lista só ativos vigentes e prospects, calcula saldo legado e vincula prospect ao Treino Experimental", () => {
+    const sql = readFileSync(
+      resolve(
+        process.cwd(),
+        "drizzle/migrations/0315_agenda_treinos_ativos_legado_prospects.sql",
+      ),
+      "utf8",
+    );
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.fn_alunos_agendaveis_equipe() FROM PUBLIC, anon");
+    expect(sql).toContain("a.status = 'prospect'");
+    expect(sql).toContain("'origem', 'legado'");
+    expect(sql).toContain("frequencia_semanal * 52");
+    expect(sql).toContain("experimental_obrigatorio");
+    expect(sql).toContain("trg_agenda_servico_delete_cancelar_treino");
+    expect(sql).toContain("DELETE FROM public.agenda_servicos WHERE id = _ag.agenda_servico_id");
   });
 });

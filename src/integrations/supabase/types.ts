@@ -12029,6 +12029,7 @@ export type Database = {
       }
       treino_agendamentos: {
         Row: {
+          agenda_servico_id: string | null
           aluno_id: string
           cancelado_em: string | null
           cancelado_por: string | null
@@ -12049,6 +12050,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agenda_servico_id?: string | null
           aluno_id: string
           cancelado_em?: string | null
           cancelado_por?: string | null
@@ -12069,6 +12071,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agenda_servico_id?: string | null
           aluno_id?: string
           cancelado_em?: string | null
           cancelado_por?: string | null
@@ -12089,6 +12092,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "treino_agendamentos_agenda_servico_id_fkey"
+            columns: ["agenda_servico_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_agendamentos_agenda_servico_id_fkey"
+            columns: ["agenda_servico_id"]
+            isOneToOne: false
+            referencedRelation: "v_servicos_agenda"
+            referencedColumns: ["agenda_id"]
+          },
           {
             foreignKeyName: "treino_agendamentos_aluno_id_fkey"
             columns: ["aluno_id"]
@@ -13971,6 +13988,7 @@ export type Database = {
       }
       fn_agendar_treino_equipe: {
         Args: {
+          p_agenda_servico_id?: string
           p_aluno_id: string
           p_data: string
           p_ignorar_capacidade?: boolean
@@ -13999,6 +14017,15 @@ export type Database = {
       fn_aluno_somente_online: {
         Args: { p_aluno_id: string }
         Returns: boolean
+      }
+      fn_alunos_agendaveis_equipe: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+          responsavel_id: string
+          status: string
+        }[]
       }
       fn_auditoria_fiscal_agenda_servicos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_contratos: { Args: never; Returns: Json }

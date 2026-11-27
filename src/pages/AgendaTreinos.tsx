@@ -603,6 +603,9 @@ function SlotDetailSheet({
             <IncluirAlunoHorario
               slotId={selected.slot.id}
               dataStr={dataStr}
+              horarioInicio={selected.slot.horario_inicio}
+              horarioFim={selected.slot.horario_fim}
+              instrutorId={selected.slot.instrutor_id}
               lotado={ativos.length >= selected.slot.capacidade_maxima}
               alunosJaNoHorario={ativos.map((a) => a.aluno_id)}
               onIncluded={onRefetch}

@@ -81,13 +81,24 @@ function parsePlanServiceCount(servicos: string[] | null | undefined, label: str
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  prefill?: { date: Date; hour: number; minute?: number } | null;
+  prefill?: {
+    date: Date;
+    hour: number;
+    minute?: number;
+    endHour?: number;
+    endMinute?: number;
+    atividade?: string;
+    local?: string;
+    alunoId?: string;
+    profissionalId?: string;
+  } | null;
   editEvent?: any | null;
   /** Data da célula clicada na grade (usada para reservar aluno em vaga fixa). */
   cellDate?: Date | null;
+  onSaved?: (inserted: { id: string; atividade: string; aluno_id: string | null }) => void | Promise<void>;
 }
 
-export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDate }: Props) {
+export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDate, onSaved }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -159,13 +170,20 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       setVisivelPortal(!!editEvent.visivel_portal);
     } else if (prefill) {
       const startMin = prefill.hour * 60 + (prefill.minute ?? 0);
-      const endMin = Math.min(startMin + 60, 22 * 60);
+      const endMin =
+        typeof prefill.endHour === "number"
+          ? prefill.endHour * 60 + (prefill.endMinute ?? 0)
+          : Math.min(startMin + 60, 22 * 60);
       const fmt = (m: number) =>
         `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
       setHorarioInicio(fmt(startMin));
       setHorarioFim(fmt(endMin));
       setDiaSemana(String(prefill.date.getDay()));
       setDataEspecifica(format(prefill.date, "yyyy-MM-dd"));
+      if (prefill.atividade) setAtividade(prefill.atividade);
+      if (prefill.local) setLocal(prefill.local);
+      if (prefill.alunoId) setAlunoId(prefill.alunoId);
+      if (prefill.profissionalId) setProfissionalId(prefill.profissionalId);
     }
   }, [open, prefill, editEvent]);
 
@@ -571,6 +589,13 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         inserted?.profissional_id &&
         (inserted?.data_especifica || inserted?.tipo === 'fixo');
 
+      if (inserted?.id && !inserted?.lote && onSaved) {
+        onSaved({
+          id: inserted.id,
+          atividade: inserted.atividade,
+          aluno_id: inserted.aluno_id ?? null,
+        });
+      }
 
       if (podeNotificar) {
         setAgendamentoSalvo(inserted);

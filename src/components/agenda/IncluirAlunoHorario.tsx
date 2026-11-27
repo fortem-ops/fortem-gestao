@@ -9,15 +9,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { toastError, toastSuccess } from "@/lib/toast-helpers";
+import { AddAgendaDialog } from "@/components/agenda/AddAgendaDialog";
 
 export type SaldoCreditosTreino = {
   ok: boolean;
   erro?: string;
-  tipo?: "creditos" | "livre" | "agregadora";
+  tipo?: "creditos" | "livre" | "agregadora" | "prospect";
+  origem?: "ciclo" | "legado" | "nenhum";
   saldo?: number | null;
   total?: number | null;
   usados?: number | null;
   plano_nome?: string | null;
+};
+
+export type AlunoAgendavelEquipe = {
+  id: string;
+  nome: string;
+  status: string;
+  responsavel_id: string | null;
 };
 
 export function podeGerenciarAlunosHorario(roles?: { isAdmin?: boolean; isCoordAdmin?: boolean } | null): boolean {
@@ -31,6 +40,9 @@ export function formatarSaldoCreditosTreino(info: SaldoCreditosTreino | null | u
   if (!info || !info.ok) {
     return { texto: "Não foi possível consultar os créditos", alertaSemSaldo: false };
   }
+  if (info.tipo === "prospect") {
+    return { texto: "Prospect · Treino Experimental", alertaSemSaldo: false };
+  }
   if (info.tipo === "livre") {
     return { texto: "Plano Livre (não consome créditos)", alertaSemSaldo: false };
   }
@@ -43,8 +55,9 @@ export function formatarSaldoCreditosTreino(info: SaldoCreditosTreino | null | u
     return { texto: "0 créditos restantes (sem ciclo ativo)", alertaSemSaldo: true };
   }
   const sufixo = Math.abs(saldo) === 1 ? "crédito restante" : "créditos restantes";
+  const planoSufixo = info.plano_nome ? ` · ${info.plano_nome}` : "";
   return {
-    texto: `${saldo} ${sufixo}${total > 0 ? ` de ${total}` : ""}`,
+    texto: `${saldo} ${sufixo}${total > 0 ? ` de ${total}` : ""}${planoSufixo}`,
     alertaSemSaldo: saldo <= 0,
   };
 }
@@ -52,6 +65,7 @@ export function formatarSaldoCreditosTreino(info: SaldoCreditosTreino | null | u
 const ERROS_AGENDAMENTO: Record<string, string> = {
   sem_permissao: "Apenas Admin e Coordenador podem incluir alunos neste horário.",
   aluno_invalido: "Aluno inativo ou da equipe não pode ser agendado.",
+  experimental_obrigatorio: "Para incluir um prospect, agende o Treino Experimental na Agenda de Serviços.",
   slot_invalido: "Horário inválido ou inativo.",
   dia_invalido: "Data não corresponde ao dia da semana deste horário.",
   ja_agendado_neste_horario: "Este aluno já está agendado neste horário.",
@@ -61,29 +75,42 @@ const ERROS_AGENDAMENTO: Record<string, string> = {
 interface Props {
   slotId: string;
   dataStr: string;
+  horarioInicio: string;
+  horarioFim: string;
+  instrutorId?: string | null;
   lotado: boolean;
   alunosJaNoHorario: string[];
   onIncluded: () => void;
 }
 
-export function IncluirAlunoHorario({ slotId, dataStr, lotado, alunosJaNoHorario, onIncluded }: Props) {
+function parseHoraMinuto(hhmm: string): { hour: number; minute: number } {
+  const [h, m] = hhmm.split(":").map(Number);
+  return { hour: Number.isFinite(h) ? h : 8, minute: Number.isFinite(m) ? m : 0 };
+}
+
+export function IncluirAlunoHorario({
+  slotId,
+  dataStr,
+  horarioInicio,
+  horarioFim,
+  instrutorId,
+  lotado,
+  alunosJaNoHorario,
+  onIncluded,
+}: Props) {
   const [aberto, setAberto] = useState(false);
   const [comboAberto, setComboAberto] = useState(false);
   const [alunoId, setAlunoId] = useState<string>("");
+  const [experimentalAberto, setExperimentalAberto] = useState(false);
 
   const { data: alunosAtivos = [] } = useQuery({
     queryKey: ["alunos-ativos-agenda-treinos"],
     enabled: aberto,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("alunos")
-        .select("id, nome")
-        .eq("status", "ativo")
-        .or("is_equipe.is.null,is_equipe.eq.false")
-        .order("nome");
+      const { data, error } = await supabase.rpc("fn_alunos_agendaveis_equipe");
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; nome: string }>;
+      return (data ?? []) as AlunoAgendavelEquipe[];
     },
   });
 
@@ -92,14 +119,24 @@ export function IncluirAlunoHorario({ slotId, dataStr, lotado, alunosJaNoHorario
     return alunosAtivos.filter((a) => !ja.has(a.id));
   }, [alunosAtivos, alunosJaNoHorario]);
 
+  const grupoAlunos = useMemo(
+    () => alunosDisponiveis.filter((a) => a.status === "ativo"),
+    [alunosDisponiveis],
+  );
+  const grupoProspects = useMemo(
+    () => alunosDisponiveis.filter((a) => a.status === "prospect"),
+    [alunosDisponiveis],
+  );
+
   const alunoSelecionado = useMemo(
     () => alunosDisponiveis.find((a) => a.id === alunoId) ?? null,
     [alunosDisponiveis, alunoId],
   );
+  const ehProspect = alunoSelecionado?.status === "prospect";
 
   const { data: saldoInfo, isFetching: carregandoSaldo } = useQuery({
     queryKey: ["saldo-creditos-treino-aluno", alunoId],
-    enabled: aberto && Boolean(alunoId),
+    enabled: aberto && Boolean(alunoId) && !ehProspect,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_saldo_creditos_treino_aluno", {
         p_aluno_id: alunoId,
@@ -110,12 +147,13 @@ export function IncluirAlunoHorario({ slotId, dataStr, lotado, alunosJaNoHorario
   });
 
   const incluir = useSupabaseMutation({
-    mutationFn: async () => {
+    mutationFn: async (agendaServicoId?: string) => {
       const { data, error } = await supabase.rpc("fn_agendar_treino_equipe", {
         p_slot_id: slotId,
         p_data: dataStr,
         p_aluno_id: alunoId,
         p_ignorar_capacidade: true,
+        ...(agendaServicoId ? { p_agenda_servico_id: agendaServicoId } : {}),
       });
       if (error) throw error;
       const res = data as { ok: boolean; erro?: string; credito_debitado?: boolean; creditos_restantes?: number | null };
@@ -143,7 +181,25 @@ export function IncluirAlunoHorario({ slotId, dataStr, lotado, alunosJaNoHorario
     );
   }
 
-  const saldoResumo = formatarSaldoCreditosTreino(saldoInfo);
+  const saldoResumo = ehProspect
+    ? formatarSaldoCreditosTreino({ ok: true, tipo: "prospect" })
+    : formatarSaldoCreditosTreino(saldoInfo);
+
+  const inicioParsed = parseHoraMinuto(horarioInicio);
+  const fimParsed = parseHoraMinuto(horarioFim);
+  const experimentalPrefill = alunoSelecionado
+    ? {
+        date: new Date(`${dataStr}T12:00:00`),
+        hour: inicioParsed.hour,
+        minute: inicioParsed.minute,
+        endHour: fimParsed.hour,
+        endMinute: fimParsed.minute,
+        atividade: "Treino Experimental",
+        local: "Sala de Treinamento",
+        alunoId: alunoSelecionado.id,
+        profissionalId: alunoSelecionado.responsavel_id || instrutorId || undefined,
+      }
+    : null;
 
   return (
     <div className="w-full rounded-lg border bg-muted/30 p-3 space-y-2.5">
@@ -157,30 +213,49 @@ export function IncluirAlunoHorario({ slotId, dataStr, lotado, alunosJaNoHorario
       <Popover open={comboAberto} onOpenChange={setComboAberto}>
         <PopoverTrigger asChild>
           <Button variant="outline" role="combobox" aria-expanded={comboAberto} className="w-full justify-between font-normal">
-            <span className="truncate">{alunoSelecionado ? alunoSelecionado.nome : "Buscar aluno ativo..."}</span>
+            <span className="truncate">{alunoSelecionado ? alunoSelecionado.nome : "Buscar aluno ou prospect..."}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Digite o nome do aluno..." />
+            <CommandInput placeholder="Digite o nome do aluno ou prospect..." />
             <CommandList>
-              <CommandEmpty>Nenhum aluno ativo encontrado.</CommandEmpty>
-              <CommandGroup>
-                {alunosDisponiveis.map((a) => (
-                  <CommandItem
-                    key={a.id}
-                    value={a.nome}
-                    onSelect={() => {
-                      setAlunoId(a.id);
-                      setComboAberto(false);
-                    }}
-                  >
-                    <Check className={cn("mr-2 h-4 w-4", alunoId === a.id ? "opacity-100" : "opacity-0")} />
-                    <span className="truncate">{a.nome}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              <CommandEmpty>Nenhum aluno ou prospect encontrado.</CommandEmpty>
+              {grupoAlunos.length > 0 && (
+                <CommandGroup heading="Alunos">
+                  {grupoAlunos.map((a) => (
+                    <CommandItem
+                      key={a.id}
+                      value={a.nome}
+                      onSelect={() => {
+                        setAlunoId(a.id);
+                        setComboAberto(false);
+                      }}
+                    >
+                      <Check className={cn("mr-2 h-4 w-4", alunoId === a.id ? "opacity-100" : "opacity-0")} />
+                      <span className="truncate">{a.nome}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              {grupoProspects.length > 0 && (
+                <CommandGroup heading="Prospects">
+                  {grupoProspects.map((a) => (
+                    <CommandItem
+                      key={a.id}
+                      value={a.nome}
+                      onSelect={() => {
+                        setAlunoId(a.id);
+                        setComboAberto(false);
+                      }}
+                    >
+                      <Check className={cn("mr-2 h-4 w-4", alunoId === a.id ? "opacity-100" : "opacity-0")} />
+                      <span className="truncate">{a.nome}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
@@ -188,8 +263,8 @@ export function IncluirAlunoHorario({ slotId, dataStr, lotado, alunosJaNoHorario
 
       {alunoId && (
         <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="text-muted-foreground">Créditos de treino:</span>
-          {carregandoSaldo ? (
+          <span className="text-muted-foreground">{ehProspect ? "Tipo:" : "Créditos de treino:"}</span>
+          {!ehProspect && carregandoSaldo ? (
             <span className="text-muted-foreground">Consultando...</span>
           ) : (
             <Badge variant={saldoResumo.alertaSemSaldo ? "destructive" : "secondary"} className="text-[11px]">
@@ -217,10 +292,31 @@ export function IncluirAlunoHorario({ slotId, dataStr, lotado, alunosJaNoHorario
         size="sm"
         className="w-full"
         disabled={!alunoId || incluir.isPending}
-        onClick={() => incluir.mutate(undefined)}
+        onClick={() => {
+          if (ehProspect) {
+            setExperimentalAberto(true);
+          } else {
+            incluir.mutate(undefined);
+          }
+        }}
       >
-        {incluir.isPending ? "Incluindo..." : "Confirmar inclusão"}
+        {incluir.isPending
+          ? "Incluindo..."
+          : ehProspect
+            ? "Agendar Treino Experimental"
+            : "Confirmar inclusão"}
       </Button>
+
+      {ehProspect && (
+        <AddAgendaDialog
+          open={experimentalAberto}
+          onOpenChange={setExperimentalAberto}
+          prefill={experimentalPrefill}
+          onSaved={(inserted) => {
+            incluir.mutate(inserted.id);
+          }}
+        />
+      )}
     </div>
   );
 }
