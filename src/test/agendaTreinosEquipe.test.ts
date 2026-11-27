@@ -102,4 +102,17 @@ describe("Agenda de Treinos — inclusão e exclusão por Admin e Coordenador", 
     expect(sql).toContain("trg_agenda_servico_delete_cancelar_treino");
     expect(sql).toContain("DELETE FROM public.agenda_servicos WHERE id = _ag.agenda_servico_id");
   });
+
+  it("regressão: fn_agendar_treino_equipe grava auditoria em dados_depois (nunca dados_novos)", () => {
+    const sql = readFileSync(
+      resolve(
+        process.cwd(),
+        "drizzle/migrations/0316_corrigir_audit_log_agendar_treino_equipe.sql",
+      ),
+      "utf8",
+    );
+    expect(sql).not.toContain("dados_novos");
+    expect(sql).toContain("INSERT INTO public.audit_log (user_id, operacao, tabela, registro_id, dados_depois)");
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.fn_agendar_treino_equipe(uuid, date, uuid, boolean, uuid) FROM PUBLIC, anon");
+  });
 });

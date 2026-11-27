@@ -2213,6 +2213,13 @@
       "when": 1795804912507,
       "tag": "0315_agenda_treinos_ativos_legado_prospects",
       "breakpoints": true
+    },
+    {
+      "idx": 316,
+      "version": "7",
+      "when": 1795805377146,
+      "tag": "0316_corrigir_audit_log_agendar_treino_equipe",
+      "breakpoints": true
     }
   ]
 }
