@@ -31,6 +31,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toastSuccess, toastError } from "@/lib/toast-helpers";
+import { IncluirAlunoHorario, podeGerenciarAlunosHorario } from "@/components/agenda/IncluirAlunoHorario";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -507,7 +508,7 @@ function SlotDetailSheet({
   onClose,
   agendamentos,
   profileMap,
-  isAdmin,
+  canManageAlunos,
   onEdit,
   onRefetch,
 }: {
@@ -515,7 +516,7 @@ function SlotDetailSheet({
   onClose: () => void;
   agendamentos: AgendamentoRow[];
   profileMap: Record<string, string>;
-  isAdmin: boolean;
+  canManageAlunos: boolean;
   onEdit: (s: Slot, dataStr?: string) => void;
   onRefetch: () => void;
 }) {
@@ -597,6 +598,18 @@ function SlotDetailSheet({
           </Button>
         </div>
 
+        {canManageAlunos && (
+          <div className="mt-2 flex justify-end">
+            <IncluirAlunoHorario
+              slotId={selected.slot.id}
+              dataStr={dataStr}
+              lotado={ativos.length >= selected.slot.capacidade_maxima}
+              alunosJaNoHorario={ativos.map((a) => a.aluno_id)}
+              onIncluded={onRefetch}
+            />
+          </div>
+        )}
+
         <div className="mt-4 space-y-2">
           {ordered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Nenhum aluno agendado neste horário.</p>
@@ -623,7 +636,7 @@ function SlotDetailSheet({
                       </Button>
                     </>
                   )}
-                  {isAdmin && a.status !== "cancelado" && (
+                  {canManageAlunos && a.status !== "cancelado" && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive">
@@ -634,17 +647,23 @@ function SlotDetailSheet({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Remover aluno deste horário?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            <strong>{a.alunos?.nome}</strong> sai deste horário e o crédito do serviço contratado volta
-                            como reposição, ficando disponível para remarcar. Não pode ser desfeita.
+                            Escolha se deseja devolver o crédito de treino de <strong>{a.alunos?.nome}</strong> ao
+                            remover deste horário. Esta ação não pode ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                            onClick={() => excluirComEstorno.mutate({ id: a.id, estornar: false })}
+                          >
+                            Remover sem devolver crédito
+                          </AlertDialogAction>
                           <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             onClick={() => excluirComEstorno.mutate({ id: a.id, estornar: true })}
                           >
-                            Remover e gerar reposição
+                            Remover e devolver crédito
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -665,12 +684,12 @@ function WeeklyGrid({
   slots,
   profileMap,
   onEdit,
-  isAdmin,
+  canManageAlunos,
 }: {
   slots: Slot[];
   profileMap: Record<string, string>;
   onEdit: (s: Slot, dataStr?: string) => void;
-  isAdmin: boolean;
+  canManageAlunos: boolean;
 }) {
   const qc = useQueryClient();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
@@ -985,7 +1004,7 @@ function WeeklyGrid({
         onClose={() => setSelected(null)}
         agendamentos={agendamentos}
         profileMap={profileMap}
-        isAdmin={isAdmin}
+        canManageAlunos={canManageAlunos}
         onEdit={(s, dataStr) => { setSelected(null); onEdit(s, dataStr); }}
         onRefetch={() => {
           refetchAg();
@@ -1004,7 +1023,7 @@ function HorariosTab() {
   const [editingData, setEditingData] = useState<string | null>(null);
   const [view, setView] = useState<"grade" | "lista">("grade");
   const { data: roles } = useUserRoles();
-  const isAdmin = !!roles?.isAdmin;
+  const canManageAlunos = podeGerenciarAlunosHorario(roles);
 
   const { data: slots = [], refetch } = useQuery({
     queryKey: ["treino-slots-admin"],
@@ -1079,7 +1098,7 @@ function HorariosTab() {
       )}
 
       {slots.length > 0 && view === "grade" && (
-        <WeeklyGrid slots={slots} profileMap={profileMap} onEdit={openEdit} isAdmin={isAdmin} />
+        <WeeklyGrid slots={slots} profileMap={profileMap} onEdit={openEdit} canManageAlunos={canManageAlunos} />
       )}
 
       {slots.length > 0 && view === "lista" && DIAS.map((diaNome, diaIdx) => {

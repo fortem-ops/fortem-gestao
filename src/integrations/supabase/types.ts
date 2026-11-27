@@ -13969,6 +13969,15 @@ export type Database = {
         Args: { p_data: string; p_slot_id: string }
         Returns: Json
       }
+      fn_agendar_treino_equipe: {
+        Args: {
+          p_aluno_id: string
+          p_data: string
+          p_ignorar_capacidade?: boolean
+          p_slot_id: string
+        }
+        Returns: Json
+      }
       fn_alinhar_plano_ao_contrato: {
         Args: { p_plano_id: string }
         Returns: string
@@ -16145,6 +16154,10 @@ export type Database = {
         Returns: string
       }
       fn_reveal_profile_cpf: { Args: { p_user_id: string }; Returns: string }
+      fn_saldo_creditos_treino_aluno: {
+        Args: { p_aluno_id: string }
+        Returns: Json
+      }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
       fn_semestral_ativar_venda: {
         Args: { p_contrato: string; p_venda: string }
