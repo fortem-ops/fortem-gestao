@@ -10200,6 +10200,90 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_fila_espera: {
+        Row: {
+          agenda_servico_id: string | null
+          aluno_id: string
+          atividade: string
+          created_at: string
+          data: string
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          profissional_id: string | null
+          slot_id: string | null
+          status: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          agenda_servico_id?: string | null
+          aluno_id: string
+          atividade: string
+          created_at?: string
+          data: string
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          profissional_id?: string | null
+          slot_id?: string | null
+          status?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          agenda_servico_id?: string | null
+          aluno_id?: string
+          atividade?: string
+          created_at?: string
+          data?: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          profissional_id?: string | null
+          slot_id?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_fila_espera_agenda_servico_id_fkey"
+            columns: ["agenda_servico_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_fila_espera_agenda_servico_id_fkey"
+            columns: ["agenda_servico_id"]
+            isOneToOne: false
+            referencedRelation: "v_servicos_agenda"
+            referencedColumns: ["agenda_id"]
+          },
+          {
+            foreignKeyName: "portal_fila_espera_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_fila_espera_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "portal_fila_espera_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "treino_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portal_push_log: {
         Row: {
           aluno_id: string | null
@@ -10211,6 +10295,7 @@ export type Database = {
           referencia: string | null
           sucesso: boolean
           title: string
+          url: string | null
         }
         Insert: {
           aluno_id?: string | null
@@ -10222,6 +10307,7 @@ export type Database = {
           referencia?: string | null
           sucesso?: boolean
           title: string
+          url?: string | null
         }
         Update: {
           aluno_id?: string | null
@@ -10233,6 +10319,7 @@ export type Database = {
           referencia?: string | null
           sucesso?: boolean
           title?: string
+          url?: string | null
         }
         Relationships: [
           {
@@ -14873,6 +14960,30 @@ export type Database = {
         }
         Returns: string
       }
+      fn_fila_espera_encerrar_expiradas: {
+        Args: { p_aluno_id?: string }
+        Returns: number
+      }
+      fn_fila_espera_entrar_servico: {
+        Args: { p_agenda_servico_id: string; p_data: string }
+        Returns: Json
+      }
+      fn_fila_espera_entrar_treino: {
+        Args: { p_data: string; p_slot_id: string }
+        Returns: Json
+      }
+      fn_fila_espera_notificar_vaga: {
+        Args: {
+          p_data: string
+          p_horario_inicio: string
+          p_liberacao_id: string
+          p_profissional_id: string
+          p_slot_id: string
+          p_tipo: string
+        }
+        Returns: number
+      }
+      fn_fila_espera_sair: { Args: { p_fila_id: string }; Returns: Json }
       fn_fin_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
       fn_fin_proximo_dia_util: { Args: { p_data: string }; Returns: string }
       fn_fin_somar_dias_uteis: {

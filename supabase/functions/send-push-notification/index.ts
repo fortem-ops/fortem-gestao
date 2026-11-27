@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
       gatilho: gatilho ?? "manual",
       title,
       body: body ?? "",
+      url: url ?? "/portal",
       referencia,
       sucesso: false,
     }).select("id").single();
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
     await supabase.from("portal_push_log").update(resultado).eq("id", reservaId);
   } else {
     await supabase.from("portal_push_log").insert({
-      aluno_id, gatilho: gatilho ?? "manual", title, body: body ?? "", ...resultado,
+      aluno_id, gatilho: gatilho ?? "manual", title, body: body ?? "", url: url ?? "/portal", ...resultado,
     });
   }
   return json({ ok: true, sent, errors });

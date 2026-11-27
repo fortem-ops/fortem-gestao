@@ -23,3 +23,4 @@
 - [ ] Push da equipe: revisão dos textos — aguardando o dono
 - [ ] Push da equipe Fases 2–4 — aguardando aprovação dos textos
 - [x] Portal: retorno do login social (Google/Apple + PWA), logs/aviso 1x/dia em fn_portal_link_aluno, ja_vinculado_outra_conta, consulta de integridade e ensaios com fixtures
+- [x] Push do portal Fase 3: fila de espera (treinos e serviços), aviso de vaga liberada no push e na central do portal, contagem somente leitura na agenda da equipe (precisa Publish para o frontend).

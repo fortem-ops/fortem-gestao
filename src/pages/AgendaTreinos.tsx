@@ -14,6 +14,7 @@ import {
   type SlotComExcecao,
   type TreinoSlotExcecao,
 } from "@/lib/treinoSlotExcecoes";
+import { contarFilaPorChave, type FilaEsperaItem } from "@/lib/filaEspera";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -757,6 +758,22 @@ function WeeklyGrid({
     },
   });
 
+  const { data: filaSemana = [] } = useQuery({
+    queryKey: ["treino-fila-espera-semana", weekStartStr, weekEndStr],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("portal_fila_espera")
+        .select("tipo, slot_id, profissional_id, data, horario_inicio, status")
+        .eq("tipo", "treino")
+        .eq("status", "ativo")
+        .gte("data", weekStartStr)
+        .lte("data", weekEndStr);
+      if (error) throw error;
+      return (data ?? []) as Pick<FilaEsperaItem, "tipo" | "slot_id" | "profissional_id" | "data" | "horario_inicio" | "status">[];
+    },
+  });
+  const contagemFila = useMemo(() => contarFilaPorChave(filaSemana), [filaSemana]);
+
   // ocupação por (slot_id + data)
   const ocupacao = useMemo(() => {
     const m = new Map<string, number>();
@@ -886,6 +903,7 @@ function WeeklyGrid({
                       const cheio = ocup >= slot.capacidade_maxima;
                       const inativo = !slot.ativo;
                       const isCorrida = slot.modalidade === "corrida";
+                      const naFila = contagemFila[`treino:${slot.id}:${dataStr}`] ?? 0;
                       const agendadosDoSlot = agendamentos.filter(
                         (a) => a.slot_id === slot.id && a.data === dataStr && OCUPACAO_ATIVOS.has(a.status)
                       );
@@ -920,6 +938,11 @@ function WeeklyGrid({
                               {slot.temExcecao && (
                                 <div className="text-[9px] font-medium text-amber-600 dark:text-amber-400 leading-tight mt-0.5">
                                   Alterado neste dia
+                                </div>
+                              )}
+                              {naFila > 0 && (
+                                <div className="text-[9px] font-semibold text-amber-500 leading-tight mt-0.5">
+                                  Fila: {naFila}
                                 </div>
                               )}
                               {inativo && <div className="text-[9px] uppercase text-muted-foreground">off</div>}

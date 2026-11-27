@@ -2185,6 +2185,13 @@
       "when": 1795801991884,
       "tag": "0311_push_portal_fase2_novos_avisos",
       "breakpoints": true
+    },
+    {
+      "idx": 312,
+      "version": "7",
+      "when": 1795802839542,
+      "tag": "0312_portal_fila_espera",
+      "breakpoints": true
     }
   ]
 }

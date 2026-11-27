@@ -1,9 +1,15 @@
 import { horarioFuturoPortal } from "@/components/portal/portalPresentation";
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { aplicarExcecaoNoSlot, type TreinoSlotExcecao } from "@/lib/treinoSlotExcecoes";
+import {
+  filtrarFilasAtivasFuturas,
+  mensagemErroFilaEspera,
+  type FilaEsperaItem,
+} from "@/lib/filaEspera";
 import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight, Pin, CalendarPlus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -71,22 +77,34 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export default function PortalAgenda() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [agoraVisual, setAgoraVisual] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setAgoraVisual(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
-  const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
+  const [diaSelecionado, setDiaSelecionado] = useState<Date>(() => {
+    const p = searchParams.get("data");
+    if (p && /^\d{4}-\d{2}-\d{2}$/.test(p)) return parseISO(`${p}T12:00:00`);
+    return new Date();
+  });
   const [confirmando, setConfirmando] = useState<{ slot: Slot; data: string; instrutor?: string } | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
   const [cancelandoServico, setCancelandoServico] = useState<string | null>(null);
-  const [abaAgenda, setAbaAgenda] = useState<"treinos" | "servicos">("treinos");
+  const [abaAgenda, setAbaAgenda] = useState<"treinos" | "servicos">(() =>
+    searchParams.get("aba") === "servicos" ? "servicos" : "treinos",
+  );
   const [modalidadeTreino, setModalidadeTreino] = useState<"funcional" | "corrida">("funcional");
   const [historicoAberto, setHistoricoAberto] = useState(false);
   const [meusAgendamentosAberto, setMeusAgendamentosAberto] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
   const [diaServico, setDiaServico] = useState<Date | null>(null);
   const [confirmandoServico, setConfirmandoServico] = useState<{ h: any; data: string; label: string } | null>(null);
+  const [confirmandoFila, setConfirmandoFila] = useState<
+    | { tipo: "treino"; slot: Slot; data: string; atividade: string; instrutor?: string }
+    | { tipo: "servico"; agendaServicoId: string; data: string; horarioInicio: string; horarioFim: string; atividade: string }
+    | null
+  >(null);
   const [showHistoricoTreinos, setShowHistoricoTreinos] = useState(false);
   const [filtroTreinos, setFiltroTreinos] = useState<"todos" | "realizado" | "faltou" | "cancelado">("todos");
   const [showHistoricoServicos, setShowHistoricoServicos] = useState(false);
@@ -211,6 +229,66 @@ export default function PortalAgenda() {
         .limit(10);
       if (error) throw error;
       return (data || []) as Agendamento[];
+    },
+  });
+
+  // Minha fila de espera ativa
+  const { data: minhaFilaRaw = [] } = useQuery({
+    queryKey: ["portal-fila-espera", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("portal_fila_espera")
+        .select("id, aluno_id, tipo, slot_id, agenda_servico_id, data, horario_inicio, horario_fim, atividade, profissional_id, status")
+        .eq("aluno_id", student!.id)
+        .eq("status", "ativo")
+        .gte("data", format(new Date(), "yyyy-MM-dd"))
+        .order("data", { ascending: true })
+        .order("horario_inicio", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as FilaEsperaItem[];
+    },
+  });
+  const minhaFilaAtiva = useMemo(
+    () => filtrarFilasAtivasFuturas(minhaFilaRaw, agoraVisual),
+    [minhaFilaRaw, agoraVisual],
+  );
+
+  const entrarFilaMut = useMutation({
+    mutationFn: async (alvo: NonNullable<typeof confirmandoFila>) => {
+      const { data, error } =
+        alvo.tipo === "treino"
+          ? await supabase.rpc("fn_fila_espera_entrar_treino", { p_slot_id: alvo.slot.id, p_data: alvo.data })
+          : await supabase.rpc("fn_fila_espera_entrar_servico", { p_agenda_servico_id: alvo.agendaServicoId, p_data: alvo.data });
+      if (error) throw error;
+      const res = data as { ok?: boolean; erro?: string; ja_na_fila?: boolean } | null;
+      if (!res?.ok) throw new Error(mensagemErroFilaEspera(res?.erro));
+      return res;
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["portal-fila-espera"] });
+      setConfirmandoFila(null);
+      toast.success(res.ja_na_fila ? "Você já está na fila de espera deste horário." : "Você entrou na fila de espera. Avisaremos se abrir vaga.");
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Não foi possível entrar na fila de espera.");
+    },
+  });
+
+  const sairFilaMut = useMutation({
+    mutationFn: async (filaId: string) => {
+      const { data, error } = await supabase.rpc("fn_fila_espera_sair", { p_fila_id: filaId });
+      if (error) throw error;
+      const res = data as { ok?: boolean; erro?: string } | null;
+      if (!res?.ok) throw new Error("Não foi possível sair da fila de espera.");
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["portal-fila-espera"] });
+      toast.success("Você saiu da fila de espera.");
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Não foi possível sair da fila de espera.");
     },
   });
 
@@ -1102,15 +1180,46 @@ export default function PortalAgenda() {
                       );
                     }
                     if (lotado) {
+                      const naFila = minhaFilaAtiva.find(
+                        (f) => f.tipo === "treino" && f.slot_id === slot.id && f.data === dataStr,
+                      );
+                      if (naFila) {
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            aria-label={`${ini}, na fila`}
+                            onClick={() => setMeusAgendamentosAberto(true)}
+                            className="h-14 border border-[#E3B341] bg-[#1A1A1A] flex flex-col items-center justify-center leading-none text-[#E3B341]"
+                          >
+                            <span className="text-[18px] font-bold text-foreground">{ini}</span>
+                            <span className="mt-1 text-[12px] font-bold">NA FILA</span>
+                          </button>
+                        );
+                      }
                       return (
-                        <div
+                        <button
                           key={slot.id}
+                          type="button"
                           aria-label={`${ini}, lotado`}
+                          onClick={() => {
+                            if (bloqueadoCorrida) {
+                              toast.error("Este horário é exclusivo para alunos com plano de Corrida ativo. Fale com a equipe para contratar.");
+                              return;
+                            }
+                            setConfirmandoFila({
+                              tipo: "treino",
+                              slot,
+                              data: dataStr,
+                              atividade: isCorrida ? "Corrida" : "Treino",
+                              instrutor: instrutorNome ?? undefined,
+                            });
+                          }}
                           className="h-14 border border-dashed border-[#4A4B4B] flex flex-col items-center justify-center leading-none text-[#B1B3B3]"
                         >
                           <span className="text-[18px] font-bold">{ini}</span>
                           <span className="mt-1 text-[12px] font-bold">LOTADO</span>
-                        </div>
+                        </button>
                       );
                     }
                     const quase = vagas <= 2;
@@ -1297,15 +1406,43 @@ export default function PortalAgenda() {
                               );
                             }
                             if (c.estado === "ocupado") {
+                              const naFilaSrv = minhaFilaAtiva.find(
+                                (f) => f.tipo === "servico" && f.agenda_servico_id === c.h.id && f.data === diaServicoStr,
+                              );
+                              if (naFilaSrv) {
+                                return (
+                                  <button
+                                    key={key}
+                                    type="button"
+                                    aria-label={`${ini}, na fila`}
+                                    onClick={() => setMeusAgendamentosAberto(true)}
+                                    className="h-14 border border-[#E3B341] bg-[#1A1A1A] flex flex-col items-center justify-center leading-none text-[#E3B341]"
+                                  >
+                                    <span className="text-[18px] font-bold text-foreground">{ini}</span>
+                                    <span className="mt-1 text-[12px] font-bold">NA FILA</span>
+                                  </button>
+                                );
+                              }
                               return (
-                                <div
+                                <button
                                   key={key}
+                                  type="button"
                                   aria-label={`${ini}, ocupado`}
+                                  onClick={() =>
+                                    setConfirmandoFila({
+                                      tipo: "servico",
+                                      agendaServicoId: c.h.id,
+                                      data: diaServicoStr!,
+                                      horarioInicio: c.h.horario_inicio,
+                                      horarioFim: c.h.horario_fim,
+                                      atividade: servicoAtual.label,
+                                    })
+                                  }
                                   className="h-14 border border-dashed border-[#4A4B4B] flex flex-col items-center justify-center leading-none text-[#B1B3B3]"
                                 >
                                   <span className="text-[18px] font-bold">{ini}</span>
                                   <span className="mt-1 text-[12px] font-bold">OCUPADO</span>
-                                </div>
+                                </button>
                               );
                             }
                             return (
@@ -1745,6 +1882,88 @@ export default function PortalAgenda() {
               >
                 <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-foreground">Histórico de serviços</span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+              {minhaFilaAtiva.length > 0 && (
+                <div className="pt-3 space-y-2">
+                  <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Na fila de espera</p>
+                  {minhaFilaAtiva.map((item) => (
+                    <div key={item.id} className="border border-[#4A4B4B] p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center min-w-[44px] shrink-0">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                            {format(parseISO(item.data + "T12:00:00"), "EEE", { locale: ptBR })}
+                          </p>
+                          <p className="text-2xl font-black text-foreground">
+                            {format(parseISO(item.data + "T12:00:00"), "d")}
+                          </p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-foreground truncate">
+                            {item.horario_inicio.slice(0, 5)} · {item.atividade}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(item.data + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={sairFilaMut.isPending}
+                          onClick={() => sairFilaMut.mutate(item.id)}
+                          className="min-h-[44px] px-4 border border-[#4A4B4B] text-xs font-bold uppercase tracking-[0.08em] text-foreground"
+                        >
+                          Sair da fila
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmandoFila && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setConfirmandoFila(null)}>
+          <div
+            role="dialog"
+            aria-label="Avisar quando vagar"
+            className="w-full border-t border-[#4A4B4B] bg-[#1A1A1A] p-5 space-y-4"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Fila de espera</p>
+              <button type="button" onClick={() => setConfirmandoFila(null)} aria-label="Fechar" className="w-11 h-11 flex items-center justify-center">
+                <X className="w-4 h-4 text-[#B1B3B3]" />
+              </button>
+            </div>
+            <div className="space-y-1">
+              <p className="text-lg font-bold text-foreground">
+                {confirmandoFila.atividade} · {(confirmandoFila.tipo === "treino" ? confirmandoFila.slot.horario_inicio : confirmandoFila.horarioInicio).slice(0, 5)}
+              </p>
+              <p className="text-sm text-[#B1B3B3]">
+                {format(parseISO(confirmandoFila.data + "T12:00:00"), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+              </p>
+              <p className="text-xs text-[#B1B3B3] pt-1">
+                Avisaremos assim que abrir vaga. A vaga fica com quem confirmar primeiro no app.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmandoFila(null)}
+                className="flex-1 min-h-[44px] border border-[#4A4B4B] text-xs font-bold uppercase tracking-[0.08em] text-foreground"
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                disabled={entrarFilaMut.isPending}
+                onClick={() => entrarFilaMut.mutate(confirmandoFila)}
+                className="flex-1 min-h-[44px] bg-[#C8282A] text-xs font-bold uppercase tracking-[0.08em] text-foreground"
+              >
+                {entrarFilaMut.isPending ? "Entrando..." : "Avisar quando vagar"}
               </button>
             </div>
           </div>

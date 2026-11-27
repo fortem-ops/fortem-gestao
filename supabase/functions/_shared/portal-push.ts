@@ -6,7 +6,8 @@ export type GatilhoPortal =
   | "aniversario_fortem"
   | "aniversario_aluno"
   | "documentos_pendentes"
-  | "baixa_frequencia";
+  | "baixa_frequencia"
+  | "vaga_liberada";
 
 export interface AvisoPortal {
   aluno_id: string;
@@ -21,6 +22,8 @@ export interface AvisoPortal {
   nome?: string | null;
   documentos?: number | null;
   dias?: number | null;
+  atividade?: string | null;
+  horario?: string | null;
 }
 
 export function dataBrasilia(agora = new Date()): string {
@@ -94,5 +97,12 @@ export function textoAvisoPortal(aviso: AvisoPortal): { title: string; body: str
         title: "Sentimos sua falta",
         body: `Faz ${aviso.dias ?? 0} dias desde seu último treino. Que tal voltar esta semana? Agende pelo app.`,
       };
+    case "vaga_liberada": {
+      const hhmm = (aviso.horario ?? "").slice(0, 5);
+      return {
+        title: `Vaga liberada às ${hhmm}`,
+        body: `Abriu uma vaga em ${aviso.atividade ?? ""} de ${dataCurta(aviso.data_referencia)} às ${hhmm}. Agende pelo app: a vaga fica com quem confirmar primeiro.`,
+      };
+    }
   }
 }

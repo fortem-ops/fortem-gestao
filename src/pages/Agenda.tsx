@@ -23,6 +23,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { contarFilaPorChave, type FilaEsperaItem } from "@/lib/filaEspera";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -87,6 +88,21 @@ export default function Agenda() {
       return data as { agenda_id: string; data_excecao: string }[];
     },
   });
+
+  const { data: filaServicos = [] } = useQuery({
+    queryKey: ["agenda-servicos-fila-espera"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("portal_fila_espera")
+        .select("tipo, slot_id, profissional_id, data, horario_inicio, status")
+        .eq("tipo", "servico")
+        .eq("status", "ativo")
+        .gte("data", format(new Date(), "yyyy-MM-dd"));
+      if (error) throw error;
+      return (data ?? []) as Pick<FilaEsperaItem, "tipo" | "slot_id" | "profissional_id" | "data" | "horario_inicio" | "status">[];
+    },
+  });
+  const contagemFilaServicos = useMemo(() => contarFilaPorChave(filaServicos), [filaServicos]);
 
   const excecoesSet = useMemo(
     () => new Set(excecoes.map((e) => `${e.agenda_id}|${e.data_excecao}`)),
@@ -594,6 +610,16 @@ export default function Agenda() {
                               {!ev.visivel_portal && (
                                 <EyeOff className="h-3 w-3 text-muted-foreground" aria-label="Oculto no app do aluno" />
                               )}
+                              {(() => {
+                                const dataEv = format(weekDates[dayIdx], "yyyy-MM-dd");
+                                const chave = `servico:${ev.profissional_id ?? ""}:${dataEv}:${String(ev.horario_inicio ?? "").slice(0, 5)}`;
+                                const qtd = contagemFilaServicos[chave] ?? 0;
+                                return qtd > 0 ? (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0 border-amber-500/50 text-amber-500">
+                                    Fila: {qtd}
+                                  </Badge>
+                                ) : null;
+                              })()}
                             </div>
                           </div>
 
