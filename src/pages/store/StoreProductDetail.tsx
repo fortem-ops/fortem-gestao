@@ -18,6 +18,10 @@ import {
   precoDaVariante,
   type ProdutoVariante,
 } from "@/integrations/store/types";
+import {
+  calcularDisponibilidadeProduto,
+  textoEscolhaPendente,
+} from "@/lib/lojaDisponibilidade";
 
 const StoreProductDetail = () => {
   const { produtoId } = useParams<{ produtoId: string }>();
@@ -102,19 +106,19 @@ const StoreProductDetail = () => {
     return candidatas[0] ?? null;
   }, [variantes, tamanho, cor, tamanhos.length, cores.length]);
 
-  const precisaEscolher =
-    (tamanhos.length > 0 && !tamanho) || (cores.length > 0 && !cor);
+  const faltaTamanho = tamanhos.length > 0 && !tamanho;
+  const faltaCor = cores.length > 0 && !cor;
+  const precisaEscolher = faltaTamanho || faltaCor;
+  const rotuloEscolha = textoEscolhaPendente(faltaTamanho, faltaCor);
 
-  const estoqueSelecionado = varianteSelecionada
-    ? Number(varianteSelecionada.estoque_atual ?? 0)
-    : variantes.length === 0
-    ? 99
-    : 0;
-  const semEstoque = variantes.length > 0 && estoqueSelecionado === 0;
-  const encomenda = semEstoque && produto?.permite_encomenda === true;
-  const esgotado = semEstoque && !encomenda;
+  const { estoqueSelecionado, encomenda, esgotado, estoqueMax } =
+    calcularDisponibilidadeProduto({
+      variantes,
+      varianteSelecionada,
+      precisaEscolher,
+      permiteEncomenda: produto?.permite_encomenda === true,
+    });
   const preco = produto ? precoDaVariante(produto, varianteSelecionada) : 0;
-  const estoqueMax = encomenda ? 10 : estoqueSelecionado;
 
   const podeAdicionar =
     !!produto &&
@@ -363,7 +367,7 @@ const StoreProductDetail = () => {
                 {esgotado
                   ? "Esgotado"
                   : precisaEscolher
-                  ? "Escolha as opções"
+                  ? rotuloEscolha
                   : encomenda
                   ? "Encomendar"
                   : "Adicionar ao carrinho"}
@@ -412,7 +416,7 @@ const StoreProductDetail = () => {
           {esgotado
             ? "Esgotado"
             : precisaEscolher
-            ? "Escolha as opções"
+            ? rotuloEscolha
             : encomenda
             ? `Encomendar • ${formatBRL(preco * quantidade)}`
           : `Adicionar • ${formatBRL(preco * quantidade)}`}
