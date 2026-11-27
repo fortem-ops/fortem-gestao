@@ -2220,6 +2220,13 @@
       "when": 1795805377146,
       "tag": "0316_corrigir_audit_log_agendar_treino_equipe",
       "breakpoints": true
+    },
+    {
+      "idx": 317,
+      "version": "7",
+      "when": 1795806127270,
+      "tag": "0317_portal_ocupacao_treinos_e_servicos",
+      "breakpoints": true
     }
   ]
 }

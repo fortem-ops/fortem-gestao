@@ -15794,6 +15794,25 @@ export type Database = {
         Returns: Json
       }
       fn_portal_link_aluno: { Args: never; Returns: Json }
+      fn_portal_ocupacao_servicos: {
+        Args: {
+          p_data_fim: string
+          p_data_inicio: string
+          p_profissional_ids: string[]
+        }
+        Returns: {
+          data_especifica: string
+          horario_inicio: string
+          profissional_id: string
+        }[]
+      }
+      fn_portal_ocupacao_treinos: {
+        Args: { p_data: string }
+        Returns: {
+          ocupadas: number
+          slot_id: string
+        }[]
+      }
       fn_portal_push_avisos: {
         Args: { p_hoje?: string }
         Returns: {

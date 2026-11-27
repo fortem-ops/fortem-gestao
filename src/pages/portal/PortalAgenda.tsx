@@ -200,13 +200,33 @@ export default function PortalAgenda() {
     },
   });
 
-  // Vagas ocupadas no dia (só cancelado libera a vaga)
-  const { data: agendamentosDia = [] } = useQuery({
+  // Vagas ocupadas no dia via RPC seguro (RLS restringe leitura direta de treino_agendamentos ao próprio aluno)
+  const { data: ocupacaoTreinosDia = [] } = useQuery({
     queryKey: ["portal-vagas-dia", dataStr],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_portal_ocupacao_treinos", { p_data: dataStr });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const ocupadasPorSlot = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of ocupacaoTreinosDia) {
+      map.set(row.slot_id, row.ocupadas);
+    }
+    return map;
+  }, [ocupacaoTreinosDia]);
+
+  // Próprios agendamentos do aluno no dia selecionado (inclui realizado/faltou para exibir estado no botão)
+  const { data: meusAgendamentosDia = [] } = useQuery({
+    queryKey: ["portal-vagas-dia", "meus", student?.id, dataStr],
+    enabled: !!student,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("treino_agendamentos")
         .select("id, slot_id, aluno_id, status")
+        .eq("aluno_id", student!.id)
         .eq("data", dataStr)
         .in("status", ["agendado", "confirmado", "realizado", "faltou"]);
       if (error) throw error;
@@ -512,25 +532,24 @@ export default function PortalAgenda() {
     [horariosServico],
   );
 
-  // Reservas já feitas (com aluno vinculado) para esses profissionais na janela de 14 dias
+  // Reservas já feitas para esses profissionais na janela de 14 dias via RPC seguro (sem expor outros alunos)
   const { data: reservasServico = [] } = useQuery({
     queryKey: ["portal-agenda-reservas-servico", profissionaisHorarios, janela14.inicio, janela14.fim],
     enabled: profissionaisHorarios.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("agenda_servicos")
-        .select("profissional_id, data_especifica, horario_inicio")
-        .not("aluno_id", "is", null)
-        .in("profissional_id", profissionaisHorarios as string[])
-        .gte("data_especifica", janela14.inicio)
-        .lte("data_especifica", janela14.fim);
+      const { data, error } = await supabase.rpc("fn_portal_ocupacao_servicos", {
+        p_profissional_ids: profissionaisHorarios,
+        p_data_inicio: janela14.inicio,
+        p_data_fim: janela14.fim,
+      });
+      if (error) throw error;
       return data || [];
     },
   });
 
   const ocupadosSet = useMemo(() => {
     const s = new Set<string>();
-    for (const r of reservasServico as any[]) {
+    for (const r of reservasServico) {
       if (!r.data_especifica) continue;
       s.add(`${r.profissional_id ?? ""}|${r.data_especifica}|${String(r.horario_inicio).slice(0, 5)}`);
     }
@@ -1152,9 +1171,9 @@ export default function PortalAgenda() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {doPeriodo.map((slot) => {
-                    const ocupadas = agendamentosDia.filter((a) => a.slot_id === slot.id).length;
+                    const ocupadas = ocupadasPorSlot.get(slot.id) ?? 0;
                     const vagas = Math.max(0, slot.capacidade_maxima - ocupadas);
-                    const meu = agendamentosDia.find((a) => a.slot_id === slot.id && a.aluno_id === student?.id);
+                    const meu = meusAgendamentosDia.find((a) => a.slot_id === slot.id);
                     const jaTemNoDia = meusAgendamentos.some(
                       (a) => a.data === dataStr && (((a as any).treino_slots?.modalidade === "corrida") === isCorrida)
                     );
