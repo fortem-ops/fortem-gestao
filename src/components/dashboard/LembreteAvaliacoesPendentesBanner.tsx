@@ -40,6 +40,13 @@ function nowHHMM() {
 }
 
 /** Banner persistente que lista avaliações pendentes do profissional logado. */
+export function destinoLembrete(it: Pick<PendingItem, "alunoId" | "atividade">): string {
+  if (it.atividade === "Treino Experimental") {
+    return `/avaliacoes?aluno=${it.alunoId}&new=1&tipo=experimental`;
+  }
+  return `/avaliacoes-premium/${it.alunoId}`;
+}
+
 export function LembreteAvaliacoesPendentesBanner() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -177,7 +184,7 @@ export function LembreteAvaliacoesPendentesBanner() {
     force((n) => n + 1);
   };
 
-  const handleClick = (alunoId: string) => navigate(`/avaliacoes-premium/${alunoId}`);
+  const handleClick = (it: PendingItem) => navigate(destinoLembrete(it));
 
   const renderText = (it: PendingItem) => {
     if (it.atividade === "Treino Experimental") {
@@ -221,7 +228,7 @@ export function LembreteAvaliacoesPendentesBanner() {
           <button
             key={it.key}
             type="button"
-            onClick={() => handleClick(it.alunoId)}
+            onClick={() => handleClick(it)}
             className="w-full text-left flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 hover:bg-warning/15 transition-colors px-4 py-3 shadow-sm"
           >
             <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
