@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle, Settings } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -12,6 +12,7 @@ import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { cn } from "@/lib/utils";
 import { filtrarNavPortal } from "@/lib/portalAgenda";
 import { lerReservaPendente } from "@/lib/recoveryReservaPendente";
+import { usePortalTema } from "@/hooks/usePortalTema";
 
 const navItems = [
   { to: "/portal/home", label: "Início", icon: House },
@@ -29,13 +30,18 @@ export function PortalLayout() {
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe } = usePushNotifications();
+  const { tema } = usePortalTema();
 
   // Diálogos, sheets e toasts montam em document.body (fora do wrapper):
   // aplica o tema do portal ao body enquanto o portal estiver aberto.
   useEffect(() => {
     document.body.setAttribute("data-portal", "true");
-    return () => document.body.removeAttribute("data-portal");
-  }, []);
+    document.body.setAttribute("data-portal-tema", tema);
+    return () => {
+      document.body.removeAttribute("data-portal");
+      document.body.removeAttribute("data-portal-tema");
+    };
+  }, [tema]);
 
   // Compra avulsa de Recovery com horário guardado (ex.: PIX pago e página fechada):
   // ao abrir o portal, leva à Agenda, que confirma o horário se ainda houver vaga.
@@ -48,7 +54,7 @@ export function PortalLayout() {
 
   if (loading) {
     return (
-      <div data-portal="true" className="min-h-screen flex items-center justify-center bg-background">
+      <div data-portal="true" data-portal-tema={tema} className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <img src={fortemIcon} alt="Fortem" className="w-14 h-14 animate-pulse" />
           <p className="text-muted-foreground text-xs tracking-wider">carregando...</p>
@@ -68,7 +74,7 @@ export function PortalLayout() {
         ? "Esse e-mail já está vinculado a outra conta de acesso na FORTEM. Nossa equipe já foi avisada para ajustar o vínculo, ou você pode falar conosco pelo WhatsApp."
         : "Esse e-mail ainda não está vinculado a um cadastro de aluno na FORTEM. Nossa equipe já foi avisada — se preferir, chame no WhatsApp para liberarmos seu acesso.";
     return (
-      <div data-portal="true" className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div data-portal="true" data-portal-tema={tema} className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="glass-card max-w-md w-full p-8 text-center space-y-4 rounded-2xl">
           <img src={fortemIcon} alt="Fortem" className="mx-auto w-14 h-14" />
           <h1 className="text-xl font-heading font-bold">Conta ainda não vinculada</h1>
@@ -91,9 +97,9 @@ export function PortalLayout() {
   const initial = student?.nome?.charAt(0) ?? "?";
 
   return (
-    <div data-portal="true" className="min-h-screen bg-background flex flex-col">
+    <div data-portal="true" data-portal-tema={tema} className="min-h-screen bg-background flex flex-col">
       {/* Top bar */}
-      <header data-portal="true" className="sticky top-0 z-30 border-b border-border bg-background">
+      <header data-portal="true" data-portal-tema={tema} className="sticky top-0 z-30 border-b border-border bg-background">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
@@ -105,7 +111,7 @@ export function PortalLayout() {
               <Menu className="w-5 h-5" />
             </button>
             <img src={fortemIcon} alt="Fortem" className="w-7 h-7" />
-            <img src={fortemWordmark} alt="Fortem" className="h-4 invert hidden sm:block" />
+            <img src={fortemWordmark} alt="Fortem" className={cn("h-4 hidden sm:block", tema !== "claro" && "invert")} />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground truncate max-w-[140px]">{student?.nome?.split(' ')[0]}</span>
@@ -141,6 +147,7 @@ export function PortalLayout() {
         <SheetContent
           side="left"
           data-portal="true"
+          data-portal-tema={tema}
           className="w-[82vw] max-w-[320px] rounded-none border-r border-[#4A4B4B] bg-background p-0"
           style={{ fontFamily: "Archivo, sans-serif" }}
         >
@@ -154,6 +161,7 @@ export function PortalLayout() {
               { to: "/portal/meu-perfil", label: "Progresso", icon: TrendingUp },
               { to: "/portal/clube", label: "Benefícios", icon: Sparkles },
               { to: "/portal/meu-perfil?aba=conquistas", label: "Conquistas", icon: Award },
+              { to: "/portal/configuracoes", label: "Configurações do App", icon: Settings },
             ].map((item) => (
               <button
                 key={item.to}
@@ -200,7 +208,7 @@ export function PortalLayout() {
       </main>
 
       {/* Bottom nav */}
-      <nav data-portal="true" className="fixed bottom-0 inset-x-0 border-t border-border bg-background z-40">
+      <nav data-portal="true" data-portal-tema={tema} className="fixed bottom-0 inset-x-0 border-t border-border bg-background z-40">
         <div className={cn("max-w-3xl mx-auto grid", itensNav.length === 4 ? "grid-cols-4" : "grid-cols-5")}>
           {itensNav.map((item) => (
             <NavLink

@@ -200,6 +200,68 @@
     background-color: hsl(var(--background));
     color-scheme: dark;
   }
+  /* Versão clara opcional do Portal do Aluno (isolada via data-portal-tema="claro") */
+  [data-portal="true"][data-portal-tema="claro"] {
+    --background: 0 0% 96.1%;       /* #F5F5F5 */
+    --foreground: 0 0% 7.8%;        /* #141414 */
+    --card: 0 0% 100%;              /* #FFFFFF */
+    --card-foreground: 0 0% 7.8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7.8%;
+    --primary: 0 74% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 7.8%;
+    --muted: 0 0% 91%;
+    --muted-foreground: 180 1% 36.5%; /* #5C5E5E */
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 7.8%;
+    --border: 180 1% 83.5%;         /* #D4D5D5 */
+    --input: 180 1% 83.5%;
+    --ring: 0 74% 51%;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+    color-scheme: light;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="text-[#B1B3B3]"],
+  [data-portal="true"][data-portal-tema="claro"] [class*="text-[#b1b3b3]"] {
+    color: #5C5E5E;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="border-[#4A4B4B]"],
+  [data-portal="true"][data-portal-tema="claro"] [class*="border-[#4a4b4b]"] {
+    border-color: #D4D5D5;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="bg-[#1A1A1A]"],
+  [data-portal="true"][data-portal-tema="claro"] [class*="bg-[#1a1a1a]"] {
+    background-color: #FFFFFF;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="bg-[#2C2C2C]"],
+  [data-portal="true"][data-portal-tema="claro"] [class*="bg-[#2c2c2c]"] {
+    background-color: #ECECEC;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="bg-[#0E0E0E]"],
+  [data-portal="true"][data-portal-tema="claro"] [class*="bg-[#0e0e0e]"] {
+    background-color: #F5F5F5;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="text-[#F0F0F0]"],
+  [data-portal="true"][data-portal-tema="claro"] [class*="text-[#f0f0f0]"] {
+    color: #141414;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="hover:bg-[#1a1a1a]"]:hover,
+  [data-portal="true"][data-portal-tema="claro"] [class*="hover:bg-[#1A1A1A]"]:hover {
+    background-color: #EBEBEB;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="text-[#E3B341]"] {
+    color: #A87A12;
+  }
+  [data-portal="true"][data-portal-tema="claro"] [class*="text-[#4CC38A]"] {
+    color: #1F8A57;
+  }
+  [data-portal="true"][data-portal-tema="claro"] .portal-evolucao {
+    --muted-foreground: 180 1% 36.5%;
+    --evolution-atencao: #A87A12;
+    --evolution-equilibrado: #1F8A57;
+  }
   [data-portal="true"] h1,
   [data-portal="true"] h2,
   [data-portal="true"] h3,
