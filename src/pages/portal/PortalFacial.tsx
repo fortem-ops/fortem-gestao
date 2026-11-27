@@ -5,6 +5,7 @@ import { ChevronLeft, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
+import { usePortalTema } from "@/hooks/usePortalTema";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -48,6 +49,7 @@ const Cantoneira = () => (
 
 export default function PortalFacial() {
   const { student } = useStudentPortal();
+  const { tema } = usePortalTema();
   const qc = useQueryClient();
   const alunoId = student?.id;
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -163,7 +165,7 @@ export default function PortalFacial() {
     : <Link to="/portal/perfil" className="inline-flex items-center gap-1 min-h-11 text-sm text-muted-foreground"><ChevronLeft className="w-4 h-4" /> Perfil</Link>;
 
   return (
-    <div data-portal="true" className="space-y-5 pb-32 animate-fade-in">
+    <div data-portal="true" data-portal-tema={tema} className="space-y-5 pb-32 animate-fade-in">
       <header className="pt-1 space-y-1">
         {voltar}
         <h1 className="font-heading text-[28px] font-black uppercase leading-none text-foreground" style={ARCHIVO}>Reconhecimento facial</h1>
@@ -324,7 +326,7 @@ export default function PortalFacial() {
       )}
 
       <Sheet open={termoAberto} onOpenChange={setTermoAberto}>
-        <SheetContent side="bottom" data-portal="true" className="rounded-none max-h-[85vh] overflow-y-auto bg-[#1A1A1A] border-[#4A4B4B]">
+        <SheetContent side="bottom" data-portal="true" data-portal-tema={tema} className="rounded-none max-h-[85vh] overflow-y-auto bg-[#1A1A1A] border-[#4A4B4B]">
           <SheetHeader>
             <SheetTitle className="uppercase text-left" style={ARCHIVO}>Termo de consentimento</SheetTitle>
           </SheetHeader>
@@ -334,7 +336,7 @@ export default function PortalFacial() {
       </Sheet>
 
       <AlertDialog open={confirmaRemover} onOpenChange={setConfirmaRemover}>
-        <AlertDialogContent data-portal="true" className="rounded-none bg-[#1A1A1A] border-[#4A4B4B]">
+        <AlertDialogContent data-portal="true" data-portal-tema={tema} className="rounded-none bg-[#1A1A1A] border-[#4A4B4B]">
           <AlertDialogHeader>
             <AlertDialogTitle className="uppercase" style={ARCHIVO}>Remover meu rosto</AlertDialogTitle>
             <AlertDialogDescription>

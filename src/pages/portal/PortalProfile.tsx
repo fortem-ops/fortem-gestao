@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
+import { usePortalTema } from "@/hooks/usePortalTema";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { Link } from "react-router-dom";
@@ -38,6 +39,7 @@ const GRUPOS = [
 
 export default function PortalProfile() {
   const { student } = useStudentPortal();
+  const { tema } = usePortalTema();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -97,7 +99,7 @@ export default function PortalProfile() {
     : "Sem plano ativo";
 
   return (
-    <div data-portal="true" className="space-y-5 pb-32 animate-fade-in">
+    <div data-portal="true" data-portal-tema={tema} className="space-y-5 pb-32 animate-fade-in">
       {/* ── CABEÇALHO ── */}
       <header className="pt-1">
         <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Sua conta</p>

@@ -218,7 +218,7 @@ export function PortalLayout() {
                 cn(
                   "flex min-h-[56px] flex-col items-center justify-center gap-1 border-t-2 pt-2 pb-5 text-[11px] font-bold uppercase tracking-[0.06em] transition-colors",
                   isActive
-                    ? "border-[#E73C3E] text-white"
+                    ? "border-[#E73C3E] text-[#E73C3E]"
                     : "border-transparent text-[#B1B3B3] hover:text-foreground",
                 )
               }
