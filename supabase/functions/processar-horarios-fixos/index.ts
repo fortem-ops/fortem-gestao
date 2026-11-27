@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -22,30 +22,8 @@ serve(async (req) => {
     });
   }
 
-  const result = data as any;
-  if (result?.notificacoes?.length > 0) {
-    for (const notif of result.notificacoes) {
-      try {
-        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${serviceKey}`,
-          },
-          body: JSON.stringify({
-            aluno_id: notif.aluno_id,
-            title: "Horário fixo indisponível esta semana",
-            body: `Seu horário fixo de ${String(notif.horario).slice(0, 5)} não pôde ser reservado — turma cheia. Agende avulso ou aguarde a próxima semana.`,
-            url: "/portal/agenda",
-            gatilho: "horario_fixo_sem_vaga",
-          }),
-        });
-      } catch (_) {
-        // ignora falha de push individual
-      }
-    }
-  }
-
+  // A rotina continua reservando horários e retornando as ocorrências, mas não envia push.
+  const result: unknown = data;
   return new Response(JSON.stringify(result), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

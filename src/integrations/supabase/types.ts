@@ -10208,6 +10208,7 @@ export type Database = {
           erro_detalhe: string | null
           gatilho: string
           id: string
+          referencia: string | null
           sucesso: boolean
           title: string
         }
@@ -10218,6 +10219,7 @@ export type Database = {
           erro_detalhe?: string | null
           gatilho: string
           id?: string
+          referencia?: string | null
           sucesso?: boolean
           title: string
         }
@@ -10228,6 +10230,7 @@ export type Database = {
           erro_detalhe?: string | null
           gatilho?: string
           id?: string
+          referencia?: string | null
           sucesso?: boolean
           title?: string
         }
@@ -15644,6 +15647,20 @@ export type Database = {
         Returns: Json
       }
       fn_portal_link_aluno: { Args: never; Returns: Json }
+      fn_portal_push_avisos: {
+        Args: { p_hoje?: string }
+        Returns: {
+          aluno_id: string
+          anos: number
+          data_referencia: string
+          gatilho: string
+          plano_tipo: string
+          referencia: string
+          saldo: number
+          url: string
+          valor: number
+        }[]
+      }
       fn_portal_recovery_avulso_link: { Args: never; Returns: Json }
       fn_portal_recovery_avulso_preco: { Args: never; Returns: number }
       fn_preco_servico_rescisao: {

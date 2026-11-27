@@ -12,25 +12,64 @@ const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { acesso } = await avaliarChamador(req, supabase);
   if (acesso === "negado") return json({ error: "Unauthorized" }, 401);
 
-  const vapidErro = await configurarVapid();
-  if (vapidErro) return json({ error: vapidErro }, 500);
-
-  let payloadIn: Record<string, unknown>;
+  let payloadIn: unknown;
   try { payloadIn = await req.json(); } catch { return json({ error: "Invalid JSON body" }, 400); }
-  const { aluno_id, title, body, url, icon, gatilho } = payloadIn as {
-    aluno_id?: string; title?: string; body?: string; url?: string; icon?: string; gatilho?: string;
+  if (!payloadIn || typeof payloadIn !== "object") return json({ error: "Invalid JSON body" }, 400);
+  const { aluno_id, title, body, url, icon, gatilho, referencia } = payloadIn as {
+    aluno_id?: string; title?: string; body?: string; url?: string; icon?: string; gatilho?: string; referencia?: string;
   };
   if (!aluno_id || !title) return json({ error: "aluno_id and title required" }, 400);
+  if (referencia !== undefined && (!referencia.trim() || referencia.length > 300)) {
+    return json({ error: "referencia inválida" }, 400);
+  }
+
+  // A referência é reservada antes de procurar inscrições: ativar push depois não recupera avisos antigos.
+  let reservaId: string | null = null;
+  if (referencia) {
+    const { data, error } = await supabase.from("portal_push_log").insert({
+      aluno_id,
+      gatilho: gatilho ?? "manual",
+      title,
+      body: body ?? "",
+      referencia,
+      sucesso: false,
+    }).select("id").single();
+    if (error) {
+      if (error.code === "23505") return json({ ok: true, sent: 0, duplicate: true });
+      return json({ error: error.message }, 500);
+    }
+    const reserva = data as { id?: unknown };
+    if (typeof reserva.id !== "string") return json({ error: "Falha ao reservar aviso" }, 500);
+    reservaId = reserva.id;
+  }
+
+  const vapidErro = await configurarVapid();
+  if (vapidErro) {
+    if (reservaId) {
+      await supabase.from("portal_push_log").update({ sucesso: false, erro_detalhe: vapidErro }).eq("id", reservaId);
+    }
+    return json({ error: vapidErro }, 500);
+  }
 
   const { data: subs, error: subsErr } = await supabase.from("portal_push_subscriptions").select("*").eq("aluno_id", aluno_id);
-  if (subsErr) return json({ error: subsErr.message }, 500);
-  if (!subs || subs.length === 0) return json({ ok: true, sent: 0, message: "No subscriptions" });
+  if (subsErr) {
+    if (reservaId) {
+      await supabase.from("portal_push_log").update({ sucesso: false, erro_detalhe: subsErr.message }).eq("id", reservaId);
+    }
+    return json({ error: subsErr.message }, 500);
+  }
+  if (!subs || subs.length === 0) {
+    if (reservaId) {
+      await supabase.from("portal_push_log").update({ sucesso: false, erro_detalhe: "sem_inscricao" }).eq("id", reservaId);
+    }
+    return json({ ok: true, sent: 0, message: "No subscriptions" });
+  }
 
   const payload = JSON.stringify({
     app: "aluno", title, body: body ?? "", icon: icon ?? "/favicon.png", badge: "/favicon.png",
@@ -51,9 +90,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  await supabase.from("portal_push_log").insert({
-    aluno_id, gatilho: gatilho ?? "manual", title, body: body ?? "",
-    sucesso: sent > 0, erro_detalhe: errors.length > 0 ? errors.join("; ") : null,
-  });
+  const resultado = {
+    sucesso: sent > 0,
+    erro_detalhe: errors.length > 0 ? errors.join("; ") : null,
+  };
+  if (reservaId) {
+    await supabase.from("portal_push_log").update(resultado).eq("id", reservaId);
+  } else {
+    await supabase.from("portal_push_log").insert({
+      aluno_id, gatilho: gatilho ?? "manual", title, body: body ?? "", ...resultado,
+    });
+  }
   return json({ ok: true, sent, errors });
 });

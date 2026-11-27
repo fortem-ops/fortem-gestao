@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Push do portal Fase 1: textos, regras, deduplicação por referência e fuso de Brasília; 171 arquivos/1.523 testes, cinco ensaios SQL revertidos e três funções publicadas.
 - [ ] Inativos, autoria, relatório junto à troca e avisos: aplicados e ensaios SQL revertidos passaram; falta conferência visual completa, bloqueada pela ativação de 2FA da conta temporária; não publicado.
 
 - [x] /10anos: retirar a data do topo e do título; preservar texto, áudio e botões, sem liberar e-mails, excluir teste ou publicar
