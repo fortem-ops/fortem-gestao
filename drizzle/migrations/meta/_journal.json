@@ -2227,6 +2227,13 @@
       "when": 1795806127270,
       "tag": "0317_portal_ocupacao_treinos_e_servicos",
       "breakpoints": true
+    },
+    {
+      "idx": 318,
+      "version": "7",
+      "when": 1795806667905,
+      "tag": "0318_historico_horario_treino",
+      "breakpoints": true
     }
   ]
 }

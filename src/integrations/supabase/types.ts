@@ -15101,6 +15101,10 @@ export type Database = {
       fn_golive_2027_ativar: { Args: { p_data_inicio: string }; Returns: Json }
       fn_golive_2027_reverter: { Args: never; Returns: Json }
       fn_golive_2027_snapshot: { Args: { p_rotulo: string }; Returns: number }
+      fn_historico_horario_treino: {
+        Args: { p_data: string; p_slot_id: string }
+        Returns: Json
+      }
       fn_ignorar_saida: {
         Args: { p_motivo: string; p_movimento_id: string }
         Returns: undefined

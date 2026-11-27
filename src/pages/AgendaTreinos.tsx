@@ -32,6 +32,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toastSuccess, toastError } from "@/lib/toast-helpers";
 import { IncluirAlunoHorario, podeGerenciarAlunosHorario } from "@/components/agenda/IncluirAlunoHorario";
+import { HistoricoHorarioTreino } from "@/components/agenda/HistoricoHorarioTreino";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -678,6 +679,8 @@ function SlotDetailSheet({
             })
           )}
         </div>
+
+        <HistoricoHorarioTreino slotId={selected.slot.id} dataStr={dataStr} />
       </SheetContent>
     </Sheet>
   );
@@ -1012,6 +1015,7 @@ function WeeklyGrid({
         onRefetch={() => {
           refetchAg();
           qc.invalidateQueries({ queryKey: ["treino-agendamentos-dia"] });
+          qc.invalidateQueries({ queryKey: ["historico-horario-treino"] });
         }}
       />
     </div>
