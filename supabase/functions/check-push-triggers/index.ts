@@ -59,9 +59,17 @@ async function processar(): Promise<Response> {
   const supabase = createClient(supabaseUrl, serviceKey);
   const hoje = dataBrasilia();
 
-  const { data, error } = await supabase.rpc("fn_portal_push_avisos", { p_hoje: hoje });
-  if (error) throw new Error(error.message);
-  const avisos = (data ?? []) as AvisoPortal[];
+  // A seleção da Fase 1 permanece isolada; a Fase 2 apenas acrescenta seus novos avisos.
+  const [fase1, fase2] = await Promise.all([
+    supabase.rpc("fn_portal_push_avisos", { p_hoje: hoje }),
+    supabase.rpc("fn_portal_push_avisos_fase2", { p_hoje: hoje }),
+  ]);
+  if (fase1.error) throw new Error(fase1.error.message);
+  if (fase2.error) throw new Error(fase2.error.message);
+  const avisos = [
+    ...((fase1.data ?? []) as AvisoPortal[]),
+    ...((fase2.data ?? []) as AvisoPortal[]),
+  ];
 
   let enviados = 0;
   let duplicados = 0;

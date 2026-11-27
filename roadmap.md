@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Push do portal Fase 2: quatro avisos, aceite de todos os contratos e aviso na tela inicial; 174 arquivos/1.532 testes, quatro ensaios SQL revertidos; rotina publicada, aviso visual aguarda Publish.
 - [x] Push do portal Fase 1: textos, regras, deduplicação por referência e fuso de Brasília; 171 arquivos/1.523 testes, cinco ensaios SQL revertidos e três funções publicadas.
 - [ ] Inativos, autoria, relatório junto à troca e avisos: aplicados e ensaios SQL revertidos passaram; falta conferência visual completa, bloqueada pela ativação de 2FA da conta temporária; não publicado.
 

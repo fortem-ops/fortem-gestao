@@ -15661,6 +15661,23 @@ export type Database = {
           valor: number
         }[]
       }
+      fn_portal_push_avisos_fase2: {
+        Args: { p_hoje?: string }
+        Returns: {
+          aluno_id: string
+          anos: number
+          data_referencia: string
+          dias: number
+          documentos: number
+          gatilho: string
+          nome: string
+          plano_tipo: string
+          referencia: string
+          saldo: number
+          url: string
+          valor: number
+        }[]
+      }
       fn_portal_recovery_avulso_link: { Args: never; Returns: Json }
       fn_portal_recovery_avulso_preco: { Args: never; Returns: number }
       fn_preco_servico_rescisao: {

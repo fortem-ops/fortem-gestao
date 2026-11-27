@@ -1,4 +1,5 @@
 import PortalDesafioColetivo from "@/components/portal/PortalDesafioColetivo";
+import { AvisoDocumentosPendentes } from "@/components/portal/AvisoDocumentosPendentes";
 import { buildInclusoPlano, SERVICOS_PLANO } from "@/lib/creditosServicos";
 
 import { useEffect, useState } from "react";
@@ -8,7 +9,7 @@ import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { agendaOculta } from "@/lib/portalAgenda";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
-import { Activity, ArrowRight, Utensils, Footprints, ChevronRight, MessageCircle } from "lucide-react";
+import { Activity, Utensils, Footprints, ChevronRight, MessageCircle } from "lucide-react";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { ReactNode } from "react";
 import { useAlunoAvaliacoesConsolidadas } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
@@ -137,12 +138,12 @@ export default function PortalHome() {
     enabled: !!student,
     queryFn: async () => {
       const [contratoRes, anexoRes] = await Promise.all([
-        supabase.from("contratos_documentos").select("id, aceite").eq("aluno_id", student!.id).eq("aceite", false).limit(1),
+        supabase.from("contratos_documentos").select("id").eq("aluno_id", student!.id).eq("aceite", false),
         supabase.from("legal_annexes").select("id, signed_at").eq("aluno_id", student!.id).not("signed_at", "is", null).limit(1),
       ]);
-      const contratoPendente = (contratoRes.data?.length ?? 0) > 0;
+      const contratosPendentes = contratoRes.data?.length ?? 0;
       const anexoAssinado = (anexoRes.data?.length ?? 0) > 0;
-      return { contratoPendente, anexoPendente: !anexoAssinado };
+      return { contratosPendentes, anexoPendente: !anexoAssinado };
     },
   });
   const pendenciasDocs = pendQ.data;
@@ -249,7 +250,6 @@ export default function PortalHome() {
 
   if (!student) return null;
 
-  const temPendencia = !!pendenciasDocs && (pendenciasDocs.contratoPendente || pendenciasDocs.anexoPendente);
   const contratado = cicloAtivo?.creditos_liberados ?? 0;
   const usado = cicloAtivo?.creditos_usados ?? 0;
   const saldo = Math.max(0, contratado - usado);
@@ -369,25 +369,10 @@ export default function PortalHome() {
       </section>
 
       {/* 3. Pendência */}
-      {temPendencia && (
-        <Link
-          to="/portal/contratos"
-          className={`flex min-h-[44px] items-center gap-3 border border-[#E3B341]/50 px-4 py-2 ${COR_AVISO}`}
-        >
-          <span className="flex-1 truncate text-sm font-bold">
-            Documentos pendentes de aceite
-            <span className="font-normal text-[#B1B3B3]">
-              {" · "}
-              {pendenciasDocs?.contratoPendente && pendenciasDocs?.anexoPendente
-                ? "Contrato e Anexo I"
-                : pendenciasDocs?.contratoPendente
-                ? "Contrato"
-                : "Anexo I"}
-            </span>
-          </span>
-          <ArrowRight className="h-4 w-4 shrink-0" />
-        </Link>
-      )}
+      <AvisoDocumentosPendentes
+        contratosPendentes={pendenciasDocs?.contratosPendentes ?? 0}
+        anexoPendente={pendenciasDocs?.anexoPendente ?? false}
+      />
 
       {/* 4. Créditos de treino */}
       <section className="space-y-2">

@@ -2178,6 +2178,13 @@
       "when": 1795801530437,
       "tag": "0310_push_portal_reavaliacao_janela_15d",
       "breakpoints": true
+    },
+    {
+      "idx": 311,
+      "version": "7",
+      "when": 1795801991884,
+      "tag": "0311_push_portal_fase2_novos_avisos",
+      "breakpoints": true
     }
   ]
 }

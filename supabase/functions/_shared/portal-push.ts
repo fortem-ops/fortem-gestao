@@ -3,7 +3,10 @@ export type GatilhoPortal =
   | "reavaliacao_pendente"
   | "creditos_baixos"
   | "cobranca_atrasada"
-  | "aniversario_fortem";
+  | "aniversario_fortem"
+  | "aniversario_aluno"
+  | "documentos_pendentes"
+  | "baixa_frequencia";
 
 export interface AvisoPortal {
   aluno_id: string;
@@ -15,6 +18,9 @@ export interface AvisoPortal {
   valor: number | string | null;
   saldo: number | null;
   anos: number | null;
+  nome?: string | null;
+  documentos?: number | null;
+  dias?: number | null;
 }
 
 export function dataBrasilia(agora = new Date()): string {
@@ -71,5 +77,22 @@ export function textoAvisoPortal(aviso: AvisoPortal): { title: string; body: str
         body: "Obrigado por treinar com a gente. Seguimos juntos na sua evolução.",
       };
     }
+    case "aniversario_aluno":
+      return {
+        title: `Feliz aniversário, ${aviso.nome ?? ""}!`,
+        body: "A equipe FORTEM deseja um ano de muita saúde e bons treinos.",
+      };
+    case "documentos_pendentes": {
+      const total = aviso.documentos ?? 0;
+      return {
+        title: "Documento para assinar",
+        body: `Você tem ${total} ${total === 1 ? "documento" : "documentos"} aguardando seu aceite. Acesse o app para revisar e aceitar.`,
+      };
+    }
+    case "baixa_frequencia":
+      return {
+        title: "Sentimos sua falta",
+        body: `Faz ${aviso.dias ?? 0} dias desde seu último treino. Que tal voltar esta semana? Agende pelo app.`,
+      };
   }
 }
