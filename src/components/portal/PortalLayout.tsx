@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle, Settings } from "lucide-react";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle, Settings } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { PortalPushIncentivo } from "./PortalPushIncentivo";
+import { PortalPushContexto } from "./PortalPushContexto";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -29,7 +30,7 @@ export function PortalLayout() {
   const itensNav = filtrarNavPortal(navItems, somenteOnline);
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
-  const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe } = usePushNotifications();
+  const { pathname } = useLocation();
   const { tema } = usePortalTema();
 
   // Diálogos, sheets e toasts montam em document.body (fora do wrapper):
@@ -185,25 +186,10 @@ export function PortalLayout() {
         </SheetContent>
       </Sheet>
 
-      {/* Banner de ativação de notificações */}
-      {isSupported && !isSubscribed && permission !== "denied" && (
-        <div className="bg-primary/10 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
-          <Bell className="w-4 h-4 text-primary shrink-0" />
-          <p className="text-xs text-foreground flex-1">
-            Ative as notificações para receber alertas de treino, renovação e mais.
-          </p>
-          <button
-            onClick={subscribe}
-            disabled={pushLoading}
-            className="text-xs font-bold text-primary whitespace-nowrap"
-          >
-            {pushLoading ? "..." : "Ativar"}
-          </button>
-        </div>
-      )}
-
       {/* Conteúdo */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 pt-4 pb-28">
+        {(pathname === "/portal" || pathname === "/portal/home") && <div className="mb-4"><PortalPushIncentivo /></div>}
+        <PortalPushContexto />
         <Outlet />
       </main>
 

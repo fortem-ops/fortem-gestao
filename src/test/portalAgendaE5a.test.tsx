@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
-let ctx: any;
+let ctx: {
+  student: { id: string; nome: string; sexo?: string };
+  loading: boolean; unlinked: boolean; refetch: () => void;
+  somenteOnline?: boolean | null; somenteOnlineLoading?: boolean;
+};
 vi.mock("@/contexts/StudentPortalContext", () => ({
   useStudentPortal: () => ctx,
   useStudentPortalOptional: () => ctx,
@@ -22,9 +27,11 @@ const base = { student: { id: "x", nome: "Aluno Teste" }, loading: false, unlink
 
 function renderLayout() {
   render(
+    <QueryClientProvider client={new QueryClient()}>
     <MemoryRouter initialEntries={["/portal/home"]}>
       <Routes><Route element={<PortalLayout />}><Route path="/portal/home" element={<div />} /></Route></Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryClientProvider>,
   );
   return screen.getAllByRole("link").filter((l) => l.getAttribute("href")?.startsWith("/portal/")).map((l) => l.textContent);
 }

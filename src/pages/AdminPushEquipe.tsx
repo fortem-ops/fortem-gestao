@@ -1,3 +1,4 @@
+import { PushPortalAdesao } from "@/components/portal/PushPortalAdesao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +50,7 @@ export default function AdminPushEquipe() {
         <h1 className="text-2xl font-bold">Push da equipe</h1>
         <Button onClick={() => teste.mutate()} disabled={teste.isPending}>Enviar teste para mim</Button>
       </div>
+      <PushPortalAdesao enabled={!!roles?.isAdmin} />
       <Card>
         <CardHeader><CardTitle className="text-base">Últimos 100 envios</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">
