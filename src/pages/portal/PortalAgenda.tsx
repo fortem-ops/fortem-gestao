@@ -134,8 +134,11 @@ export default function PortalAgenda() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ciclos_credito")
-        .select("creditos_liberados, creditos_usados, data_fim, status")
+        .select("creditos_liberados, creditos_usados, data_inicio, data_fim, status, contratos!inner(aluno_id, status)")
+        .eq("contratos.aluno_id", student!.id)
+        .eq("contratos.status", "ativo")
         .eq("status", "ativo")
+        .order("creditos_liberados", { ascending: false })
         .order("data_inicio", { ascending: false })
         .limit(1)
         .maybeSingle();
