@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle, Settings } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle, Settings, ShoppingBag, MessageSquarePlus } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -162,6 +162,8 @@ export function PortalLayout() {
               { to: "/portal/meu-perfil", label: "Progresso", icon: TrendingUp },
               { to: "/portal/clube", label: "Benefícios", icon: Sparkles },
               { to: "/portal/meu-perfil?aba=conquistas", label: "Conquistas", icon: Award },
+              { to: "/portal/loja", label: "Loja da Fortem", icon: ShoppingBag },
+              { to: "/portal/sugestoes", label: "Sugestões de Melhorias", icon: MessageSquarePlus },
               { to: "/portal/configuracoes", label: "Configurações do App", icon: Settings },
             ].map((item) => (
               <button

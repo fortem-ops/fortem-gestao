@@ -37,6 +37,7 @@ const Auditoria = lazyWithReload(() => import("./pages/Auditoria"));
 const Loja = lazyWithReload(() => import("./pages/Loja"));
 const AdminNotificacoesEmail = lazyWithReload(() => import("./pages/AdminNotificacoesEmail"));
 const AdminPushEquipe = lazyWithReload(() => import("./pages/AdminPushEquipe"));
+const SugestoesMelhorias = lazyWithReload(() => import("./pages/SugestoesMelhorias"));
 
 const Agenda = lazyWithReload(() => import("./pages/Agenda"));
 const AgendaTreinos = lazyWithReload(() => import("./pages/AgendaTreinos"));
@@ -146,6 +147,7 @@ const PortalLoja = lazyWithReload(() => import("./pages/portal/PortalLoja"));
 const PortalLojaProduto = lazyWithReload(() => import("./pages/portal/PortalLojaProduto"));
 const PortalLojaCarrinho = lazyWithReload(() => import("./pages/portal/PortalLojaCarrinho"));
 const PortalConfiguracoes = lazyWithReload(() => import("./pages/portal/PortalConfiguracoes"));
+const PortalSugestoes = lazyWithReload(() => import("./pages/portal/PortalSugestoes"));
 
 // Portal do Parceiro
 const PartnerLogin = lazyWithReload(() => import("./pages/parceiro/PartnerLogin"));
@@ -269,6 +271,7 @@ const App = () => (
               <Route path="/portal/loja" element={<Suspense fallback={<RouteFallback />}><PortalLoja /></Suspense>} />
               <Route path="/portal/loja/carrinho" element={<Suspense fallback={<RouteFallback />}><PortalLojaCarrinho /></Suspense>} />
               <Route path="/portal/loja/:produtoId" element={<Suspense fallback={<RouteFallback />}><PortalLojaProduto /></Suspense>} />
+              <Route path="/portal/sugestoes" element={<Suspense fallback={<RouteFallback />}><PortalSugestoes /></Suspense>} />
               <Route path="/portal/configuracoes" element={<Suspense fallback={<RouteFallback />}><PortalConfiguracoes /></Suspense>} />
             </Route>
 
@@ -341,6 +344,7 @@ const App = () => (
               }
             >
               <Route path="/equipe" element={<Suspense fallback={<RouteFallback />}><Dashboard /></Suspense>} />
+              <Route path="/sugestoes" element={<Suspense fallback={<RouteFallback />}><SugestoesMelhorias /></Suspense>} />
               <Route
                 path="/alunos"
                 element={

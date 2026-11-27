@@ -2241,6 +2241,13 @@
       "when": 1795807472824,
       "tag": "0319_contratos_cancelar_ciclos_credito",
       "breakpoints": true
+    },
+    {
+      "idx": 320,
+      "version": "7",
+      "when": 1795811981494,
+      "tag": "0320_portal_sugestoes_melhorias",
+      "breakpoints": true
     }
   ]
 }

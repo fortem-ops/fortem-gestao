@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert, TrendingUp, Receipt, HandCoins, PartyPopper, Camera } from "lucide-react";
+import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes, ShoppingBag, ShieldAlert, TrendingUp, Receipt, HandCoins, PartyPopper, Camera, MessageSquarePlus } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
@@ -123,6 +123,7 @@ const relatoriosItems = [
 const sistemaCoordAdminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
   { title: "Notificações por Email", url: "/admin/notificacoes-email", icon: Bell },
+  { title: "Sugestões", url: "/sugestoes", icon: MessageSquarePlus },
 ];
 const sistemaAdminItems: { title: string; url: string; icon: typeof Bell }[] = [
   { title: "Push da equipe", url: "/admin/push-equipe", icon: Bell },

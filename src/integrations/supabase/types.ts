@@ -10386,6 +10386,66 @@ export type Database = {
           },
         ]
       }
+      portal_sugestoes: {
+        Row: {
+          aluno_id: string
+          categoria: string
+          created_at: string
+          descricao: string
+          id: string
+          respondido_em: string | null
+          respondido_por: string | null
+          resposta: string | null
+          status: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aluno_id: string
+          categoria: string
+          created_at?: string
+          descricao: string
+          id?: string
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aluno_id?: string
+          categoria?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_sugestoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_sugestoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       produtos_catalogo: {
         Row: {
           ativo: boolean
@@ -16195,6 +16255,29 @@ export type Database = {
       fn_resolver_responsavel_reavaliacao: {
         Args: { _aluno_id: string; _fallback: string }
         Returns: string
+      }
+      fn_responder_sugestao: {
+        Args: { p_resposta?: string; p_status: string; p_sugestao_id: string }
+        Returns: {
+          aluno_id: string
+          categoria: string
+          created_at: string
+          descricao: string
+          id: string
+          respondido_em: string | null
+          respondido_por: string | null
+          resposta: string | null
+          status: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "portal_sugestoes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       fn_reveal_annex_cpf: { Args: { p_annex_id: string }; Returns: string }
       fn_reveal_cpf: { Args: { p_aluno_id: string }; Returns: string }
