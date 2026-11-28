@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Menu, UserRound, TrendingUp, Award, UsersRound, MessageCircle, Settings, ShoppingBag, MessageSquarePlus } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, CalendarDays, LogOut, Menu, UserRound, UsersRound, MessageCircle, Settings, ShoppingBag, MessageSquarePlus } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { PortalPushIncentivo } from "./PortalPushIncentivo";
 import { PortalPushContexto } from "./PortalPushContexto";
+import { SeloPlano } from "./SeloPlano";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { filtrarNavPortal } from "@/lib/portalAgenda";
 import { lerReservaPendente } from "@/lib/recoveryReservaPendente";
 import { usePortalTema } from "@/hooks/usePortalTema";
+import { useMeuPlanoClube } from "@/lib/clubePlano";
 
 const navItems = [
   { to: "/portal/home", label: "Início", icon: House },
@@ -32,6 +34,7 @@ export function PortalLayout() {
   const [menuAberto, setMenuAberto] = useState(false);
   const { pathname } = useLocation();
   const { tema } = usePortalTema();
+  const { data: meuPlano } = useMeuPlanoClube(!!student);
 
   // Diálogos, sheets e toasts montam em document.body (fora do wrapper):
   // aplica o tema do portal ao body enquanto o portal estiver aberto.
@@ -130,16 +133,6 @@ export function PortalLayout() {
                 </AvatarFallback>
               </Avatar>
             </button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => signOut().then(() => navigate("/portal/login"))}
-              title="Sair"
-              aria-label="Sair"
-              className="text-foreground"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       </header>
@@ -154,17 +147,17 @@ export function PortalLayout() {
         >
           <SheetHeader className="border-b border-[#4A4B4B] px-5 py-4 text-left">
             <SheetTitle className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#B1B3B3]">Menu</SheetTitle>
-            <p className="text-base font-black uppercase text-foreground truncate">{student?.nome}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-base font-black uppercase text-foreground truncate">{student?.nome}</p>
+              <SeloPlano chave={meuPlano?.chave} />
+            </div>
           </SheetHeader>
           <nav className="flex flex-col py-2">
             {[
-              { to: "/portal/perfil", label: "Perfil", icon: UserRound },
-              { to: "/portal/meu-perfil", label: "Progresso", icon: TrendingUp },
-              { to: "/portal/clube", label: "Benefícios", icon: Sparkles },
-              { to: "/portal/meu-perfil?aba=conquistas", label: "Conquistas", icon: Award },
-              { to: "/portal/loja", label: "Loja da Fortem", icon: ShoppingBag },
-              { to: "/portal/sugestoes", label: "Sugestões de Melhorias", icon: MessageSquarePlus },
-              { to: "/portal/configuracoes", label: "Configurações do App", icon: Settings },
+              { to: "/portal/perfil", label: "Perfil, plano e pagamentos", icon: UserRound },
+              { to: "/portal/loja", label: "Loja da FORTEM", icon: ShoppingBag },
+              { to: "/portal/sugestoes", label: "Sugestões de melhorias", icon: MessageSquarePlus },
+              { to: "/portal/configuracoes", label: "Configurações do app", icon: Settings },
             ].map((item) => (
               <button
                 key={item.to}

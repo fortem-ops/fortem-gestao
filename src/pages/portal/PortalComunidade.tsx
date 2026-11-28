@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SeloPlano } from "@/components/portal/SeloPlano";
 import { ComunidadeFeed } from "@/components/portal/ComunidadeFeed";
 import { RankingGeralLista } from "@/components/portal/RankingGeral";
+import { ClubeFortemAba } from "@/components/portal/ClubeFortemAba";
 import {
   AVISO_VISIBILIDADE, MODALIDADES, DESCRICAO_MAX, ORIENTACAO_CAPA, CAPA_TIPOS, enviarCapa, useCapasClubes, validarArquivoCapa, iniciaisAbrev, mensagemErroComunidade, useMeusClubes, useRankingClube,
   type ComunidadeClube,
@@ -119,18 +120,27 @@ export default function PortalComunidade() {
   const explorar = (clubes ?? []).filter((c) => c.status === "ativo" && !c.sou_membro);
 
   const abaParam = params.get("aba");
-  const aba = abaParam === "clubes" || abaParam === "ranking" ? abaParam : "feed";
+  const aba = abaParam === "clubes" || abaParam === "ranking" || abaParam === "clube" ? abaParam : "feed";
   const abas = (
-    <div className="grid grid-cols-3 border-b border-[#4A4B4B] pt-2" role="tablist">
-      {(["feed", "ranking", "clubes"] as const).map((v) => (
+    <div className="grid grid-cols-4 border-b border-[#4A4B4B] pt-2" role="tablist">
+      {(["feed", "ranking", "clubes", "clube"] as const).map((v) => (
         <button key={v} role="tab" aria-selected={aba === v}
           onClick={() => { const p = new URLSearchParams(params); p.set("aba", v); setParams(p); }}
-          className={cn(BOTAO, "border-b-2", aba === v ? "border-[#C8282A] text-foreground" : "border-transparent text-[#B1B3B3]")}>
-          {v === "feed" ? "Feed" : v === "ranking" ? "Ranking" : "Clubes"}
+          className={cn("min-h-[44px] px-1 text-[11px] font-bold uppercase tracking-[0.06em] border-b-2", aba === v ? "border-[#C8282A] text-foreground" : "border-transparent text-[#B1B3B3]")}>
+          {v === "feed" ? "Feed" : v === "ranking" ? "Ranking" : v === "clubes" ? "Clubes" : "Clube FORTEM"}
         </button>
       ))}
     </div>
   );
+
+  if (aba === "clube") {
+    return (
+      <div className="space-y-6 pb-8" style={{ fontFamily: "Archivo, sans-serif" }}>
+        {abas}
+        <ClubeFortemAba />
+      </div>
+    );
+  }
 
   if (aba === "ranking") {
     return (

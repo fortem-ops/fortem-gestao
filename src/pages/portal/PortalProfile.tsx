@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
   ChevronRight, CreditCard, Bell, LogOut, FileText,
-  UserRound, Shield, QrCode, Sparkles, ShoppingBag, Bot, ScanFace,
+  UserRound, Shield, ScanFace,
 } from "lucide-react";
 
 const GRUPOS = [
@@ -16,23 +16,14 @@ const GRUPOS = [
     itens: [
       { to: "/portal/plano", titulo: "Meu plano", descricao: "Créditos, trancar e upgrade", icone: Shield },
       { to: "/portal/pagamentos", titulo: "Pagamentos", descricao: "Próxima cobrança, cartão e histórico", icone: CreditCard },
-      { to: "/portal/contratos", titulo: "Contratos", descricao: "Contrato e Anexo I", icone: FileText },
+      { to: "/portal/contratos", titulo: "Contratos e documentos", descricao: "Contrato, Anexo I e documentos", icone: FileText },
     ],
   },
   {
-    titulo: "Conta",
+    titulo: "Dados pessoais",
     itens: [
       { to: "/portal/meus-dados", titulo: "Meus dados", descricao: "Nome, telefone, e-mail e CPF", icone: UserRound },
       { to: "/portal/notificacoes", titulo: "Notificações", descricao: "Lembretes de treino e cobranças", icone: Bell },
-    ],
-  },
-  {
-    titulo: "Fortem",
-    itens: [
-      { to: "/portal/carteirinha", titulo: "Carteirinha", descricao: "QR code para check-in", icone: QrCode },
-      { to: "/portal/clube", titulo: "Benefícios", descricao: "Pontos, recompensas e parceiros", icone: Sparkles },
-      { to: "/portal/loja", titulo: "Loja", descricao: "Suplementos e produtos", icone: ShoppingBag },
-      { to: "/portal/assistente", titulo: "Assistente Fortem", descricao: "Dúvidas sobre treino e plano", icone: Bot },
     ],
   },
 ];
@@ -80,7 +71,7 @@ export default function PortalProfile() {
   if (!student) return null;
 
   const grupos = GRUPOS.map((g) =>
-    g.titulo === "Conta" && facialLiberado
+    g.titulo === "Dados pessoais" && facialLiberado
       ? { ...g, itens: [...g.itens, { to: "/portal/reconhecimento-facial", titulo: "Reconhecimento facial", descricao: "Entrar no estúdio pelo rosto", icone: ScanFace }] }
       : g,
   );

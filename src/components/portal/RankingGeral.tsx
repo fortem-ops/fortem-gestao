@@ -31,7 +31,7 @@ export function RankingGeralLista() {
         <h1 className="text-xl font-black uppercase text-foreground">Ranking FORTEM</h1>
         <p className="text-sm text-[#B1B3B3]">Dias com treino realizado neste mês. Zera todo dia 1. Treinos no total são só informativos.</p>
       </div>
-      <div className="flex justify-between px-3"><span className={ROTULO}>Aluno</span><span className={ROTULO}>Treinos no mês</span></div>
+      <div className="flex justify-between px-3"><span className={ROTULO}>Aluno</span><span className={ROTULO}>Dias com treino</span></div>
       {top.length === 0 ? (
         <p className="border border-[#4A4B4B] p-4 text-sm text-[#B1B3B3]">Nenhum treino registrado neste mês ainda.</p>
       ) : (
@@ -44,7 +44,7 @@ export function RankingGeralLista() {
       )}
       {eu && !eu.participa && (
         <div className="border border-[#4A4B4B] p-4 text-sm text-[#B1B3B3]">
-          Você tem {eu.treinos_mes} {eu.treinos_mes === 1 ? "treino" : "treinos"} este mês. Para aparecer no ranking, participe da Comunidade.
+          Você tem {eu.treinos_mes} {eu.treinos_mes === 1 ? "dia" : "dias"} com treino este mês. Para aparecer no ranking, participe da Comunidade.
         </div>
       )}
     </section>
@@ -56,7 +56,7 @@ export function ResumoRankingGeral() {
   const { data, isLoading } = useRankingGeral();
   const eu = data?.eu;
   const n = eu?.treinos_mes ?? 0;
-  const treinos = `${n} ${n === 1 ? "treino" : "treinos"} este mês`;
+  const treinos = `${n} ${n === 1 ? "dia" : "dias"} com treino este mês`;
   const texto = isLoading ? "Carregando..." : eu?.participa && eu.posicao ? `#${eu.posicao} no ranking FORTEM · ${treinos}` : treinos;
   return (
     <Link to="/portal/comunidade?aba=ranking" className="flex min-h-[64px] items-center gap-3 border border-[#4A4B4B] bg-card p-4" style={{ fontFamily: "Archivo, sans-serif" }}>

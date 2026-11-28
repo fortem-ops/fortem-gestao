@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { desafioMaisProximo, percentualDesafio, type DesafioPortal } from "./portalPresentation";
+import { textoRecompensaDesafio } from "@/lib/portalReorganizacao";
 
 export default function PortalDesafioColetivo({ enabled, compacto = false }: { enabled: boolean; compacto?: boolean }) {
   // Mesma consulta e cache anteriormente usados pela Home.
@@ -24,7 +25,8 @@ export default function PortalDesafioColetivo({ enabled, compacto = false }: { e
     {lista.map((d) => {
       const pct = percentualDesafio(d);
       const faltam = Math.max(0, d.valor_meta - d.progresso_atual);
-      const dias = Math.max(0, Math.ceil((new Date(d.data_fim).getTime() - Date.now()) / 86400000));
+      const dataFimBr = new Date(`${d.data_fim}T12:00:00`).toLocaleDateString("pt-BR");
+      const recompensa = textoRecompensaDesafio(d);
       const conteudo = <>
         <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Desafio coletivo</p>
         <div className="flex items-start justify-between gap-3">
@@ -36,19 +38,13 @@ export default function PortalDesafioColetivo({ enabled, compacto = false }: { e
         <div role="progressbar" aria-label={d.titulo} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} className="h-1 overflow-hidden bg-border">
           <div className="h-full bg-foreground" style={{ width: `${pct}%` }} />
         </div>
-        <p className="text-xs text-muted-foreground">{faltam > 0 ? `Faltam ${faltam.toLocaleString("pt-BR")} para a meta` : "Meta atingida"}</p>
-        {!compacto && <>
-          <dl className="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
-            <div><dt className="text-muted-foreground">Valor atual</dt><dd className="font-bold">{d.progresso_atual.toLocaleString("pt-BR")}</dd></div>
-            <div><dt className="text-muted-foreground">Meta</dt><dd className="font-bold">{d.valor_meta.toLocaleString("pt-BR")}</dd></div>
-          </dl>
-          <p className="text-xs text-muted-foreground">Até {new Date(`${d.data_fim}T12:00:00`).toLocaleDateString("pt-BR")} · {dias > 0 ? `${dias} dias restantes` : "Último dia"}</p>
-          {(d.pontos_recompensa ?? 0) > 0 && <p className="text-xs text-muted-foreground">Ao atingir a meta, todos os alunos ativos recebem {d.pontos_recompensa} pontos.</p>}
-          {d.mensagem_recompensa && <p className="text-xs text-muted-foreground">{d.mensagem_recompensa}</p>}
-        </>}
+        <p className="text-xs text-muted-foreground">
+          {d.progresso_atual.toLocaleString("pt-BR")} de {d.valor_meta.toLocaleString("pt-BR")} · {faltam > 0 ? `faltam ${faltam.toLocaleString("pt-BR")}` : "meta atingida"} · até {dataFimBr}
+        </p>
+        {!compacto && recompensa && <p className="text-xs text-muted-foreground">{recompensa}</p>}
       </>;
       return compacto
-        ? <Link key={d.id} to="/portal/clube" className="block min-h-[44px] space-y-2 border border-border bg-card p-4 text-foreground">{conteudo}</Link>
+        ? <Link key={d.id} to="/portal/comunidade?aba=clube" className="block min-h-[44px] space-y-2 border border-border bg-card p-4 text-foreground">{conteudo}</Link>
         : <div key={d.id} className="space-y-3 border border-border bg-card p-4 text-foreground">{conteudo}</div>;
     })}
   </section>;

@@ -3,7 +3,8 @@ import { ThemeProvider } from "next-themes";
 import { lazyWithReload } from "@/lib/lazyWithReload";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RastreamentoPublico } from "./site/RastreamentoPublico";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
+import { resolverDestinoMeuPerfil } from "@/lib/portalReorganizacao";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -134,9 +135,8 @@ const AceitarContratoToken = lazyWithReload(() => import("./pages/AceitarContrat
 const PortalHome = lazyWithReload(() => import("./pages/portal/PortalHome"));
 const PortalWorkouts = lazyWithReload(() => import("./pages/portal/PortalWorkouts"));
 const PortalAssessments = lazyWithReload(() => import("./pages/portal/PortalAssessments"));
-const PortalClube = lazyWithReload(() => import("./pages/portal/PortalClube"));
 const PortalComunidade = lazyWithReload(() => import("./pages/portal/PortalComunidade"));
-const PortalPerfilProgresso = lazyWithReload(() => import("./pages/portal/PortalPerfilProgresso"));
+const PortalParceiros = lazyWithReload(() => import("./pages/portal/PortalParceiros"));
 const PortalAgenda = lazyWithReload(() => import("./pages/portal/PortalAgenda"));
 const PortalPlano = lazyWithReload(() => import("./pages/portal/PortalPlano"));
 const PortalNotificacoes = lazyWithReload(() => import("./pages/portal/PortalNotificacoes"));
@@ -180,6 +180,11 @@ const SiteRedirect = () => {
   const destino = pathname.replace(/^\/site\/?/, "/") || "/";
   return <Navigate to={`${destino}${search}${hash}`} replace />;
 };
+
+function RedirecionarMeuPerfil() {
+  const [params] = useSearchParams();
+  return <Navigate to={resolverDestinoMeuPerfil(params.get("aba"))} replace />;
+}
 
 const RouteFallback = () => (
   <div className="space-y-4 p-2">
@@ -256,9 +261,13 @@ const App = () => (
               <Route path="/portal/perfil" element={<Suspense fallback={<RouteFallback />}><PortalProfile /></Suspense>} />
               <Route path="/portal/treinos" element={<Suspense fallback={<RouteFallback />}><PortalWorkouts /></Suspense>} />
               <Route path="/portal/avaliacoes" element={<Suspense fallback={<RouteFallback />}><PortalAssessments /></Suspense>} />
-              <Route path="/portal/clube" element={<Suspense fallback={<RouteFallback />}><PortalClube /></Suspense>} />
               <Route path="/portal/comunidade" element={<Suspense fallback={<RouteFallback />}><PortalComunidade /></Suspense>} />
-              <Route path="/portal/meu-perfil" element={<Suspense fallback={<RouteFallback />}><PortalPerfilProgresso /></Suspense>} />
+              <Route path="/portal/parceiros" element={<Suspense fallback={<RouteFallback />}><PortalParceiros /></Suspense>} />
+              <Route path="/portal/clube" element={<Navigate to="/portal/comunidade?aba=clube" replace />} />
+              <Route path="/portal/beneficios" element={<Navigate to="/portal/comunidade?aba=clube" replace />} />
+              <Route path="/portal/meu-perfil" element={<RedirecionarMeuPerfil />} />
+              <Route path="/portal/progresso" element={<Navigate to="/portal/avaliacoes?aba=frequencia" replace />} />
+              <Route path="/portal/conquistas" element={<Navigate to="/portal/avaliacoes?aba=conquistas" replace />} />
               <Route path="/portal/agenda" element={<Suspense fallback={<RouteFallback />}><AgendaGuard><PortalAgenda /></AgendaGuard></Suspense>} />
               <Route path="/portal/plano" element={<Suspense fallback={<RouteFallback />}><PortalPlano /></Suspense>} />
               <Route path="/portal/notificacoes" element={<Suspense fallback={<RouteFallback />}><PortalNotificacoes /></Suspense>} />

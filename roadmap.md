@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Portal Etapa 1: reorganização "cada coisa num lugar só" (Comunidade com Clube FORTEM, Parceiros FORTEM, Evolução com Frequência/Avaliações/Conquistas, Perfil/Menu enxutos e redirecionamentos); Etapa 2 (resgate de pontos em parceiros) pendente de regra; aguarda Publish.
 - [x] Push do portal Fase 4: incentivo, adiamento 7 dias, orientações iPhone/bloqueio, contexto 1x/sessão e adesão administrativa; aguarda Publish.
 
 - [x] Push do portal Fase 2: quatro avisos, aceite de todos os contratos e aviso na tela inicial; 174 arquivos/1.532 testes, quatro ensaios SQL revertidos; rotina publicada, aviso visual aguarda Publish.

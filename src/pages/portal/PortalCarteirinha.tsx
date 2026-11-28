@@ -97,7 +97,7 @@ export default function PortalCarteirinha() {
                 <p className="text-xs text-muted-foreground">Onde usar sua carteirinha</p>
               </div>
               <button
-                onClick={() => navigate("/portal/clube")}
+                onClick={() => navigate("/portal/comunidade?aba=clube")}
                 className="text-xs font-bold text-primary"
               >
                 Ver →

@@ -109,7 +109,12 @@ vi.mock("@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas", () => 
 vi.mock("@/components/portal/referenciaResumoPortal", () => ({ useMobilidadeResumoReferencia: () => ({ data: undefined }) }));
 
 describe("E5a — botão de agendar avaliação", () => {
-  const abrir = () => render(<MemoryRouter><PortalAssessments /></MemoryRouter>);
+  const abrir = () =>
+    render(
+      <MemoryRouter initialEntries={["/portal/avaliacoes?aba=avaliacoes"]}>
+        <PortalAssessments />
+      </MemoryRouter>,
+    );
   it("só Consultoria: escondido, sem aviso", () => {
     ctx = { ...base, student: { ...base.student, sexo: "M" }, somenteOnline: true };
     abrir();
